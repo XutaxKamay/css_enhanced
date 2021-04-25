@@ -27,9 +27,8 @@ def build(bld):
 		'.',
 		'../common',
 		'../public',
-		'../public/tier0',
-		'../thirdparty/SDL2'
-	]	
+		'../public/tier0'
+	]
 
 	defines = []
 
