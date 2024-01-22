@@ -375,6 +375,10 @@ SendProp SendPropFloat(
 {
 	SendProp ret;
 
+	// Remove float compression to avoid errors
+	flags = SPROP_NOSCALE;
+	nBits = 32;
+	
 	if ( varProxy == SendProxy_FloatToFloat )
 	{
 		Assert( sizeofVar == 0 || sizeofVar == 4 );
@@ -425,6 +429,10 @@ SendProp SendPropVector(
 {
 	SendProp ret;
 
+	// Remove float compression to avoid errors
+	flags = SPROP_NOSCALE;
+	nBits = 32;
+
 	if(varProxy == SendProxy_VectorToVector)
 	{
 		Assert(sizeofVar == sizeof(Vector));
@@ -460,6 +468,10 @@ SendProp SendPropVectorXY(
 	)
 {
 	SendProp ret;
+
+	// Remove float compression to avoid errors
+	flags = SPROP_NOSCALE;
+	nBits = 32;
 
 	if(varProxy == SendProxy_VectorXYToVectorXY)
 	{
@@ -538,6 +550,10 @@ SendProp SendPropAngle(
 		Assert(sizeofVar == 4);
 	}
 
+	// Remove float compression to avoid errors
+	flags = SPROP_NOSCALE;
+	nBits = 32;
+
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;
 
@@ -570,6 +586,10 @@ SendProp SendPropQAngles(
 	{
 		Assert(sizeofVar == 4);
 	}
+
+	// Remove float compression to avoid errors
+	flags = SPROP_NOSCALE;
+	nBits = 32;
 
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;
