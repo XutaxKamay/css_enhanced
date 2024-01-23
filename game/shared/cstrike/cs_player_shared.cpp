@@ -34,6 +34,7 @@
 
 ConVar sv_showimpacts("sv_showimpacts", "0", FCVAR_REPLICATED, "Shows client (red) and server (blue) bullet impact point (1=both, 2=client-only, 3=server-only)" );
 ConVar sv_showplayerhitboxes( "sv_showplayerhitboxes", "0", FCVAR_REPLICATED, "Show lag compensated hitboxes for the specified player index whenever a player fires." );
+ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
@@ -353,6 +354,12 @@ void CCSPlayer::FireBullet(
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
+
+	if ( weapon_accuracy_nospread.GetBool() )
+	{
+		xSpread = 0.0f;
+		ySpread = 0.0f;
+	}
 
 	// add the spray
 	Vector vecDir = vecDirShooting + xSpread * vecRight + ySpread * vecUp;
