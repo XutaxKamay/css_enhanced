@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //
 //=============================================================================//
+#include "shareddefs.h"
 #if !defined( USERCMD_H )
 #define USERCMD_H
 #ifdef _WIN32
@@ -55,6 +56,10 @@ public:
 		mousedy = 0;
 
 		hasbeenpredicted = false;
+
+		for (int i = 0; i <= MAX_PLAYERS; i++)
+			simulationtimes[i] = 0.0f;
+
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
 #endif
@@ -81,6 +86,8 @@ public:
 
 		hasbeenpredicted	= src.hasbeenpredicted;
 
+		for (int i = 0; i <= MAX_PLAYERS; i++)
+			simulationtimes[i] = src.simulationtimes[i];
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
@@ -111,6 +118,7 @@ public:
 		CRC32_ProcessBuffer( &crc, &random_seed, sizeof( random_seed ) );
 		CRC32_ProcessBuffer( &crc, &mousedx, sizeof( mousedx ) );
 		CRC32_ProcessBuffer( &crc, &mousedy, sizeof( mousedy ) );
+		CRC32_ProcessBuffer( &crc, &simulationtimes, sizeof( simulationtimes ) );
 		CRC32_Final( &crc );
 
 		return crc;
@@ -157,6 +165,10 @@ public:
 
 	// Client only, tracks whether we've predicted this command at least once
 	bool	hasbeenpredicted;
+
+	// TODO_ENHANCED: Lag compensate also other entities when needed.
+	// Send simulation times for each players for lag compensation.
+	float 	simulationtimes[MAX_PLAYERS+1];
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

@@ -11,7 +11,15 @@
 #include "checksum_md5.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
+#ifdef CLIENT_DLL
+#include "c_baseplayer.h"
+#else
+#include "player.h"
+#endif
+#include "shareddefs.h"
 #include "tier0/memdbgon.h"
+#include "util_shared.h"
+#include "utlvector.h"
 
 // TF2 specific, need enough space for OBJ_LAST items from tf_shareddefs.h
 #define WEAPON_SUBTYPE_BITS	6
@@ -169,6 +177,19 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
+	for (int i = 0; i <= MAX_PLAYERS; i++)
+	{
+		if (to->simulationtimes[i] != from->simulationtimes[i])
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationtimes[i] );
+		}
+		else
+		{
+			buf->WriteOneBit(0);
+		}
+	}
+
 #if defined( HL2_CLIENT_DLL )
 	if ( to->entitygroundcontact.Count() != 0 )
 	{
@@ -287,6 +308,15 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 	if ( buf->ReadOneBit() )
 	{
 		move->mousedy = buf->ReadShort();
+	}
+
+	for (int i = 0; i <= MAX_PLAYERS; i++)
+	{
+		// Simulation time changed unexpectedly ?
+		if (buf->ReadOneBit())
+		{
+			move->simulationtimes[i] = buf->ReadFloat();
+		}
 	}
 
 #if defined( HL2_DLL )

@@ -1287,6 +1287,8 @@ public:
 
 	float							m_flSimulationTime;
 	float							m_flOldSimulationTime;
+	float							m_flInterpolatedSimulationTime;
+	CInterpolatedVar<float>					m_iv_flSimulationTime;
 	
 	float							m_flCreateTime;
 

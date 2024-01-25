@@ -283,7 +283,6 @@ BEGIN_DATADESC( CBasePlayer )
 //	DEFINE_CUSTOM_FIELD( m_Activity, ActivityDataOps() ),
 
 	DEFINE_FIELD( m_nUpdateRate, FIELD_INTEGER ),
-	DEFINE_FIELD( m_fLerpTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_bLagCompensation, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bPredictWeapons, FIELD_BOOLEAN ),
 
@@ -592,7 +591,6 @@ CBasePlayer::CBasePlayer( )
 	m_hZoomOwner = NULL;
 
 	m_nUpdateRate = 20;  // cl_updaterate defualt
-	m_fLerpTime = 0.1f; // cl_interp default
 	m_bPredictWeapons = true;
 	m_bLagCompensation = false;
 	m_flLaggedMovementValue = 1.0f;
@@ -724,37 +722,46 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 	return BaseClass::ShouldTransmit( pInfo );
 }
 
+static void NormalizeAngles( QAngle& angles )
+{
+	int i;
 
-bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+	// Normalize angles to -180 to 180 range
+	for ( i = 0; i < 3; i++ )
+	{
+		if ( angles[i] > 180.0 )
+		{
+			angles[i] -= 360.0;
+		}
+		else if ( angles[i] < -180.0 )
+		{
+			angles[i] += 360.0;
+		}
+	}
+}
+
+bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits )
 {
 	// Team members shouldn't be adjusted unless friendly fire is on.
 	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
 		return false;
 
-	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
-	if ( pEntityTransmitBits && !pEntityTransmitBits->Get( pPlayer->entindex() ) )
-		return false;
-
-	const Vector &vMyOrigin = GetAbsOrigin();
+	Vector vShootPosition = Weapon_ShootPosition();
 	const Vector &vHisOrigin = pPlayer->GetAbsOrigin();
 
-	// get max distance player could have moved within max lag compensation time, 
-	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
-	float maxDistance = 1.5 * pPlayer->MaxSpeed() * sv_maxunlag.GetFloat();
-
-	// If the player is within this distance, lag compensate them in case they're running past us.
-	if ( vHisOrigin.DistTo( vMyOrigin ) < maxDistance )
-		return true;
-
 	// If their origin is not within a 45 degree cone in front of us, no need to lag compensate.
-	Vector vForward;
-	AngleVectors( pCmd->viewangles, &vForward );
-	
-	Vector vDiff = vHisOrigin - vMyOrigin;
+	Vector vDiff = vHisOrigin - vShootPosition;
 	VectorNormalize( vDiff );
 
-	float flCosAngle = 0.707107f;	// 45 degree angle
-	if ( vForward.Dot( vDiff ) < flCosAngle )
+	QAngle aDiff;
+	VectorAngles(vDiff, aDiff);
+
+	aDiff = pCmd->viewangles - aDiff;
+	NormalizeAngles(aDiff);
+
+	// 90 degree angle, just to be sure;
+	static constexpr auto flMaxAngle = 90.f;
+	if ( abs( aDiff.x ) > flMaxAngle && abs( aDiff.y ) > flMaxAngle )
 		return false;
 
 	return true;

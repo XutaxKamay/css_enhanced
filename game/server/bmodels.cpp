@@ -560,24 +560,6 @@ void SendProxy_FuncRotatingAngle( const SendProp *pProp, const void *pStruct, co
 	Assert( IsFinite( pOut->m_Float ) );
 }
 
-
-extern void SendProxy_SimulationTime( const SendProp *pProp, const void *pStruct, const void *pVarData, DVariant *pOut, int iElement, int objectID );
-void SendProxy_FuncRotatingSimulationTime( const SendProp *pProp, const void *pStruct, const void *pVarData, DVariant *pOut, int iElement, int objectID )
-{
-#ifdef TF_DLL
-	CFuncRotating *entity = (CFuncRotating*)pStruct;
-	Assert( entity );
-
-	if ( entity->HasSpawnFlags(SF_BRUSH_ROTATE_CLIENTSIDE) )
-	{
-		pOut->m_Int = 0;
-		return;
-	}
-#endif
-
-	SendProxy_SimulationTime( pProp, pStruct, pVarData, pOut, iElement, objectID );
-}
-
 IMPLEMENT_SERVERCLASS_ST(CFuncRotating, DT_FuncRotating)
 	SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
 	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
@@ -588,7 +570,7 @@ IMPLEMENT_SERVERCLASS_ST(CFuncRotating, DT_FuncRotating)
 	SendPropAngle( SENDINFO_VECTORELEM(m_angRotation, 1), 13, SPROP_CHANGES_OFTEN, SendProxy_FuncRotatingAngle ),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angRotation, 2), 13, SPROP_CHANGES_OFTEN, SendProxy_FuncRotatingAngle ),
 
-	SendPropInt(SENDINFO(m_flSimulationTime), SIMULATION_TIME_WINDOW_BITS, SPROP_UNSIGNED|SPROP_CHANGES_OFTEN|SPROP_ENCODED_AGAINST_TICKCOUNT, SendProxy_FuncRotatingSimulationTime),
+	SendPropFloat(SENDINFO(m_flSimulationTime))
 END_SEND_TABLE()
 
 

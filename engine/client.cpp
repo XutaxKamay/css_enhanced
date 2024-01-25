@@ -47,6 +47,9 @@
 #include "matchmaking.h"
 #include "server.h"
 #include "eiface.h"
+#include "globalvars_base.h"
+
+extern CGlobalVarsBase* gpGlobals;
 
 #include "tier0/platform.h"
 #include "tier0/systeminformation.h"
@@ -623,6 +626,13 @@ float CClientState::GetFrameTime() const
 
 float CClientState::GetClientInterpAmount()
 {
+	static const ConVar *cl_interpolate = g_pCVar->FindVar("cl_interpolate");
+
+	if (!cl_interpolate->GetBool())
+	{
+		return 0.0f;
+	}
+
 	// we need client cvar cl_interp_ratio
 	static const ConVar *s_cl_interp_ratio = NULL;
 	if ( !s_cl_interp_ratio )

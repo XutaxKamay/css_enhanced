@@ -9,7 +9,12 @@
 
 
 #include "cbase.h"
+#include "cdll_bounded_cvars.h"
+#include "cdll_client_int.h"
+#include "cdll_util.h"
+#include "dbg.h"
 #include "kbutton.h"
+#include "shareddefs.h"
 #include "usercmd.h"
 #include "in_buttons.h"
 #include "input.h"
@@ -20,6 +25,7 @@
 #include "checksum_md5.h"
 #include "touch.h"
 #include "hltvcamera.h"
+#include "util_shared.h"
 #if defined( REPLAY_ENABLED )
 #include "replay/replaycamera.h"
 #endif
@@ -1282,6 +1288,42 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 	m_EntityGroundContact.RemoveAll();
 #endif
+
+	// static bool firstTime = false;
+
+	// if (cmd->buttons & IN_ATTACK)
+	// {
+	// 	if (!firstTime)
+	// 	{
+	// 		for (int i = 0; i <= MAX_PLAYERS; i++)
+	// 		{
+	// 			auto pPlayer = UTIL_PlayerByIndex(i);
+
+	// 			if (pPlayer)
+	// 			{
+	// 				const auto &origin = pPlayer->GetAbsOrigin();
+	// 				DevMsg("Movement: %s => %f %f %f => %f\n", pPlayer->GetPlayerName(), origin.x, origin.y, origin.z, pPlayer->m_flInterpolatedSimulationTime);
+	// 			}
+	// 		}
+
+	// 		firstTime = true;
+	// 	}
+	// }
+	// else
+	// {
+	// 	firstTime = false;
+	// }
+
+	// Send interpolated simulation time for lag compensation
+	for (int i = 0; i <= MAX_PLAYERS; i++)
+	{
+		auto pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			cmd->simulationtimes[pPlayer->index] = pPlayer->m_flInterpolatedSimulationTime;
+		}
+	}
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

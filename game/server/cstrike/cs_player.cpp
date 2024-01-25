@@ -4181,23 +4181,9 @@ void CCSPlayer::NoteWeaponFired()
 }
 
 
-bool CCSPlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+bool CCSPlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits )
 {
-	// No need to lag compensate at all if we're not attacking in this command and
-	// we haven't attacked recently.
-	if ( !( pCmd->buttons & IN_ATTACK ) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5) )
-	{
-		if ( ( pCmd->buttons & IN_ATTACK2 ) == 0 )
-			return false;
-
-		CWeaponCSBase *weapon = GetActiveCSWeapon();
-		if ( !weapon )
-			return false;
-
-		if ( weapon->GetWeaponID() != WEAPON_KNIFE )
-			return false;	// IN_ATTACK2 with WEAPON_KNIFE should do lag compensation
-	}
-
+	// No need to check for IN_ATTACK etc since it is called in firebullet
 	return BaseClass::WantsLagCompensationOnEntity( pPlayer, pCmd, pEntityTransmitBits );
 }
 

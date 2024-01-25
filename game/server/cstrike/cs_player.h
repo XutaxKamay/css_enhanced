@@ -508,7 +508,7 @@ public:
 
 	// Called whenever this player fires a shot.
 	void NoteWeaponFired();
-	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
+	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits );
 
 // ------------------------------------------------------------------------------------------------ //
 // Player state management.
