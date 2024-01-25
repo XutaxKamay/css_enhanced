@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "cdll_bounded_cvars.h"
 #include "convar_serverbounded.h"
+#include "icvar.h"
 #include "tier0/icommandline.h"
 
 
@@ -22,7 +23,7 @@ class CBoundedCvar_Predict : public ConVar_ServerBounded
 public:
 	CBoundedCvar_Predict() :
 	  ConVar_ServerBounded( "cl_predict", 
-		  "1.0", 
+		  "1.0",
 #if defined(DOD_DLL) || defined(CSTRIKE_DLL)
 		  FCVAR_USERINFO | FCVAR_CHEAT, 
 #else
@@ -65,7 +66,7 @@ class CBoundedCvar_InterpRatio : public ConVar_ServerBounded
 public:
 	CBoundedCvar_InterpRatio() :
 	  ConVar_ServerBounded( "cl_interp_ratio", 
-		  "2.0", 
+		  "1.0",
 		  FCVAR_USERINFO | FCVAR_NOT_CONNECTED, 
 		  "Sets the interpolation amount (final amount is cl_interp_ratio / cl_updaterate)." )
 	  {
@@ -99,7 +100,7 @@ class CBoundedCvar_Interp : public ConVar_ServerBounded
 public:
 	CBoundedCvar_Interp() :
 	  ConVar_ServerBounded( "cl_interp", 
-		  "0.1", 
+		  "0.0",
 		  FCVAR_USERINFO | FCVAR_NOT_CONNECTED, 
 		  "Sets the interpolation amount (bounded on low side by server interp ratio settings).", true, 0.0f, true, 0.5f )
 	  {
@@ -125,7 +126,14 @@ ConVar_ServerBounded *cl_interp = &cl_interp_var;
 
 float GetClientInterpAmount()
 {
+	static const ConVar *cl_interpolate = g_pCVar->FindVar("cl_interpolate");
 	static const ConVar *pUpdateRate = g_pCVar->FindVar( "cl_updaterate" );
+
+	if (!cl_interpolate->GetBool())
+	{
+		return 0.0f;
+	}
+
 	if ( pUpdateRate )
 	{
 		// #define FIXME_INTERP_RATIO
@@ -138,7 +146,7 @@ float GetClientInterpAmount()
 			AssertMsgOnce( false, "GetInterpolationAmount: can't get cl_updaterate cvar." );
 		}
 	
-		return 0.1;
+		return 0.1f;
 	}
 }
 
