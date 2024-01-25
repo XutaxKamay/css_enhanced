@@ -6,11 +6,13 @@
 //===========================================================================//
 #include "cbase.h"
 #include "c_baseentity.h"
+#include "interpolatedvar.h"
 #include "prediction.h"
 #include "model_types.h"
 #include "iviewrender_beams.h"
 #include "dlight.h"
 #include "iviewrender.h"
+#include "shareddefs.h"
 #include "view.h"
 #include "iefx.h"
 #include "c_team.h"
@@ -73,7 +75,7 @@ void cc_cl_interp_all_changed( IConVar *pConVar, const char *pOldString, float f
 }
 
 
-static ConVar  cl_extrapolate( "cl_extrapolate", "1", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
+static ConVar  cl_extrapolate( "cl_extrapolate", "0", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
 static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.0", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
 static ConVar  cl_interp_all( "cl_interp_all", "0", 0, "Disable interpolation list optimizations.", 0, 0, 0, 0, cc_cl_interp_all_changed );
 ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1" );
@@ -301,70 +303,6 @@ int CRecordingList::Count()
 
 // Should these be somewhere else?
 #define PITCH 0
-
-//-----------------------------------------------------------------------------
-// Purpose: Decodes animtime and notes when it changes
-// Input  : *pStruct - ( C_BaseEntity * ) used to flag animtime is changine
-//			*pVarData - 
-//			*pIn - 
-//			objectID - 
-//-----------------------------------------------------------------------------
-void RecvProxy_AnimTime( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	C_BaseEntity *pEntity = ( C_BaseEntity * )pStruct;
-	Assert( pOut == &pEntity->m_flAnimTime );
-
-	int t;
-	int tickbase;
-	int addt;
-
-	// Unpack the data.
-	addt	= pData->m_Value.m_Int;
-
-	// Note, this needs to be encoded relative to packet timestamp, not raw client clock
-	tickbase = gpGlobals->GetNetworkBase( gpGlobals->tickcount, pEntity->entindex() );
-
-	t = tickbase;
-											//  and then go back to floating point time.
-	t += addt;				// Add in an additional up to 256 100ths from the server
-
-	// center m_flAnimTime around current time.
-	while (t < gpGlobals->tickcount - 127)
-		t += 256;
-	while (t > gpGlobals->tickcount + 127)
-		t -= 256;
-	
-	pEntity->m_flAnimTime = ( t * TICK_INTERVAL );
-}
-
-void RecvProxy_SimulationTime( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	C_BaseEntity *pEntity = ( C_BaseEntity * )pStruct;
-	Assert( pOut == &pEntity->m_flSimulationTime );
-
-	int t;
-	int tickbase;
-	int addt;
-
-	// Unpack the data.
-	addt	= pData->m_Value.m_Int;
-
-	// Note, this needs to be encoded relative to packet timestamp, not raw client clock
-	tickbase = gpGlobals->GetNetworkBase( gpGlobals->tickcount, pEntity->entindex() );
-
-	t = tickbase;
-											//  and then go back to floating point time.
-	t += addt;				// Add in an additional up to 256 100ths from the server
-
-	// center m_flSimulationTime around current time.
-	while (t < gpGlobals->tickcount - 127)
-		t += 256;
-	while (t > gpGlobals->tickcount + 127)
-		t -= 256;
-	
-	pEntity->m_flSimulationTime = ( t * TICK_INTERVAL );
-}
-
 void RecvProxy_LocalVelocity( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
 	CBaseEntity *pEnt = (CBaseEntity *)pStruct;
@@ -417,7 +355,7 @@ void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, void *pO
 
 
 BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_AnimTimeMustBeFirst )
-	RecvPropInt( RECVINFO(m_flAnimTime), 0, RecvProxy_AnimTime ),
+	RecvPropFloat( RECVINFO(m_flAnimTime) ),
 END_RECV_TABLE()
 
 
@@ -431,7 +369,7 @@ END_RECV_TABLE()
 
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "AnimTimeMustBeFirst", 0, 0, &REFERENCE_RECV_TABLE(DT_AnimTimeMustBeFirst) ),
-	RecvPropInt( RECVINFO(m_flSimulationTime), 0, RecvProxy_SimulationTime ),
+	RecvPropFloat( RECVINFO(m_flSimulationTime) ),
 	RecvPropInt( RECVINFO( m_ubInterpolationFrame ) ),
 
 	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
@@ -890,10 +828,13 @@ inline int C_BaseEntity::Interp_Interpolate( VarMapping_t *map, float currentTim
 C_BaseEntity::C_BaseEntity() : 
 	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin" ),
 	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation" ),
-	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity" )
+	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity" ),
+	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime" )
 {
 	AddVar( &m_vecOrigin, &m_iv_vecOrigin, LATCH_SIMULATION_VAR );
 	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
+	// Needed for lag compensation
+	AddVar( &m_flInterpolatedSimulationTime, &m_iv_flSimulationTime, LATCH_SIMULATION_VAR );
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
 	// but that re-introduces a third-person hitching bug.  One possible cause is the abrupt change
@@ -1010,6 +951,7 @@ void C_BaseEntity::Clear( void )
 	m_nModelIndex = 0;
 	m_flAnimTime = 0;
 	m_flSimulationTime = 0;
+	m_flInterpolatedSimulationTime = 0;
 	SetSolid( SOLID_NONE );
 	SetSolidFlags( 0 );
 	SetMoveCollide( MOVECOLLIDE_DEFAULT );
@@ -2549,6 +2491,10 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	bool anglesChanged = ( m_vecOldAngRotation != GetLocalAngles() ) ? true : false;
 	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime ) ? true : false;
 
+	// Store simulation time for lag compensation.
+	if (simTimeChanged)
+		m_flInterpolatedSimulationTime = m_flSimulationTime;
+
 	// Detect simulation changes 
 	bool simulationChanged = originChanged || anglesChanged || simTimeChanged;
 
@@ -3173,7 +3119,7 @@ void C_BaseEntity::Simulate()
 }
 
 // Defined in engine
-static ConVar cl_interpolate( "cl_interpolate", "1.0f", FCVAR_USERINFO | FCVAR_DEVELOPMENTONLY );
+static ConVar cl_interpolate( "cl_interpolate", "1", FCVAR_USERINFO );
 
 // (static function)
 void C_BaseEntity::InterpolateServerEntities()

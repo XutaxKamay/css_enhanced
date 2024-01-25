@@ -26,7 +26,6 @@
 #define LC_ANIMATION_CHANGED (1<<11)
 #define LC_POSE_PARAMS_CHANGED (1<<12)
 
-static ConVar sv_lagcompensation_teleport_dist( "sv_lagcompensation_teleport_dist", "64", FCVAR_DEVELOPMENTONLY | FCVAR_CHEAT, "How far a player got moved by game code before we can't lag compensate their position back" );
 #define LAG_COMPENSATION_EPS_SQR ( 0.1f * 0.1f )
 // Allow 4 units of error ( about 1 / 8 bbox width )
 #define LAG_COMPENSATION_ERROR_EPS_SQR ( 4.0f * 4.0f )
@@ -173,7 +172,7 @@ static void RestorePlayerTo( CBasePlayer *pPlayer, const Vector &vWantedPos )
 class CLagCompensationManager : public CAutoGameSystemPerFrame, public ILagCompensationManager
 {
 public:
-	CLagCompensationManager( char const *name ) : CAutoGameSystemPerFrame( name ), m_flTeleportDistanceSqr( 64 *64 )
+	CLagCompensationManager( char const *name ) : CAutoGameSystemPerFrame( name )
 	{
 	}
 
@@ -217,8 +216,6 @@ private:
 	LagRecord				m_ChangeData[ MAX_PLAYERS ];	// player data where we moved him back
 
 	CBasePlayer				*m_pCurrentPlayer;	// The player we are doing lag compensation for
-
-	float					m_flTeleportDistanceSqr;
 };
 
 static CLagCompensationManager g_LagCompensationManager( "CLagCompensationManager" );
@@ -235,8 +232,6 @@ void CLagCompensationManager::FrameUpdatePostEntityThink()
 		ClearHistory();
 		return;
 	}
-	
-	m_flTeleportDistanceSqr = sv_lagcompensation_teleport_dist.GetFloat() * sv_lagcompensation_teleport_dist.GetFloat();
 
 	VPROF_BUDGET( "FrameUpdatePostEntityThink", "CLagCompensationManager" );
 
@@ -362,12 +357,6 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	Q_memset( m_RestoreData, 0, sizeof( m_RestoreData ) );
 	Q_memset( m_ChangeData, 0, sizeof( m_ChangeData ) );
 
-	// calc number of view interpolation ticks - 1
-	int lerpTicks = TIME_TO_TICKS( player->m_fLerpTime );
-
-	// correct tick send by player 
-	int targettick = cmd->tick_count - lerpTicks;
-	
 	// Iterate all active players
 	const CBitVec<MAX_EDICTS> *pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -390,7 +379,7 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 			continue;
 
 		// Move other player back in time
-		BacktrackPlayer( pPlayer, TICKS_TO_TIME( targettick ) );
+		BacktrackPlayer( pPlayer, cmd->simulationtimes[i] );
 	}
 }
 
@@ -433,12 +422,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, float flTar
 			return;
 		}
 
-		Vector delta = record->m_vecOrigin - prevOrg;
-		if ( delta.Length2DSqr() > m_flTeleportDistanceSqr )
-		{
-			// lost track, too much difference
-			return; 
-		}
+		// TODO: do proper teleportation checks.
 
 		// did we find a context smaller than target time ?
 		if ( record->m_flSimulationTime <= flTargetTime )
@@ -728,6 +712,9 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, float flTar
 	{
 		pPlayer->DrawServerHitboxes(4, true);
 	}
+
+	// DevMsg("Server: %s => %f %f %f => %f (frac: %f)\n", pPlayer->GetPlayerName(), change->m_vecOrigin.x, change->m_vecOrigin.y, change->m_vecOrigin.z, flTargetTime, frac);
+
 }
 
 
@@ -799,11 +786,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 			// Okay, let's see if we can do something reasonable with the change
 			Vector delta = pPlayer->GetLocalOrigin() - change->m_vecOrigin;
 			
-			// If it moved really far, just leave the player in the new spot!!!
-			if ( delta.Length2DSqr() < m_flTeleportDistanceSqr )
-			{
-				RestorePlayerTo( pPlayer, restore->m_vecOrigin + delta );
-			}
+			RestorePlayerTo( pPlayer, restore->m_vecOrigin + delta );
 		}
 
 		if( restore->m_fFlags & LC_ANIMATION_CHANGED )

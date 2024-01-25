@@ -3233,11 +3233,14 @@ void _Host_RunFrame (float time)
 				// Make sure state is correct
 				CL_CheckClientState();
 #endif
-				//-------------------
-				// input processing
-				//-------------------
+				//---------------------------------------------------------
+				// Run prediction, useful when fps is lower than tickrate.
+				//---------------------------------------------------------
+				CL_RunPrediction( PREDICTION_NORMAL );
+
 				_Host_RunFrame_Input( prevremainder, bFinalTick );
 				prevremainder = 0;
+
 				//-------------------
 				//
 				// server operations
@@ -3248,6 +3251,7 @@ void _Host_RunFrame (float time)
 
 				// Additional networking ops for SPLITPACKET stuff (99.9% of the time this will be an empty list of work)
 				NET_SendQueuedPackets();
+
 				//-------------------
 				//
 				// client operations
@@ -3438,6 +3442,8 @@ void _Host_RunFrame (float time)
 				++host_currentframetick;
 				g_ClientGlobalVariables.tickcount = host_tickcount;
 				bool bFinalTick = tick==(serverticks-1) ? true : false;
+				// Run prediction before inputs if fps is lower than tickrate
+				CL_RunPrediction( PREDICTION_NORMAL );
 				_Host_RunFrame_Input( prevremainder, bFinalTick );
 				prevremainder = 0;
 				// process any asynchronous network traffic (TCP), set net_time
