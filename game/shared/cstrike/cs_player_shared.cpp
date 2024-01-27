@@ -417,8 +417,8 @@ void CCSPlayer::FireBullet(
 		{
 #ifdef CLIENT_DLL
 			lagPlayer->DrawClientHitboxes(4, true);
-			//DevMsg("Client: %s => %f %f %f => %f\n", lagPlayer->GetPlayerName(), lagPlayer->GetAbsOrigin().x, lagPlayer->GetAbsOrigin().y, lagPlayer->GetAbsOrigin().z,
-			//	lagPlayer->m_flInterpolatedSimulationTime);
+			DevMsg("Client: %s => %f %f %f => %f\n", lagPlayer->GetPlayerName(), lagPlayer->GetAbsOrigin().x, lagPlayer->GetAbsOrigin().y, lagPlayer->GetAbsOrigin().z,
+				lagPlayer->m_flInterpolatedSimulationTime);
 #else
 			lagPlayer->DrawServerHitboxes(4, true);
 #endif
