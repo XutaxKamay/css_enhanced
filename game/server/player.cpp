@@ -746,23 +746,24 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, cons
 	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
 		return false;
 
-	Vector vShootPosition = Weapon_ShootPosition();
-	const Vector &vHisOrigin = pPlayer->GetAbsOrigin();
+	// NOTE: Do not check for this, it is possible to knife from behind in CS:S
+	// Vector vShootPosition = Weapon_ShootPosition();
+	// const Vector &vHisOrigin = pPlayer->GetAbsOrigin();
 
-	// If their origin is not within a 45 degree cone in front of us, no need to lag compensate.
-	Vector vDiff = vHisOrigin - vShootPosition;
-	VectorNormalize( vDiff );
+	// // If their origin is not within a 45 degree cone in front of us, no need to lag compensate.
+	// Vector vDiff = vHisOrigin - vShootPosition;
+	// VectorNormalize( vDiff );
 
-	QAngle aDiff;
-	VectorAngles(vDiff, aDiff);
+	// QAngle aDiff;
+	// VectorAngles(vDiff, aDiff);
 
-	aDiff = pCmd->viewangles - aDiff;
-	NormalizeAngles(aDiff);
+	// aDiff = pCmd->viewangles - aDiff;
+	// NormalizeAngles(aDiff);
 
-	// 90 degree angle, just to be sure;
-	static constexpr auto flMaxAngle = 90.f;
-	if ( abs( aDiff.x ) > flMaxAngle && abs( aDiff.y ) > flMaxAngle )
-		return false;
+	// // 90 degree angle, just to be sure;
+	// static constexpr auto flMaxAngle = 90.f;
+	// if ( abs( aDiff.x ) > flMaxAngle && abs( aDiff.y ) > flMaxAngle )
+	// 	return false;
 
 	return true;
 }
