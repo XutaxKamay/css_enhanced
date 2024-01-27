@@ -829,12 +829,14 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin" ),
 	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation" ),
 	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity" ),
-	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime" )
+	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime" ),
+	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime" )
 {
 	AddVar( &m_vecOrigin, &m_iv_vecOrigin, LATCH_SIMULATION_VAR );
 	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
 	// Needed for lag compensation
 	AddVar( &m_flInterpolatedSimulationTime, &m_iv_flSimulationTime, LATCH_SIMULATION_VAR );
+	AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
 	// but that re-introduces a third-person hitching bug.  One possible cause is the abrupt change
@@ -952,6 +954,7 @@ void C_BaseEntity::Clear( void )
 	m_flAnimTime = 0;
 	m_flSimulationTime = 0;
 	m_flInterpolatedSimulationTime = 0;
+	m_flInterpolatedAnimTime = 0;
 	SetSolid( SOLID_NONE );
 	SetSolidFlags( 0 );
 	SetMoveCollide( MOVECOLLIDE_DEFAULT );
@@ -2494,6 +2497,9 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	// Store simulation time for lag compensation.
 	if (simTimeChanged)
 		m_flInterpolatedSimulationTime = m_flSimulationTime;
+
+	if (animTimeChanged)
+		m_flInterpolatedAnimTime = m_flAnimTime;
 
 	// Detect simulation changes 
 	bool simulationChanged = originChanged || anglesChanged || simTimeChanged;

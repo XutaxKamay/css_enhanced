@@ -60,6 +60,9 @@ public:
 		for (int i = 0; i <= MAX_PLAYERS; i++)
 			simulationtimes[i] = 0.0f;
 
+		for (int i = 0; i <= MAX_PLAYERS; i++)
+			animtimes[i] = 0.0f;
+
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
 #endif
@@ -88,6 +91,10 @@ public:
 
 		for (int i = 0; i <= MAX_PLAYERS; i++)
 			simulationtimes[i] = src.simulationtimes[i];
+
+		for (int i = 0; i <= MAX_PLAYERS; i++)
+			animtimes[i] = src.animtimes[i];
+
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
@@ -119,6 +126,7 @@ public:
 		CRC32_ProcessBuffer( &crc, &mousedx, sizeof( mousedx ) );
 		CRC32_ProcessBuffer( &crc, &mousedy, sizeof( mousedy ) );
 		CRC32_ProcessBuffer( &crc, &simulationtimes, sizeof( simulationtimes ) );
+		CRC32_ProcessBuffer( &crc, &animtimes, sizeof( animtimes ) );
 		CRC32_Final( &crc );
 
 		return crc;
@@ -169,6 +177,7 @@ public:
 	// TODO_ENHANCED: Lag compensate also other entities when needed.
 	// Send simulation times for each players for lag compensation.
 	float 	simulationtimes[MAX_PLAYERS+1];
+	float	animtimes[MAX_PLAYERS+1];
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

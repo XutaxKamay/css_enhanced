@@ -190,6 +190,19 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		}
 	}
 
+	for (int i = 0; i <= MAX_PLAYERS; i++)
+	{
+		if (to->animtimes[i] != from->animtimes[i])
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->animtimes[i] );
+		}
+		else
+		{
+			buf->WriteOneBit(0);
+		}
+	}
+
 #if defined( HL2_CLIENT_DLL )
 	if ( to->entitygroundcontact.Count() != 0 )
 	{
@@ -316,6 +329,15 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		if (buf->ReadOneBit())
 		{
 			move->simulationtimes[i] = buf->ReadFloat();
+		}
+	}
+
+	for (int i = 0; i <= MAX_PLAYERS; i++)
+	{
+		// Simulation time changed unexpectedly ?
+		if (buf->ReadOneBit())
+		{
+			move->animtimes[i] = buf->ReadFloat();
 		}
 	}
 
