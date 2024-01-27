@@ -1284,6 +1284,8 @@ public:
 	// Time animation sequence or frame was last changed
 	float							m_flAnimTime;
 	float							m_flOldAnimTime;
+	float							m_flInterpolatedAnimTime;
+	CInterpolatedVar<float>					m_iv_flAnimTime;
 
 	float							m_flSimulationTime;
 	float							m_flOldSimulationTime;
