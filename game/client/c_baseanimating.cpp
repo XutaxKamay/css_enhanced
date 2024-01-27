@@ -738,6 +738,8 @@ C_BaseAnimating::C_BaseAnimating() :
 	Q_memset(&m_mouth, 0, sizeof(m_mouth));
 	m_flCycle = 0;
 	m_flOldCycle = 0;
+	m_flAnimTime = gpGlobals->curtime;
+	m_flOldAnimTime = gpGlobals->curtime;
 }
 
 //-----------------------------------------------------------------------------
@@ -1759,7 +1761,7 @@ CollideType_t C_BaseAnimating::GetCollideType( void )
 //-----------------------------------------------------------------------------
 // Purpose: if the active sequence changes, keep track of the previous ones and decay them based on their decay rate
 //-----------------------------------------------------------------------------
-void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float flCycle, Vector pos[], Quaternion q[] )
+void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float flCycle, float currentTime, Vector pos[], Quaternion q[] )
 {
 	VPROF( "C_BaseAnimating::MaintainSequenceTransitions" );
 
@@ -1787,7 +1789,7 @@ void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float 
 		GetSequence(),
 		flCycle,
 		m_flPlaybackRate,
-		gpGlobals->curtime
+		currentTime
 		);
 
 
@@ -1796,18 +1798,18 @@ void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float 
 	{
 		C_AnimationLayer *blend = &m_SequenceTransitioner.m_animationQueue[i];
 
-		float dt = (gpGlobals->curtime - blend->m_flLayerAnimtime);
+		float dt = (currentTime - blend->m_flLayerAnimtime);
 		flCycle = blend->m_flCycle + dt * blend->m_flPlaybackRate * GetSequenceCycleRate( boneSetup.GetStudioHdr(), blend->m_nSequence );
 		flCycle = ClampCycle( flCycle, IsSequenceLooping( boneSetup.GetStudioHdr(), blend->m_nSequence ) );
 
 #if 1 // _DEBUG
 		if (/*Q_stristr( hdr->pszName(), r_sequence_debug.GetString()) != NULL || */ r_sequence_debug.GetInt() == entindex())
 		{
-			DevMsgRT( "%8.4f : %30s : %5.3f : %4.2f  +\n", gpGlobals->curtime, boneSetup.GetStudioHdr()->pSeqdesc( blend->m_nSequence ).pszLabel(), flCycle, (float)blend->m_flWeight );
+			DevMsgRT( "%8.4f : %30s : %5.3f : %4.2f  +\n", currentTime, boneSetup.GetStudioHdr()->pSeqdesc( blend->m_nSequence ).pszLabel(), flCycle, (float)blend->m_flWeight );
 		}
 #endif
 
-		boneSetup.AccumulatePose( pos, q, blend->m_nSequence, flCycle, blend->m_flWeight, gpGlobals->curtime, m_pIk );
+		boneSetup.AccumulatePose( pos, q, blend->m_nSequence, flCycle, blend->m_flWeight, currentTime, m_pIk );
 	}
 }
 
@@ -1934,7 +1936,7 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 
 	// debugoverlay->AddTextOverlay( GetAbsOrigin() + Vector( 0, 0, 64 ), 0, 0, "%30s %6.2f : %6.2f", hdr->pSeqdesc( GetSequence() )->pszLabel( ), fCycle, 1.0 );
 
-	MaintainSequenceTransitions( boneSetup, fCycle, pos, q );
+	MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
 
 	AccumulateLayers( boneSetup, pos, q, currentTime );
 
@@ -2699,6 +2701,82 @@ void C_BaseAnimating::ThreadedBoneSetup()
 	g_PreviousBoneSetups.RemoveAll();
 }
 
+void C_BaseAnimating::BuildMatricesWithBoneMerge( 
+	const CStudioHdr *pStudioHdr,
+	const QAngle& angles, 
+	const Vector& origin, 
+	const Vector pos[MAXSTUDIOBONES],
+	const Quaternion q[MAXSTUDIOBONES],
+	matrix3x4_t bonetoworld[MAXSTUDIOBONES],
+	C_BaseAnimating *pParent,
+	CBoneCache *pParentCache
+	)
+{
+	CStudioHdr *fhdr = pParent->GetModelPtr();
+	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
+
+	matrix3x4_t rotationmatrix; // model to world transformation
+	AngleMatrix( angles, origin, rotationmatrix);
+
+	for ( int i=0; i < pStudioHdr->numbones(); i++ )
+	{
+		// Now find the bone in the parent entity.
+		bool merged = false;
+		int parentBoneIndex = Studio_BoneIndexByName( fhdr, pbones[i].pszName() );
+		if ( parentBoneIndex >= 0 )
+		{
+			matrix3x4_t *pMat = pParentCache->GetCachedBone( parentBoneIndex );
+			if ( pMat )
+			{
+				MatrixCopy( *pMat, bonetoworld[ i ] );
+				merged = true;
+			}
+		}
+
+		if ( !merged )
+		{
+			// If we get down here, then the bone wasn't merged.
+			matrix3x4_t bonematrix;
+			QuaternionMatrix( q[i], pos[i], bonematrix );
+
+			if (pbones[i].parent == -1) 
+			{
+				ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
+			} 
+			else 
+			{
+				ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
+			}
+		}
+	}
+}
+
+void C_BaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask, float currentTime )
+{
+	if(!pStudioHdr)
+	{
+		Assert(!"C_BaseAnimating::GetSkeleton() without a model");
+		return;
+	}
+
+	IBoneSetup boneSetup( pStudioHdr, boneMask, m_flPoseParameter );
+	boneSetup.InitPose( pos, q );
+
+	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, currentTime, m_pIk );
+
+	if ( m_pIk )
+	{
+		CIKContext auto_ik;
+		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetRenderOrigin(), currentTime, 0, boneMask );
+		boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
+	}
+	else
+	{
+		boneSetup.CalcAutoplaySequences( pos, q, currentTime, NULL );
+	}
+	boneSetup.CalcBoneAdj( pos, q, m_flEncodedController );
+}
+
 bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
 	VPROF_BUDGET( "C_BaseAnimating::SetupBones", VPROF_BUDGETGROUP_CLIENT_ANIMATION );
@@ -2905,7 +2983,7 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 			}
 
 			BuildTransformations( hdr, pos, q, parentTransform, bonesMaskNeedRecalc, boneComputed );
-			
+
 			RemoveFlag( EFL_SETTING_UP_BONES );
 			ControlMouth( hdr );
 		}
@@ -5004,7 +5082,17 @@ float C_BaseAnimating::GetAnimTimeInterval( void ) const
 {
 #define MAX_ANIMTIME_INTERVAL 0.2f
 
-	float flInterval = MIN( gpGlobals->curtime - m_flAnimTime, MAX_ANIMTIME_INTERVAL );
+	float flInterval;
+	if (m_flAnimTime < gpGlobals->curtime)
+	{
+		// estimate what it'll be this frame
+		flInterval = clamp( gpGlobals->curtime - m_flAnimTime, 0.f, MAX_ANIMTIME_INTERVAL );
+	}
+	else
+	{
+		// report actual
+		flInterval = clamp( m_flAnimTime - m_flOldAnimTime, 0.f, MAX_ANIMTIME_INTERVAL );
+	}
 	return flInterval;
 }
 
@@ -5043,6 +5131,24 @@ void C_BaseAnimating::SetSequence( int nSequence )
 		{
 			ClientSideAnimationChanged();
 		}
+	}
+}
+
+float C_BaseAnimating::GetLastVisibleCycle( CStudioHdr *pStudioHdr, int iSequence )
+{
+	if ( !pStudioHdr )
+	{
+		DevWarning( 2, "C_BaseAnimating::LastVisibleCycle( %d ) NULL pstudiohdr on %s!\n", iSequence, GetClassname() );
+		return 1.0;
+	}
+
+	if (!(GetSequenceFlags( pStudioHdr, iSequence ) & STUDIO_LOOPING))
+	{
+		return 1.0f - (pStudioHdr->pSeqdesc( iSequence ).fadeouttime) * GetSequenceCycleRate( pStudioHdr, iSequence ) * m_flPlaybackRate;
+	}
+	else
+	{
+		return 1.0;
 	}
 }
 

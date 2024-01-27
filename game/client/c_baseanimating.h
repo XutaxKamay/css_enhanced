@@ -12,6 +12,7 @@
 #pragma once
 #endif
 
+#include "bone_setup.h"
 #include "c_baseentity.h"
 #include "studio.h"
 #include "utlvector.h"
@@ -143,6 +144,11 @@ public:
  	virtual int	VPhysicsGetObjectList( IPhysicsObject **pList, int listMax );
 
 	// model specific
+	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
+		const Vector& origin, const Vector pos[MAXSTUDIOBONES],
+		const Quaternion q[MAXSTUDIOBONES], matrix3x4_t bonetoworld[MAXSTUDIOBONES],
+		CBaseAnimating *pParent, CBoneCache *pParentCache );
+	virtual	void GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask, float currentTime );
 	virtual bool SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime );
 	virtual void UpdateIKLocks( float currentTime );
 	virtual void CalculateIKLocks( float currentTime );
@@ -182,7 +188,7 @@ public:
 	virtual	void StandardBlendingRules( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], float currentTime, int boneMask );
 	void UnragdollBlend( CStudioHdr *hdr, Vector pos[], Quaternion q[], float currentTime );
 
-	void MaintainSequenceTransitions( IBoneSetup &boneSetup, float flCycle, Vector pos[], Quaternion q[] );
+	void MaintainSequenceTransitions( IBoneSetup &boneSetup, float flCycle, float currentTime, Vector pos[], Quaternion q[] );
 	virtual void AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
 
 	virtual void ChildLayerBlend( Vector pos[], Quaternion q[], float currentTime, int boneMask );
@@ -333,6 +339,7 @@ public:
 	char const						*GetSequenceActivityName( int iSequence );
 	Activity						GetSequenceActivity( int iSequence );
 	KeyValues						*GetSequenceKeyValues( int iSequence );
+	float							GetLastVisibleCycle( CStudioHdr *pStudioHdr, int iSequence );
 	virtual void					StudioFrameAdvance(); // advance animation frame to some time in the future
 
 	// Clientside animation
