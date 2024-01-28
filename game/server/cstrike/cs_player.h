@@ -906,7 +906,7 @@ private:
 	// This lets us rate limit the commands the players can execute so they don't overflow things like reliable buffers.
 	CUtlDict<float,int>	m_RateLimitLastCommandTimes;
 
-	CNetworkVar(int, m_cycleLatch);	// Every so often, we are going to transmit our cycle to the client to correct divergence caused by PVS changes
+	CNetworkVar(float, m_cycleLatch);	// Every so often, we are going to transmit our cycle to the client to correct divergence caused by PVS changes
 	CountdownTimer m_cycleLatchTimer;
 
 //=============================================================================

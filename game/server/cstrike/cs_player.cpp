@@ -398,7 +398,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropInt( SENDINFO( m_iProgressBarDuration ), 4, SPROP_UNSIGNED ),
 	SendPropFloat( SENDINFO( m_flProgressBarStartTime ), 0, SPROP_NOSCALE ),
 	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
-	SendPropInt( SENDINFO( m_cycleLatch ), 4, SPROP_UNSIGNED ),
+	SendPropFloat( SENDINFO( m_cycleLatch ), 0, SPROP_NOSCALE ),
 
 
 END_SEND_TABLE()
@@ -936,7 +936,7 @@ void CCSPlayer::Spawn()
 
 	m_applyDeafnessTime = 0.0f;
 
-	m_cycleLatch = 0;
+	m_cycleLatch = 0.0f;
 	m_cycleLatchTimer.Start( RandomFloat( 0.0f, CycleLatchInterval ) );
 
 	StockPlayerAmmo();
@@ -1677,7 +1677,7 @@ void CCSPlayer::PostThink()
 		m_cycleLatchTimer.Start( CycleLatchInterval );
 
 		// Cycle is a float from 0 to 1.  We don't need to transmit a whole float for that.  Compress it in to a small fixed point
-		m_cycleLatch.GetForModify() = 16 * GetCycle();// 4 point fixed
+		m_cycleLatch.GetForModify() = GetCycle();// 4 point fixed
 	}
 }
 
