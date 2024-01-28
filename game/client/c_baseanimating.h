@@ -363,6 +363,7 @@ public:
 	int GetNumBodyGroups( void );
 
 	class CBoneCache				*GetBoneCache( CStudioHdr *pStudioHdr );
+	void InvalidateBoneCacheIfOlderThan( float deltaTime );
 	void							SetHitboxSet( int setnum );
 	void							SetHitboxSetByName( const char *setname );
 	int								GetHitboxSet( void );
@@ -635,6 +636,7 @@ private:
 	virtual void					OnModelLoadComplete( const model_t* pModel );
 
 private:
+	void StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flInterval );
 	void							LockStudioHdr();
 	void							UnlockStudioHdr();
 	mutable CStudioHdr				*m_pStudioHdr;

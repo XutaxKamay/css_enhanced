@@ -675,7 +675,7 @@ void C_CSPlayer::RecvProxy_CycleLatch( const CRecvProxyData *pData, void *pStruc
 	if( pPlayer->IsLocalPlayer() )
 		return; // Don't need to fixup ourselves.
 
-	float incomingCycle = (float)(pData->m_Value.m_Int) / 16; // Came in as 4 bit fixed point
+	float incomingCycle = pData->m_Value.m_Float; // Came in as 4 bit fixed point
 	float currentCycle = pPlayer->GetCycle();
 	bool closeEnough = fabs(currentCycle - incomingCycle) < CycleLatchTolerance;
 	if( fabs(currentCycle - incomingCycle) > (1 - CycleLatchTolerance) )
@@ -783,7 +783,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropInt( RECVINFO( m_iProgressBarDuration ) ),
 	RecvPropFloat( RECVINFO( m_flProgressBarStartTime ) ),
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
-	RecvPropInt( RECVINFO( m_cycleLatch ), 0, &C_CSPlayer::RecvProxy_CycleLatch ),
+	RecvPropFloat( RECVINFO( m_cycleLatch ), SPROP_NOSCALE, &C_CSPlayer::RecvProxy_CycleLatch ),
 
 END_RECV_TABLE()
 
