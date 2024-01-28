@@ -498,8 +498,7 @@ void CBaseAnimating::StudioFrameAdvance()
 	}
 
 	// Time since last animation
-	float flInterval = gpGlobals->curtime - m_flAnimTime;
-	flInterval = clamp( flInterval, 0.f, MAX_ANIMTIME_INTERVAL );
+	float flInterval = GetAnimTimeInterval();
 
 	//Msg( "%i %s interval %f\n", entindex(), GetClassname(), flInterval );
 	if (flInterval <= 0.001f)
@@ -508,10 +507,11 @@ void CBaseAnimating::StudioFrameAdvance()
 		return;
 	}
 
-	// Latch prev
-	m_flPrevAnimTime = m_flAnimTime;
 	// Set current
 	m_flAnimTime = gpGlobals->curtime;
+
+	// Latch prev
+	m_flPrevAnimTime = m_flAnimTime - flInterval;
 
 	// Drive cycle
 	float flCycleRate = GetSequenceCycleRate( pStudioHdr, GetSequence() ) * m_flPlaybackRate;

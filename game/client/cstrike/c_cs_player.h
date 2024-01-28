@@ -374,7 +374,7 @@ private:
 	int m_iLastPrimaryAddon;
 	int m_iLastSecondaryAddon;
 
-	int m_cycleLatch;				// server periodically updates this to fix up our anims, here it is a 4 bit fixed point
+	float m_cycleLatch;				// server periodically updates this to fix up our anims, here it is a 4 bit fixed point
 	float m_serverIntendedCycle;	// server periodically updates this to fix up our anims, here it is the float we want, or -1 for no override
 
 

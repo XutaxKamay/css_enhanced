@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "c_baseanimating.h"
 #include "c_sprite.h"
+#include "cdll_client_int.h"
 #include "model_types.h"
 #include "bone_setup.h"
 #include "ivrenderview.h"
@@ -895,6 +896,52 @@ void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
 #endif
 	{
 		RemoveVar( &m_flCycle, false );
+	}
+}
+
+void C_BaseAnimating::StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flCycleDelta )
+{
+	float flNewCycle = GetCycle() + flCycleDelta;
+	if (flNewCycle < 0.0 || flNewCycle >= 1.0) 
+	{
+		if (m_bSequenceLoops)
+		{
+			flNewCycle -= (int)(flNewCycle);
+		}
+		else
+		{
+			flNewCycle = (flNewCycle < 0.0f) ? 0.0f : 1.0f;
+		}
+		m_bSequenceFinished = true;	// just in case it wasn't caught in GetEvents
+	}
+	else if (flNewCycle > GetLastVisibleCycle( pStudioHdr, GetSequence() ))
+	{
+		m_bSequenceFinished = true;
+	}
+
+	SetCycle( flNewCycle );
+
+	/*
+	if (!IsPlayer())
+		Msg("%s %6.3f : %6.3f %6.3f (%.3f) %.3f\n", 
+			GetClassname(), gpGlobals->curtime, 
+			m_flAnimTime.Get(), m_flPrevAnimTime, flInterval, GetCycle() );
+	*/
+ 
+	m_flGroundSpeed = GetSequenceGroundSpeed( pStudioHdr, GetSequence() ) * GetModelScale();
+
+	// Msg("%s : %s : %5.1f\n", GetClassname(), GetSequenceName( GetSequence() ), GetCycle() );
+	InvalidatePhysicsRecursive( ANIMATION_CHANGED );
+
+	InvalidateBoneCacheIfOlderThan( 0 );
+}
+
+void C_BaseAnimating::InvalidateBoneCacheIfOlderThan( float deltaTime )
+{
+	CBoneCache *pcache = Studio_GetBoneCache( m_hitboxBoneCacheHandle );
+	if ( !pcache || !pcache->IsValid( gpGlobals->curtime, deltaTime ) )
+	{
+		InvalidateBoneCache();
 	}
 }
 
@@ -5304,7 +5351,7 @@ void C_BaseAnimating::GetBlendedLinearVelocity( Vector *pVec )
 float C_BaseAnimating::FrameAdvance( float flInterval )
 {
 	CStudioHdr *hdr = GetModelPtr();
-	if ( !hdr )
+	if ( !hdr || !hdr->SequencesAvailable() )
 		return 0.0f;
 
 #ifdef DEBUG
@@ -5313,24 +5360,30 @@ float C_BaseAnimating::FrameAdvance( float flInterval )
 	bool bWatch = false; // Q_strstr( hdr->name, "medkit_large" ) ? true : false;
 #endif
 
-	float curtime = gpGlobals->curtime;
+	UpdateModelScale();
+
+	if ( !m_flOldAnimTime )
+	{
+		m_flOldAnimTime = m_flAnimTime;
+	}
 
 	if (flInterval == 0.0f)
 	{
-		flInterval = ( curtime - m_flAnimTime );
+		flInterval = GetAnimTimeInterval();
 		if (flInterval <= 0.001f)
 		{
 			return 0.0f;
 		}
 	}
 
-	if ( !m_flAnimTime )
-	{
-		flInterval = 0.0f;
-	}
+	// Set current
+	m_flAnimTime = gpGlobals->curtime;
 
-	float cyclerate = GetSequenceCycleRate( hdr, GetSequence() );
-	float addcycle = flInterval * cyclerate * m_flPlaybackRate;
+	// Latch prev
+	m_flOldAnimTime = m_flAnimTime - flInterval;
+
+	float flCycleRate = GetSequenceCycleRate( hdr, GetSequence() );
+	float flAddCycle = flInterval * flCycleRate * m_flPlaybackRate;
 
 	if( GetServerIntendedCycle() != -1.0f )
 	{
@@ -5348,42 +5401,28 @@ float C_BaseAnimating::FrameAdvance( float flInterval )
 
 		if( adjustOkay )
 		{
-			float originalAdvance = addcycle;
-			addcycle = (serverAdvance + addcycle) / 2;
+			float originalAdvance = flAddCycle;
+			flAddCycle = (serverAdvance + flAddCycle) / 2;
 
 			const float MAX_CYCLE_ADJUSTMENT = 0.1f;
-			addcycle = MIN( MAX_CYCLE_ADJUSTMENT, addcycle );// Don't do too big of a jump; it's too jarring as well.
+			flAddCycle = MIN( MAX_CYCLE_ADJUSTMENT, flAddCycle );// Don't do too big of a jump; it's too jarring as well.
 
 			DevMsg( 2, "(%d): Cycle latch used to correct %.2f in to %.2f instead of %.2f.\n",
-				entindex(), GetCycle(), GetCycle() + addcycle, GetCycle() + originalAdvance );
+				entindex(), GetCycle(), GetCycle() + flAddCycle, GetCycle() + originalAdvance );
 		}
 
 		SetServerIntendedCycle(-1.0f); // Only use a correction once, it isn't valid any time but right now.
 	}
 
-	float flNewCycle = GetCycle() + addcycle;
-	m_flAnimTime = curtime;
+	float flNewCycle = GetCycle() + flAddCycle;
 
 	if ( bWatch )
 	{
 		Msg("%i CLIENT Time: %6.3f : (Interval %f) : cycle %f rate %f add %f\n", 
-			gpGlobals->tickcount, gpGlobals->curtime, flInterval, flNewCycle, cyclerate, addcycle );
+			gpGlobals->tickcount, gpGlobals->curtime, flInterval, flNewCycle, flCycleRate, flAddCycle );
 	}
 
-	if ( (flNewCycle < 0.0f) || (flNewCycle >= 1.0f) ) 
-	{
-		if ( IsSequenceLooping( hdr, GetSequence() ) )
-		{
-			flNewCycle -= (int)(flNewCycle);
-		}
-		else
-		{
-			flNewCycle = (flNewCycle < 0.0f) ? 0.0f : 1.0f;
-		}
-		m_bSequenceFinished = true;
-	}
-
-	SetCycle( flNewCycle );
+	StudioFrameAdvanceInternal( hdr,  flAddCycle );
 
 	return flInterval;
 }
