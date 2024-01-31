@@ -7,8 +7,10 @@
 
 #include "cbase.h"
 #include "cdll_bounded_cvars.h"
+#include "cdll_client_int.h"
 #include "convar_serverbounded.h"
 #include "icvar.h"
+#include "shareddefs.h"
 #include "tier0/icommandline.h"
 
 
@@ -100,23 +102,30 @@ class CBoundedCvar_Interp : public ConVar_ServerBounded
 public:
 	CBoundedCvar_Interp() :
 	  ConVar_ServerBounded( "cl_interp", 
-		  "0.0",
+		  "-1.0",
 		  FCVAR_USERINFO,
-		  "Sets the interpolation amount (bounded on low side by server interp ratio settings).", true, 0.0f, true, 0.5f )
+		  "Sets the interpolation amount (bounded on low side by server interp ratio settings).", true, -1.0f, true, 0.5f )
 	  {
 	  }
 
 	  virtual float GetFloat() const
 	  {
+		  float value = GetBaseFloatValue();
+
+		  if (value < 0.0f)
+		  {
+			  value = TICK_INTERVAL;
+		  }
+
 		  static const ConVar *pUpdateRate = g_pCVar->FindVar( "cl_updaterate" );
 		  static const ConVar *pMin = g_pCVar->FindVar( "sv_client_min_interp_ratio" );
 		  if ( pUpdateRate && pMin && pMin->GetFloat() != -1 )
 		  {
-			  return MAX( GetBaseFloatValue(), pMin->GetFloat() / pUpdateRate->GetFloat() );
+			  return MAX( value, pMin->GetFloat() / pUpdateRate->GetFloat() );
 		  }
 		  else
 		  {
-			  return GetBaseFloatValue();
+			  return value;
 		  }
 	  }
 };
