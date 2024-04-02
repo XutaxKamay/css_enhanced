@@ -389,7 +389,7 @@ public:
 	void GetRenderBounds( Vector& theMins, Vector& theMaxs );
 	virtual void AddEntity( void );
 	virtual void AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
-	virtual void BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed );
+	virtual void BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime );
 	IPhysicsObject *GetElement( int elementNum );
 	virtual void UpdateOnRemove();
 	virtual float LastBoneChangedTime();
@@ -565,7 +565,7 @@ void C_ServerRagdoll::AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Qua
 	}
 }
 
-void C_ServerRagdoll::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion q[], const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed )
+void C_ServerRagdoll::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion q[], const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime )
 {
 	if ( !hdr )
 		return;
@@ -714,14 +714,14 @@ public:
 		return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
 	}
 
-	virtual void BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed )
+	virtual void BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime )
 	{
 		VPROF_BUDGET( "C_ServerRagdollAttached::SetupBones", VPROF_BUDGETGROUP_CLIENT_ANIMATION );
 
 		if ( !hdr )
 			return;
 
-		float frac = RemapVal( gpGlobals->curtime, m_parentTime, m_parentTime+ATTACH_INTERP_TIME, 0, 1 );
+		float frac = RemapVal( currentTime, m_parentTime, m_parentTime+ATTACH_INTERP_TIME, 0, 1 );
 		frac = clamp( frac, 0.f, 1.f );
 		// interpolate offset over some time
 		Vector offset = m_vecOffset * (1-frac);
@@ -734,13 +734,13 @@ public:
 		if ( parent )
 		{
 			Assert( parent != this );
-			parent->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+			parent->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, currentTime );
 
 			matrix3x4_t boneToWorld;
 			parent->GetCachedBoneMatrix( m_boneIndexAttached, boneToWorld );
 			VectorTransform( m_attachmentPointBoneSpace, boneToWorld, worldOrigin );
 		}
-		BaseClass::BuildTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed );
+		BaseClass::BuildTransformations( hdr, pos, q, cameraTransform, boneMask, boneComputed, currentTime );
 
 		if ( parent )
 		{
