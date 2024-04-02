@@ -1713,13 +1713,6 @@ void C_CSPlayer::UpdateClientSideAnimation()
 		FrameAdvance( 0.0f ); // 0 means to use the time we last advanced instead of a constant
 	}
 
-	// Update the animation data. It does the local check here so this works when using
-	// a third-person camera (and we don't have valid player angles).
-	if ( this == C_CSPlayer::GetLocalCSPlayer() )
-		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
-	else
-		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
-
 	if ( GetSequence() != -1 )
 	{
 		// latch old values
@@ -2273,7 +2266,14 @@ void C_CSPlayer::Simulate( void )
 		}
 	}
 
-	BaseClass::Simulate();
+    BaseClass::Simulate();
+
+	// Update the animation data. It does the local check here so this works when using
+	// a third-person camera (and we don't have valid player angles).
+	if ( this == C_CSPlayer::GetLocalCSPlayer() )
+		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
+	else
+		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
 }
 
 void C_CSPlayer::ReleaseFlashlight( void )

@@ -103,7 +103,7 @@ CHostage::CHostage()
 {
 	g_Hostages.AddToTail( this );
 	m_PlayerAnimState = CreateHostageAnimState( this, this, LEGANIM_8WAY, false );
-	UseClientSideAnimation();
+	// UseClientSideAnimation();
 	SetBloodColor( BLOOD_COLOR_RED );
 }
 
