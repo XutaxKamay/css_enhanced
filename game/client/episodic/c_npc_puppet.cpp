@@ -51,7 +51,7 @@ void C_NPC_Puppet::OnDataChanged( DataUpdateType_t updateType )
 //-----------------------------------------------------------------------------
 // Purpose: We need to slam our position!
 //-----------------------------------------------------------------------------
-void C_NPC_Puppet::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed )
+void C_NPC_Puppet::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime )
 {
 	if ( m_hAnimationTarget && m_nTargetAttachment != -1 )
 	{
@@ -68,7 +68,7 @@ void C_NPC_Puppet::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Qu
 	}
 
 	// Call the baseclass
-	BaseClass::BuildTransformations( pStudioHdr, pos, q, cameraTransform, boneMask, boneComputed );
+	BaseClass::BuildTransformations( pStudioHdr, pos, q, cameraTransform, boneMask, boneComputed, currentTime );
 }
 
 //-----------------------------------------------------------------------------

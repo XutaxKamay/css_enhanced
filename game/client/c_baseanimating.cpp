@@ -1458,7 +1458,7 @@ void C_BaseAnimating::GetCachedBoneMatrix( int boneIndex, matrix3x4_t &out )
 //-----------------------------------------------------------------------------
 // Purpose:	move position and rotation transforms into global matrices
 //-----------------------------------------------------------------------------
-void C_BaseAnimating::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion *q, const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed )
+void C_BaseAnimating::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quaternion *q, const matrix3x4_t &cameraTransform, int boneMask, CBoneBitList &boneComputed, float flCurrentTime )
 {
 	VPROF_BUDGET( "C_BaseAnimating::BuildTransformations", VPROF_BUDGETGROUP_CLIENT_ANIMATION );
 
@@ -1574,7 +1574,7 @@ void C_BaseAnimating::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quater
 				}
 
 				// do jiggle physics
-				m_pJiggleBones->BuildJiggleTransformations( i, gpGlobals->realtime, jiggleInfo, goalMX, GetBoneForWrite( i ) );
+				m_pJiggleBones->BuildJiggleTransformations( i, flCurrentTime, jiggleInfo, goalMX, GetBoneForWrite( i ) );
 
 			}
 			else if (hdr->boneParent(i) == -1) 
@@ -1982,9 +1982,16 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 
 	AccumulateLayers( boneSetup, pos, q, currentTime );
 
-	CIKContext auto_ik;
-	auto_ik.Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, gpGlobals->framecount, boneMask );
-	boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
+	if ( m_pIk )
+	{
+		CIKContext auto_ik;
+		auto_ik.Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, gpGlobals->framecount, boneMask );
+		boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
+	}
+	else
+	{
+		boneSetup.CalcAutoplaySequences( pos, q, currentTime, NULL );
+	}
 
 	if ( hdr->numbonecontrollers() )
 	{
@@ -3024,7 +3031,7 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 				m_pIk->SolveDependencies( pos, q, m_BoneAccessor.GetBoneArrayForWrite(), boneComputed );
 			}
 
-			BuildTransformations( hdr, pos, q, parentTransform, bonesMaskNeedRecalc, boneComputed );
+			BuildTransformations( hdr, pos, q, parentTransform, bonesMaskNeedRecalc, boneComputed, currentTime );
 
 			RemoveFlag( EFL_SETTING_UP_BONES );
 			ControlMouth( hdr );

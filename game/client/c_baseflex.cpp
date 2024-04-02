@@ -1162,7 +1162,7 @@ void C_BaseFlex::SetupWeights( const matrix3x4_t *pBoneToWorld, int nFlexWeightC
 // Purpose: Use the local bone positions to set flex control weights
 //          via boneflexdrivers specified in the model
 //-----------------------------------------------------------------------------
-void C_BaseFlex::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed )
+void C_BaseFlex::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime )
 {
 	const int nBoneFlexDriverCount = pStudioHdr->BoneFlexDriverCount();
 
@@ -1181,7 +1181,7 @@ void C_BaseFlex::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quat
 		}
 	}
 
-	BaseClass::BuildTransformations( pStudioHdr, pos, q, cameraTransform, boneMask, boneComputed );
+	BaseClass::BuildTransformations( pStudioHdr, pos, q, cameraTransform, boneMask, boneComputed, currentTime );
 }
 
 
