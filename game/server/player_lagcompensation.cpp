@@ -27,10 +27,6 @@
 #define LC_POSE_PARAMS_CHANGED (1<<12)
 #define LC_ENCD_CONS_CHANGED (1<<13)
 
-#define LAG_COMPENSATION_EPS_SQR ( 0.1f * 0.1f )
-// Allow 4 units of error ( about 1 / 8 bbox width )
-#define LAG_COMPENSATION_ERROR_EPS_SQR ( 4.0f * 4.0f )
-
 ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag compensation" );
 ConVar sv_maxunlag( "sv_maxunlag", "1.0", FCVAR_DEVELOPMENTONLY, "Maximum lag compensation in seconds", true, 0.0f, true, 1.0f );
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", FCVAR_DEVELOPMENTONLY, "Flushes entity bone cache on lag compensation" );
@@ -524,8 +520,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		// we didn't find the exact time but have a valid previous record
 		// so interpolate between these two records;
 
-		Assert( prevRecord->m_flSimulationTime > record->m_flSimulationTime );
-		Assert( flTargetSimulationTime < prevRecord->m_flSimulationTime );
+		Assert( prevRecordSim->m_flSimulationTime > recordSim->m_flSimulationTime );
+		Assert( flTargetSimulationTime < prevRecordSim->m_flSimulationTime );
 
 		// calc fraction between both records
 		fracSim = ( flTargetSimulationTime - recordSim->m_flSimulationTime ) / 
@@ -637,7 +633,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	restore->m_flSimulationTime = pPlayer->GetSimulationTime();
 	restore->m_flAnimTime = pPlayer->GetAnimTime();
 
-	if ( angdiff.LengthSqr() > LAG_COMPENSATION_EPS_SQR )
+	if ( angdiff.LengthSqr() > 0.0f )
 	{
 		flags |= LC_ANGLES_CHANGED;
 		restore->m_vecAngles = pPlayer->GetLocalAngles();
@@ -660,7 +656,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	}
 
 	// Note, do origin at end since it causes a relink into the k/d tree
-	if ( orgdiff.LengthSqr() > LAG_COMPENSATION_EPS_SQR )
+	if ( orgdiff.LengthSqr() > 0.0f )
 	{
 		flags |= LC_ORIGIN_CHANGED;
 		restore->m_vecOrigin = pPlayer->GetLocalOrigin();
