@@ -83,17 +83,6 @@ END_DATADESC()
 
 //-----------------------------------------------------------------------------------------------------
 IMPLEMENT_SERVERCLASS_ST( CHostage, DT_CHostage )
-	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
-	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),	
-	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nNewSequenceParity" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nResetEventsParity" ),
-	SendPropExclude( "DT_BaseAnimatingOverlay", "overlay_vars" ),
-	
-	// cs_playeranimstate and clientside animation takes care of these on the client
-	SendPropExclude( "DT_ServerAnimationData" , "m_flCycle" ),	
-	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
-
 	SendPropBool( SENDINFO(m_isRescued) ),
 	SendPropInt( SENDINFO(m_iHealth), 10 ),
 	SendPropInt( SENDINFO(m_iMaxHealth), 10 ),
