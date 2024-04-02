@@ -711,8 +711,6 @@ BEGIN_RECV_TABLE_NOBASE( C_CSPlayer, DT_CSLocalPlayerExclusive )
 	RecvPropInt( RECVINFO( m_iShotsFired ) ),
 	RecvPropFloat( RECVINFO( m_flVelocityModifier ) ),
 
-	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
-
     //=============================================================================
     // HPE_BEGIN:
     // [tj]Set up the receive table for per-client domination data
@@ -727,15 +725,8 @@ BEGIN_RECV_TABLE_NOBASE( C_CSPlayer, DT_CSLocalPlayerExclusive )
 
 END_RECV_TABLE()
 
-
-BEGIN_RECV_TABLE_NOBASE( C_CSPlayer, DT_CSNonLocalPlayerExclusive )
-	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
-END_RECV_TABLE()
-
-
 IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropDataTable( "cslocaldata", 0, 0, &REFERENCE_RECV_TABLE(DT_CSLocalPlayerExclusive) ),
-	RecvPropDataTable( "csnonlocaldata", 0, 0, &REFERENCE_RECV_TABLE(DT_CSNonLocalPlayerExclusive) ),
 	RecvPropInt( RECVINFO( m_iAddonBits ) ),
 	RecvPropInt( RECVINFO( m_iPrimaryAddon ) ),
 	RecvPropInt( RECVINFO( m_iSecondaryAddon ) ),

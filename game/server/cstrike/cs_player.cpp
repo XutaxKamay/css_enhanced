@@ -309,9 +309,6 @@ BEGIN_SEND_TABLE_NOBASE( CCSPlayer, DT_CSLocalPlayerExclusive )
 	SendPropInt( SENDINFO( m_iShotsFired ), 8, SPROP_UNSIGNED ),
 	SendPropFloat( SENDINFO( m_flVelocityModifier ), 8, 0, 0, 1  ),
 
-	// send a hi-res origin to the local player for use in prediction
-	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
-
 	//=============================================================================
 	// HPE_BEGIN:
 	// [tj]Set up the send table for per-client domination data
@@ -326,33 +323,9 @@ BEGIN_SEND_TABLE_NOBASE( CCSPlayer, DT_CSLocalPlayerExclusive )
 
 END_SEND_TABLE()
 
-
-BEGIN_SEND_TABLE_NOBASE( CCSPlayer, DT_CSNonLocalPlayerExclusive )
-	// send a lo-res origin to other players
-	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_COORD|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
-END_SEND_TABLE()
-
-
 IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
-	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
-	SendPropExclude( "DT_BaseAnimating", "m_flPlaybackRate" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nSequence" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nNewSequenceParity" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nResetEventsParity" ),
-	SendPropExclude( "DT_BaseAnimating", "m_nMuzzleFlashParity" ),
-	SendPropExclude( "DT_BaseEntity", "m_angRotation" ),
-	SendPropExclude( "DT_BaseAnimatingOverlay", "overlay_vars" ),
-
-	// cs_playeranimstate and clientside animation takes care of these on the client
-	SendPropExclude( "DT_ServerAnimationData" , "m_flCycle" ),
-	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),
-
-	// We need to send a hi-res origin to the local player to avoid prediction errors sliding along walls
-	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
-
 	// Data that only gets sent to the local player.
 	SendPropDataTable( "cslocaldata", 0, &REFERENCE_SEND_TABLE(DT_CSLocalPlayerExclusive), SendProxy_SendLocalDataTable ),
-	SendPropDataTable( "csnonlocaldata", 0, &REFERENCE_SEND_TABLE(DT_CSNonLocalPlayerExclusive), SendProxy_SendNonLocalDataTable ),
 
 	SendPropInt( SENDINFO( m_iThrowGrenadeCounter ), THROWGRENADE_COUNTER_BITS, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_iAddonBits ), NUM_ADDON_BITS, SPROP_UNSIGNED ),
