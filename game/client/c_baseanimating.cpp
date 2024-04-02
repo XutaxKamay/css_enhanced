@@ -5257,12 +5257,9 @@ void C_BaseAnimating::StudioFrameAdvance()
 
 	m_flGroundSpeed = GetSequenceGroundSpeed( hdr, GetSequence() ) * GetModelScale();
 
-#if 0
-	// I didn't have a test case for this, but it seems like the right thing to do.  Check multi-player!
-
-	// Msg("%s : %s : %5.1f\n", GetClassname(), GetSequenceName( GetSequence() ), GetCycle() );
-	InvalidatePhysicsRecursive( ANIMATION_CHANGED );
-#endif
+    InvalidatePhysicsRecursive( ANIMATION_CHANGED );
+    
+    InvalidateBoneCacheIfOlderThan( 0 );
 
 	if ( watch )
 	{
