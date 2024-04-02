@@ -1382,10 +1382,6 @@ void C_CSPlayer::ValidateModelIndex( void )
 
 void C_CSPlayer::PostDataUpdate( DataUpdateType_t updateType )
 {
-	// C_BaseEntity assumes we're networking the entity's angles, so pretend that it
-	// networked the same value we already have.
-	SetNetworkAngles( GetLocalAngles() );
-
 	BaseClass::PostDataUpdate( updateType );
 }
 
