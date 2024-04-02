@@ -97,6 +97,19 @@ bool CBaseEntity::s_bAbsQueriesValid = true;
 
 ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Test networking visibility distance" );
 
+void* SendProxy_ClientSideAnimation( const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID )
+{
+	CBaseEntity *pEntity = (CBaseEntity *)pStruct;
+	CBaseAnimating *pAnimating = pEntity->GetBaseAnimating();
+
+	if ( pAnimating && !pAnimating->IsUsingClientSideAnimation() )
+		return (void*)pVarData;
+	else
+		return NULL;	// Don't send animtime unless the client needs it.
+}
+REGISTER_SEND_PROXY_NON_MODIFIED_POINTER( SendProxy_ClientSideAnimation );
+
+
 BEGIN_SEND_TABLE_NOBASE( CBaseEntity, DT_AnimTimeMustBeFirst )
 	// NOTE:  Animtime must be sent before origin and angles ( from pev ) because it has a 
 	//  proxy on the client that stores off the old values before writing in the new values and
@@ -200,7 +213,7 @@ void SendProxy_Angles( const SendProp *pProp, const void *pStruct, const void *p
 
 // This table encodes the CBaseEntity data.
 IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
-	SendPropDataTable( "AnimTimeMustBeFirst", 0, &REFERENCE_SEND_TABLE(DT_AnimTimeMustBeFirst) ),
+	SendPropDataTable( "AnimTimeMustBeFirst", 0, &REFERENCE_SEND_TABLE(DT_AnimTimeMustBeFirst), SendProxy_ClientSideAnimation ),
 	SendPropFloat	(SENDINFO(m_flSimulationTime)),
 
 #if PREDICTION_ERROR_CHECK_LEVEL > 1 
