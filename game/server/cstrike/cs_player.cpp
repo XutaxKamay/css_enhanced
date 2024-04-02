@@ -418,7 +418,7 @@ CCSPlayer::CCSPlayer()
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this, this, LEGANIM_9WAY, true );
 
-	UseClientSideAnimation();
+	// UseClientSideAnimation();
 
 	m_iLastWeaponFireUsercmd = 0;
 	m_iAddonBits = 0;
