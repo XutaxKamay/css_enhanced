@@ -147,11 +147,6 @@ const unsigned int FCLIENTANIM_SEQUENCE_CYCLE = 0x00000001;
 
 static CUtlVector< clientanimating_t >	g_ClientSideAnimationList;
 
-BEGIN_RECV_TABLE_NOBASE( C_BaseAnimating, DT_ServerAnimationData )
-	RecvPropFloat(RECVINFO(m_flCycle)),
-END_RECV_TABLE()
-
-
 void RecvProxy_Sequence( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
 	// Have the regular proxy store the data.
@@ -196,7 +191,7 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 	RecvPropEHandle(RECVINFO(m_hLightingOrigin)),
 	RecvPropEHandle(RECVINFO(m_hLightingOriginRelative)),
 
-	RecvPropDataTable( "serveranimdata", 0, 0, &REFERENCE_RECV_TABLE( DT_ServerAnimationData ) ),
+	RecvPropFloat(RECVINFO(m_flCycle)),
 
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
