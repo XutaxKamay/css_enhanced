@@ -1956,10 +1956,10 @@ void GetCorrectionMatrices(
 }
 
 
-void C_CSPlayer::BuildTransformations( CStudioHdr *pHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed )
+void C_CSPlayer::BuildTransformations( CStudioHdr *pHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, float currentTime )
 {
 	// First, setup our model's transformations like normal.
-	BaseClass::BuildTransformations( pHdr, pos, q, cameraTransform, boneMask, boneComputed );
+	BaseClass::BuildTransformations( pHdr, pos, q, cameraTransform, boneMask, boneComputed, currentTime );
 
 	if ( IsLocalPlayer() && !C_BasePlayer::ShouldDrawLocalPlayer() )
 		return;
@@ -1975,7 +1975,7 @@ void C_CSPlayer::BuildTransformations( CStudioHdr *pHdr, Vector *pos, Quaternion
 		return;
 
 	// Have the weapon setup its bones.
-	pWeapon->SetupBones( NULL, 0, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+	pWeapon->SetupBones( NULL, 0, BONE_USED_BY_ANYTHING, currentTime );
 
 	int iWeaponBone = 0;
 	if ( FindWeaponAttachmentBone( pWeapon, iWeaponBone ) )
