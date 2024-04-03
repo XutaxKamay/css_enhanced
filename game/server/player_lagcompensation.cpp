@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "icvar.h"
 #include "usercmd.h"
 #include "igamesystem.h"
 #include "ilagcompensationmanager.h"
@@ -824,13 +825,17 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	restore->m_fFlags = flags; // we need to restore these flags
 	change->m_fFlags = flags; // we have changed these flags
 
-	if( sv_showlagcompensation.GetInt() == 1 )
+	if( sv_showlagcompensation.GetInt() == pPlayer->entindex() )
 	{
-		pPlayer->DrawServerHitboxes(4, true);
+		pPlayer->DrawServerHitboxes(60, false);
 	}
 
-	DevMsg("Server: %s => %f %f %f => %f (frac: %f)\n", pPlayer->GetPlayerName(), change->m_vecOrigin.x, change->m_vecOrigin.y, change->m_vecOrigin.z, flTargetSimulationTime, fracSim);
+	static ConVar *sv_showplayerhitboxes = g_pCVar->FindVar("sv_showplayerhitboxes");
 
+	if ( sv_showplayerhitboxes->GetInt() == pPlayer->entindex() )
+	{
+		DevMsg("Server: %s => %f %f %f => %f (frac: %f)\n", pPlayer->GetPlayerName(), change->m_vecOrigin.x, change->m_vecOrigin.y, change->m_vecOrigin.z, flTargetSimulationTime, fracSim);
+	}
 }
 
 
