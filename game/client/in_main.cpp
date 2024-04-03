@@ -1289,31 +1289,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
-	static bool firstTime = false;
-
-	if (cmd->buttons & IN_ATTACK)
-	{
-		if (!firstTime)
-		{
-			for (int i = 0; i <= MAX_PLAYERS; i++)
-			{
-				auto pPlayer = UTIL_PlayerByIndex(i);
-
-				if (pPlayer)
-				{
-					const auto &origin = pPlayer->GetAbsOrigin();
-					DevMsg("Movement: %s => %f %f %f => %f\n", pPlayer->GetPlayerName(), origin.x, origin.y, origin.z, pPlayer->m_flInterpolatedSimulationTime);
-				}
-			}
-
-			firstTime = true;
-		}
-	}
-	else
-	{
-		firstTime = false;
-	}
-
 	// Send interpolated simulation time for lag compensation
 	for (int i = 0; i <= MAX_PLAYERS; i++)
 	{
