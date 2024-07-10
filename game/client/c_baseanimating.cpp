@@ -868,9 +868,9 @@ void C_BaseAnimating::UpdateRelevantInterpolatedVars()
 
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_SIMULATION_VAR, true );
-	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_SIMULATION_VAR, true );
-	AddVar( &m_flCycle, &m_iv_flCycle, LATCH_SIMULATION_VAR, true );
+	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR, true );
+	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR, true );
+	AddVar( &m_flCycle, &m_iv_flCycle, LATCH_ANIMATION_VAR, true );
 }
 
 void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()

@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include "bone_setup.h"
+#include "studio.h"
 #include "util_shared.h"
 #include "c_baseplayer.h"
 #include "c_baseentity.h"
@@ -1338,7 +1339,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
         cmd->has_animation[pBasePlayer->index] = true;
         cmd->animationdata[pBasePlayer->index].m_flAnimTime = pBasePlayer->m_flInterpolatedAnimTime;
-        
+
         pBasePlayer->GetBoneControllers(cmd->animationdata[pBasePlayer->index].m_encodedControllers);
         pBasePlayer->GetPoseParameters(pBasePlayer->GetModelPtr(),
                                        cmd->animationdata[pBasePlayer->index].m_poseParameters);
@@ -1349,13 +1350,13 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         for (int j = 0; j < pBasePlayer->GetNumAnimOverlays(); j++)
         {
             cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_cycle =
-                pBasePlayer->GetAnimOverlay(j)->m_flCycle;
+                pBasePlayer->GetAnimOverlay(j)->m_flCycle.GetRaw();
             cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_sequence =
-                pBasePlayer->GetAnimOverlay(j)->m_nSequence;
+                pBasePlayer->GetAnimOverlay(j)->m_nSequence.GetRaw();
             cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_order =
                 pBasePlayer->GetAnimOverlay(j)->m_nOrder;
             cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_weight =
-                pBasePlayer->GetAnimOverlay(j)->m_flWeight;
+                pBasePlayer->GetAnimOverlay(j)->m_flWeight.GetRaw();
 
 		}
     }
