@@ -174,6 +174,7 @@ void FX_FireBullets(
 
 	CCSWeaponInfo *pWeaponInfo = static_cast< CCSWeaponInfo* >( GetFileWeaponInfoFromHandle( hWpnInfo ) );
 
+#ifndef CLIENT_DLL
 	// Do the firing animation event.
 	if ( pPlayer && !pPlayer->IsDormant() )
 	{
@@ -183,7 +184,6 @@ void FX_FireBullets(
 			pPlayer->GetPlayerAnimState()->DoAnimationEvent( PLAYERANIMEVENT_FIRE_GUN_SECONDARY );
 	}
 
-#ifndef CLIENT_DLL
 	// if this is server code, send the effect over to client as temp entity
 	// Dispatch one message for all the bullet impacts and sounds.
 	TE_FireBullets( 
@@ -311,11 +311,8 @@ void FX_FireBullets(
 // On the client, it plays the planting animation.
 void FX_PlantBomb( int iPlayerIndex, const Vector &vOrigin, PlantBombOption_t option )
 {
-#ifdef CLIENT_DLL
-	C_CSPlayer *pPlayer = ToCSPlayer( ClientEntityList().GetBaseEntity( iPlayerIndex ) );
-#else
+#ifndef CLIENT_DLL
 	CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( iPlayerIndex) );
-#endif
 
 	// Do the firing animation event.
 	if ( pPlayer && !pPlayer->IsDormant() )
@@ -334,9 +331,8 @@ void FX_PlantBomb( int iPlayerIndex, const Vector &vOrigin, PlantBombOption_t op
 			}
 			break;
 		}
-	}
+    }
 
-#ifndef CLIENT_DLL
 	// if this is server code, send the effect over to client as temp entity
 	// Dispatch one message for all the bullet impacts and sounds.
 	TE_PlantBomb( iPlayerIndex, vOrigin, option );

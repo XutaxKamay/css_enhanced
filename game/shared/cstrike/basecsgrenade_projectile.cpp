@@ -75,6 +75,7 @@ END_NETWORK_TABLE()
 		// During the first half-second of our life, don't draw ourselves if he's
 		// still playing his throw animation.
 		// (better yet, we could draw ourselves in his hand).
+#ifndef CLIENT_DLL
 		if ( GetThrower() != C_BasePlayer::GetLocalPlayer() )
 		{
 			if ( gpGlobals->curtime - m_flSpawnTime < 0.5 )
@@ -86,6 +87,7 @@ END_NETWORK_TABLE()
 				}
 			}
 		}
+#endif
 
 		return BaseClass::DrawModel( flags );
 	}

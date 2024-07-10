@@ -22,7 +22,8 @@ abstract_class ILagCompensationManager
 public:
 	// Called during player movement to set up/restore after lag compensation
 	virtual void	StartLagCompensation( CBasePlayer *player, CUserCmd *cmd ) = 0;
-	virtual void	FinishLagCompensation( CBasePlayer *player ) = 0;
+    virtual void FinishLagCompensation(CBasePlayer * player) = 0;
+    virtual void			BacktrackPlayer( CBasePlayer *player, CUserCmd *cmd ) = 0;
 };
 
 extern ILagCompensationManager *lagcompensation;
