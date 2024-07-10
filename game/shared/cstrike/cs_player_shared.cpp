@@ -507,7 +507,7 @@ void CCSPlayer::FireBullet(
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->DrawServerHitboxes( 4, true );
+				player->DrawServerHitboxes( 60, false );
 			}
 		}
 #endif

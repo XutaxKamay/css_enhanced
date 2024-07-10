@@ -499,6 +499,7 @@ public:
 	int								m_nHitboxSet;
 
 	CSequenceTransitioner			m_SequenceTransitioner;
+	int 							m_iIKCounter;
 
 protected:
 	CIKContext						*m_pIk;

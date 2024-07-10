@@ -8,6 +8,7 @@
 #include "c_baseanimating.h"
 #include "c_sprite.h"
 #include "cdll_client_int.h"
+#include "interpolatedvar.h"
 #include "model_types.h"
 #include "bone_setup.h"
 #include "ivrenderview.h"
@@ -658,8 +659,8 @@ class C_BaseAnimatingGameSystem : public CAutoGameSystem
 //-----------------------------------------------------------------------------
 // Purpose: convert axis rotations to a quaternion
 //-----------------------------------------------------------------------------
-C_BaseAnimating::C_BaseAnimating() :
-	m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle" ),
+C_BaseAnimating::C_BaseAnimating()
+    : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle" ),
 	m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter" ),
 	m_iv_flEncodedController("C_BaseAnimating::m_iv_flEncodedController")
 {
@@ -867,31 +868,16 @@ void C_BaseAnimating::UpdateRelevantInterpolatedVars()
 
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR, true );
-	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR, true );
-	
-	int flags = LATCH_ANIMATION_VAR;
-	if ( m_bClientSideAnimation )
-		flags |= EXCLUDE_AUTO_INTERPOLATE;
-		
-	AddVar( &m_flCycle, &m_iv_flCycle, flags, true );
+	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_SIMULATION_VAR, true );
+	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_SIMULATION_VAR, true );
+	AddVar( &m_flCycle, &m_iv_flCycle, LATCH_SIMULATION_VAR, true );
 }
 
 void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
 {
 	RemoveVar( m_flEncodedController, false );
 	RemoveVar( m_flPoseParameter, false );
-
-#ifdef HL2MP
-	// HACK:  Don't want to remove interpolation for predictables in hl2dm, though
-	// The animation state stuff sets the pose parameters -- so they should interp
-	//  but m_flCycle is not touched, so it's only set during prediction (which occurs on tick boundaries)
-	//  and so needs to continue to be interpolated for smooth rendering of the lower body of the local player in third person, etc.
-	if ( !GetPredictable() )
-#endif
-	{
-		RemoveVar( &m_flCycle, false );
-	}
+	RemoveVar( &m_flCycle, false );
 }
 
 void C_BaseAnimating::StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flCycleDelta )
@@ -1134,13 +1120,10 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 
 	Assert( hdr->GetNumPoseParameters() <= ARRAYSIZE( m_flPoseParameter ) );
 
-	m_iv_flPoseParameter.SetMaxCount( hdr->GetNumPoseParameters() );
-	
 	int i;
 	for ( i = 0; i < hdr->GetNumPoseParameters() ; i++ )
 	{
 		const mstudioposeparamdesc_t &Pose = hdr->pPoseParameter( i );
-		m_iv_flPoseParameter.SetLooping( Pose.loop != 0.0f, i );
 		// Note:  We can't do this since if we get a DATA_UPDATE_CREATED (i.e., new entity) with both a new model and some valid pose parameters this will slam the 
 		//  pose parameters to zero and if the model goes dormant the pose parameter field will never be set to the true value.  We shouldn't have to zero these out
 		//  as they are under the control of the server and should be properly set
@@ -1152,12 +1135,9 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 
 	int boneControllerCount = MIN( hdr->numbonecontrollers(), ARRAYSIZE( m_flEncodedController ) );
 
-	m_iv_flEncodedController.SetMaxCount( boneControllerCount );
-
 	for ( i = 0; i < boneControllerCount ; i++ )
 	{
 		bool loop = (hdr->pBonecontroller( i )->type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR)) != 0;
-		m_iv_flEncodedController.SetLooping( loop, i );
 		SetBoneController( i, 0.0 );
 	}
 
@@ -1978,7 +1958,9 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 
 	// debugoverlay->AddTextOverlay( GetAbsOrigin() + Vector( 0, 0, 64 ), 0, 0, "%30s %6.2f : %6.2f", hdr->pSeqdesc( GetSequence() )->pszLabel( ), fCycle, 1.0 );
 
-	MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
+    // TODO_ENHANCED: Do that only for client side animations
+    // if (m_bClientSideAnimation)
+		MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
 
 	AccumulateLayers( boneSetup, pos, q, currentTime );
 
@@ -2685,8 +2667,6 @@ void C_BaseAnimating::ControlMouth( CStudioHdr *pstudiohdr )
 		//Adrian - Set the pose parameter value. 
 		//It has to be called "mouth".
 		SetPoseParameter( pstudiohdr, index, value ); 
-		// Reset interpolation here since the client is controlling this rather than the server...
-		m_iv_flPoseParameter.SetHistoryValuesForItem( index, raw );
 	}
 }
 
@@ -4358,9 +4338,6 @@ bool C_BaseAnimating::Interpolate( float flCurrentTime )
 	float flOldCycle = GetCycle();
 	int nChangeFlags = 0;
 
-	if ( !m_bClientSideAnimation )
-		m_iv_flCycle.SetLooping( IsSequenceLooping( GetSequence() ) );
-
 	int bNoMoreChanges;
 	int retVal = BaseInterpolatePart1( flCurrentTime, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
 	if ( retVal == INTERPOLATE_STOP )
@@ -4621,20 +4598,6 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 		if ( m_bClientSideAnimation )
 		{
 			ClientSideAnimationChanged();
-		}
-	}
-
-	// reset prev cycle if new sequence
-	if (m_nNewSequenceParity != m_nPrevNewSequenceParity)
-	{
-		// It's important not to call Reset() on a static prop, because if we call
-		// Reset(), then the entity will stay in the interpolated entities list
-		// forever, wasting CPU.
-		MDLCACHE_CRITICAL_SECTION();
-		CStudioHdr *hdr = GetModelPtr();
-		if ( hdr && !( hdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP ) )
-		{
-			m_iv_flCycle.Reset();
 		}
 	}
 }

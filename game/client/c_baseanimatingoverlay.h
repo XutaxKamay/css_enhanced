@@ -35,8 +35,6 @@ public:
 
 	virtual void	GetRenderBounds( Vector& theMins, Vector& theMaxs );
 
-	void			CheckForLayerChanges( CStudioHdr *hdr, float currentTime );
-
 	// model specific
 	virtual void	AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
 	virtual void DoAnimationEvents( CStudioHdr *pStudioHdr );
@@ -48,9 +46,7 @@ public:
 	};
 
 	CUtlVector < C_AnimationLayer >	m_AnimOverlay;
-
 	CUtlVector < CInterpolatedVar< C_AnimationLayer > >	m_iv_AnimOverlay;
-
 	float m_flOverlayPrevEventCycle[ MAX_OVERLAYS ];
 
 private:

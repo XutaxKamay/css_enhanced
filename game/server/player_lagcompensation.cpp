@@ -38,33 +38,6 @@ ConVar sv_unlag_fixstuck( "sv_unlag_fixstuck", "0", FCVAR_DEVELOPMENTONLY, "Disa
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-#define MAX_LAYER_RECORDS (CBaseAnimatingOverlay::MAX_OVERLAYS)
-#define MAX_POSE_PARAMETERS (CBaseAnimating::NUM_POSEPAREMETERS)
-#define MAX_ENCODED_CONTROLLERS (MAXSTUDIOBONECTRLS)
-
-struct LayerRecord
-{
-	int m_sequence;
-	float m_cycle;
-	float m_weight;
-	int m_order;
-
-	LayerRecord()
-	{
-		m_sequence = 0;
-		m_cycle = 0;
-		m_weight = 0;
-		m_order = 0;
-	}
-
-	LayerRecord( const LayerRecord& src )
-	{
-		m_sequence = src.m_sequence;
-		m_cycle = src.m_cycle;
-		m_weight = src.m_weight;
-		m_order = src.m_order;
-	}
-};
 
 struct LagRecord
 {
@@ -137,6 +110,8 @@ public:
 	float					m_masterCycle;
 	float					m_poseParameters[MAX_POSE_PARAMETERS];
 	float					m_encodedControllers[MAX_ENCODED_CONTROLLERS];
+	// TODO: do proper eyeAngles lag compensation
+	QAngle					m_angEyeAngles;
 };
 
 
@@ -426,11 +401,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	int pl_index = pPlayer->entindex() - 1;
 
 	float flTargetSimulationTime = cmd->simulationtimes[pl_index + 1];
-	float flTargetAnimTime = cmd->animtimes[pl_index + 1];
+	auto animationData = &cmd->animationdata[pl_index + 1];
 
 	// get track history of this player
 	CUtlFixedLinkedList< LagRecord > *trackSim = &m_PlayerTrack[ pl_index ];
-	// CUtlFixedLinkedList< LagRecord > *trackAnim = &m_PlayerTrack[ pl_index ];
 
 	// check if we have at leat one entry
 	if ( trackSim->Count() <= 0 )
@@ -470,37 +444,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		currSim = trackSim->Next( currSim );
 	}
 
-    // intp currAnim = trackSim->Head();
-
-	// LagRecord *prevRecordAnim = NULL;
-	// LagRecord *recordAnim = NULL;
-
-	// // Walk context looking for any invalidating event
-	// while( trackAnim->IsValidIndex(currAnim) )
-	// {
-	// 	// remember last record
-	// 	prevRecordAnim = recordAnim;
-
-	// 	// get next record
-	// 	recordAnim = &trackAnim->Element( currAnim );
-
-	// 	if ( !(recordAnim->m_fFlags & LC_ALIVE) )
-	// 	{
-	// 		// player most be alive, lost track
-	// 		return;
-	// 	}
-
-	// 	// TODO: do proper teleportation checks.
-
-	// 	// did we find a context smaller than target time ?
-	// 	if ( recordAnim->m_flAnimTime <= flTargetAnimTime )
-	// 		break; // hurra, stop
-
-	// 	// go one step back
-	// 	currAnim = trackAnim->Next( currAnim );
-	// }
-
-	// Assert( recordAnim );
 	Assert( recordSim );
 
 	if ( !recordSim )
@@ -544,24 +487,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		minsPreScaled	= recordSim->m_vecMinsPreScaled;
 		maxsPreScaled	= recordSim->m_vecMaxsPreScaled;
 	}
-
-	// float fracAnim = 0.0f;
-	// if ( prevRecordAnim && 
-	// 	 (recordAnim->m_flAnimTime < flTargetAnimTime) &&
-	// 	 (recordAnim->m_flAnimTime < prevRecordAnim->m_flAnimTime) )
-	// {
-	// 	// we didn't find the exact time but have a valid previous record
-	// 	// so interpolate between these two records;
-
-	// 	Assert( prevRecord->m_flAnimTime > record->m_flAnimTime );
-	// 	Assert( flTargetAnimTime < prevRecord->m_flAnimTime );
-
-	// 	// calc fraction between both records
-	// 	fracAnim = ( flTargetAnimTime - recordAnim->m_flAnimTime ) / 
-	// 		( prevRecordAnim->m_flAnimTime - recordAnim->m_flAnimTime );
-
-	// 	Assert( fracAnim > 0 && fracAnim < 1 ); // should never extrapolate
-	// }
 
 	// See if this is still a valid position for us to teleport to
 	if ( sv_unlag_fixstuck.GetBool() )
@@ -672,39 +597,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	restore->m_masterSequence = pPlayer->GetSequence();
 	restore->m_masterCycle = pPlayer->GetCycle();
 
-	bool interpolationAllowed = false;
-	if( prevRecordSim && (recordSim->m_masterSequence == prevRecordSim->m_masterSequence) )
-	{
-		// If the master state changes, all layers will be invalid too, so don't interp (ya know, interp barely ever happens anyway)
-		interpolationAllowed = true;
-	}
-	
-	////////////////////////
-	// First do the master settings
-	bool interpolatedMasters = false;
-	if( fracSim > 0.0f && interpolationAllowed )
-	{
-		interpolatedMasters = true;
-		pPlayer->SetSequence( Lerp( fracSim, recordSim->m_masterSequence, prevRecordSim->m_masterSequence ) );
-		pPlayer->SetCycle( Lerp( fracSim, recordSim->m_masterCycle, prevRecordSim->m_masterCycle ) );
-
-		if( recordSim->m_masterCycle > prevRecordSim->m_masterCycle )
-		{
-			// the older record is higher in frame than the newer, it must have wrapped around from 1 back to 0
-			// add one to the newer so it is lerping from .9 to 1.1 instead of .9 to .1, for example.
-			float newCycle = Lerp( fracSim, recordSim->m_masterCycle, prevRecordSim->m_masterCycle + 1 );
-			pPlayer->SetCycle(newCycle < 1 ? newCycle : newCycle - 1 );// and make sure .9 to 1.2 does not end up 1.05
-		}
-		else
-		{
-			pPlayer->SetCycle( Lerp( fracSim, recordSim->m_masterCycle, prevRecordSim->m_masterCycle ) );
-		}
-	}
-	if( !interpolatedMasters )
-	{
-		pPlayer->SetSequence(recordSim->m_masterSequence);
-		pPlayer->SetCycle(recordSim->m_masterCycle);
-	}
+	pPlayer->SetSequence(animationData->m_masterSequence);
+	pPlayer->SetCycle(animationData->m_masterCycle);
 
 	////////////////////////
 	// Now do all the layers
@@ -717,44 +611,14 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 			restore->m_layerRecords[layerIndex].m_cycle = currentLayer->m_flCycle;
 			restore->m_layerRecords[layerIndex].m_order = currentLayer->m_nOrder;
 			restore->m_layerRecords[layerIndex].m_sequence = currentLayer->m_nSequence;
-			restore->m_layerRecords[layerIndex].m_weight = currentLayer->m_flWeight;
+            restore->m_layerRecords[layerIndex].m_weight = currentLayer
+                                                             ->m_flWeight;
 
-			bool interpolated = false;
-			if( (fracSim > 0.0f)  &&  interpolationAllowed )
-			{
-				LayerRecord &recordsLayerRecord = recordSim->m_layerRecords[layerIndex];
-				LayerRecord &prevRecordsLayerRecord = prevRecordSim->m_layerRecords[layerIndex];
-				if( (recordsLayerRecord.m_order == prevRecordsLayerRecord.m_order)
-					&& (recordsLayerRecord.m_sequence == prevRecordsLayerRecord.m_sequence)
-					)
-				{
-					// We can't interpolate across a sequence or order change
-					interpolated = true;
-					if( recordsLayerRecord.m_cycle > prevRecordsLayerRecord.m_cycle )
-					{
-						// the older record is higher in frame than the newer, it must have wrapped around from 1 back to 0
-						// add one to the newer so it is lerping from .9 to 1.1 instead of .9 to .1, for example.
-						float newCycle = Lerp( fracSim, recordsLayerRecord.m_cycle, prevRecordsLayerRecord.m_cycle + 1 );
-						currentLayer->m_flCycle = newCycle < 1 ? newCycle : newCycle - 1;// and make sure .9 to 1.2 does not end up 1.05
-					}
-					else
-					{
-						currentLayer->m_flCycle = Lerp( fracSim, recordsLayerRecord.m_cycle, prevRecordsLayerRecord.m_cycle  );
-					}
-					currentLayer->m_nOrder = recordsLayerRecord.m_order;
-					currentLayer->m_nSequence = recordsLayerRecord.m_sequence;
-					currentLayer->m_flWeight = Lerp( fracSim, recordsLayerRecord.m_weight, prevRecordsLayerRecord.m_weight  );
-				}
-			}
-			if( !interpolated )
-			{
-				//Either no interp, or interp failed.  Just use record.
-				currentLayer->m_flCycle = recordSim->m_layerRecords[layerIndex].m_cycle;
-				currentLayer->m_nOrder = recordSim->m_layerRecords[layerIndex].m_order;
-				currentLayer->m_nSequence = recordSim->m_layerRecords[layerIndex].m_sequence;
-				currentLayer->m_flWeight = recordSim->m_layerRecords[layerIndex].m_weight;
-			}
-		}
+			currentLayer->m_flCycle = animationData->m_layerRecords[layerIndex].m_cycle;
+			currentLayer->m_nOrder = animationData->m_layerRecords[layerIndex].m_order;
+			currentLayer->m_nSequence = animationData->m_layerRecords[layerIndex].m_sequence;
+			currentLayer->m_flWeight = animationData->m_layerRecords[layerIndex].m_weight;
+        }
 	}
 	
 	flags |= LC_POSE_PARAMS_CHANGED;
@@ -766,19 +630,9 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		for( int paramIndex = 0; paramIndex < hdr->GetNumPoseParameters(); paramIndex++ )
 		{
 			restore->m_poseParameters[paramIndex] = pPlayer->GetPoseParameter(paramIndex);
-			float poseParameter = recordSim->m_poseParameters[paramIndex];
+			float poseParameter = animationData->m_poseParameters[paramIndex];
 
-			if( (fracSim > 0.0f)  &&  interpolationAllowed )
-			{
-				// These could wrap like cycles, but there's no way to know. In the most common case
-				// (move_x/move_y) it's correct to just lerp. Interpolation almost never happens anyways.
-				float prevPoseParameter = prevRecordSim->m_poseParameters[paramIndex];
-				pPlayer->SetPoseParameter( paramIndex, Lerp( fracSim, poseParameter, prevPoseParameter ) );
-			}
-			else
-			{
-				pPlayer->SetPoseParameter( paramIndex, poseParameter );
-			}
+			pPlayer->SetPoseParameterRaw( paramIndex, poseParameter );
 		}
 	}
 
@@ -789,19 +643,9 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		for( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
 		{
 			restore->m_encodedControllers[paramIndex] = pPlayer->GetBoneController(paramIndex);
-			float encodedController = recordSim->m_encodedControllers[paramIndex];
+			float encodedController = animationData->m_encodedControllers[paramIndex];
 
-			if( (fracSim > 0.0f)  &&  interpolationAllowed )
-			{
-				// These could wrap like cycles, but there's no way to know. In the most common case
-				// (move_x/move_y) it's correct to just lerp. Interpolation almost never happens anyways.
-				float prevEncodedController = prevRecordSim->m_encodedControllers[paramIndex];
-				pPlayer->SetBoneController( paramIndex, Lerp( fracSim, encodedController, prevEncodedController ) );
-			}
-			else
-			{
-				pPlayer->SetBoneController( paramIndex, encodedController );
-			}
+			pPlayer->SetBoneControllerRaw( paramIndex, encodedController );
 		}
 	}
 
@@ -810,7 +654,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 
 	// Set lag compensated player's times
 	pPlayer->SetSimulationTime(flTargetSimulationTime);
-	pPlayer->SetAnimTime(flTargetAnimTime);
+	pPlayer->SetAnimTime(animationData->m_flAnimTime);
 
 	if ( sv_lagflushbonecache.GetBool() )
 		pPlayer->InvalidateBoneCache();
@@ -827,7 +671,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 
 	if( sv_showlagcompensation.GetInt() == pPlayer->entindex() )
 	{
-		pPlayer->DrawServerHitboxes(60, false);
+		pPlayer->DrawServerHitboxes(60, true);
 	}
 
 	static ConVar *sv_showplayerhitboxes = g_pCVar->FindVar("sv_showplayerhitboxes");

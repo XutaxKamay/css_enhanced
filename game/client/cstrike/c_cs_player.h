@@ -150,6 +150,7 @@ public:
 	virtual void CalcFreezeCamView( Vector& eyeOrigin, QAngle& eyeAngles, float& fov );
 
 	virtual float GetDeathCamInterpolationTime();
+	virtual bool SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime );
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
@@ -376,7 +377,6 @@ private:
 
 	float m_cycleLatch;				// server periodically updates this to fix up our anims, here it is a 4 bit fixed point
 	float m_serverIntendedCycle;	// server periodically updates this to fix up our anims, here it is the float we want, or -1 for no override
-
 
 
     //=============================================================================

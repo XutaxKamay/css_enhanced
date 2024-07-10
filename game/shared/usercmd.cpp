@@ -9,6 +9,7 @@
 #include "usercmd.h"
 #include "bitbuf.h"
 #include "checksum_md5.h"
+#include "const.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #ifdef CLIENT_DLL
@@ -177,8 +178,15 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
-	for (int i = 0; i <= MAX_PLAYERS; i++)
-	{
+	for (int i = 0; i < MAX_EDICTS; i++)
+    {
+        buf->WriteOneBit(to->has_simulation[i]);
+
+        if (!to->has_simulation[i])
+        {
+            continue;
+		}
+
 		if (to->simulationtimes[i] != from->simulationtimes[i])
 		{
 			buf->WriteOneBit( 1 );
@@ -187,20 +195,113 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		else
 		{
 			buf->WriteOneBit(0);
-		}
-	}
+        }
 
-	for (int i = 0; i <= MAX_PLAYERS; i++)
-	{
-		if (to->animtimes[i] != from->animtimes[i])
+        buf->WriteOneBit(to->has_animation[i]);
+
+        if (!to->has_animation[i])
+        {
+            continue;
+		}
+
+		if (to->animationdata[i].m_flAnimTime != from->animationdata[i].m_flAnimTime)
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->animtimes[i] );
+			buf->WriteFloat( to->animationdata[i].m_flAnimTime );
 		}
 		else
 		{
 			buf->WriteOneBit(0);
+        }
+
+		if (to->animationdata[i].m_masterSequence != from->animationdata[i].m_masterSequence)
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteVarInt32( to->animationdata[i].m_masterSequence );
 		}
+		else
+		{
+			buf->WriteOneBit(0);
+        }
+
+		if (to->animationdata[i].m_masterCycle != from->animationdata[i].m_masterCycle)
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->animationdata[i].m_masterCycle );
+		}
+		else
+		{
+			buf->WriteOneBit(0);
+        }
+
+        for (int j = 0; j < MAX_POSE_PARAMETERS; j++)
+        {
+            if (to->animationdata[i].m_poseParameters[j] != from->animationdata[i].m_poseParameters[j])
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteFloat( to->animationdata[i].m_poseParameters[j] );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+			}
+        }
+
+        for (int j = 0; j < MAX_ENCODED_CONTROLLERS; j++)
+        {
+            if (to->animationdata[i].m_encodedControllers[j] != from->animationdata[i].m_encodedControllers[j])
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteFloat( to->animationdata[i].m_encodedControllers[j] );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+			}
+        }
+
+        for (int j = 0; j < MAX_LAYER_RECORDS; j++)
+        {
+            if (to->animationdata[i].m_layerRecords[j].m_cycle != from->animationdata[i].m_layerRecords[j].m_cycle)
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteFloat( to->animationdata[i].m_layerRecords[j].m_cycle );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+            }
+
+            if (to->animationdata[i].m_layerRecords[j].m_order != from->animationdata[i].m_layerRecords[j].m_order)
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteVarInt32( to->animationdata[i].m_layerRecords[j].m_order );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+            }
+
+            if (to->animationdata[i].m_layerRecords[j].m_sequence != from->animationdata[i].m_layerRecords[j].m_sequence)
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteVarInt32( to->animationdata[i].m_layerRecords[j].m_sequence );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+            }
+
+            if (to->animationdata[i].m_layerRecords[j].m_weight != from->animationdata[i].m_layerRecords[j].m_weight)
+			{
+				buf->WriteOneBit( 1 );
+				buf->WriteFloat( to->animationdata[i].m_layerRecords[j].m_weight );
+			}
+            else
+			{
+				buf->WriteOneBit(0);
+			}
+        }
 	}
 
 #if defined( HL2_CLIENT_DLL )
@@ -323,21 +424,81 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		move->mousedy = buf->ReadShort();
 	}
 
-	for (int i = 0; i <= MAX_PLAYERS; i++)
-	{
-		// Simulation time changed unexpectedly ?
+	for (int i = 0; i < MAX_EDICTS; i++)
+    {
+        // Has simulation ?
+        move->has_simulation[i] = buf->ReadOneBit();
+
+        if (!move->has_simulation[i])
+        {
+            continue;
+		}
+
 		if (buf->ReadOneBit())
 		{
 			move->simulationtimes[i] = buf->ReadFloat();
-		}
-	}
+        }
 
-	for (int i = 0; i <= MAX_PLAYERS; i++)
-	{
-		// Simulation time changed unexpectedly ?
+        // Has animation ?
+        move->has_animation[i] = buf->ReadOneBit();
+
+        if (!move->has_animation[i])
+        {
+            continue;
+		}
+
 		if (buf->ReadOneBit())
 		{
-			move->animtimes[i] = buf->ReadFloat();
+			move->animationdata[i].m_flAnimTime = buf->ReadFloat();
+        }
+
+		if (buf->ReadOneBit())
+		{
+			move->animationdata[i].m_masterSequence = buf->ReadVarInt32();
+        }
+
+		if (buf->ReadOneBit())
+		{
+			move->animationdata[i].m_masterCycle = buf->ReadFloat();
+        }
+
+		for (int j = 0; j < MAX_POSE_PARAMETERS; j++)
+        {
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_poseParameters[j] = buf->ReadFloat();
+			}
+        }
+
+		for (int j = 0; j < MAX_ENCODED_CONTROLLERS; j++)
+        {
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_encodedControllers[j] = buf->ReadFloat();
+			}
+        }
+
+		for (int j = 0; j < MAX_LAYER_RECORDS; j++)
+        {
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_layerRecords[j].m_cycle = buf->ReadFloat();
+            }
+
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_layerRecords[j].m_order = buf->ReadVarInt32();
+            }
+
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_layerRecords[j].m_sequence = buf->ReadVarInt32();
+            }
+
+			if (buf->ReadOneBit())
+			{
+				move->animationdata[i].m_layerRecords[j].m_weight = buf->ReadFloat();
+			}
 		}
 	}
 
