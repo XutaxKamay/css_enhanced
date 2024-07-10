@@ -9,6 +9,12 @@
 
 
 #include "cbase.h"
+#include <cmath>
+#include <cstdio>
+#include "bone_setup.h"
+#include "util_shared.h"
+#include "c_baseplayer.h"
+#include "c_baseentity.h"
 #include "cdll_bounded_cvars.h"
 #include "cdll_client_int.h"
 #include "cdll_util.h"
@@ -1289,17 +1295,70 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
-	// Send interpolated simulation time for lag compensation
-	for (int i = 0; i <= MAX_PLAYERS; i++)
-	{
-		auto pPlayer = UTIL_PlayerByIndex(i);
+    for (int i = 0; i < MAX_EDICTS; i++)
+    {
+        cmd->has_simulation[i] = false;
+        cmd->has_animation[i] = false;
+    }
 
-		if (pPlayer)
-		{
-			cmd->simulationtimes[pPlayer->index] = pPlayer->m_flInterpolatedSimulationTime;
-			cmd->animtimes[pPlayer->index] = pPlayer->m_flInterpolatedAnimTime;
+	// Send interpolated simulation time for lag compensation
+	for (int i = 0; i <= gpGlobals->maxClients; i++)
+    {
+        auto pEntity = ClientEntityList().GetEnt(i);
+
+		if (!pEntity)
+        {
+            continue;
+        }
+
+        cmd->has_simulation[pEntity->index] = true;
+        cmd->simulationtimes[pEntity->index] = pEntity->m_flInterpolatedSimulationTime;
+
+        if (pEntity->index < 1 and pEntity->index > MAX_PLAYERS)
+        {
+            continue;
 		}
-	}
+
+		auto pBasePlayer = ToBasePlayer(pEntity);
+
+		if (!pBasePlayer)
+		{
+			continue;
+        }
+
+        if (pBasePlayer->IsLocalPlayer())
+        {
+            continue;
+        }
+
+        if (!pBasePlayer->GetModelPtr())
+        {
+            continue;
+		}
+
+        cmd->has_animation[pBasePlayer->index] = true;
+        cmd->animationdata[pBasePlayer->index].m_flAnimTime = pBasePlayer->m_flInterpolatedAnimTime;
+        
+        pBasePlayer->GetBoneControllers(cmd->animationdata[pBasePlayer->index].m_encodedControllers);
+        pBasePlayer->GetPoseParameters(pBasePlayer->GetModelPtr(),
+                                       cmd->animationdata[pBasePlayer->index].m_poseParameters);
+
+        cmd->animationdata[pBasePlayer->index].m_masterCycle = pBasePlayer->GetCycle();
+        cmd->animationdata[pBasePlayer->index].m_masterSequence = pBasePlayer->GetSequence();
+
+        for (int j = 0; j < pBasePlayer->GetNumAnimOverlays(); j++)
+        {
+            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_cycle =
+                pBasePlayer->GetAnimOverlay(j)->m_flCycle;
+            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_sequence =
+                pBasePlayer->GetAnimOverlay(j)->m_nSequence;
+            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_order =
+                pBasePlayer->GetAnimOverlay(j)->m_nOrder;
+            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_weight =
+                pBasePlayer->GetAnimOverlay(j)->m_flWeight;
+
+		}
+    }
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();
