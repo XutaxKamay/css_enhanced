@@ -218,11 +218,7 @@ public:
 	void SetActivity( Activity eActivity );
 	Activity GetActivity( void ) const;
 
-	ICSPlayerAnimState *GetPlayerAnimState() { return m_PlayerAnimState; }
-
 public:
-
-	ICSPlayerAnimState *m_PlayerAnimState;
 
 	// Used to control animation state.
 	Activity m_Activity;

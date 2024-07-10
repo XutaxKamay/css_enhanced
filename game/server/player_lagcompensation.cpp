@@ -31,9 +31,8 @@
 ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag compensation" );
 ConVar sv_maxunlag( "sv_maxunlag", "1.0", FCVAR_DEVELOPMENTONLY, "Maximum lag compensation in seconds", true, 0.0f, true, 1.0f );
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", FCVAR_DEVELOPMENTONLY, "Flushes entity bone cache on lag compensation" );
-ConVar sv_showlagcompensation( "sv_showlagcompensation", "0", FCVAR_CHEAT, "Show lag compensated hitboxes whenever a player is lag compensated." );
-
 ConVar sv_unlag_fixstuck( "sv_unlag_fixstuck", "0", FCVAR_DEVELOPMENTONLY, "Disallow backtracking a player for lag compensation if it will cause them to become stuck" );
+ConVar sv_showhitboxes( "sv_showhitboxes", "-1");
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -110,8 +109,6 @@ public:
 	float					m_masterCycle;
 	float					m_poseParameters[MAX_POSE_PARAMETERS];
 	float					m_encodedControllers[MAX_ENCODED_CONTROLLERS];
-	// TODO: do proper eyeAngles lag compensation
-	QAngle					m_angEyeAngles;
 };
 
 
@@ -195,7 +192,7 @@ public:
 	void			FinishLagCompensation( CBasePlayer *player );
 
 private:
-	void			BacktrackPlayer( CBasePlayer *player, CUserCmd *cmd );
+	virtual void			BacktrackPlayer( CBasePlayer *player, CUserCmd *cmd );
 
 	void ClearHistory()
 	{
@@ -401,8 +398,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	int pl_index = pPlayer->entindex() - 1;
 
 	float flTargetSimulationTime = cmd->simulationtimes[pl_index + 1];
-	auto animationData = &cmd->animationdata[pl_index + 1];
-
+    auto animationData = &cmd->animationdata[pl_index + 1];
+    
 	// get track history of this player
 	CUtlFixedLinkedList< LagRecord > *trackSim = &m_PlayerTrack[ pl_index ];
 
@@ -617,7 +614,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 			currentLayer->m_flCycle = animationData->m_layerRecords[layerIndex].m_cycle;
 			currentLayer->m_nOrder = animationData->m_layerRecords[layerIndex].m_order;
 			currentLayer->m_nSequence = animationData->m_layerRecords[layerIndex].m_sequence;
-			currentLayer->m_flWeight = animationData->m_layerRecords[layerIndex].m_weight;
+            currentLayer->m_flWeight = animationData->m_layerRecords[layerIndex].m_weight;
         }
 	}
 	
@@ -643,7 +640,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		for( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
 		{
 			restore->m_encodedControllers[paramIndex] = pPlayer->GetBoneController(paramIndex);
-			float encodedController = animationData->m_encodedControllers[paramIndex];
+            float encodedController = animationData->m_encodedControllers[paramIndex];
 
 			pPlayer->SetBoneControllerRaw( paramIndex, encodedController );
 		}
@@ -657,7 +654,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	pPlayer->SetAnimTime(animationData->m_flAnimTime);
 
 	if ( sv_lagflushbonecache.GetBool() )
-		pPlayer->InvalidateBoneCache();
+        pPlayer->InvalidateBoneCache();
 
 	/*char text[256]; Q_snprintf( text, sizeof(text), "time %.2f", flTargetTime );
 	pPlayer->DrawServerHitboxes( 10 );
@@ -669,17 +666,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	restore->m_fFlags = flags; // we need to restore these flags
 	change->m_fFlags = flags; // we have changed these flags
 
-	if( sv_showlagcompensation.GetInt() == pPlayer->entindex() )
-	{
-		pPlayer->DrawServerHitboxes(60, true);
-	}
-
 	static ConVar *sv_showplayerhitboxes = g_pCVar->FindVar("sv_showplayerhitboxes");
 
-	if ( sv_showplayerhitboxes->GetInt() == pPlayer->entindex() )
-	{
-		DevMsg("Server: %s => %f %f %f => %f (frac: %f)\n", pPlayer->GetPlayerName(), change->m_vecOrigin.x, change->m_vecOrigin.y, change->m_vecOrigin.z, flTargetSimulationTime, fracSim);
-	}
+    if (sv_showhitboxes.GetInt() == pPlayer->entindex())
+    	pPlayer->DrawServerHitboxes(0.0f, true);
 }
 
 
@@ -790,7 +780,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 		}
 
 		pPlayer->SetSimulationTime( restore->m_flSimulationTime );
-		pPlayer->SetAnimTime( restore->m_flAnimTime );
+        pPlayer->SetAnimTime(restore->m_flAnimTime);
 	}
 }
 

@@ -786,8 +786,6 @@ END_RECV_TABLE()
 C_CSPlayer::C_CSPlayer() :
 	m_iv_angEyeAngles( "C_CSPlayer::m_iv_angEyeAngles" )
 {
-	m_PlayerAnimState = CreatePlayerAnimState( this, this, LEGANIM_9WAY, true );
-
 	m_angEyeAngles.Init();
 
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
@@ -822,8 +820,6 @@ C_CSPlayer::~C_CSPlayer()
 	RemoveAddonModels();
 
 	ReleaseFlashlight();
-
-	m_PlayerAnimState->Release();
 }
 
 
@@ -937,10 +933,10 @@ const QAngle& C_CSPlayer::GetRenderAngles()
 	if ( IsRagdoll() )
 	{
 		return vec3_angle;
-	}
+    }
 	else
 	{
-		return m_PlayerAnimState->GetRenderAngles();
+		return GetAbsAngles();
 	}
 }
 
@@ -2092,15 +2088,6 @@ void C_CSPlayer::PlayReloadEffect()
 
 void C_CSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 {
-	if ( event == PLAYERANIMEVENT_THROW_GRENADE )
-	{
-		// Let the server handle this event. It will update m_iThrowGrenadeCounter and the client will
-		// pick up the event in CCSPlayerAnimState.
-	}
-	else
-	{
-		m_PlayerAnimState->DoAnimationEvent( event, nData );
-	}
 }
 
 void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options )
@@ -2271,12 +2258,9 @@ void C_CSPlayer::Simulate( void )
 
     BaseClass::Simulate();
 
-	// Update the animation data. It does the local check here so this works when using
-	// a third-person camera (and we don't have valid player angles).
-	if ( this == C_CSPlayer::GetLocalCSPlayer() )
-		m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
-	else
-		m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+    static ConVar cl_showhitboxes("cl_showhitboxes", "-1");
+    if (cl_showhitboxes.GetInt() == index)
+    	DrawClientHitboxes(0.0f, true);
 }
 
 void C_CSPlayer::ReleaseFlashlight( void )
@@ -2536,11 +2520,11 @@ float C_CSPlayer::GetDeathCamInterpolationTime()
 
 }
 
-ConVar cl_cs_player_setupbones("cl_cs_player_setupbones", "1");
+ConVar cl_server_setup_bones("cl_server_setup_bones", "1");
 
 bool C_CSPlayer::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
-	if (cl_cs_player_setupbones.GetBool())
+	if (cl_server_setup_bones.GetBool())
 	{
 		AUTO_LOCK( m_BoneSetupLock );
 

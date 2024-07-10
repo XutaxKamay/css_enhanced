@@ -5,6 +5,9 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "baseentity.h"
+#include "convar.h"
+#include "ilagcompensationmanager.h"
 #include "player.h"
 #include "usercmd.h"
 #include "igamemovement.h"
@@ -339,6 +342,14 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	gpGlobals->curtime		=  playerCurTime;
 	gpGlobals->frametime	=  playerFrameTime;
 
+    extern ConVar sv_showhitboxes;
+
+    if (sv_showhitboxes.GetInt() >= 0)
+    {
+		lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
+		lagcompensation->FinishLagCompensation( player );
+	}
+
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable(ucmd->viewangles) )
 	{
@@ -457,5 +468,5 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	if ( gpGlobals->frametime > 0 )
 	{
 		player->m_nTickBase++;
-	}
+    }
 }

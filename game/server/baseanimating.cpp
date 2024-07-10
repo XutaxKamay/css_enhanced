@@ -1740,7 +1740,7 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 	}
 }
 
-ConVar sv_pvsskipanimation( "sv_pvsskipanimation", "1", FCVAR_ARCHIVE, "Skips SetupBones when npc's are outside the PVS" );
+ConVar sv_pvsskipanimation( "sv_pvsskipanimation", "0", FCVAR_ARCHIVE, "Skips SetupBones when npc's are outside the PVS" );
 ConVar ai_setupbones_debug( "ai_setupbones_debug", "0", 0, "Shows that bones that are setup every think" );
 
 

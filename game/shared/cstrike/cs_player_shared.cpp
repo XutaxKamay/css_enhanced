@@ -414,14 +414,15 @@ void CCSPlayer::FireBullet(
 	{
 		CBasePlayer *lagPlayer = UTIL_PlayerByIndex( sv_showplayerhitboxes.GetInt() );
 		if( lagPlayer )
-		{
+        {
 #ifdef CLIENT_DLL
+            DevMsg("Client:");
 			lagPlayer->DrawClientHitboxes(60, true);
-			DevMsg("Client: %s => %f %f %f => %f (%f)\n", lagPlayer->GetPlayerName(), lagPlayer->GetAbsOrigin().x, lagPlayer->GetAbsOrigin().y, lagPlayer->GetAbsOrigin().z,
-				lagPlayer->m_flInterpolatedSimulationTime, fmod(lagPlayer->m_flInterpolatedSimulationTime, TICK_INTERVAL) / TICK_INTERVAL);
 #else
+            DevMsg("Server:");
             lagPlayer->DrawServerHitboxes(60, true);
 #endif
+        	DevMsg("%s => %f %f %f\n", lagPlayer->GetPlayerName(), lagPlayer->GetAbsOrigin().x, lagPlayer->GetAbsOrigin().y, lagPlayer->GetAbsOrigin().z);
 		}
 	}
 
