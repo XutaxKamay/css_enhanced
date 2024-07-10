@@ -148,6 +148,8 @@ public:
 	inline float SetPoseParameter( const char *szName, float flValue ) { return SetPoseParameter( GetModelPtr(), szName, flValue ); }
 	float	SetPoseParameter( CStudioHdr *pStudioHdr, int iParameter, float flValue );
 	inline float SetPoseParameter( int iParameter, float flValue ) { return SetPoseParameter( GetModelPtr(), iParameter, flValue ); }
+    inline void SetPoseParameterRaw(int iParameter, float flValue) { m_flPoseParameter.Set(iParameter, flValue); };
+    inline void SetBoneControllerRaw(int i, float flValue) { m_flEncodedController.Set(i, flValue); }
 
 	float	GetPoseParameter( const char *szName );
 	float	GetPoseParameter( int iParameter );
@@ -316,7 +318,7 @@ public:
 	CBaseEntity *GetLightingOrigin();
 
 	const float* GetPoseParameterArray() { return m_flPoseParameter.Base(); }
-	const float* GetEncodedControllerArray() { return m_flEncodedController.Base(); }
+    const float *GetEncodedControllerArray() { return m_flEncodedController.Base(); }
 
 	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
 		const Vector& origin, const Vector pos[MAXSTUDIOBONES],

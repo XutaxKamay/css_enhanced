@@ -105,7 +105,7 @@ CHostage::CHostage()
 	m_PlayerAnimState = CreateHostageAnimState( this, this, LEGANIM_8WAY, false );
 
 	// ENHANCED_TODO: remove this
-	UseClientSideAnimation();
+	// UseClientSideAnimation();
 	SetBloodColor( BLOOD_COLOR_RED );
 }
 

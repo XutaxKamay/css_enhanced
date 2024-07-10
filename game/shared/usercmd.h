@@ -1,10 +1,13 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //
 //=============================================================================//
+#ifdef CLIENT_DLL
+#include "cbase.h"
+#endif
 #include "shareddefs.h"
 #if !defined( USERCMD_H )
 #define USERCMD_H
@@ -17,9 +20,48 @@
 #include "imovehelper.h"
 #include "checksum_crc.h"
 
+#ifndef CLIENT_DLL
+#include "baseanimating.h"
+#include "BaseAnimatingOverlay.h"
+#else
+#include "c_baseanimating.h"
+#include "c_baseanimatingoverlay.h"
+#endif
+
+#define MAX_LAYER_RECORDS (CBaseAnimatingOverlay::MAX_OVERLAYS)
+#define MAX_POSE_PARAMETERS (CBaseAnimating::NUM_POSEPAREMETERS)
+#define MAX_ENCODED_CONTROLLERS (MAXSTUDIOBONECTRLS)
 
 class bf_read;
 class bf_write;
+
+struct LayerRecord
+{
+	int m_sequence;
+	float m_cycle;
+	float m_weight;
+	int m_order;
+
+	LayerRecord()
+	{
+		m_sequence = 0;
+		m_cycle = 0;
+		m_weight = 0;
+		m_order = 0;
+	}
+};
+
+struct ClientSideAnimationData
+{
+	float					m_flAnimTime;	
+	
+	// Player animation details, so we can get the legs in the right spot.
+	LayerRecord				m_layerRecords[MAX_LAYER_RECORDS];
+	int						m_masterSequence;
+	float					m_masterCycle;
+	float					m_poseParameters[MAX_POSE_PARAMETERS];
+	float					m_encodedControllers[MAX_ENCODED_CONTROLLERS];    
+};
 
 class CEntityGroundContact
 {
@@ -57,11 +99,17 @@ public:
 
 		hasbeenpredicted = false;
 
-		for (int i = 0; i <= MAX_PLAYERS; i++)
-			simulationtimes[i] = 0.0f;
+        for (int i = 0; i < MAX_EDICTS; i++)
+        {
+            simulationtimes[i] = 0.0f;
+            has_simulation[i] = false;
+            has_animation[i] = false;
+        }
 
-		for (int i = 0; i <= MAX_PLAYERS; i++)
-			animtimes[i] = 0.0f;
+        for (int i = 0; i <= MAX_PLAYERS; i++)
+        {
+            animationdata[i] = {};
+        }
 
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
@@ -89,12 +137,17 @@ public:
 
 		hasbeenpredicted	= src.hasbeenpredicted;
 
-		for (int i = 0; i <= MAX_PLAYERS; i++)
-			simulationtimes[i] = src.simulationtimes[i];
+        for (int i = 0; i < MAX_EDICTS; i++)
+        {
+            simulationtimes[i] = src.simulationtimes[i];
+            has_simulation[i] = src.has_simulation[i];
+            has_animation[i] = src.has_animation[i];
+		}
 
-		for (int i = 0; i <= MAX_PLAYERS; i++)
-			animtimes[i] = src.animtimes[i];
-
+        for (int i = 0; i <= MAX_PLAYERS; i++)
+        {
+            animationdata[i] = src.animationdata[i];
+		}
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
@@ -124,9 +177,11 @@ public:
 		CRC32_ProcessBuffer( &crc, &weaponsubtype, sizeof( weaponsubtype ) );
 		CRC32_ProcessBuffer( &crc, &random_seed, sizeof( random_seed ) );
 		CRC32_ProcessBuffer( &crc, &mousedx, sizeof( mousedx ) );
-		CRC32_ProcessBuffer( &crc, &mousedy, sizeof( mousedy ) );
-		CRC32_ProcessBuffer( &crc, &simulationtimes, sizeof( simulationtimes ) );
-		CRC32_ProcessBuffer( &crc, &animtimes, sizeof( animtimes ) );
+        CRC32_ProcessBuffer(&crc, &mousedy, sizeof(mousedy));
+        CRC32_ProcessBuffer(&crc, has_simulation, sizeof(has_simulation));
+        CRC32_ProcessBuffer(&crc, has_animation, sizeof(has_animation));
+		CRC32_ProcessBuffer( &crc, simulationtimes, sizeof( simulationtimes ) );
+        CRC32_ProcessBuffer(&crc, animationdata, sizeof(animationdata));
 		CRC32_Final( &crc );
 
 		return crc;
@@ -174,10 +229,12 @@ public:
 	// Client only, tracks whether we've predicted this command at least once
 	bool	hasbeenpredicted;
 
-	// TODO_ENHANCED: Lag compensate also other entities when needed.
-	// Send simulation times for each players for lag compensation.
-	float 	simulationtimes[MAX_PLAYERS+1];
-	float	animtimes[MAX_PLAYERS+1];
+    // TODO_ENHANCED: Lag compensate also other entities when needed.
+    // Send simulation times for each players for lag compensation.
+    bool has_simulation[MAX_EDICTS];
+    bool has_animation[MAX_EDICTS];
+    float simulationtimes[MAX_EDICTS];
+	ClientSideAnimationData animationdata[MAX_PLAYERS+1];
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

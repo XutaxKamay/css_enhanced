@@ -209,7 +209,7 @@ public:
 		SetAbsVelocity( m_hPlayer->GetAbsVelocity() );
 		AddSolidFlags( FSOLID_NOT_SOLID );
 		ChangeTeam( m_hPlayer->GetTeamNumber() );
-		UseClientSideAnimation();
+		// UseClientSideAnimation();
 	}
 
 public:
@@ -418,6 +418,7 @@ CCSPlayer::CCSPlayer()
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this, this, LEGANIM_9WAY, true );
 
+    // TODO: one day we need to remove this shit.
 	// UseClientSideAnimation();
 
 	m_iLastWeaponFireUsercmd = 0;
