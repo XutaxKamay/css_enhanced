@@ -1328,7 +1328,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         }
 
         cmd->has_animation[pBasePlayer->index] = true;
-        cmd->animationdata[pBasePlayer->index].m_flAnimTime = pBasePlayer->m_flAnimTime;
+        cmd->animationdata[pBasePlayer->index].m_flUninterpolatedSimulationTime = pBasePlayer->m_flSimulationTime;
     }
 
 	pVerified->m_cmd = *cmd;
