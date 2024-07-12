@@ -126,10 +126,6 @@ public:
 
 	virtual void CreateLightEffects( void ) {}	//no dimlight effects
 
-	// Sometimes the server wants to update the client's cycle to get the two to run in sync (for proper hit detection)
-	virtual void SetServerIntendedCycle( float intended ) { m_serverIntendedCycle = intended; }
-	virtual float GetServerIntendedCycle( void ) { return m_serverIntendedCycle; }
-
 	virtual bool ShouldReceiveProjectedTextures( int flags )
 	{
 		return ( this != C_BasePlayer::GetLocalPlayer() );
@@ -294,9 +290,6 @@ public:
 	CNetworkVar( float, m_flFlashMaxAlpha );
 	CNetworkVar( float, m_flFlashDuration );
 
-	// Having the RecvProxy in the player allows us to keep the var private
-	static void RecvProxy_CycleLatch( const CRecvProxyData *pData, void *pStruct, void *pOut );
-
 	// Bots and hostages auto-duck during jumps
 	bool m_duckUntilOnGround;
 
@@ -370,10 +363,6 @@ private:
 	int m_iLastAddonBits;
 	int m_iLastPrimaryAddon;
 	int m_iLastSecondaryAddon;
-
-	float m_cycleLatch;				// server periodically updates this to fix up our anims, here it is a 4 bit fixed point
-	float m_serverIntendedCycle;	// server periodically updates this to fix up our anims, here it is the float we want, or -1 for no override
-
 
     //=============================================================================
     // HPE_BEGIN:

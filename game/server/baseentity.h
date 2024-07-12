@@ -2589,7 +2589,7 @@ inline void	CBaseEntity::NetworkStateChanged( void *pVar )
 {
 	// Make sure it's a semi-reasonable pointer.
 	Assert( (char*)pVar > (char*)this );
-	Assert( (char*)pVar - (char*)this < 32768 );
+	// Assert( (char*)pVar - (char*)this < 32768 );
 	
 	// Good, they passed an offset so we can track this variable's change
 	// and avoid sending the whole entity.

@@ -662,7 +662,8 @@ class C_BaseAnimatingGameSystem : public CAutoGameSystem
 C_BaseAnimating::C_BaseAnimating()
     : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle" ),
 	m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter" ),
-	m_iv_flEncodedController("C_BaseAnimating::m_iv_flEncodedController")
+	m_iv_flEncodedController("C_BaseAnimating::m_iv_flEncodedController"),
+	m_iv_Sequence("C_BaseAnimating::m_iv_Sequence")
 {
 	m_vecForce.Init();
 	m_nForceBone = -1;
@@ -680,9 +681,12 @@ C_BaseAnimating::C_BaseAnimating()
 	for ( i = 0; i < ARRAYSIZE( m_flEncodedController ); i++ )
 	{
 		m_flEncodedController[ i ] = 0.0f;
-	}
+    }
 
-	AddBaseAnimatingInterpolatedVars();
+	for ( i = 0; i < ARRAYSIZE( m_flPoseParameter ); i++ )
+	{
+		m_flPoseParameter[ i ] = 0.0f;
+	}
 
 	m_iMostRecentModelBoneCounter = 0xFFFFFFFF;
 	m_iMostRecentBoneSetupRequest = g_iPreviousBoneCounter - 1;
@@ -736,7 +740,9 @@ C_BaseAnimating::C_BaseAnimating()
 	m_flCycle = 0;
 	m_flOldCycle = 0;
 	m_flAnimTime = gpGlobals->curtime;
-	m_flOldAnimTime = gpGlobals->curtime;
+    m_flOldAnimTime = gpGlobals->curtime;
+
+	AddBaseAnimatingInterpolatedVars();
 }
 
 //-----------------------------------------------------------------------------
@@ -747,7 +753,8 @@ C_BaseAnimating::~C_BaseAnimating()
 	int i = g_PreviousBoneSetups.Find( this );
 	if ( i != -1 )
 		g_PreviousBoneSetups.FastRemove( i );
-	RemoveFromClientSideAnimationList();
+    RemoveFromClientSideAnimationList();
+    RemoveBaseAnimatingInterpolatedVars();
 
 	TermRopes();
 	delete m_pRagdollInfo;
@@ -839,8 +846,6 @@ ShadowType_t C_BaseAnimating::ShadowCastType()
 void C_BaseAnimating::SetPredictable( bool state )
 {
 	BaseClass::SetPredictable( state );
-
-	UpdateRelevantInterpolatedVars();
 }
 
 //-----------------------------------------------------------------------------
@@ -851,33 +856,34 @@ void C_BaseAnimating::UseClientSideAnimation()
 	m_bClientSideAnimation = true;
 }
 
-void C_BaseAnimating::UpdateRelevantInterpolatedVars()
-{
-	MDLCACHE_CRITICAL_SECTION();
-	// Remove any interpolated vars that need to be removed.
-	if ( !GetPredictable() && !IsClientCreated() && GetModelPtr() && GetModelPtr()->SequencesAvailable() )
-	{
-		AddBaseAnimatingInterpolatedVars();
-	}			
-	else
-	{
-		RemoveBaseAnimatingInterpolatedVars();
-	}
-}
-
-
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR, true );
-	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR, true );
-	AddVar( &m_flCycle, &m_iv_flCycle, LATCH_ANIMATION_VAR, true );
+	// AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR );
+	// AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR );
+
+	int flags = LATCH_ANIMATION_VAR;
+	if ( m_bClientSideAnimation )
+		flags |= EXCLUDE_AUTO_INTERPOLATE;
+		
+	// AddVar( &m_flCycle, &m_iv_flCycle, flags );
+	// AddVar( &m_nSequence, &m_iv_Sequence, flags );
 }
 
 void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
 {
 	RemoveVar( m_flEncodedController, false );
 	RemoveVar( m_flPoseParameter, false );
-	RemoveVar( &m_flCycle, false );
+#ifdef HL2MP
+	// HACK:  Don't want to remove interpolation for predictables in hl2dm, though
+	// The animation state stuff sets the pose parameters -- so they should interp
+	//  but m_flCycle is not touched, so it's only set during prediction (which occurs on tick boundaries)
+	//  and so needs to continue to be interpolated for smooth rendering of the lower body of the local player in third person, etc.
+	if ( !GetPredictable() )
+#endif
+	{
+		RemoveVar( &m_flCycle, false );
+		RemoveVar( &m_nSequence, false );
+	}
 }
 
 void C_BaseAnimating::StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flCycleDelta )
@@ -1120,6 +1126,8 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 
 	Assert( hdr->GetNumPoseParameters() <= ARRAYSIZE( m_flPoseParameter ) );
 
+    m_iv_flPoseParameter.SetMaxCount(hdr->GetNumPoseParameters());
+
 	int i;
 	for ( i = 0; i < hdr->GetNumPoseParameters() ; i++ )
 	{
@@ -1130,10 +1138,12 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 		if ( !IsServerEntity() )
 		{
 			SetPoseParameter( hdr, i, 0.0 );
-		}
+        }
 	}
 
 	int boneControllerCount = MIN( hdr->numbonecontrollers(), ARRAYSIZE( m_flEncodedController ) );
+
+    m_iv_flEncodedController.SetMaxCount( boneControllerCount );
 
 	for ( i = 0; i < boneControllerCount ; i++ )
 	{
@@ -1175,8 +1185,6 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 		m_bResetSequenceInfoOnLoad = false;
 		ResetSequenceInfo();
 	}
-
-	UpdateRelevantInterpolatedVars();
 		
 	return hdr;
 }
@@ -4336,7 +4344,7 @@ bool C_BaseAnimating::Interpolate( float flCurrentTime )
 	QAngle oldAngles;
 	Vector oldVel;
 	float flOldCycle = GetCycle();
-	int nChangeFlags = 0;
+    int nChangeFlags = 0;
 
 	int bNoMoreChanges;
 	int retVal = BaseInterpolatePart1( flCurrentTime, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
@@ -4599,7 +4607,7 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 		{
 			ClientSideAnimationChanged();
 		}
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -5345,36 +5353,7 @@ float C_BaseAnimating::FrameAdvance( float flInterval )
 	m_flOldAnimTime = m_flAnimTime - flInterval;
 
 	float flCycleRate = GetSequenceCycleRate( hdr, GetSequence() );
-	float flAddCycle = flInterval * flCycleRate * m_flPlaybackRate;
-
-	if( GetServerIntendedCycle() != -1.0f )
-	{
-		// The server would like us to ease in a correction so that we will animate the same on the client and server.
-		// So we will actually advance the average of what we would have done and what the server wants.
-		float serverCycle = GetServerIntendedCycle();
-		float serverAdvance = serverCycle - GetCycle();
-		bool adjustOkay = serverAdvance > 0.0f;// only want to go forward. backing up looks really jarring, even when slight
-		if( serverAdvance < -0.8f )
-		{
-			// Oh wait, it was just a wraparound from .9 to .1.
-			serverAdvance += 1;
-			adjustOkay = true;
-		}
-
-		if( adjustOkay )
-		{
-			float originalAdvance = flAddCycle;
-			flAddCycle = (serverAdvance + flAddCycle) / 2;
-
-			const float MAX_CYCLE_ADJUSTMENT = 0.1f;
-			flAddCycle = MIN( MAX_CYCLE_ADJUSTMENT, flAddCycle );// Don't do too big of a jump; it's too jarring as well.
-
-			DevMsg( 2, "(%d): Cycle latch used to correct %.2f in to %.2f instead of %.2f.\n",
-				entindex(), GetCycle(), GetCycle() + flAddCycle, GetCycle() + originalAdvance );
-		}
-
-		SetServerIntendedCycle(-1.0f); // Only use a correction once, it isn't valid any time but right now.
-	}
+    float flAddCycle  = flInterval * flCycleRate * m_flPlaybackRate;
 
 	float flNewCycle = GetCycle() + flAddCycle;
 
@@ -6144,8 +6123,6 @@ void C_BaseAnimating::AddToClientSideAnimationList()
 	clientanimating_t list( this, 0 );
 	m_ClientSideAnimationListHandle = g_ClientSideAnimationList.AddToTail( list );
 	ClientSideAnimationChanged();
-
-	UpdateRelevantInterpolatedVars();
 }
 
 void C_BaseAnimating::RemoveFromClientSideAnimationList()
@@ -6178,8 +6155,6 @@ void C_BaseAnimating::RemoveFromClientSideAnimationList()
 
 	// Invalidate our handle no matter what.
 	m_ClientSideAnimationListHandle = INVALID_CLIENTSIDEANIMATION_LIST_HANDLE;
-
-	UpdateRelevantInterpolatedVars();
 }
 
 

@@ -53,14 +53,7 @@ struct LayerRecord
 
 struct ClientSideAnimationData
 {
-	float					m_flAnimTime;	
-	
-	// Player animation details, so we can get the legs in the right spot.
-	LayerRecord				m_layerRecords[MAX_LAYER_RECORDS];
-	int						m_masterSequence;
-	float					m_masterCycle;
-	float					m_poseParameters[MAX_POSE_PARAMETERS];
-	float					m_encodedControllers[MAX_ENCODED_CONTROLLERS];    
+	float					m_flAnimTime;   
 };
 
 class CEntityGroundContact

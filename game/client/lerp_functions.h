@@ -158,6 +158,29 @@ inline float LoopingLerp_Hermite( float t, float p0, float p1, float p2 )
 	return s;
 }
 
+template <>
+inline int LoopingLerp( float flPercent, int from, int to )
+{
+	return from;
+}
+
+template <>
+inline int Lerp( float flPercent, int const &from, int const &to )
+{
+	return from;
+}
+
+template <>
+inline int LoopingLerp_Hermite( float flPercent, int prev, int from, int to )
+{
+	return from;
+}
+
+template <>
+inline int Lerp_Hermite( float flPercent, const int& prev, const int& from, const int& to )
+{
+	return from;
+}
 
 // NOTE: C_AnimationLayer has its own versions of these functions in animationlayer.h.
 

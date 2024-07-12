@@ -86,7 +86,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	// remove all entries
 	for ( int i=0; i < pVec->Count(); i++ )
 	{
-		pEnt->RemoveVar( &pVec->Element( i ) );
+		// pEnt->RemoveVar( &pVec->Element( i ) );
 	}
 
 	// adjust vector sizes
@@ -106,7 +106,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	{
 		IInterpolatedVar *pWatcher = &pVecIV->Element( i );
 		pWatcher->SetDebugName( s_m_iv_AnimOverlayNames[i] );
-		pEnt->AddVar( &pVec->Element( i ), pWatcher, LATCH_ANIMATION_VAR, true );
+		// pEnt->AddVar( &pVec->Element( i ), pWatcher, LATCH_ANIMATION_VAR );
 	}
 	// FIXME: need to set historical values of nOrder in pVecIV to MAX_OVERLAY
 	
@@ -211,7 +211,7 @@ void C_BaseAnimatingOverlay::AccumulateLayers( IBoneSetup &boneSetup, Vector pos
 	int layer[MAX_OVERLAYS] = {};
 	int i;
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
-	{
+    {
 		layer[i] = MAX_OVERLAYS;
 	}
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
@@ -221,7 +221,7 @@ void C_BaseAnimatingOverlay::AccumulateLayers( IBoneSetup &boneSetup, Vector pos
 		{
 			layer[pLayer.m_nOrder] = i;
 		}
-	}
+    }
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
 	{
 		if (layer[i] >= 0 && layer[i] < m_AnimOverlay.Count())

@@ -431,10 +431,6 @@ public:
 	// Load the model's keyvalues section and create effects listed inside it
 	void InitModelEffects( void );
 
-	// Sometimes the server wants to update the client's cycle to get the two to run in sync (for proper hit detection)
-	virtual void SetServerIntendedCycle( float intended ) { (void)intended; }
-	virtual float GetServerIntendedCycle( void ) { return -1.0f; }
-
 	// For prediction
 	int								SelectWeightedSequence ( int activity );
 	void							ResetSequenceInfo( void );
@@ -482,7 +478,6 @@ private:
 
 	void							DelayedInitModelEffects( void );
 
-	void							UpdateRelevantInterpolatedVars();
 	void							AddBaseAnimatingInterpolatedVars();
 	void							RemoveBaseAnimatingInterpolatedVars();
 
@@ -591,6 +586,7 @@ private:
 
 	// Current animation sequence
 	int								m_nSequence;
+	CInterpolatedVar< int >			m_iv_Sequence;
 	bool							m_bReceivedSequence;
 
 	// Current cycle location from server

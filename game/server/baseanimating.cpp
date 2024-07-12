@@ -380,7 +380,7 @@ void CBaseAnimating::Spawn()
 //-----------------------------------------------------------------------------
 void CBaseAnimating::UseClientSideAnimation()
 {
-	m_bClientSideAnimation = true;
+	m_bClientSideAnimation = false;
 }
 
 #define MAX_ANIMTIME_INTERVAL 0.2f

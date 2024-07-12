@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "cs_player.h"
 #include "cs_gamerules.h"
+#include "dt_send.h"
 #include "trains.h"
 #include "vcollide_parse.h"
 #include "in_buttons.h"
@@ -337,8 +338,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropInt( SENDINFO( m_bInBuyZone ), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_iClass ), Q_log2( CS_NUM_CLASSES )+1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_ArmorValue ), 8 ),
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN ),
+	SendPropQAngles(SENDINFO(m_angEyeAngles)),
 	SendPropBool( SENDINFO( m_bHasDefuser ) ),
 	SendPropBool( SENDINFO( m_bNightVisionOn ) ),	//send as int so we can use a RecvProxy on the client
 	SendPropBool( SENDINFO( m_bHasNightVision ) ),
@@ -370,8 +370,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropFloat( SENDINFO(m_flFlashMaxAlpha), 0, SPROP_NOSCALE ),
 	SendPropInt( SENDINFO( m_iProgressBarDuration ), 4, SPROP_UNSIGNED ),
 	SendPropFloat( SENDINFO( m_flProgressBarStartTime ), 0, SPROP_NOSCALE ),
-	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
-	SendPropFloat( SENDINFO( m_cycleLatch ), 0, SPROP_NOSCALE ),
+	SendPropEHandle( SENDINFO( m_hRagdoll ) )
 
 
 END_SEND_TABLE()
@@ -474,10 +473,7 @@ CCSPlayer::CCSPlayer()
 	m_lastDamageHealth = 0;
 	m_lastDamageArmor = 0;
 
-	m_applyDeafnessTime = 0.0f;
-
-	m_cycleLatch = 0;
-	m_cycleLatchTimer.Invalidate();
+    m_applyDeafnessTime = 0.0f;
 
 	m_iShouldHaveCash = 0;
 
@@ -908,10 +904,7 @@ void CCSPlayer::Spawn()
 		m_flNextAttack = gpGlobals->curtime; // Allow reloads to finish, since we're playing the deploy anim instead.  This mimics goldsrc behavior, anyway.
 	}
 
-	m_applyDeafnessTime = 0.0f;
-
-	m_cycleLatch = 0.0f;
-	m_cycleLatchTimer.Start( RandomFloat( 0.0f, CycleLatchInterval ) );
+    m_applyDeafnessTime = 0.0f;
 
 	StockPlayerAmmo();
 	}
@@ -1644,14 +1637,6 @@ void CCSPlayer::PostThink()
 	{
 		StopSound( "Player.AmbientUnderWater" );
 		SetPlayerUnderwater( false );
-	}
-
-	if( IsAlive() && m_cycleLatchTimer.IsElapsed() )
-	{
-		m_cycleLatchTimer.Start( CycleLatchInterval );
-
-		// Cycle is a float from 0 to 1.  We don't need to transmit a whole float for that.  Compress it in to a small fixed point
-		m_cycleLatch.GetForModify() = GetCycle();// 4 point fixed
 	}
 }
 

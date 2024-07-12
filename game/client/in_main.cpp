@@ -1327,38 +1327,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
         }
 
-        if (pBasePlayer->IsLocalPlayer())
-        {
-            continue;
-        }
-
-        if (!pBasePlayer->GetModelPtr())
-        {
-            continue;
-		}
-
         cmd->has_animation[pBasePlayer->index] = true;
-        cmd->animationdata[pBasePlayer->index].m_flAnimTime = pBasePlayer->m_flInterpolatedAnimTime;
-
-        pBasePlayer->GetBoneControllers(cmd->animationdata[pBasePlayer->index].m_encodedControllers);
-        pBasePlayer->GetPoseParameters(pBasePlayer->GetModelPtr(),
-                                       cmd->animationdata[pBasePlayer->index].m_poseParameters);
-
-        cmd->animationdata[pBasePlayer->index].m_masterCycle = pBasePlayer->GetCycle();
-        cmd->animationdata[pBasePlayer->index].m_masterSequence = pBasePlayer->GetSequence();
-
-        for (int j = 0; j < pBasePlayer->GetNumAnimOverlays(); j++)
-        {
-            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_cycle =
-                pBasePlayer->GetAnimOverlay(j)->m_flCycle.GetRaw();
-            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_sequence =
-                pBasePlayer->GetAnimOverlay(j)->m_nSequence.GetRaw();
-            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_order =
-                pBasePlayer->GetAnimOverlay(j)->m_nOrder;
-            cmd->animationdata[pBasePlayer->index].m_layerRecords[j].m_weight =
-                pBasePlayer->GetAnimOverlay(j)->m_flWeight.GetRaw();
-
-		}
+        cmd->animationdata[pBasePlayer->index].m_flAnimTime = pBasePlayer->m_flAnimTime;
     }
 
 	pVerified->m_cmd = *cmd;
