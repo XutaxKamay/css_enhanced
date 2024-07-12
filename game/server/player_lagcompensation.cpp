@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#include "bone_setup.h"
 #include "cbase.h"
 #include "icvar.h"
 #include "usercmd.h"
@@ -313,7 +314,7 @@ void CLagCompensationManager::FrameUpdatePostEntityThink()
 		{
 			for( int paramIndex = 0; paramIndex < hdr->GetNumPoseParameters(); paramIndex++ )
 			{
-				record.m_poseParameters[paramIndex] = pPlayer->GetPoseParameter( paramIndex );
+				record.m_poseParameters[paramIndex] = pPlayer->GetPoseParameterArray()[ paramIndex ];
 			}
 		}
 
@@ -321,7 +322,7 @@ void CLagCompensationManager::FrameUpdatePostEntityThink()
 		{
 			for( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
 			{
-				record.m_encodedControllers[paramIndex] = pPlayer->GetBoneController( paramIndex );
+				record.m_encodedControllers[paramIndex] = pPlayer->GetEncodedControllerArray()[ paramIndex ];
 			}
 		}
 	}
@@ -387,6 +388,33 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	}
 }
 
+template <class T>
+inline T LoopingLerp( float flPercent, T flFrom, T flTo )
+{
+	T s = flTo * flPercent + flFrom * (1.0f - flPercent);
+	return s;
+}
+
+template <>
+inline float LoopingLerp( float flPercent, float flFrom, float flTo )
+{
+	if ( fabs( flTo - flFrom ) >= 0.5f )
+	{
+		if (flFrom < flTo)
+			flFrom += 1.0f;
+		else
+			flTo += 1.0f;
+	}
+
+	float s = flTo * flPercent + flFrom * (1.0f - flPercent);
+
+	s = s - (int)(s);
+	if (s < 0.0f)
+		s = s + 1.0f;
+
+	return s;
+}
+
 void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *cmd )
 {
 	Vector org;
@@ -402,9 +430,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
     
 	// get track history of this player
 	CUtlFixedLinkedList< LagRecord > *trackSim = &m_PlayerTrack[ pl_index ];
+	CUtlFixedLinkedList< LagRecord > *trackAnim = &m_PlayerTrack[ pl_index ];
 
 	// check if we have at leat one entry
-	if ( trackSim->Count() <= 0 )
+	if ( trackSim->Count() <= 0 || trackAnim->Count() <= 0 )
 		return;
 
     intp currSim = trackSim->Head();
@@ -441,9 +470,35 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		currSim = trackSim->Next( currSim );
 	}
 
+    intp currAnim = trackAnim->Head();
+	LagRecord *recordAnim = NULL;
+
+	// Walk context looking for any invalidating event
+	while( trackAnim->IsValidIndex(currAnim) )
+	{
+		// get next record
+		recordAnim = &trackAnim->Element( currAnim );
+
+		if ( !(recordAnim->m_fFlags & LC_ALIVE) )
+		{
+			// player most be alive, lost track
+			return;
+		}
+
+		// TODO: do proper teleportation checks.
+
+		// did we find a context smaller than target time ?
+		if ( recordAnim->m_flAnimTime <= animationData->m_flAnimTime )
+			break; // hurra, stop
+
+		// go one step back
+		currAnim = trackAnim->Next( currAnim );
+	}
+
+	Assert( recordAnim );
 	Assert( recordSim );
 
-	if ( !recordSim )
+	if ( !recordSim or !recordAnim )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
@@ -453,7 +508,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		return; // that should never happen
 	}
 
-	float fracSim = 0.0f;
+    float fracSim = 0.0f;
 	if ( prevRecordSim && 
 		 (recordSim->m_flSimulationTime < flTargetSimulationTime) &&
 		 (recordSim->m_flSimulationTime < prevRecordSim->m_flSimulationTime) )
@@ -464,9 +519,9 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		Assert( prevRecordSim->m_flSimulationTime > recordSim->m_flSimulationTime );
 		Assert( flTargetSimulationTime < prevRecordSim->m_flSimulationTime );
 
-		// calc fraction between both records
-		fracSim = ( flTargetSimulationTime - recordSim->m_flSimulationTime ) / 
-			( prevRecordSim->m_flSimulationTime - recordSim->m_flSimulationTime );
+        // calc fraction between both records
+		fracSim = float(( double(flTargetSimulationTime) - double(recordSim->m_flSimulationTime) ) / 
+			( double(prevRecordSim->m_flSimulationTime) - double(recordSim->m_flSimulationTime) ));
 
 		Assert( fracSim > 0 && fracSim < 1 ); // should never extrapolate
 
@@ -594,8 +649,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	restore->m_masterSequence = pPlayer->GetSequence();
 	restore->m_masterCycle = pPlayer->GetCycle();
 
-	pPlayer->SetSequence(animationData->m_masterSequence);
-	pPlayer->SetCycle(animationData->m_masterCycle);
+	pPlayer->SetSequence(recordAnim->m_masterSequence);
+	pPlayer->SetCycle(recordAnim->m_masterCycle);
 
 	////////////////////////
 	// Now do all the layers
@@ -611,10 +666,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
             restore->m_layerRecords[layerIndex].m_weight = currentLayer
                                                              ->m_flWeight;
 
-			currentLayer->m_flCycle = animationData->m_layerRecords[layerIndex].m_cycle;
-			currentLayer->m_nOrder = animationData->m_layerRecords[layerIndex].m_order;
-			currentLayer->m_nSequence = animationData->m_layerRecords[layerIndex].m_sequence;
-            currentLayer->m_flWeight = animationData->m_layerRecords[layerIndex].m_weight;
+			currentLayer->m_flCycle = recordAnim->m_layerRecords[layerIndex].m_cycle;
+			currentLayer->m_nOrder = recordAnim->m_layerRecords[layerIndex].m_order;
+			currentLayer->m_nSequence = recordAnim->m_layerRecords[layerIndex].m_sequence;
+            currentLayer->m_flWeight = recordAnim->m_layerRecords[layerIndex].m_weight;
         }
 	}
 	
@@ -626,10 +681,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	{
 		for( int paramIndex = 0; paramIndex < hdr->GetNumPoseParameters(); paramIndex++ )
 		{
-			restore->m_poseParameters[paramIndex] = pPlayer->GetPoseParameter(paramIndex);
-			float poseParameter = animationData->m_poseParameters[paramIndex];
+			restore->m_poseParameters[paramIndex] = pPlayer->GetPoseParameterArray()[paramIndex];
+			float poseParameter = recordAnim->m_poseParameters[paramIndex];
 
-			pPlayer->SetPoseParameterRaw( paramIndex, poseParameter );
+			pPlayer->SetPoseParameterRaw(paramIndex, poseParameter);
 		}
 	}
 
@@ -639,8 +694,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	{
 		for( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
 		{
-			restore->m_encodedControllers[paramIndex] = pPlayer->GetBoneController(paramIndex);
-            float encodedController = animationData->m_encodedControllers[paramIndex];
+			restore->m_encodedControllers[paramIndex] = pPlayer->GetEncodedControllerArray()[paramIndex];
+            float encodedController = recordAnim->m_encodedControllers[paramIndex];
 
 			pPlayer->SetBoneControllerRaw( paramIndex, encodedController );
 		}
@@ -665,8 +720,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	m_bNeedToRestore = true;  // we changed at least one player
 	restore->m_fFlags = flags; // we need to restore these flags
 	change->m_fFlags = flags; // we have changed these flags
-
-	static ConVar *sv_showplayerhitboxes = g_pCVar->FindVar("sv_showplayerhitboxes");
 
     if (sv_showhitboxes.GetInt() == pPlayer->entindex())
     	pPlayer->DrawServerHitboxes(0.0f, true);
@@ -762,7 +815,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 			{
 				for( int paramIndex = 0; paramIndex < hdr->GetNumPoseParameters(); paramIndex++ )
 				{
-					pPlayer->SetPoseParameter( paramIndex, restore->m_poseParameters[paramIndex] );
+					pPlayer->SetPoseParameterRaw( paramIndex, restore->m_poseParameters[paramIndex] );
 				}
 			}
 		}
@@ -774,7 +827,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer *player )
 			{
 				for( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
 				{
-					pPlayer->SetBoneController( paramIndex, restore->m_encodedControllers[paramIndex] );
+					pPlayer->SetBoneControllerRaw( paramIndex, restore->m_encodedControllers[paramIndex] );
 				}
 			}
 		}
