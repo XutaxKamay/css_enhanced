@@ -388,33 +388,6 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer *player, CUserCm
 	}
 }
 
-template <class T>
-inline T LoopingLerp( float flPercent, T flFrom, T flTo )
-{
-	T s = flTo * flPercent + flFrom * (1.0f - flPercent);
-	return s;
-}
-
-template <>
-inline float LoopingLerp( float flPercent, float flFrom, float flTo )
-{
-	if ( fabs( flTo - flFrom ) >= 0.5f )
-	{
-		if (flFrom < flTo)
-			flFrom += 1.0f;
-		else
-			flTo += 1.0f;
-	}
-
-	float s = flTo * flPercent + flFrom * (1.0f - flPercent);
-
-	s = s - (int)(s);
-	if (s < 0.0f)
-		s = s + 1.0f;
-
-	return s;
-}
-
 void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *cmd )
 {
 	Vector org;
@@ -440,8 +413,10 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 
 	LagRecord *prevRecordSim = NULL;
 	LagRecord *recordSim = NULL;
+	LagRecord *recordAnim = NULL;
 
-	Vector prevOrg = pPlayer->GetLocalOrigin();
+    Vector prevOrg = pPlayer->GetLocalOrigin();
+    bool foundAnimationData = false;
 	
 	// Walk context looking for any invalidating event
 	while( trackSim->IsValidIndex(currSim) )
@@ -450,7 +425,14 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 		prevRecordSim = recordSim;
 
 		// get next record
-		recordSim = &trackSim->Element( currSim );
+        recordSim = &trackSim->Element(currSim);
+
+        if (recordSim->m_flSimulationTime
+            <= animationData->m_flUninterpolatedSimulationTime and !foundAnimationData)
+        {
+            recordAnim = recordSim;
+            foundAnimationData = true;
+		}
 
 		if ( !(recordSim->m_fFlags & LC_ALIVE) )
 		{
@@ -468,31 +450,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 
 		// go one step back
 		currSim = trackSim->Next( currSim );
-	}
-
-    intp currAnim = trackAnim->Head();
-	LagRecord *recordAnim = NULL;
-
-	// Walk context looking for any invalidating event
-	while( trackAnim->IsValidIndex(currAnim) )
-	{
-		// get next record
-		recordAnim = &trackAnim->Element( currAnim );
-
-		if ( !(recordAnim->m_fFlags & LC_ALIVE) )
-		{
-			// player most be alive, lost track
-			return;
-		}
-
-		// TODO: do proper teleportation checks.
-
-		// did we find a context smaller than target time ?
-		if ( recordAnim->m_flAnimTime <= animationData->m_flAnimTime )
-			break; // hurra, stop
-
-		// go one step back
-		currAnim = trackAnim->Next( currAnim );
 	}
 
 	Assert( recordAnim );
@@ -706,7 +663,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 
 	// Set lag compensated player's times
 	pPlayer->SetSimulationTime(flTargetSimulationTime);
-	pPlayer->SetAnimTime(animationData->m_flAnimTime);
+	// pPlayer->SetAnimTime(animationData->m_flAnimTime);
 
 	if ( sv_lagflushbonecache.GetBool() )
         pPlayer->InvalidateBoneCache();

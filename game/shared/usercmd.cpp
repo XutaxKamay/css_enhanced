@@ -204,10 +204,10 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
             continue;
 		}
 
-		if (to->animationdata[i].m_flAnimTime != from->animationdata[i].m_flAnimTime)
+		if (to->animationdata[i].m_flUninterpolatedSimulationTime != from->animationdata[i].m_flUninterpolatedSimulationTime)
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->animationdata[i].m_flAnimTime );
+			buf->WriteFloat( to->animationdata[i].m_flUninterpolatedSimulationTime );
 		}
 		else
 		{
@@ -360,7 +360,7 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
 		if (buf->ReadOneBit())
 		{
-			move->animationdata[i].m_flAnimTime = buf->ReadFloat();
+			move->animationdata[i].m_flUninterpolatedSimulationTime = buf->ReadFloat();
         }
 	}
 
