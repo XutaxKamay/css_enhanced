@@ -8,6 +8,8 @@
 #include "c_cs_player.h"
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
+#include "dt_recv.h"
+#include "interpolatedvar.h"
 #include "shareddefs.h"
 #include "studio.h"
 #include "view.h"
@@ -669,35 +671,6 @@ void RecvProxy_HasDefuser( const CRecvProxyData *pData, void *pStruct, void *pOu
 	}
 }
 
-void C_CSPlayer::RecvProxy_CycleLatch( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	// This receive proxy looks to see if the server's value is close enough to what we think it should
-	// be.  We've been running the same code; this is an error correction for changes we didn't simulate
-	// while they were out of PVS.
-	C_CSPlayer *pPlayer = (C_CSPlayer *)pStruct;
-	if( pPlayer->IsLocalPlayer() )
-		return; // Don't need to fixup ourselves.
-
-	float incomingCycle = pData->m_Value.m_Float; // Came in as 4 bit fixed point
-	float currentCycle = pPlayer->GetCycle();
-	bool closeEnough = fabs(currentCycle - incomingCycle) < CycleLatchTolerance;
-	if( fabs(currentCycle - incomingCycle) > (1 - CycleLatchTolerance) )
-	{
-		closeEnough = true;// Handle wrapping around 1->0
-	}
-
-	if( !closeEnough )
-	{
-		// Server disagrees too greatly.  Correct our value.
-		if ( pPlayer && pPlayer->GetTeam() )
-		{
-			DevMsg( 2, "%s %s(%d): Cycle latch wants to correct %.2f in to %.2f.\n",
-				pPlayer->GetTeam()->Get_Name(), pPlayer->GetPlayerName(), pPlayer->entindex(), currentCycle, incomingCycle );
-		}
-		pPlayer->SetServerIntendedCycle( incomingCycle );
-	}
-}
-
 void __MsgFunc_ReloadEffect( bf_read &msg )
 {
 	int iPlayer = msg.ReadShort();
@@ -740,8 +713,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropInt( RECVINFO( m_bInBuyZone ) ),
 	RecvPropInt( RECVINFO( m_iClass ) ),
 	RecvPropInt( RECVINFO( m_ArmorValue ) ),
-	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
-	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
+	RecvPropQAngles( RECVINFO( m_angEyeAngles ) ),
 	RecvPropFloat( RECVINFO( m_flStamina ) ),
 	RecvPropInt( RECVINFO( m_bHasDefuser ), 0, RecvProxy_HasDefuser ),
 	RecvPropInt( RECVINFO( m_bNightVisionOn), 0, RecvProxy_NightVision ),
@@ -776,8 +748,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropFloat( RECVINFO( m_flFlashMaxAlpha)),
 	RecvPropInt( RECVINFO( m_iProgressBarDuration ) ),
 	RecvPropFloat( RECVINFO( m_flProgressBarStartTime ) ),
-	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
-	RecvPropFloat( RECVINFO( m_cycleLatch ), SPROP_NOSCALE, &C_CSPlayer::RecvProxy_CycleLatch ),
+	RecvPropEHandle( RECVINFO( m_hRagdoll ) )
 
 END_RECV_TABLE()
 
@@ -788,7 +759,7 @@ C_CSPlayer::C_CSPlayer() :
 {
 	m_angEyeAngles.Init();
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	// AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_ANIMATION_VAR );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
@@ -805,9 +776,7 @@ C_CSPlayer::C_CSPlayer() :
 	m_Activity = ACT_IDLE;
 
 	m_pFlashlightBeam = NULL;
-	m_fNextThinkPushAway = 0.0f;
-
-	m_serverIntendedCycle = -1.0f;
+    m_fNextThinkPushAway = 0.0f;
 
 	view->SetScreenOverlayMaterial( NULL );
 
