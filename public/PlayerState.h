@@ -32,16 +32,15 @@ public:
 	CNetworkVar( bool, deadflag );	
 	// Viewing angle (player only)
 	QAngle		v_angle;		
-	
+	// 0:nothing, 1:force view angles, 2:add avelocity
+    int fixangle;
+	// delta angle for fixangle == FIXANGLE_RELATIVE
+	QAngle		anglechange;
 // The client .dll only cares about deadflag
 //  the game and engine .dlls need to worry about the rest of this data
 #if !defined( CLIENT_DLL )
 	// Player's network name
 	string_t	netname;
-	// 0:nothing, 1:force view angles, 2:add avelocity
-	int			fixangle;
-	// delta angle for fixangle == FIXANGLE_RELATIVE
-	QAngle		anglechange;
 	// flag to single the HLTV/Replay fake client, not transmitted
 	bool		hltv;
 	bool		replay;
