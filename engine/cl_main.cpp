@@ -15,6 +15,7 @@
 #include "r_local.h"
 #include "gl_lightmap.h"
 #include "console.h"
+#include "sv_main.h"
 #include "traceinit.h"
 #include "cl_demo.h"
 #include "cdll_engine_int.h"
@@ -1393,10 +1394,18 @@ void CL_TakeSnapshotAndSwap()
 	if ( bReadPixelsFromFrontBuffer )
 	{
 		Shader_SwapBuffers();
+    }
+
+    if (g_ClientGlobalVariables.client_taking_screenshot
+          || g_ServerGlobalVariables.client_taking_screenshot)
+    {
+        CL_TakeScreenshot(NULL);
+        g_ClientGlobalVariables.client_taking_screenshot = false;
+        g_ServerGlobalVariables.client_taking_screenshot = false;
 	}
-	
+
 	if (cl_takesnapshot)
-	{
+    {        
 		// Disable threading for the duration of the screenshots, because we need to get pointers to the (complete) 
 		// back buffer right now.
 		bool bEnabled = materials->AllowThreading( false, g_nMaterialSystemThread );
@@ -1505,7 +1514,7 @@ void CL_TakeSnapshotAndSwap()
 
 		// Restore threading if it was previously enabled (if it wasn't this will do nothing).
 		materials->AllowThreading( bEnabled, g_nMaterialSystemThread );
-	}
+    }
 
 	// If recording movie and the console is totally up, then write out this frame to movie file.
 	if ( cl_movieinfo.IsRecording() && !Con_IsVisible() && !scr_drawloading )

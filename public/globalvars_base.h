@@ -74,6 +74,7 @@ public:
 
 	// current saverestore data
 	CSaveRestoreData *pSaveData;
+    bool			client_taking_screenshot;
 
 private:
 	// Set to true in client code.
@@ -99,6 +100,7 @@ inline CGlobalVarsBase::CGlobalVarsBase( bool bIsClient ) :
 	nTimestampNetworkingBase( 100 ),
 	nTimestampRandomizeWindow( 32 )
 {
+    client_taking_screenshot = false;
 }
 
 inline bool CGlobalVarsBase::IsClient() const
