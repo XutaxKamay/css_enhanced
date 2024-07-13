@@ -6,7 +6,9 @@
 //=============================================================================//
 #include "cbase.h"
 #include "prediction.h"
+#include "cdll_client_int.h"
 #include "igamemovement.h"
+#include "mathlib/mathlib.h"
 #include "prediction_private.h"
 #include "ivrenderview.h"
 #include "iinput.h"
@@ -687,12 +689,26 @@ void CPrediction::FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData *m
 
 	player->m_RefEHandle = move->m_nPlayerHandle;
 
-	player->m_vecVelocity = move->m_vecVelocity;
+	player->SetLocalVelocity(move->m_vecVelocity);
 
 	player->m_vecNetworkOrigin = move->GetAbsOrigin();
 	
 	player->m_Local.m_nOldButtons = move->m_nButtons;
 
+    float pitch = move->m_vecAngles[PITCH];
+
+    if (pitch > 180.0f)
+    {
+        pitch -= 360.0f;
+    }
+
+    pitch = clamp(pitch, -90.f, 90.f);
+
+    move->m_vecAngles[PITCH] = pitch;
+
+	player->SetPoseParameter(player->LookupPoseParameter("body_pitch"), pitch);
+
+    player->SetLocalAngles(move->m_vecAngles);
 
 	// NOTE: Don't copy this.  the movement code modifies its local copy but is not expecting to be authoritative
 	//player->m_flMaxspeed = move->m_flClientMaxSpeed;
@@ -816,6 +832,39 @@ void CPrediction::RunPostThink( C_BasePlayer *player )
 #endif
 }
 
+void CPrediction::CheckMovingGround( CBasePlayer *player, double frametime )
+{
+	VPROF( "CPrediction::CheckMovingGround()" );
+
+	CBaseEntity	    *groundentity;
+
+	if ( player->GetFlags() & FL_ONGROUND )
+	{
+		groundentity = player->GetGroundEntity();
+		if ( groundentity && ( groundentity->GetFlags() & FL_CONVEYOR) )
+		{
+            Vector vecNewVelocity;
+            groundentity->GetGroundVelocityToApply( vecNewVelocity );
+
+			if ( player->GetFlags() & FL_BASEVELOCITY )
+			{
+				vecNewVelocity += player->GetBaseVelocity();
+			}
+			player->SetBaseVelocity( vecNewVelocity );
+			player->AddFlag( FL_BASEVELOCITY );
+		}
+	}
+
+	if ( !( player->GetFlags() & FL_BASEVELOCITY ) )
+	{
+		// Apply momentum (add in half of the previous frame of velocity first)
+		player->ApplyAbsVelocityImpulse( (1.0 + ( frametime * 0.5 )) * player->GetBaseVelocity() );
+		player->SetBaseVelocity( vec3_origin );
+	}
+
+	player->RemoveFlag( FL_BASEVELOCITY );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Predicts a single movement command for player
 // Input  : *moveHelper - 
@@ -830,14 +879,19 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	char sz[ 32 ];
 	Q_snprintf( sz, sizeof( sz ), "runcommand%04d", ucmd->command_number );
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
-#endif
+    #endif
+        
 	StartCommand( player, ucmd );
 
-	// Set globals appropriately
-	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
-	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
-
 	g_pGameMovement->StartTrackPredictionErrors( player );
+
+	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
+    // Run post think after PreThink/Think function, this makes a room space for local interpolation.
+    gpGlobals->curtime		= (player->m_nTickBase - 1) * TICK_INTERVAL;
+    
+	RunPostThink( player );
+
+    gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 
 // TODO
 // TODO:  Check for impulse predicted?
@@ -868,18 +922,27 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// Get button states
 	player->UpdateButtonState( ucmd->buttons );
 
-// TODO
-//	CheckMovingGround( player, ucmd->frametime );
+	// CheckMovingGround( player, gpGlobals->frametime );
 
-// TODO
-//	g_pMoveData->m_vecOldAngles = player->pl.v_angle;
+	g_pMoveData->m_vecOldAngles = player->pl.v_angle;
+
+    // TODO_ENHANCED: this will be implemented with trigger prediction update
+	// // Copy from command to player unless game .dll has set angle using fixangle
+	// if ( player->pl.fixangle == FIXANGLE_NONE )
+	// {
+	// 	player->pl.v_angle = ucmd->viewangles;
+	// }
+	// else if( player->pl.fixangle == FIXANGLE_RELATIVE )
+	// {
+	// 	player->pl.v_angle = ucmd->viewangles + player->pl.anglechange;
+    // }
 
 	// Copy from command to player unless game .dll has set angle using fixangle
 	// if ( !player->pl.fixangle )
 	{
 		player->SetLocalViewAngles( ucmd->viewangles );
 	}
-
+	
 	// Call standard client pre-think
 	RunPreThink( player );
 
@@ -905,8 +968,8 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	FinishMove( player, ucmd, g_pMoveData );
 
-	RunPostThink( player );
-
+    moveHelper->ProcessImpacts();
+    
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
 	FinishCommand( player );

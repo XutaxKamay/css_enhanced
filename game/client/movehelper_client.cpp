@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================//
 #include "cbase.h"
+
 #include <stdarg.h>
 #include "engine/IEngineSound.h"
 #include "filesystem.h"
@@ -108,7 +109,20 @@ void CMoveHelperClient::ResetTouchList( void )
 
 bool CMoveHelperClient::AddToTouched( const trace_t& tr, const Vector& impactvelocity )
 {
-	int i;
+    int i;
+
+	auto pPlayer = C_BasePlayer::GetLocalPlayer();
+	if ( !pPlayer )
+        return false;
+
+    if ( !tr.m_pEnt )
+        return false;
+
+    if ( tr.m_pEnt == pPlayer->GetBaseEntity() )
+	{
+		Assert( !"CMoveHelperClient::AddToTouched:  Tried to add self to touchlist!!!" );
+		return false;
+    }
 
 	// Look for duplicates
 	for (i = 0; i < m_TouchList.Size(); i++)
@@ -147,7 +161,11 @@ void CMoveHelperClient::ProcessImpacts( void )
 
 	// Touch other objects that were intersected during the movement.
 	for (int i = 0 ; i < m_TouchList.Size(); i++)
-	{
+    {
+        // We didn't touch an entity ...
+        if (!m_TouchList[i].trace.m_pEnt)
+            continue;
+        
 		// Run the impact function as if we had run it during movement.
 		C_BaseEntity *entity = ClientEntityList().GetEnt( m_TouchList[i].trace.m_pEnt->entindex() );
 		if ( !entity )

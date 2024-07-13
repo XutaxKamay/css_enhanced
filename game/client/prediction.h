@@ -91,7 +91,7 @@ protected:
 	void			RunPreThink( C_BasePlayer *player );
 	void			RunThink (C_BasePlayer *ent, double frametime );
 	void			RunPostThink( C_BasePlayer *player );
-
+    void 			CheckMovingGround( CBasePlayer *player, double frametime );
 private:
 	virtual void	_Update
 					( 

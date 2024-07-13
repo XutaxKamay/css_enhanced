@@ -210,7 +210,6 @@ public:
 		SetAbsVelocity( m_hPlayer->GetAbsVelocity() );
 		AddSolidFlags( FSOLID_NOT_SOLID );
 		ChangeTeam( m_hPlayer->GetTeamNumber() );
-		// UseClientSideAnimation();
 	}
 
 public:
@@ -416,9 +415,6 @@ ConCommand cc_CreatePredictionError( "CreatePredictionError", cc_CreatePredictio
 CCSPlayer::CCSPlayer()
 {
 	m_PlayerAnimState = CreatePlayerAnimState( this, this, LEGANIM_9WAY, true );
-
-    // TODO: one day we need to remove this shit.
-	// UseClientSideAnimation();
 
 	m_iLastWeaponFireUsercmd = 0;
 	m_iAddonBits = 0;
