@@ -440,7 +440,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 			return;
 		}
 
-		// TODO: do proper teleportation checks.
+		// TODO_ENHANCED: do proper teleportation checks.
 
 		// did we find a context smaller than target time ?
 		if ( recordSim->m_flSimulationTime <= flTargetSimulationTime )

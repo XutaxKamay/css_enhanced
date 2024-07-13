@@ -161,8 +161,6 @@
 // NON-PLAYER SPECIFIC (i.e., not used by GameMovement or the client .dll ) -- Can still be applied to players, though
 #define	FL_INWATER				(1<<10)	// In water
 
-// NOTE if you move things up, make sure to change this value
-#define PLAYER_FLAG_BITS		11
 
 #define	FL_FLY					(1<<11)	// Changes the SV_Movestep() behavior to not need to be on ground
 #define	FL_SWIM					(1<<12)	// Changes the SV_Movestep() behavior to not need to be on ground (but stay in water)

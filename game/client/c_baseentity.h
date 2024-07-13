@@ -1357,6 +1357,9 @@ public:
 	bool							BecameDormantThisPacket( void ) const;
 	void							SetDormantPredictable( bool dormant );
 
+	// TODO_ENHANCED: make trigger predictables.
+	virtual void					GetGroundVelocityToApply( Vector &vecGroundVel ) { vecGroundVel = GetBaseVelocity(); }
+
 	int								GetWaterLevel() const;
 	void							SetWaterLevel( int nLevel );
 	int								GetWaterType() const;

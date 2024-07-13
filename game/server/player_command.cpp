@@ -316,7 +316,6 @@ void CommentarySystem_PePlayerRunCommand( CBasePlayer *player, CUserCmd *ucmd );
 //-----------------------------------------------------------------------------
 void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper *moveHelper )
 {
-	const float playerCurTime = player->m_nTickBase * TICK_INTERVAL; 
 	const float playerFrameTime = player->m_bGamePaused ? 0 : TICK_INTERVAL;
 	const float flTimeAllowedForProcessing = player->ConsumeMovementTimeForUserCmdProcessing( playerFrameTime );
 	if ( !player->IsBot() && ( flTimeAllowedForProcessing < playerFrameTime ) )
@@ -334,13 +333,20 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 			}
 		}
 		return; // Don't process this command
-	}
+    }
 
-	StartCommand( player, ucmd );
+    StartCommand( player, ucmd );
+
+    g_pGameMovement->StartTrackPredictionErrors( player );
+
+    gpGlobals->frametime	=  playerFrameTime;
+	gpGlobals->curtime		=  (player->m_nTickBase - 1) * TICK_INTERVAL;
+
+    // Run post think first, this will let some space for client side interpolation.
+	RunPostThink( player );
 
 	// Set globals appropriately
-	gpGlobals->curtime		=  playerCurTime;
-	gpGlobals->frametime	=  playerFrameTime;
+	gpGlobals->curtime		=  player->m_nTickBase * TICK_INTERVAL;
 
     extern ConVar sv_showhitboxes;
 
@@ -380,8 +386,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	//	return;
 	}
 	*/
-
-	g_pGameMovement->StartTrackPredictionErrors( player );
 
 	CommentarySystem_PePlayerRunCommand( player, ucmd );
 
@@ -453,12 +457,10 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// Copy output
 	FinishMove( player, ucmd, g_pMoveData );
 
-	// Let server invoke any needed impact functions
+    // Let server invoke any needed impact functions
 	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
 	moveHelper->ProcessImpacts();
 	VPROF_SCOPE_END();
-
-	RunPostThink( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
