@@ -922,7 +922,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// Get button states
 	player->UpdateButtonState( ucmd->buttons );
 
-	// CheckMovingGround( player, gpGlobals->frametime );
+	CheckMovingGround( player, gpGlobals->frametime );
 
 	g_pMoveData->m_vecOldAngles = player->pl.v_angle;
 

@@ -3061,8 +3061,7 @@ void _Host_RunFrame (float time)
 		Cbuf_AddText( "quit\n" );
 	}
 #endif
-
-	int numticks;
+    int numticks;
 	{
 		// Profile scope specific to the top of this function, protect from setjmp() problems
 		VPROF( "_Host_RunFrame_Upto_MarkFrame" );
@@ -3236,7 +3235,7 @@ void _Host_RunFrame (float time)
 				//---------------------------------------------------------
 				// Run prediction, useful when fps is lower than tickrate.
 				//---------------------------------------------------------
-				CL_RunPrediction( PREDICTION_NORMAL );
+				// CL_RunPrediction( PREDICTION_NORMAL );
 
 				_Host_RunFrame_Input( prevremainder, bFinalTick );
 				prevremainder = 0;
@@ -3310,24 +3309,72 @@ void _Host_RunFrame (float time)
 				tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "Host_SetClientInSimulation" );
 
 				// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
-				Host_SetClientInSimulation( false );
-				// Now allow for interpolation on client
-				g_ClientGlobalVariables.interpolation_amount = ( cl.m_tickRemainder / host_state.interval_per_tick );
+                Host_SetClientInSimulation(false);
 
-#if defined( REPLAY_ENABLED )
-				// Update client-side replay history manager - called here since interpolation_amount is set
-				if ( g_pClientReplayContext && g_pClientReplayContext->IsInitialized() )
+                // TODO_ENHANCED:
+                // Notice_Enhanced:
+                // This check permits to fix interpolation problems on the
+                // local player that valve has been (fucking finally)
+                // caring about on counter-strike 2.
+                //
+                // To recall the original issue, the
+                // problem that Valve cared about is that interpolation
+                // had some problems with interpolating the local
+                // player because the screen would never in the first
+                // place match the tick "screen", because interpolation
+                // amount could never reach 0.0 or 1.0
+                //
+                // Valve solution was to introduce bugs with lag
+                // compensating the local player and made the game worse,
+                // introducing a new way for cheaters to cheat even more
+                // on their games.
+                // I'm joking, but you can clearly see the outcome anyway.
+                //
+                // My solution is to simply set interpolation amount
+                // to 0.0 when a tick arrives.
+                //
+                // So when we shoot, we get the frame we shot with an
+                // interpolation amount at 0.0, perfectly aligned to user
+                // commands which is ideal for us.
+                //
+                // It might look a bit more unsmooth with lower fps
+                // but with high enough fps, the issue goes away anyway.
+                // It's not very noticeable which is very nice for us.
+                // No need to lag compensate the local player anymore !
+                if (numticks == 0)
+                {
+                    g_ClientGlobalVariables.interpolation_amount = (cl.m_tickRemainder
+                                                                    / host_state
+                                                                        .interval_per_tick);
+                }
+                else
+                {
+                    g_ClientGlobalVariables.interpolation_amount = 0.0f;
+    #ifdef _DEBUG
+                    printf("interpolation amount was %f, corrected to "
+                           "fix interpolation issues.\n",
+                           cl.m_tickRemainder
+                             / host_state.interval_per_tick);
+    #endif
+                }
+
+    #if defined(REPLAY_ENABLED)
+                // Update client-side replay history manager - called here
+                // since interpolation_amount is set
+                if ( g_pClientReplayContext && g_pClientReplayContext->IsInitialized() )
 				{
 					g_pClientReplayContext->Think();
 				}
-#endif
+    #endif
 
-				//-------------------
-				// Run prediction if it hasn't been run yet
-				//-------------------
-				// If we haven't predicted/simulated the player (multiplayer with prediction enabled and
-				//  not a listen server with zero frame lag, then go ahead and predict now
-				CL_RunPrediction( PREDICTION_NORMAL );
+                //-------------------
+                // Run prediction if it hasn't been run yet
+                //-------------------
+                // If we haven't predicted/simulated the player
+                // (multiplayer with prediction enabled and
+                //  not a listen server with zero frame lag, then go ahead
+                //  and predict now
+                CL_RunPrediction( PREDICTION_NORMAL );
 
 				CL_ApplyAddAngle();
 
@@ -3417,9 +3464,24 @@ void _Host_RunFrame (float time)
 
 			// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
 			Host_SetClientInSimulation( false );
-			// Now allow for interpolation on client
-			g_ClientGlobalVariables.interpolation_amount = ( cl.m_tickRemainder / host_state.interval_per_tick );
 
+            // Please check Notice_Enhanced.
+			if (numticks == 0)
+			{
+				g_ClientGlobalVariables.interpolation_amount = (cl.m_tickRemainder
+																/ host_state
+																	.interval_per_tick);
+			}
+			else
+			{
+				g_ClientGlobalVariables.interpolation_amount = 0.0f;
+#ifdef _DEBUG
+				printf("interpolation amount was %f, corrected to "
+						"fix interpolation issues.\n",
+						cl.m_tickRemainder
+							/ host_state.interval_per_tick);
+#endif
+			}
 			//-------------------
 			// Run prediction if it hasn't been run yet
 			//-------------------
@@ -3443,7 +3505,7 @@ void _Host_RunFrame (float time)
 				g_ClientGlobalVariables.tickcount = host_tickcount;
 				bool bFinalTick = tick==(serverticks-1) ? true : false;
 				// Run prediction before inputs if fps is lower than tickrate
-				CL_RunPrediction( PREDICTION_NORMAL );
+				// CL_RunPrediction( PREDICTION_NORMAL );
 				_Host_RunFrame_Input( prevremainder, bFinalTick );
 				prevremainder = 0;
 				// process any asynchronous network traffic (TCP), set net_time
@@ -3592,7 +3654,7 @@ void _Host_RunFrame (float time)
 		GetTestScriptMgr()->CheckPoint( "frame_end" );
 	} // Profile scope, protect from setjmp() problems
 
-	Host_ShowIPCCallCount();
+    Host_ShowIPCCallCount();
 }
 /*
 ==============================

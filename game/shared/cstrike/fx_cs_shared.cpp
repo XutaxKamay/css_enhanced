@@ -6,6 +6,7 @@
 
 #include "cbase.h"
 #include "fx_cs_shared.h"
+#include "convar.h"
 #include "weapon_csbase.h"
 
 #ifndef CLIENT_DLL
@@ -284,8 +285,12 @@ void FX_FireBullets(
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
 
+    static ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
-	{
+    {
+        if (debug_screenshot_bullet_position.GetBool())
+            gpGlobals->client_taking_screenshot = true;
+
 		pPlayer->FireBullet(
 			vOrigin,
 			vAngles,
