@@ -669,6 +669,41 @@ void CBasePlayerAnimState::ComputePoseParam_MoveYaw( CStudioHdr *pStudioHdr )
 		{
 			GetOuter()->SetPoseParameter( pStudioHdr, iMoveYaw, flYaw );
 			m_flLastMoveYaw = flYaw;
+
+			// Now blend in his idle animation.
+			// This makes the 8-way blend act like a 9-way blend by blending to 
+			// an idle sequence as he slows down.
+#if defined(CLIENT_DLL)
+			bool bIsMoving;
+			CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( MAIN_IDLE_SEQUENCE_LAYER );
+			
+			pLayer->m_flWeight = 1 - CalcMovementPlaybackRate( &bIsMoving );
+			if ( !bIsMoving )
+			{
+					pLayer->m_flWeight = 1;
+			}
+
+			if ( ShouldChangeSequences() )
+			{
+					// Whenever this layer stops blending, we can choose a new idle sequence to blend to, so he 
+					// doesn't always use the same idle.
+					if ( pLayer->m_flWeight < 0.02f || m_iCurrent8WayIdleSequence == -1 )
+					{
+							m_iCurrent8WayIdleSequence = m_pOuter->SelectWeightedSequence( ACT_IDLE );
+							m_iCurrent8WayCrouchIdleSequence = m_pOuter->SelectWeightedSequence( ACT_CROUCHIDLE );
+					}
+
+					if ( m_eCurrentMainSequenceActivity == ACT_CROUCHIDLE || m_eCurrentMainSequenceActivity == ACT_RUN_CROUCH )
+							pLayer->m_nSequence = m_iCurrent8WayCrouchIdleSequence;
+					else
+							pLayer->m_nSequence = m_iCurrent8WayIdleSequence;
+			}
+			
+			pLayer->m_flPlaybackRate = 1;
+			pLayer->m_flCycle += m_pOuter->GetSequenceCycleRate( pStudioHdr, pLayer->m_nSequence ) * gpGlobals->frametime;
+			pLayer->m_flCycle = fmod( pLayer->m_flCycle, 1 );
+			pLayer->m_nOrder = MAIN_IDLE_SEQUENCE_LAYER;
+#endif
 		}
 	}
 }
@@ -884,7 +919,7 @@ const QAngle& CBasePlayerAnimState::GetRenderAngles()
 void CBasePlayerAnimState::GetOuterAbsVelocity( Vector& vel ) const
 {
 #if defined( CLIENT_DLL )
-	vel = GetOuter()->GetAbsVelocity();
+	GetOuter()->EstimateAbsVelocity( vel );
 #else
 	vel = GetOuter()->GetAbsVelocity();
 #endif

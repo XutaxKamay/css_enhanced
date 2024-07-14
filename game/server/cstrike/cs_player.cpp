@@ -1614,10 +1614,6 @@ void CCSPlayer::PostThink()
 		}
 	}
 
-	QAngle angles = GetLocalAngles();
-	angles[PITCH] = 0;
-	SetLocalAngles( angles );
-
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
 

@@ -229,6 +229,7 @@ void CPlayerMove::FinishMove( CBasePlayer *player, CUserCmd *ucmd, CMoveData *mo
 
 	player->SetBodyPitch( pitch );
 
+    move->m_vecAngles[ PITCH ] = 0.0f;
 	player->SetLocalAngles( move->m_vecAngles );
 
 	// The class had better not have changed during the move!!
