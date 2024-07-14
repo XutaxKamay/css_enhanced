@@ -1630,6 +1630,11 @@ void CCSPlayer::PostThink()
 		StopSound( "Player.AmbientUnderWater" );
 		SetPlayerUnderwater( false );
 	}
+
+	// Reset this.. it gets reset each frame that we're in a bomb zone.
+	m_bInBombZone = false;
+	m_bInBuyZone = false;
+	m_bInHostageRescueZone = false;
 }
 
 

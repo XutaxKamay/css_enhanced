@@ -2232,6 +2232,16 @@ void C_CSPlayer::Simulate( void )
     	DrawClientHitboxes(0.0f, true);
 }
 
+void C_CSPlayer::PostThink()
+{
+    BaseClass::PostThink();
+    // Reset this.. it gets reset each frame that we're in a bomb zone.
+	m_bInBombZone = false;
+	m_bInBuyZone = false;
+	m_bInHostageRescueZone = false;
+}
+
+
 void C_CSPlayer::ReleaseFlashlight( void )
 {
 	if( m_pFlashlightBeam )

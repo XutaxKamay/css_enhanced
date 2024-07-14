@@ -883,6 +883,8 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
     #endif
 
+    StartCommand( player, ucmd );
+
 	g_pGameMovement->StartTrackPredictionErrors( player );
 
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
@@ -892,8 +894,6 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	RunPostThink( player );
 
     gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
-
-    StartCommand( player, ucmd );
 
 // TODO
 // TODO:  Check for impulse predicted?

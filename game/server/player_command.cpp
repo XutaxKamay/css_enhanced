@@ -336,16 +336,15 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		return; // Don't process this command
     }
 
+    StartCommand( player, ucmd );
 
     g_pGameMovement->StartTrackPredictionErrors( player );
-
+	
     gpGlobals->frametime	=  playerFrameTime;
 	gpGlobals->curtime		=  (player->m_nTickBase - 1) * TICK_INTERVAL;
 
     // Run post think first, this will let some space for client side interpolation.
 	RunPostThink( player );
-
-    StartCommand( player, ucmd );
 	
 	// Set globals appropriately
 	gpGlobals->curtime		=  player->m_nTickBase * TICK_INTERVAL;

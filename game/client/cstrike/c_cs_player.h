@@ -45,6 +45,7 @@ public:
 	~C_CSPlayer();
 
 	virtual void Simulate();
+	virtual void PostThink();
 
 	bool HasDefuser() const;
 
@@ -227,7 +228,7 @@ public:
 	CNetworkVar( bool, m_bInBombZone );
 	CNetworkVar( bool, m_bInBuyZone );
 	CNetworkVar( int, m_iThrowGrenadeCounter );	// used to trigger grenade throw animations.
-
+	bool	m_bInHostageRescueZone;
 	bool IsInHostageRescueZone( void );
 
 	// This is a combination of the ADDON_ flags in cs_shareddefs.h.
@@ -324,7 +325,6 @@ private:
 	int		m_ArmorValue;
 	QAngle	m_angEyeAngles;
 	bool	m_bHasDefuser;
-	bool	m_bInHostageRescueZone;
 	float	m_fNextThinkPushAway;
 
     bool    m_bPlayingFreezeCamSound;
