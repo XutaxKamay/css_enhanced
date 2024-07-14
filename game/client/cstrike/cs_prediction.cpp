@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================//
 #include "cbase.h"
+#include "iclientvehicle.h"
 #include "prediction.h"
 #include "c_cs_player.h"
 #include "igamemovement.h"
@@ -19,9 +20,18 @@ class CCSPrediction : public CPrediction
 DECLARE_CLASS( CCSPrediction, CPrediction );
 
 public:
+	virtual void    StartCommand( CBasePlayer *player, CUserCmd *cmd );
 	virtual void	SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *pHelper, CMoveData *move );
 	virtual void	FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData *move );
 };
+
+void CCSPrediction::StartCommand(CBasePlayer* player, CUserCmd* cmd)
+{
+    CCSPlayer *pPlayer = ToCSPlayer( player );
+
+	BaseClass::StartCommand( player, cmd );
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -33,6 +43,12 @@ void CCSPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper
 
 	// Call the default SetupMove code.
 	BaseClass::SetupMove( player, ucmd, pHelper, move );
+	
+	IClientVehicle *pVehicle = player->GetVehicle();
+	if (pVehicle && gpGlobals->frametime != 0)
+	{
+		pVehicle->SetupMove( player, ucmd, pHelper, move ); 
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -42,6 +58,12 @@ void CCSPrediction::FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData 
 {
 	// Call the default FinishMove code.
 	BaseClass::FinishMove( player, ucmd, move );
+
+	IClientVehicle *pVehicle = player->GetVehicle();
+	if (pVehicle && gpGlobals->frametime != 0)
+	{
+		pVehicle->FinishMove( player, ucmd, move );
+	}
 }
 
 
