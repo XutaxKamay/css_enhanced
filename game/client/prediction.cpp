@@ -708,6 +708,8 @@ void CPrediction::FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData *m
 
 	player->SetPoseParameter(player->LookupPoseParameter("body_pitch"), pitch);
 
+    move->m_vecAngles[PITCH] = 0.0f;
+
     player->SetLocalAngles(move->m_vecAngles);
 
 	// NOTE: Don't copy this.  the movement code modifies its local copy but is not expecting to be authoritative
