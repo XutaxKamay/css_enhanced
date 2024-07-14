@@ -905,7 +905,7 @@ const QAngle& C_CSPlayer::GetRenderAngles()
     }
 	else
 	{
-		return GetAbsAngles();
+		return BaseClass::GetRenderAngles();
 	}
 }
 
