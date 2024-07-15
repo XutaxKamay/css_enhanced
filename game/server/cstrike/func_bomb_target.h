@@ -27,6 +27,7 @@ public:
 	bool	IsHeistBombTarget( void ) { return m_bIsHeistBombTarget; }
 	const char *GetBombMountTarget( void ){ return STRING( m_szMountTarget ); }
 
+    virtual void EndTouch( CBaseEntity *pOther );
 private:
 	COutputEvent m_OnBombExplode;	//Fired when the bomb explodes
 	COutputEvent m_OnBombPlanted;	//Fired when the bomb is planted

@@ -888,12 +888,9 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	g_pGameMovement->StartTrackPredictionErrors( player );
 
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
-    // Run post think after PreThink/Think function, this makes a room space for local interpolation.
-    gpGlobals->curtime		= (player->m_nTickBase - 1) * TICK_INTERVAL;
-    
-	RunPostThink( player );
+	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 
-    gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
+    RunPostThink( player );
 
 // TODO
 // TODO:  Check for impulse predicted?

@@ -13,7 +13,8 @@ LINK_ENTITY_TO_CLASS( func_bomb_target, CBombTarget );
 
 BEGIN_DATADESC( CBombTarget )
 	DEFINE_FUNCTION( BombTargetTouch ),
-	DEFINE_FUNCTION( BombTargetUse ),			//needed?
+	DEFINE_FUNCTION( BombTargetUse ),
+	DEFINE_FUNCTION( EndTouch ),
 
 	// Inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "BombExplode", OnBombExplode ),
@@ -57,6 +58,15 @@ void CBombTarget::BombTargetTouch( CBaseEntity* pOther )
 				p->m_iDisplayHistoryBits |= DHF_IN_TARGET_ZONE;
 			}
 		}
+	}
+}
+
+void CBombTarget::EndTouch(CBaseEntity* pOther)
+{
+	CCSPlayer *p = dynamic_cast< CCSPlayer* >( pOther );
+	if ( p )
+	{
+		p->m_bInBombZone = false;
 	}
 }
 

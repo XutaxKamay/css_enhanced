@@ -2231,10 +2231,6 @@ void C_CSPlayer::Simulate( void )
 void C_CSPlayer::PostThink()
 {
     BaseClass::PostThink();
-    // Reset this.. it gets reset each frame that we're in a bomb zone.
-	m_bInBombZone = false;
-	m_bInBuyZone = false;
-	m_bInHostageRescueZone = false;
 }
 
 

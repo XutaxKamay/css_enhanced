@@ -27,7 +27,7 @@ public:
 
 void CCSPrediction::StartCommand(CBasePlayer* player, CUserCmd* cmd)
 {
-    CCSPlayer *pPlayer = ToCSPlayer( player );
+    CCSPlayer* pPlayer = ToCSPlayer(player);
 
 	BaseClass::StartCommand( player, cmd );
 }
