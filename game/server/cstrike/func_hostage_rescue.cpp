@@ -6,6 +6,7 @@
 
 #include "cbase.h"
 #include "triggers.h"
+#include "cs_player.h"
 
 class CHostageRescueZone : public CBaseTrigger
 {
@@ -17,6 +18,8 @@ public:
 	void Spawn();
 
 	void HostageRescueTouch( CBaseEntity* pOther );
+
+    virtual void EndTouch( CBaseEntity *pOther );
 };
 
 
@@ -43,3 +46,11 @@ void CHostageRescueZone::HostageRescueTouch( CBaseEntity *pOther )
 	pOther->AcceptInput( "OnRescueZoneTouch", NULL, NULL, emptyVariant, 0 );
 }
 
+void CHostageRescueZone::EndTouch( CBaseEntity* pOther )
+{
+	CCSPlayer *p = dynamic_cast< CCSPlayer* >( pOther );
+	if ( p )
+	{
+		p->m_bInHostageRescueZone = true;
+	}
+}

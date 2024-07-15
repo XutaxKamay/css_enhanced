@@ -339,12 +339,12 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		return; // Don't process this command
     }
 
+    gpGlobals->frametime	=  playerFrameTime;
+    gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
+    
     StartCommand( player, ucmd );
 
     g_pGameMovement->StartTrackPredictionErrors( player );
-	
-    gpGlobals->frametime	=  playerFrameTime;
-	gpGlobals->curtime		=  (player->m_nTickBase - 1) * TICK_INTERVAL;
 
     if (ucmd->debug_hitboxes)
     {
@@ -363,11 +363,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		lagcompensation->FinishLagCompensation( player );
     }
 
-    // Run post think first, this will let some space for client side interpolation.
-	RunPostThink( player );
-
-	// Set globals appropriately
-	gpGlobals->curtime		=  player->m_nTickBase * TICK_INTERVAL;
+    RunPostThink( player );
 
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable(ucmd->viewangles) )
