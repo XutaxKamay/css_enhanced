@@ -4991,7 +4991,7 @@ void C_BaseAnimating::UpdateClientSideAnimation()
 	}
 }
 
-ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT|FCVAR_DEVELOPMENTONLY);
+ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT);
 
 void C_BaseAnimating::Simulate()
 {
