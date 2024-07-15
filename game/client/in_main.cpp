@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdio>
 #include "bone_setup.h"
+#include "convar.h"
 #include "studio.h"
 #include "util_shared.h"
 #include "c_baseplayer.h"
@@ -1315,7 +1316,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         cmd->has_simulation[pEntity->index] = true;
         cmd->simulationtimes[pEntity->index] = pEntity->m_flInterpolatedSimulationTime;
 
-        if (pEntity->index < 1 and pEntity->index > MAX_PLAYERS)
+        if (pEntity->index < 1 && pEntity->index > MAX_PLAYERS)
         {
             continue;
 		}
@@ -1330,6 +1331,17 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         cmd->has_animation[pBasePlayer->index] = true;
         cmd->animationdata[pBasePlayer->index].m_flUninterpolatedSimulationTime = pBasePlayer->m_flSimulationTime;
     }
+
+    static ConVarRef cl_showhitboxes("cl_showhitboxes");
+
+    if (cl_showhitboxes.GetBool())
+    {
+        cmd->debug_hitboxes = true;
+    }
+    else
+    {
+        cmd->debug_hitboxes = false;
+	}
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

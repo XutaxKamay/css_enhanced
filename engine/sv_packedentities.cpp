@@ -106,7 +106,8 @@ void SV_EnsureInstanceBaseline( ServerClass *pServerClass, int iEdict, const voi
 // Pack the entity....
 //-----------------------------------------------------------------------------
 
-static inline void SV_PackEntity( 
+static inline void SV_PackEntity(
+	int clientEntityIndex,
 	int edictIdx, 
 	edict_t* edict, 
 	ServerClass* pServerClass,
@@ -144,6 +145,7 @@ static inline void SV_PackEntity(
 	unsigned char tempData[ sizeof( CSendProxyRecipients ) * MAX_DATATABLE_PROXIES ];
 	CUtlMemory< CSendProxyRecipients > recip( (CSendProxyRecipients*)tempData, pSendTable->m_pPrecalc->GetNumDataTableProxies() );
 
+    g_pVEngineServer->SetSendTableCurrentEntityIndex(clientEntityIndex);
 	if( !SendTable_Encode( pSendTable, edict->GetUnknown(), &writeBuf, edictIdx, &recip, false ) )
 	{							 
 		Host_Error( "SV_PackEntity: SendTable_Encode returned false (ent %d).\n", edictIdx );
@@ -393,10 +395,11 @@ struct PackWork_t
 	int				nIdx;
 	edict_t			*pEdict;
 	CFrameSnapshot	*pSnapshot;
+	int				clientIndex;
 
 	static void Process( PackWork_t &item )
 	{
-		SV_PackEntity( item.nIdx, item.pEdict, item.pSnapshot->m_pEntities[ item.nIdx ].m_pClass, item.pSnapshot );
+		SV_PackEntity(item.clientIndex, item.nIdx, item.pEdict, item.pSnapshot->m_pEntities[ item.nIdx ].m_pClass, item.pSnapshot );
 	}
 };
 
@@ -440,7 +443,8 @@ void PackEntities_Normal(
 				PackWork_t w;
 				w.nIdx = index;
 				w.pEdict = edict;
-				w.pSnapshot = snapshot;
+                w.pSnapshot = snapshot;
+                w.clientIndex = client->m_nEntityIndex;
 
 				workItems.AddToTail( w );
 				break;
@@ -459,7 +463,7 @@ void PackEntities_Normal(
 		for ( int i = 0; i < c; ++i )
 		{
 			PackWork_t &w = workItems[ i ];
-			SV_PackEntity( w.nIdx, w.pEdict, w.pSnapshot->m_pEntities[ w.nIdx ].m_pClass, w.pSnapshot );
+			SV_PackEntity(w.clientIndex, w.nIdx, w.pEdict, w.pSnapshot->m_pEntities[ w.nIdx ].m_pClass, w.pSnapshot );
 		}
 	}
 

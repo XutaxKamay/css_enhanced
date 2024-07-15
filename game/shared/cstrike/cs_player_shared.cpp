@@ -33,7 +33,6 @@
 #include "props_shared.h"
 
 ConVar sv_showimpacts("sv_showimpacts", "0", FCVAR_REPLICATED, "Shows client (red) and server (blue) bullet impact point (1=both, 2=client-only, 3=server-only)" );
-ConVar sv_showplayerhitboxes( "sv_showplayerhitboxes", "0", FCVAR_REPLICATED, "Show lag compensated hitboxes for the specified player index whenever a player fires." );
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
@@ -409,23 +408,22 @@ void CCSPlayer::FireBullet(
 	bool bFirstHit = true;
 
 	CBasePlayer *lastPlayerHit = NULL;
-
-	if( sv_showplayerhitboxes.GetInt() > 0 )
-	{
-		CBasePlayer *lagPlayer = UTIL_PlayerByIndex( sv_showplayerhitboxes.GetInt() );
-		if( lagPlayer )
-        {
 #ifdef CLIENT_DLL
-            DevMsg("Client:");
-			lagPlayer->DrawClientHitboxes(60, true);
-#else
-            DevMsg("Server:");
-            lagPlayer->DrawServerHitboxes(60, true);
-#endif
-        	DevMsg("%s => %f %f %f\n", lagPlayer->GetPlayerName(), lagPlayer->GetAbsOrigin().x, lagPlayer->GetAbsOrigin().y, lagPlayer->GetAbsOrigin().z);
+    static ConVarRef cl_showhitboxes("cl_showhitboxes");
+
+	if( cl_showhitboxes.GetBool() )
+    {
+        for (int i = 1; i <= gpGlobals->maxClients; i++)
+        {
+			CBasePlayer *lagPlayer = UTIL_PlayerByIndex( i );
+			if( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
+			{
+				lagPlayer->DrawClientHitboxes(60, true);
+				lagPlayer->m_nTickBaseFireBullet = int(lagPlayer->GetTimeBase() / TICK_INTERVAL);
+            }
 		}
 	}
-
+#endif
 	MDLCACHE_CRITICAL_SECTION();
 	while ( fCurrentDamage > 0 )
 	{
@@ -496,7 +494,7 @@ void CCSPlayer::FireBullet(
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				C_BasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->DrawClientHitboxes( 4, true );
+				player->DrawClientHitboxes( 60, true );
 			}
 		}
 #else
@@ -508,7 +506,7 @@ void CCSPlayer::FireBullet(
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->DrawServerHitboxes( 60, false );
+				player->DrawServerHitboxes( 60, true );
 			}
 		}
 #endif

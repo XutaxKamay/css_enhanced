@@ -2103,7 +2103,6 @@ void SV_CreateBaseline (void)
 			ALIGN4 char packedData[MAX_PACKEDENTITY_DATA] ALIGN4_POST;
 			bf_write writeBuf( "SV_CreateBaseline->writeBuf", packedData, sizeof( packedData ) );
 
-
 			// create basline from zero values
 			if ( !SendTable_Encode(
 				pSendTable, 

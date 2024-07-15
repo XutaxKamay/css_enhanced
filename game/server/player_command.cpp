@@ -5,6 +5,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "baseplayer_shared.h"
 #include "baseentity.h"
 #include "convar.h"
 #include "ilagcompensationmanager.h"
@@ -17,6 +18,8 @@
 #include "movehelper_server.h"
 #include "iservervehicle.h"
 #include "tier0/vprof.h"
+#include "util.h"
+#include "util_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -343,19 +346,28 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
     gpGlobals->frametime	=  playerFrameTime;
 	gpGlobals->curtime		=  (player->m_nTickBase - 1) * TICK_INTERVAL;
 
-    // Run post think first, this will let some space for client side interpolation.
-	RunPostThink( player );
-	
-	// Set globals appropriately
-	gpGlobals->curtime		=  player->m_nTickBase * TICK_INTERVAL;
-
-    extern ConVar sv_showhitboxes;
-
-    if (sv_showhitboxes.GetInt() >= 0)
+    if (ucmd->debug_hitboxes)
     {
 		lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
+
+        for (int i = 1; i <= gpGlobals->maxClients; i++)
+        {
+            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
+
+            if (!lagPlayer)
+                continue;
+
+			lagPlayer->RecordServerHitboxes( player );
+        }
+    
 		lagcompensation->FinishLagCompensation( player );
-	}
+    }
+
+    // Run post think first, this will let some space for client side interpolation.
+	RunPostThink( player );
+
+	// Set globals appropriately
+	gpGlobals->curtime		=  player->m_nTickBase * TICK_INTERVAL;
 
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable(ucmd->viewangles) )

@@ -8,6 +8,13 @@
 #include "baseanimating.h"
 #include "animation.h"
 #include "activitylist.h"
+#include "dt_common.h"
+#include "dt_send.h"
+#include "edict.h"
+#include "enginecallback.h"
+#include "entitylist_base.h"
+#include "mathlib/vector.h"
+#include "shareddefs.h"
 #include "studio.h"
 #include "bone_setup.h"
 #include "mathlib/mathlib.h"
@@ -27,6 +34,7 @@
 #include "datacache/idatacache.h"
 #include "smoke_trail.h"
 #include "props.h"
+#include "util.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -148,6 +156,53 @@ int CInfoLightingRelative::UpdateTransmitState( void )
 	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
+void* SendTableProxy_HitboxServerPositions(
+  const SendProp* pProp,
+  const void* pStructBase,
+  const void* pData,
+  CSendProxyRecipients* pRecipients,
+  int objectID)
+{
+    auto index = engine->GetSendTableCurrentEntityIndex();
+
+    if (index == -1)
+    {
+        return (void*)pData;
+    }
+
+	CBaseEntity* entity = UTIL_EntityByIndex(index);
+
+	if (!entity)
+    {
+        return (void*)pData;
+    }
+
+    return ((Vector*)pData + entity->entindex() * MAXSTUDIOBONES);
+}
+
+void* SendTableProxy_HitboxServerAngles(const SendProp* pProp,
+                                        const void* pStructBase,
+                                        const void* pData,
+                                        CSendProxyRecipients* pRecipients,
+                                        int objectID)
+{
+    auto index = engine->GetSendTableCurrentEntityIndex();
+
+    if (index == -1)
+    {
+        return (void*)pData;
+    }
+
+	CBaseEntity* entity = UTIL_EntityByIndex(index);
+
+	if (!entity)
+    {
+        return (void*)pData;
+    }
+
+    return ((QAngle*)pData + entity->entindex() * MAXSTUDIOBONES);
+}
+
 static CIKSaveRestoreOps s_IKSaveRestoreOp;
 
 
@@ -254,6 +309,8 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	SendPropFloat( SENDINFO( m_fadeMinDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_fadeMaxDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
+	SendPropArray3 (SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions), MAXSTUDIOBONES, SendPropVector(SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions[0]) ), SendTableProxy_HitboxServerPositions),
+	SendPropArray3 (SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles), MAXSTUDIOBONES, SendPropQAngles(SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles[0]) ), SendTableProxy_HitboxServerAngles),
 
 END_SEND_TABLE()
 
@@ -282,6 +339,15 @@ CBaseAnimating::CBaseAnimating()
 	m_fadeMaxDist = 0;
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
+
+    for (int i = 0; i <= MAX_PLAYERS; i++)
+    {
+		for (int j = 0; j < MAXSTUDIOBONES; j++)
+		{
+			m_vecHitboxServerPositions[i][j] = vec3_origin;
+			m_angHitboxServerAngles[i][j] = vec3_angle;
+		}
+    }
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -2982,6 +3048,31 @@ static Vector	hullcolor[8] =
 	Vector( 0.5, 1.0, 1.0 ),
 	Vector( 1.0, 1.0, 1.0 )
 };
+
+void CBaseAnimating::RecordServerHitboxes( CBasePlayer* player )
+{
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( !pStudioHdr )
+		return;
+
+	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+		return;
+
+	Vector position;
+	QAngle angles;
+    const auto localPlayerIndex = player->entindex();
+
+    for ( int i = 0; i < set->numhitboxes; i++ )
+	{
+		mstudiobbox_t *pbox = set->pHitbox( i );
+
+        GetBonePosition(pbox->bone, position, angles);
+
+        m_vecHitboxServerPositions[localPlayerIndex][i] = position;
+        m_angHitboxServerAngles[localPlayerIndex][i] = angles;
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Send the current hitboxes for this model to the client ( to compare with

@@ -13,6 +13,7 @@
 	#include "ilagcompensationmanager.h"
 #endif
 
+ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
 
 #ifdef CLIENT_DLL
@@ -285,7 +286,6 @@ void FX_FireBullets(
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
 
-    static ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
         if (debug_screenshot_bullet_position.GetBool())

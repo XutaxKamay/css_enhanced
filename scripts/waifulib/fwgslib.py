@@ -151,3 +151,25 @@ def get_targets(bld):
 	for target in targets:
 		targets += get_deps(bld, target)
 	return targets
+
+@Configure.conf
+def check_pkg(conf, package, uselib_store, fragment, fatal = True, *k, **kw):
+	errormsg = '{0} not available! Install {0} development package. Also you may need to set PKG_CONFIG_PATH environment variable'.format(package)
+	confmsg = 'Checking for \'{0}\' sanity'.format(package)
+	errormsg2 = '{0} isn\'t installed correctly. Make sure you installed proper development package for target architecture'.format(package)
+
+	try:
+		conf.check_cfg(package=package, args='--cflags --libs', uselib_store=uselib_store, *k, **kw )
+	except conf.errors.ConfigurationError:
+		if fatal:
+			conf.fatal(errormsg)
+		return False
+
+	try:
+		conf.check_cxx(fragment=fragment, use=uselib_store, msg=confmsg, *k, **kw)
+	except conf.errors.ConfigurationError:
+		if fatal:
+			conf.fatal(errormsg2)
+		return False
+
+	return True

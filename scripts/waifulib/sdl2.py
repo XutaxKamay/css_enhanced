@@ -42,7 +42,7 @@ def sdl2_configure_path(conf, path):
 		]
 		libpath = 'lib'
 		if conf.env.COMPILER_CC == 'msvc':
-			if conf.env.DEST_CPU in ['x86_64', 'amd64']:
+			if conf.env.DEST_CPU == 'x86_64':
 				libpath = 'lib/x64'
 			else:
 				libpath = 'lib/' + conf.env.DEST_CPU
@@ -56,21 +56,25 @@ def configure(conf):
 		conf.end_msg('yes: {0}, {1}, {2}'.format(conf.env.LIB_SDL2, conf.env.LIBPATH_SDL2, conf.env.INCLUDES_SDL2))
 	else:
 		try:
-			conf.check_cfg(
-				path='sdl2-config',
-				args='--cflags --libs',
-				package='',
-				msg='Checking for library SDL2',
-				uselib_store='SDL2')
+			conf.check_cfg(package='sdl2', args='--cflags --libs',
+				msg='Checking for SDL2 (pkg-config)')
 		except conf.errors.ConfigurationError:
-			conf.env.HAVE_SDL2 = 0
-	
+			try:
+				if not conf.env.SDL2CONFIG:
+					conf.find_program('sdl2-config', var='SDL2CONFIG')
+
+				conf.check_cfg(path=conf.env.SDL2CONFIG, args='--cflags --libs',
+					msg='Checking for SDL2 (sdl2-config)', package='',
+					uselib_store='SDL2')
+			except conf.errors.ConfigurationError:
+				conf.env.HAVE_SDL2 = 0
+
 	if not conf.env.HAVE_SDL2 and conf.env.CONAN:
 		if not conf.env.SDL2_VERSION:
 			version = '2.0.10'
 		else:
 			version = conf.env.SDL2_VERSION
-		
+
 		conf.load('conan')
 		conf.add_conan_remote('bincrafters', 'https://api.bintray.com/conan/bincrafters/public-conan')
 		conf.add_dependency('sdl2/%s@bincrafters/stable' % version, options = { 'shared': 'True' } )
@@ -86,7 +90,7 @@ def configure(conf):
 					SDL_Init( SDL_INIT_EVERYTHING );
 					return 0;
 				}''',
-				msg	= 'Checking for library SDL2 sanity',
+				msg	= 'Checking for SDL2 sanity',
 				use = 'SDL2',
 				execute = False)
 		except conf.errors.ConfigurationError:

@@ -5,9 +5,11 @@
 // $NoKeywords: $
 //===========================================================================//
 #include "cbase.h"
+#include "c_baseplayer.h"
 #include "c_baseanimating.h"
 #include "c_sprite.h"
 #include "cdll_client_int.h"
+#include "iconvar.h"
 #include "interpolatedvar.h"
 #include "model_types.h"
 #include "bone_setup.h"
@@ -196,7 +198,10 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
-	RecvPropFloat( RECVINFO( m_flFadeScale ) ), 
+	RecvPropFloat( RECVINFO( m_flFadeScale ) ),
+	RecvPropArray3( RECVINFO_ARRAY(m_vecHitboxServerPositions), RecvPropVector(RECVINFO(m_vecHitboxServerPositions[0]))),
+	RecvPropArray3( RECVINFO_ARRAY(m_angHitboxServerAngles), RecvPropQAngles(RECVINFO(m_angHitboxServerAngles[0]))),
+ 
 
 END_RECV_TABLE()
 
@@ -4986,6 +4991,7 @@ void C_BaseAnimating::UpdateClientSideAnimation()
 	}
 }
 
+ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT|FCVAR_DEVELOPMENTONLY);
 
 void C_BaseAnimating::Simulate()
 {
@@ -5006,6 +5012,12 @@ void C_BaseAnimating::Simulate()
 	if ( GetSequence() != -1 && m_pRagdoll && ( m_nRenderFX != kRenderFxRagdoll ) )
 	{
 		ClearRagdoll();
+	}
+
+    if (cl_showhitboxes.GetBool() && IsPlayer() && (this != C_BasePlayer::GetLocalPlayer()))
+    {
+        DrawClientHitboxes(gpGlobals->frametime, true);
+        DrawServerHitboxes(gpGlobals->frametime, true);
 	}
 }
 
@@ -5604,6 +5616,42 @@ void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monoco
 		}
 
 		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 0 ,duration );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Draw the current hitboxes
+//-----------------------------------------------------------------------------
+void C_BaseAnimating::DrawServerHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
+{
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( !pStudioHdr )
+		return;
+
+	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+		return;
+
+	Vector position;
+	QAngle angles;
+
+	int r = 0;
+	int g = 255;
+	int b = 0;
+
+	for ( int i = 0; i < set->numhitboxes; i++ )
+	{
+		mstudiobbox_t *pbox = set->pHitbox( i );
+
+		if ( !monocolor )
+		{
+			int j = (pbox->group % 8);
+			r = ( int ) ( 255.0f * hullcolor[j][0] );
+			g = ( int ) ( 255.0f * hullcolor[j][1] );
+			b = ( int ) ( 255.0f * hullcolor[j][2] );
+		}
+
+		debugoverlay->AddBoxOverlay( m_vecHitboxServerPositions[i], pbox->bbmin, pbox->bbmax, m_angHitboxServerAngles[i], r, g, b, 0 ,duration );
 	}
 }
 

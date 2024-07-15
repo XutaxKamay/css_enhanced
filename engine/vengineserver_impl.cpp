@@ -82,7 +82,8 @@ void InvalidateSharedEdictChangeInfos()
 	}
 	g_SharedEdictChangeInfo.m_nChangeInfos = 0;
 }
-
+// TODO_ENHANCED: HACK!
+int g_SendTableEntityIndex = -1;
 
 // ---------------------------------------------------------------------- //
 // Globals.
@@ -1753,6 +1754,16 @@ private:
 
 	virtual ISpatialPartition *CreateSpatialPartition( const Vector& worldmin, const Vector& worldmax ) { return ::CreateSpatialPartition( worldmin, worldmax );	}
 	virtual void 		DestroySpatialPartition( ISpatialPartition *pPartition )						{ ::DestroySpatialPartition( pPartition );					}
+
+	virtual void SetSendTableCurrentEntityIndex(int index) OVERRIDE
+    {
+        g_SendTableEntityIndex = index;
+    }
+
+    virtual int GetSendTableCurrentEntityIndex() OVERRIDE
+    {
+        return g_SendTableEntityIndex;
+	}
 };
 
 // Backwards-compat shim that inherits newest then provides overrides for the legacy behavior
@@ -1823,6 +1834,7 @@ void CVEngineServer::PlaybackTempEntity( IRecipientFilter& filter, float delay, 
 	ALIGN4 unsigned char data[ CEventInfo::MAX_EVENT_DATA ] ALIGN4_POST;
 	bf_write buffer( "PlaybackTempEntity", data, sizeof(data) );
 
+    SetSendTableCurrentEntityIndex(-1);
 	// write all properties, if init or reliable message delta against zero values
 	if( !SendTable_Encode( pST, pSender, &buffer, classID, NULL, false ) )
 	{
