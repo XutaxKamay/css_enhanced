@@ -2230,7 +2230,7 @@ void C_CSPlayer::Simulate( void )
 
     static ConVarRef cl_showimpacts("cl_showimpacts");
 
-	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_iBulletServerPositionCount > 0 && m_lastBulletDiameter != -1.0f)
+	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_lastBulletDiameter != -1.0f)
     {
         auto weaponInfo = GetActiveWeapon();
 

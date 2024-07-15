@@ -2135,9 +2135,11 @@ void C_BasePlayer::Simulate()
 		ResetLatched();
 	}
 
+    static ConVarRef cl_showimpacts("cl_showimpacts");
+    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
     bool shouldShowFireBulletHitbox = m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1;
 
-    if (shouldShowFireBulletHitbox)
+    if (shouldShowFireBulletHitbox && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3 || cl_showfirebullethitboxes.GetBool()))
     {
         DrawServerHitboxes(60.0f, true);
         m_nTickBaseFireBullet = -1;
