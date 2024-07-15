@@ -8,6 +8,7 @@
 
 #ifndef C_BASEPLAYER_H
 #define C_BASEPLAYER_H
+
 #ifdef _WIN32
 #pragma once
 #endif
@@ -434,6 +435,7 @@ public:
 
 	int				m_nButtons;
 
+    CUserCmd		m_LastCmd;
 	CUserCmd		*m_pCurrentCommand;
 
 	// Movement constraints
@@ -638,8 +640,6 @@ public:
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
 	
 	int m_nTickBaseFireBullet;
-    Vector m_vecBulletPositions[MAX_PLAYER_BULLET_POSITIONS];
-    int m_iBulletPositionCount;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);
