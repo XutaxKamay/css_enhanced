@@ -15,6 +15,7 @@
 
 ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
+ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED );
 
 #ifdef CLIENT_DLL
 
@@ -119,6 +120,11 @@ void FX_FireBullets(
 	float flSoundTime
 	)
 {
+    if (weapon_accuracy_noinaccuracy.GetBool())
+    {
+        fInaccuracy = 0.0f;
+    }
+
 	bool bDoEffects = true;
 
 #ifdef CLIENT_DLL

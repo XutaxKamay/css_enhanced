@@ -5,6 +5,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "debugoverlay_shared.h"
 #include "weapon_csbase.h"
 #include "decals.h"
 #include "cs_gamerules.h"
@@ -180,6 +181,49 @@ float CCSPlayer::GetPlayerMaxSpeed()
 	return speed;
 }
 
+float g_bulletDiameter = 0.0f;
+static constexpr float MMToUnits(float mm)
+{
+	return (mm / 10.f) / 1.905f;
+}
+
+void UTIL_ClipTraceToPlayersHull( const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask, ITraceFilter *filter, trace_t *tr )
+{
+	trace_t playerTrace;
+	Ray_t ray;
+	float smallestFraction = tr->fraction;
+	const float maxRange = 60.0f;
+
+	ray.Init( vecAbsStart, vecAbsEnd , Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter) );
+
+	for ( int k = 1; k <= gpGlobals->maxClients; ++k )
+	{
+		CBasePlayer *player = UTIL_PlayerByIndex( k );
+
+		if ( !player || !player->IsAlive() )
+			continue;
+
+#ifdef CLIENT_DLL
+		if ( player->IsDormant() )
+			continue;
+#endif // CLIENT_DLL
+
+		if ( filter && filter->ShouldHitEntity( player, mask ) == false )
+			continue;
+
+		float range = DistanceToRay( player->WorldSpaceCenter(), vecAbsStart, vecAbsEnd );
+		if ( range < 0.0f || range > maxRange )
+			continue;
+
+		enginetrace->ClipRayToEntity( ray, mask|CONTENTS_HITBOX, player, &playerTrace );
+		if ( playerTrace.fraction < smallestFraction )
+		{
+			// we shortened the ray - save off the trace
+			*tr = playerTrace;
+			smallestFraction = playerTrace.fraction;
+		}
+	}
+}
 
 void CCSPlayer::GetBulletTypeParameters(
 	int iBulletType,
@@ -190,48 +234,57 @@ void CCSPlayer::GetBulletTypeParameters(
 	if ( IsAmmoType( iBulletType, BULLET_PLAYER_50AE ) )
 	{
 		fPenetrationPower = 30;
-		flPenetrationDistance = 1000.0;
+        flPenetrationDistance = 1000.0;
+        g_bulletDiameter = MMToUnits(13.8f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_762MM ) )
 	{
 		fPenetrationPower = 39;
-		flPenetrationDistance = 5000.0;
+        flPenetrationDistance = 5000.0;
+        g_bulletDiameter = MMToUnits(7.62f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_556MM ) ||
 			  IsAmmoType( iBulletType, BULLET_PLAYER_556MM_BOX ) )
 	{
 		fPenetrationPower = 35;
-		flPenetrationDistance = 4000.0;
+        flPenetrationDistance = 4000.0;
+        g_bulletDiameter = MMToUnits(5.56f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_338MAG ) )
 	{
 		fPenetrationPower = 45;
-		flPenetrationDistance = 8000.0;
+        flPenetrationDistance = 8000.0;
+        g_bulletDiameter = MMToUnits(8.6f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_9MM ) )
 	{
 		fPenetrationPower = 21;
-		flPenetrationDistance = 800.0;
+        flPenetrationDistance = 800.0;
+        g_bulletDiameter = MMToUnits(9.f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_BUCKSHOT ) )
 	{
 		fPenetrationPower = 0;
-		flPenetrationDistance = 0.0;
+        flPenetrationDistance = 0.0;
+        g_bulletDiameter = MMToUnits(9.9f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_45ACP ) )
 	{
 		fPenetrationPower = 15;
-		flPenetrationDistance = 500.0;
+        flPenetrationDistance = 500.0;
+        g_bulletDiameter = MMToUnits(11.43f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_357SIG ) )
 	{
 		fPenetrationPower = 25;
-		flPenetrationDistance = 800.0;
+        flPenetrationDistance = 800.0;
+        g_bulletDiameter = MMToUnits(9.f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_57MM ) )
 	{
 		fPenetrationPower = 30;
-		flPenetrationDistance = 2000.0;
+        flPenetrationDistance = 2000.0;
+        g_bulletDiameter = MMToUnits(5.7f);
 	}
 	else
 	{
@@ -314,12 +367,12 @@ inline void UTIL_TraceLineIgnoreTwoEntities( const Vector& vecAbsStart, const Ve
 					 const IHandleEntity *ignore, const IHandleEntity *ignore2, int collisionGroup, trace_t *ptr )
 {
 	Ray_t ray;
-	ray.Init( vecAbsStart, vecAbsEnd );
+	ray.Init( vecAbsStart, vecAbsEnd, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter) );
 	CTraceFilterSkipTwoEntities traceFilter( ignore, ignore2, collisionGroup );
 	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
 	if( r_visualizetraces.GetBool() )
 	{
-		DebugDrawLine( ptr->startpos, ptr->endpos, 255, 0, 0, true, -1.0f );
+		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), QAngle(), 255, 0, 0, true, 100.0f );
 	}
 }
 
@@ -349,7 +402,6 @@ void CCSPlayer::FireBullet(
 	float flPenetrationModifier = 1.f;
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance );
-
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
@@ -437,7 +489,7 @@ void CCSPlayer::FireBullet(
 
 			// Check for player hitboxes extending outside their collision bounds
 			const float rayExtension = 40.0f;
-			UTIL_ClipTraceToPlayers( vecSrc, vecEnd + vecDir * rayExtension, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
+			UTIL_ClipTraceToPlayersHull( vecSrc, vecEnd + vecDir * rayExtension, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
 		}
 
 		lastPlayerHit = ToBasePlayer(tr.m_pEnt);
@@ -489,7 +541,7 @@ void CCSPlayer::FireBullet(
 		if ( sv_showimpacts.GetInt() == 1 || sv_showimpacts.GetInt() == 2 )
 		{
 			// draw red client impact markers
-			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-2,-2,-2), Vector(2,2,2), QAngle( 0, 0, 0), 255,0,0,127, 4 );
+			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 4 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
@@ -501,7 +553,7 @@ void CCSPlayer::FireBullet(
 		if ( sv_showimpacts.GetInt() == 1 || sv_showimpacts.GetInt() == 3 )
 		{
 			// draw blue server impact markers
-			NDebugOverlay::Box( tr.endpos, Vector(-2,-2,-2), Vector(2,2,2), 0,0,255,127, 4 );
+			NDebugOverlay::Box( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), 0,0,255,127, 4 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
@@ -532,7 +584,7 @@ void CCSPlayer::FireBullet(
 			if ( enginetrace->GetPointContents( tr.endpos ) & (CONTENTS_WATER|CONTENTS_SLIME) )
 			{
 				trace_t waterTrace;
-				UTIL_TraceLine( vecSrc, tr.endpos, (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
+				UTIL_TraceHull( vecSrc, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
 
 				if( waterTrace.allsolid != 1 )
 				{
@@ -615,12 +667,12 @@ void CCSPlayer::FireBullet(
 
 		// find exact penetration exit
 		trace_t exitTr;
-		UTIL_TraceLine( penetrationEnd, tr.endpos, CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
+		UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
 
 		if( exitTr.m_pEnt != tr.m_pEnt && exitTr.m_pEnt != NULL )
 		{
 			// something was blocking, trace again
-			UTIL_TraceLine( penetrationEnd, tr.endpos, CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
+			UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
 		}
 
 		// get material at exit point
