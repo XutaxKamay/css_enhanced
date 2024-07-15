@@ -190,7 +190,12 @@ void UTIL_ClipTraceToPlayersHull( float flBulletDiameter, const Vector& vecAbsSt
 	float smallestFraction = tr->fraction;
 	const float maxRange = 60.0f;
 
-	ray.Init( vecAbsStart, vecAbsEnd , Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter) );
+    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
+	vecBulletDiameterMaxs /= 2.0f;
+    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
+    vecBulletDiameterMins /= 2.0f;
+    
+	ray.Init( vecAbsStart, vecAbsEnd , vecBulletDiameterMins, vecBulletDiameterMaxs );
 
 	for ( int k = 1; k <= gpGlobals->maxClients; ++k )
 	{
@@ -407,13 +412,18 @@ static bool TraceToExit(Vector &start, Vector &dir, Vector &end, float flStepSiz
 inline void UTIL_TraceLineIgnoreTwoEntities(float flBulletDiameter, const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask,
 					 const IHandleEntity *ignore, const IHandleEntity *ignore2, int collisionGroup, trace_t *ptr )
 {
+    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
+	vecBulletDiameterMaxs /= 2.0f;
+    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
+    vecBulletDiameterMins /= 2.0f;
+
 	Ray_t ray;
-	ray.Init( vecAbsStart, vecAbsEnd, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter) );
+	ray.Init( vecAbsStart, vecAbsEnd, vecBulletDiameterMins, vecBulletDiameterMaxs );
 	CTraceFilterSkipTwoEntities traceFilter( ignore, ignore2, collisionGroup );
 	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
 	if( r_visualizetraces.GetBool() )
 	{
-		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), QAngle(), 255, 0, 0, true, 100.0f );
+		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle(), 255, 0, 0, true, 100.0f );
 	}
 }
 
@@ -442,8 +452,18 @@ void CCSPlayer::FireBullet(
 	float flDamageModifier = 0.5;		// default modification of bullets power after they go through a wall.
     float flPenetrationModifier = 1.f;
     float flBulletDiameter = 0.0f;
-    
+    int iPenetrationCount       = 0;
+
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
+
+#ifdef CLIENT_DLL
+    m_lastBulletDiameter = flBulletDiameter;
+#endif
+
+    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
+	vecBulletDiameterMaxs /= 2.0f;
+    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
+    vecBulletDiameterMins /= 2.0f;
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
@@ -572,7 +592,7 @@ void CCSPlayer::FireBullet(
 		{
 #ifdef CLIENT_DLL
 			// draw red client impact markers
-			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-flBulletDiameter,-flBulletDiameter,-flBulletDiameter), Vector(flBulletDiameter,flBulletDiameter,flBulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 60 );
+			debugoverlay->AddBoxOverlay( tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle( 0, 0, 0), 255,0,0,127, 60 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
@@ -588,18 +608,11 @@ void CCSPlayer::FireBullet(
 				player->RecordServerHitboxes( this );
             }
 
-			//
-			// Propogate a bullet impact event
-			// @todo Add this for shotgun pellets (which dont go thru here)
-			//
-			IGameEvent * event = gameeventmanager->CreateEvent( "bullet_impact" );
-			if ( event )
-			{
-				event->SetFloat( "x", tr.endpos.x );
-				event->SetFloat( "y", tr.endpos.y );
-                event->SetFloat("z", tr.endpos.z);
-                event->SetFloat( "diameter", flBulletDiameter );
-				gameeventmanager->FireEvent( event );
+            if (iPenetrationCount < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+            {
+				m_vecBulletServerPositions.Set(iPenetrationCount, tr.endpos);
+				iPenetrationCount++;
+				m_iBulletServerPositionCount.Set(iPenetrationCount);
 			}
 #endif
         }
@@ -625,7 +638,7 @@ void CCSPlayer::FireBullet(
 			if ( enginetrace->GetPointContents( tr.endpos ) & (CONTENTS_WATER|CONTENTS_SLIME) )
 			{
 				trace_t waterTrace;
-				UTIL_TraceHull( vecSrc, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
+				UTIL_TraceHull( vecSrc, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
 
 				if( waterTrace.allsolid != 1 )
 				{
@@ -708,12 +721,12 @@ void CCSPlayer::FireBullet(
 
 		// find exact penetration exit
 		trace_t exitTr;
-		UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
+		UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
 
 		if( exitTr.m_pEnt != tr.m_pEnt && exitTr.m_pEnt != NULL )
 		{
 			// something was blocking, trace again
-			UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
+			UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
 		}
 
 		// get material at exit point
