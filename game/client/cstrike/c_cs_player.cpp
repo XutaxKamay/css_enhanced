@@ -2241,7 +2241,7 @@ void C_CSPlayer::Simulate( void )
         
 		for (int i = 0; i < m_iBulletServerPositionCount; i++)
 		{
-            debugoverlay->AddBoxOverlay(
+            debugoverlay->AddSweptBoxOverlay(Weapon_ShootPosition(),
               m_vecBulletServerPositions[i],
               Vector(-m_lastBulletDiameter,
                      -m_lastBulletDiameter,
