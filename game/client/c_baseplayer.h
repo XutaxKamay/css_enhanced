@@ -642,7 +642,7 @@ public:
 	int m_nTickBaseFireBullet;
     Vector m_vecBulletServerPositions[MAX_PLAYER_BULLET_SERVER_POSITIONS];
     int m_iBulletServerPositionCount;
-    Vector m_vecServerShootPosition;
+    Vector m_vecServerShootPosition[MAX_PLAYER_BULLET_SERVER_POSITIONS];
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

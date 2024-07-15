@@ -7973,8 +7973,8 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
 		SendPropArray3( SENDINFO_ARRAY3(m_vecBulletServerPositions), SendPropVector(SENDINFO_ARRAY(m_vecBulletServerPositions))),
 		SendPropInt(SENDINFO(m_iBulletServerPositionCount)),
-		SendPropVector(SENDINFO(m_vecServerShootPosition))
-	END_SEND_TABLE()
+		SendPropArray3( SENDINFO_ARRAY3(m_vecServerShootPosition), SendPropVector(SENDINFO_ARRAY(m_vecServerShootPosition))),
+END_SEND_TABLE()
 
 
 // -------------------------------------------------------------------------------- //
