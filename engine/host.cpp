@@ -3350,7 +3350,7 @@ void _Host_RunFrame (float time)
                 else
                 {
                     g_ClientGlobalVariables.interpolation_amount = 0.0f;
-    #ifdef _DEBUG
+    #ifdef false
                     printf("interpolation amount was %f, corrected to "
                            "fix interpolation issues.\n",
                            cl.m_tickRemainder
@@ -3475,7 +3475,7 @@ void _Host_RunFrame (float time)
 			else
 			{
 				g_ClientGlobalVariables.interpolation_amount = 0.0f;
-#ifdef _DEBUG
+#ifdef false
 				printf("interpolation amount was %f, corrected to "
 						"fix interpolation issues.\n",
 						cl.m_tickRemainder

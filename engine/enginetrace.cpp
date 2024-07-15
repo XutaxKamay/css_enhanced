@@ -470,10 +470,6 @@ bool CEngineTrace::ClipRayToHitboxes( const Ray_t& ray, unsigned int fMask, ICol
 	VectorAdd( ray.m_Start, ray.m_StartOffset, hitboxTrace.startpos );
 	VectorAdd( hitboxTrace.startpos, ray.m_Delta, hitboxTrace.endpos );
 
-	// At the moment, it has to be a true ray to work with hitboxes
-	if ( !ray.m_IsRay )
-		return false;
-
 	// If the hitboxes weren't even tested, then just use the original trace
 	if (!pCollideable->TestHitboxes( ray, fMask, hitboxTrace ))
 		return false;
@@ -1348,7 +1344,7 @@ ICollideable *CEngineTraceServer::GetWorldCollideable()
 //-----------------------------------------------------------------------------
 void EngineTraceRenderRayCasts()
 {
-#if defined _DEBUG && !defined SWDS
+#if defined _DEBUG
 	if( debugrayenable.GetBool() && s_FrameRays.Count() > debugraylimit.GetInt() && !debugrayreset.GetInt() )
 	{
 		Warning( "m_FrameRays.Count() == %d\n", s_FrameRays.Count() );
@@ -1660,7 +1656,7 @@ CON_COMMAND_EXTERN( ray_bench, RayBench, "Time the rays" )
 //-----------------------------------------------------------------------------
 void CEngineTrace::TraceRay( const Ray_t &ray, unsigned int fMask, ITraceFilter *pTraceFilter, trace_t *pTrace )
 {	
-#if defined _DEBUG && !defined SWDS
+#if defined _DEBUG
 	if( debugrayenable.GetBool() )
 	{
 		s_FrameRays.AddToTail( ray );
