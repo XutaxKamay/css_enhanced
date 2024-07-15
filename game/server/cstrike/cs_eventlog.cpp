@@ -50,6 +50,7 @@ public:
 		ListenForGameEvent( "hostage_killed" );
 		ListenForGameEvent( "hostage_follows" );
 		ListenForGameEvent( "player_hurt" );
+		ListenForGameEvent( "bullet_impact" );
 
 		return true;
 	}
@@ -299,7 +300,35 @@ protected:
 								);
 			return true;
 		}	
-		
+		else if ( !Q_strncmp( eventName, "bullet_impact", Q_strlen("bullet_impact") ) )
+        {
+            static ConVarRef cl_showimpacts("cl_showimpacts");
+
+            if (cl_showimpacts.GetInt() == 1
+                || cl_showimpacts.GetInt() == 3)
+            {
+                auto x                = event->GetFloat("x");
+                auto y                = event->GetFloat("y");
+                auto z                = event->GetFloat("z");
+                auto flBulletDiameter = event->GetFloat("diameter");
+
+                debugoverlay->AddBoxOverlay(Vector(x, y, z),
+                                            Vector(-flBulletDiameter,
+                                                   -flBulletDiameter,
+                                                   -flBulletDiameter),
+                                            Vector(flBulletDiameter,
+                                                   flBulletDiameter,
+                                                   flBulletDiameter),
+                                            QAngle(0, 0, 0),
+                                            0,
+                                            0,
+                                            255,
+                                            127,
+                                            60.0f);
+            }
+
+            return true;
+		}	
 // unused events:
 //hostage_hurt
 //bomb_exploded

@@ -183,20 +183,14 @@ float CCSPlayer::GetPlayerMaxSpeed()
 	return speed;
 }
 
-float g_bulletDiameter = 0.0f;
-static constexpr float MMToUnits(float mm)
-{
-	return (mm / 10.f) / 1.905f;
-}
-
-void UTIL_ClipTraceToPlayersHull( const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask, ITraceFilter *filter, trace_t *tr )
+void UTIL_ClipTraceToPlayersHull( float flBulletDiameter, const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask, ITraceFilter *filter, trace_t *tr )
 {
 	trace_t playerTrace;
 	Ray_t ray;
 	float smallestFraction = tr->fraction;
 	const float maxRange = 60.0f;
 
-	ray.Init( vecAbsStart, vecAbsEnd , Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter) );
+	ray.Init( vecAbsStart, vecAbsEnd , Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter) );
 
 	for ( int k = 1; k <= gpGlobals->maxClients; ++k )
 	{
@@ -227,66 +221,109 @@ void UTIL_ClipTraceToPlayersHull( const Vector& vecAbsStart, const Vector& vecAb
 	}
 }
 
+float CCSPlayer::GetBulletDiameter(int iBulletType)
+{
+    auto MMToUnits = [] (float&& mm)
+    {
+        return (mm / 10.f) / 1.905f;
+    };
+    
+    if (IsAmmoType(iBulletType, BULLET_PLAYER_50AE))
+    {
+        return MMToUnits(13.8f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_762MM))
+    {
+        return MMToUnits(7.62f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_556MM)
+             || IsAmmoType(iBulletType, BULLET_PLAYER_556MM_BOX))
+    {
+        return MMToUnits(5.56f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_338MAG))
+    {
+        return MMToUnits(8.6f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_9MM))
+    {
+        return MMToUnits(9.f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_BUCKSHOT))
+    {
+        return MMToUnits(9.9f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_45ACP))
+    {
+        return MMToUnits(11.43f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_357SIG))
+    {
+        return MMToUnits(9.f);
+    }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_57MM))
+    {
+        return MMToUnits(5.7f);
+    }
+    else
+    {
+        Assert(false);
+        return 0.0f;
+    }
+}
+
 void CCSPlayer::GetBulletTypeParameters(
 	int iBulletType,
 	float &fPenetrationPower,
-	float &flPenetrationDistance )
+	float &flPenetrationDistance,
+	float &flBulletDiameter )
 {
 	//MIKETODO: make ammo types come from a script file.
 	if ( IsAmmoType( iBulletType, BULLET_PLAYER_50AE ) )
 	{
 		fPenetrationPower = 30;
         flPenetrationDistance = 1000.0;
-        g_bulletDiameter = MMToUnits(13.8f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_762MM ) )
 	{
 		fPenetrationPower = 39;
         flPenetrationDistance = 5000.0;
-        g_bulletDiameter = MMToUnits(7.62f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_556MM ) ||
 			  IsAmmoType( iBulletType, BULLET_PLAYER_556MM_BOX ) )
 	{
 		fPenetrationPower = 35;
         flPenetrationDistance = 4000.0;
-        g_bulletDiameter = MMToUnits(5.56f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_338MAG ) )
 	{
 		fPenetrationPower = 45;
         flPenetrationDistance = 8000.0;
-        g_bulletDiameter = MMToUnits(8.6f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_9MM ) )
 	{
 		fPenetrationPower = 21;
         flPenetrationDistance = 800.0;
-        g_bulletDiameter = MMToUnits(9.f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_BUCKSHOT ) )
 	{
 		fPenetrationPower = 0;
         flPenetrationDistance = 0.0;
-        g_bulletDiameter = MMToUnits(9.9f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_45ACP ) )
 	{
 		fPenetrationPower = 15;
         flPenetrationDistance = 500.0;
-        g_bulletDiameter = MMToUnits(11.43f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_357SIG ) )
 	{
 		fPenetrationPower = 25;
         flPenetrationDistance = 800.0;
-        g_bulletDiameter = MMToUnits(9.f);
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_57MM ) )
 	{
 		fPenetrationPower = 30;
         flPenetrationDistance = 2000.0;
-        g_bulletDiameter = MMToUnits(5.7f);
 	}
 	else
 	{
@@ -294,7 +331,9 @@ void CCSPlayer::GetBulletTypeParameters(
 		Assert( false );
 		fPenetrationPower = 0;
 		flPenetrationDistance = 0.0;
-	}
+    }
+
+    flBulletDiameter = GetBulletDiameter(iBulletType);
 }
 
 static void GetMaterialParameters( int iMaterial, float &flPenetrationModifier, float &flDamageModifier )
@@ -365,16 +404,16 @@ static bool TraceToExit(Vector &start, Vector &dir, Vector &end, float flStepSiz
 	return false;
 }
 
-inline void UTIL_TraceLineIgnoreTwoEntities( const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask,
+inline void UTIL_TraceLineIgnoreTwoEntities(float flBulletDiameter, const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask,
 					 const IHandleEntity *ignore, const IHandleEntity *ignore2, int collisionGroup, trace_t *ptr )
 {
 	Ray_t ray;
-	ray.Init( vecAbsStart, vecAbsEnd, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter) );
+	ray.Init( vecAbsStart, vecAbsEnd, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter) );
 	CTraceFilterSkipTwoEntities traceFilter( ignore, ignore2, collisionGroup );
 	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
 	if( r_visualizetraces.GetBool() )
 	{
-		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), QAngle(), 255, 0, 0, true, 100.0f );
+		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), QAngle(), 255, 0, 0, true, 100.0f );
 	}
 }
 
@@ -401,14 +440,13 @@ void CCSPlayer::FireBullet(
 	float flPenetrationPower = 0;		// thickness of a wall that this bullet can penetrate
 	float flPenetrationDistance = 0;	// distance at which the bullet is capable of penetrating a wall
 	float flDamageModifier = 0.5;		// default modification of bullets power after they go through a wall.
-	float flPenetrationModifier = 1.f;
-
-	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance );
+    float flPenetrationModifier = 1.f;
+    float flBulletDiameter = 0.0f;
+    
+	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
-
-    int iPenetrationCount = 0;
 
 	if ( weapon_accuracy_nospread.GetBool() )
 	{
@@ -464,6 +502,7 @@ void CCSPlayer::FireBullet(
 	bool bFirstHit = true;
 
 	CBasePlayer *lastPlayerHit = NULL;
+    MDLCACHE_CRITICAL_SECTION();
 
     if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET )
     {
@@ -483,21 +522,21 @@ void CCSPlayer::FireBullet(
             }
 #endif
 		}
-	}
-	MDLCACHE_CRITICAL_SECTION();
+    }
+
 	while ( fCurrentDamage > 0 )
 	{
 		Vector vecEnd = vecSrc + vecDir * flDistance;
 
 		trace_t tr; // main enter bullet trace
 
-		UTIL_TraceLineIgnoreTwoEntities( vecSrc, vecEnd, CS_MASK_SHOOT|CONTENTS_HITBOX, this, lastPlayerHit, COLLISION_GROUP_NONE, &tr );
+		UTIL_TraceLineIgnoreTwoEntities(flBulletDiameter, vecSrc, vecEnd, CS_MASK_SHOOT|CONTENTS_HITBOX, this, lastPlayerHit, COLLISION_GROUP_NONE, &tr );
 		{
 			CTraceFilterSkipTwoEntities filter( this, lastPlayerHit, COLLISION_GROUP_NONE );
 
 			// Check for player hitboxes extending outside their collision bounds
 			const float rayExtension = 40.0f;
-			UTIL_ClipTraceToPlayersHull( vecSrc, vecEnd + vecDir * rayExtension, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
+			UTIL_ClipTraceToPlayersHull(flBulletDiameter, vecSrc, vecEnd + vecDir * rayExtension, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
 		}
 
 		lastPlayerHit = ToBasePlayer(tr.m_pEnt);
@@ -511,22 +550,6 @@ void CCSPlayer::FireBullet(
 #endif
 
 		bFirstHit = false;
-
-#ifndef CLIENT_DLL
-		//
-		// Propogate a bullet impact event
-		// @todo Add this for shotgun pellets (which dont go thru here)
-		//
-		IGameEvent * event = gameeventmanager->CreateEvent( "bullet_impact" );
-		if ( event )
-		{
-			event->SetInt( "userid", GetUserID() );
-			event->SetFloat( "x", tr.endpos.x );
-			event->SetFloat( "y", tr.endpos.y );
-			event->SetFloat( "z", tr.endpos.z );
-			gameeventmanager->FireEvent( event );
-		}
-#endif
 
 		/************* MATERIAL DETECTION ***********/
 		surfacedata_t *pSurfaceData = physprops->GetSurfaceData( tr.surface.surfaceProps );
@@ -549,24 +572,34 @@ void CCSPlayer::FireBullet(
 		{
 #ifdef CLIENT_DLL
 			// draw red client impact markers
-			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 60 );
+			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-flBulletDiameter,-flBulletDiameter,-flBulletDiameter), Vector(flBulletDiameter,flBulletDiameter,flBulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 60 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				C_BasePlayer *player = ToBasePlayer( tr.m_pEnt );
 				player->DrawClientHitboxes( 60, true );
 				player->m_nTickBaseFireBullet = int(player->GetTimeBase() / TICK_INTERVAL);
-			}
+            }
 
 #else
-            m_vecBulletPositions.Set(iPenetrationCount, tr.endpos);
-            iPenetrationCount++;
-            m_iBulletPositionCount.Set(iPenetrationCount);
-
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
 				player->RecordServerHitboxes( this );
+            }
+
+			//
+			// Propogate a bullet impact event
+			// @todo Add this for shotgun pellets (which dont go thru here)
+			//
+			IGameEvent * event = gameeventmanager->CreateEvent( "bullet_impact" );
+			if ( event )
+			{
+				event->SetFloat( "x", tr.endpos.x );
+				event->SetFloat( "y", tr.endpos.y );
+                event->SetFloat("z", tr.endpos.z);
+                event->SetFloat( "diameter", flBulletDiameter );
+				gameeventmanager->FireEvent( event );
 			}
 #endif
         }
@@ -592,7 +625,7 @@ void CCSPlayer::FireBullet(
 			if ( enginetrace->GetPointContents( tr.endpos ) & (CONTENTS_WATER|CONTENTS_SLIME) )
 			{
 				trace_t waterTrace;
-				UTIL_TraceHull( vecSrc, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
+				UTIL_TraceHull( vecSrc, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
 
 				if( waterTrace.allsolid != 1 )
 				{
@@ -675,12 +708,12 @@ void CCSPlayer::FireBullet(
 
 		// find exact penetration exit
 		trace_t exitTr;
-		UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
+		UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
 
 		if( exitTr.m_pEnt != tr.m_pEnt && exitTr.m_pEnt != NULL )
 		{
 			// something was blocking, trace again
-			UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-g_bulletDiameter, -g_bulletDiameter, -g_bulletDiameter), Vector(g_bulletDiameter, g_bulletDiameter, g_bulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
+			UTIL_TraceHull( penetrationEnd, tr.endpos, Vector(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter), Vector(flBulletDiameter, flBulletDiameter, flBulletDiameter), CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
 		}
 
 		// get material at exit point

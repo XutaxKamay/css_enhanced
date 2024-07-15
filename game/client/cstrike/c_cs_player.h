@@ -168,10 +168,12 @@ public:
 public:
 	virtual float GetPlayerMaxSpeed();
 
-	void GetBulletTypeParameters(
-		int iBulletType,
-		float &fPenetrationPower,
-		float &flPenetrationDistance );
+    float GetBulletDiameter(int iBulletType);
+	void GetBulletTypeParameters( 
+		int iBulletType, 
+		float &fPenetrationPower, 
+		float &flPenetrationDistance,
+		float &flBulletDiameter );
 
 	void FireBullet(
 		Vector vecSrc,

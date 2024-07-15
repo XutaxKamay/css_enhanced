@@ -84,9 +84,9 @@ void CPlayerMove::FinishCommand( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::FinishCommand" );
 
-	player->m_pCurrentCommand = NULL;
-	CBaseEntity::SetPredictionRandomSeed( NULL );
-	CBaseEntity::SetPredictionPlayer( NULL );
+	// player->m_pCurrentCommand = NULL;
+	// CBaseEntity::SetPredictionRandomSeed( NULL );
+	// CBaseEntity::SetPredictionPlayer( NULL );
 }
 
 //-----------------------------------------------------------------------------

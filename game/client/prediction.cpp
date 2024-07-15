@@ -763,9 +763,9 @@ void CPrediction::FinishCommand( C_BasePlayer *player )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::FinishCommand" );
 
-	player->m_pCurrentCommand = NULL;
-	C_BaseEntity::SetPredictionRandomSeed( NULL );
-	C_BaseEntity::SetPredictionPlayer( NULL );
+	// player->m_pCurrentCommand = NULL;
+	//C_BaseEntity::SetPredictionRandomSeed( NULL );
+	//C_BaseEntity::SetPredictionPlayer( NULL );
 #endif
 }
 

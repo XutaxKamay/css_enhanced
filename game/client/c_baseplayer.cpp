@@ -247,9 +247,7 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-		RecvPropArray3		( RECVINFO_ARRAY(m_vecBulletPositions), RecvPropVector( RECVINFO(m_vecBulletPositions[0])) ),
-		RecvPropInt(RECVINFO(m_iBulletPositionCount)),
-	END_RECV_TABLE()
+END_RECV_TABLE()
 
 	
 // -------------------------------------------------------------------------------- //
@@ -416,8 +414,9 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 
 	m_pFlashlight = NULL;
 
-	m_pCurrentVguiScreen = NULL;
-	m_pCurrentCommand = NULL;
+    m_pCurrentVguiScreen = NULL;
+    static CUserCmd nullcmd;
+	m_pCurrentCommand = &nullcmd;
 
 	m_flPredictionErrorTime = -100;
 	m_StuckLast = 0;
@@ -2132,34 +2131,13 @@ void C_BasePlayer::Simulate()
 		ResetLatched();
 	}
 
-	if (m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1)
+    bool shouldShowFireBulletHitbox = m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1;
+
+    if (shouldShowFireBulletHitbox)
     {
         DrawServerHitboxes(60.0f, true);
-        static ConVarRef cl_showimpacts("cl_showimpacts");
-        
-        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
-        {
-            extern float g_bulletDiameter;
-            for (int i = 0; i < m_iBulletPositionCount; i++)
-            {
-                debugoverlay->AddBoxOverlay(m_vecBulletPositions[i],
-                                            Vector(-g_bulletDiameter,
-                                                   -g_bulletDiameter,
-                                                   -g_bulletDiameter),
-                                            Vector(g_bulletDiameter,
-                                                   g_bulletDiameter,
-                                                   g_bulletDiameter),
-                                            QAngle(0, 0, 0),
-                                            0,
-                                            0,
-                                            255,
-                                            127,
-                                            60);
-            }
-        }
-
         m_nTickBaseFireBullet = -1;
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
