@@ -8,6 +8,8 @@
 #include "debugoverlay_shared.h"
 #ifndef CLIENT_DLL
 #include "player.h"
+#else
+#include "cdll_client_int.h"
 #endif
 #include "weapon_csbase.h"
 #include "decals.h"
@@ -455,10 +457,6 @@ void CCSPlayer::FireBullet(
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
 
-#ifdef CLIENT_DLL
-    m_lastBulletDiameter = flBulletDiameter;
-#endif
-
     Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
 	vecBulletDiameterMaxs /= 2.0f;
     Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
@@ -500,25 +498,35 @@ void CCSPlayer::FireBullet(
 	CBasePlayer *lastPlayerHit = NULL;
     MDLCACHE_CRITICAL_SECTION();
 
+#ifdef CLIENT_DLL
+    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+    if (cl_showfirebullethitboxes.GetBool())
+    {
+        for (int i = 1; i <= gpGlobals->maxClients; i++)
+        {
+            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
+
+			if ( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
+			{
+				lagPlayer->DrawClientHitboxes(60, true);
+				lagPlayer->m_nTickBaseFireBullet = int(lagPlayer->GetTimeBase() / TICK_INTERVAL);
+			}
+        }
+	}
+#else
     if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
             CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
-#ifdef CLIENT_DLL
-			if( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
-			{
-				lagPlayer->DrawClientHitboxes(60, true);
-				lagPlayer->m_nTickBaseFireBullet = int(lagPlayer->GetTimeBase() / TICK_INTERVAL);
-            }
-#else
+
 			if( lagPlayer )
 			{
 				lagPlayer->RecordServerHitboxes(this);
             }
-#endif
 		}
     }
+#endif
 
 	while ( fCurrentDamage > 0 )
 	{
@@ -564,34 +572,63 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-		if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
-		{
 #ifdef CLIENT_DLL
-			// draw red client impact markers
-			NDebugOverlay::SweptBox(vecSrc, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle( 0, 0, 0), 255,0,0,127, 60 );
+        m_lastBulletDiameter = flBulletDiameter;
+#endif
 
-			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
+#ifdef CLIENT_DLL
+    	static ConVarRef cl_showimpacts("cl_showimpacts");
+
+        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2)
+        {
+            NDebugOverlay::SweptBox(vecSrc,
+                                    tr.endpos,
+                                    vecBulletDiameterMins,
+                                    vecBulletDiameterMaxs,
+                                    QAngle(0, 0, 0),
+                                    255,
+                                    0,
+                                    0,
+                                    127,
+                                    60.0f);
+		}
+
+		if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
+		{
+			C_BasePlayer* player = ToBasePlayer(tr.m_pEnt);
+
+			if (cl_showimpacts.GetInt() == 1
+				|| cl_showimpacts.GetInt() == 2)
 			{
-				C_BasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->DrawClientHitboxes( 60, true );
-				player->m_nTickBaseFireBullet = int(player->GetTimeBase() / TICK_INTERVAL);
+                player->DrawClientHitboxes(60.0f, true);
             }
 
+			player->m_nTickBaseFireBullet = int(player->GetTimeBase()
+										/ TICK_INTERVAL);
+		}
 #else
-			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
+        if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
+		{
+            if (m_iBulletServerPositionCount.Get()
+                < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+            {
+                m_vecBulletServerPositions.Set(
+                  m_iBulletServerPositionCount.Get(),
+                  tr.endpos);
+                m_vecServerShootPosition.Set(
+                  m_iBulletServerPositionCount.Get(),
+                  vecSrc);
+                m_iBulletServerPositionCount.Set(
+                  m_iBulletServerPositionCount.Get() + 1);
+            }
+
+            if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
 				player->RecordServerHitboxes( this );
             }
-
-            if (m_iBulletServerPositionCount.Get() < MAX_PLAYER_BULLET_SERVER_POSITIONS)
-            {
-				m_vecBulletServerPositions.Set(m_iBulletServerPositionCount.Get(), tr.endpos);
-				m_vecServerShootPosition.Set(m_iBulletServerPositionCount.Get(), vecSrc);
-				m_iBulletServerPositionCount.Set(m_iBulletServerPositionCount.Get() + 1);
-			}
-#endif
         }
+#endif
 
 		//calculate the damage based on the distance the bullet travelled.
 		flCurrentDistance += tr.fraction * flDistance;

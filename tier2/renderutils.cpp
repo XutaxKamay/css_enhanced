@@ -666,6 +666,8 @@ static void DrawExtrusionFace( const Vector& start, const Vector& end,
 
 void RenderWireframeSweptBox( const Vector &vStart, const Vector &vEnd, const QAngle &angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer )
 {
+    InitializeStandardMaterials();
+
 	CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
 	pRenderContext->Bind( bZBuffer ? s_pWireframe : s_pWireframeIgnoreZ );
 
