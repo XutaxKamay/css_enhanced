@@ -23,6 +23,7 @@ public:
 	CBuyZone();
 	void Spawn();
 	void EXPORT BuyZoneTouch( CBaseEntity* pOther );
+    virtual void EndTouch( CBaseEntity *pOther );
 
 public:
 	int m_LegacyTeamNum;
@@ -33,7 +34,7 @@ LINK_ENTITY_TO_CLASS( func_buyzone, CBuyZone );
 
 BEGIN_DATADESC( CBuyZone )
 	DEFINE_FUNCTION( BuyZoneTouch ),
-	
+	DEFINE_FUNCTION( EndTouch ),
 	// This is here to support maps that haven't updated to using "teamnum" yet.
 	DEFINE_INPUT( m_LegacyTeamNum, FIELD_INTEGER, "team" )
 END_DATADESC()
@@ -70,8 +71,16 @@ void CBuyZone::BuyZoneTouch( CBaseEntity* pOther )
 		// compare player team with buy zone team number
 		if ( p->GetTeamNumber() == GetTeamNumber() )
 		{
-			p->m_bInBuyZone = true;
+            p->m_bInBuyZone = true;
 		}
 	}
 }
 
+void CBuyZone::EndTouch( CBaseEntity* pOther )
+{
+	CCSPlayer *p = dynamic_cast< CCSPlayer* >( pOther );
+	if ( p )
+	{
+		p->m_bInBuyZone = false;
+	}
+}
