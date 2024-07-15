@@ -5636,8 +5636,8 @@ void C_BaseAnimating::DrawServerHitboxes( float duration /*= 0.0f*/, bool monoco
 	QAngle angles;
 
 	int r = 0;
-	int g = 255;
-	int b = 0;
+	int g = 0;
+	int b = 255;
 
 	for ( int i = 0; i < set->numhitboxes; i++ )
 	{

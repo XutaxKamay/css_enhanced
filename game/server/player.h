@@ -233,7 +233,6 @@ private:
 	CBasePlayer *m_pParent; 
 };
 
-
 class CBasePlayer : public CBaseCombatCharacter
 {
 public:
@@ -1211,7 +1210,8 @@ private:
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set
-
+    CNetworkArray(Vector, m_vecBulletPositions, MAX_PLAYER_BULLET_POSITIONS);
+	CNetworkVar(int, m_iBulletPositionCount);
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;

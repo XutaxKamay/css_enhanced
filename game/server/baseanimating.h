@@ -263,7 +263,7 @@ public:
 	virtual int DrawDebugTextOverlays( void );
 	
 	// See note in code re: bandwidth usage!!!
-	void				RecordServerHitboxes( CBasePlayer* player );
+	void				RecordServerHitboxes( CBasePlayer* localPlayer );
 	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );		
 	void				DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest = true, float duration = 0.0f, bool monocolor = false );
 
