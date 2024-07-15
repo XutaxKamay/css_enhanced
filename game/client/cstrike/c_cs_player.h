@@ -168,6 +168,7 @@ public:
 public:
 	virtual float GetPlayerMaxSpeed();
 
+    float m_lastBulletDiameter;
     float GetBulletDiameter(int iBulletType);
 	void GetBulletTypeParameters( 
 		int iBulletType, 

@@ -635,6 +635,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_flLastUserCommandTime = 0.f;
 	m_flMovementTimeForUserCmdProcessingRemaining = 0.0f;
+	m_iBulletServerPositionCount.Set(0);
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -7970,6 +7971,8 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 
 		SendPropInt			( SENDINFO( m_nWaterLevel ), 2, SPROP_UNSIGNED ),
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
+		SendPropArray3( SENDINFO_ARRAY3(m_vecBulletServerPositions), SendPropVector(SENDINFO_ARRAY(m_vecBulletServerPositions))),
+		SendPropInt(SENDINFO(m_iBulletServerPositionCount)),
 	END_SEND_TABLE()
 
 

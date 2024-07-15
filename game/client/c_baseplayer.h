@@ -640,6 +640,8 @@ public:
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
 	
 	int m_nTickBaseFireBullet;
+    Vector m_vecBulletServerPositions[MAX_PLAYER_BULLET_SERVER_POSITIONS];
+    int m_iBulletServerPositionCount;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);
