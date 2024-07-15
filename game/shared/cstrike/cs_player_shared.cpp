@@ -524,7 +524,7 @@ void CCSPlayer::FireBullet(
 	CBasePlayer *lastPlayerHit = NULL;
     MDLCACHE_CRITICAL_SECTION();
 
-    if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET )
+    if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
@@ -588,11 +588,11 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-		if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT )
+		if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
 		{
 #ifdef CLIENT_DLL
 			// draw red client impact markers
-			debugoverlay->AddBoxOverlay( tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle( 0, 0, 0), 255,0,0,127, 60 );
+			NDebugOverlay::SweptBox(vecSrc, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle( 0, 0, 0), 255,0,0,127, 60 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
