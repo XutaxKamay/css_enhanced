@@ -317,10 +317,12 @@ public:
 		float lateral_max,
 		int direction_change );
 
+    float GetBulletDiameter(int iBulletType);
 	void GetBulletTypeParameters( 
 		int iBulletType, 
 		float &fPenetrationPower, 
-		float &flPenetrationDistance );
+		float &flPenetrationDistance,
+		float &flBulletDiameter );
 
 	// Returns true if the player is allowed to move.
 	bool CanMove() const;
