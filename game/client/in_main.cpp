@@ -98,7 +98,8 @@ ConVar thirdperson_platformer( "thirdperson_platformer", "0", 0, "Player will ai
 ConVar thirdperson_screenspace( "thirdperson_screenspace", "0", 0, "Movement will be relative to the camera, eg: left means screen-left" );
 
 ConVar sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
-
+ConVar cl_showimpacts("cl_showimpacts", "0", FCVAR_NONE, "Shows client (red) and server (blue) bullet impact point (1=both, 2=client-only, 3=server-only)" );
+ConVar cl_showfirebullethitboxes( "cl_showfirebullethitboxes", "0" );
 extern ConVar cl_mouselook;
 
 #define UsingMouselook() cl_mouselook.GetBool()
@@ -1333,16 +1334,24 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-    
-    if (cl_showhitboxes.GetBool() || cl_showfirebullethitboxes.GetBool())
+
+    if (cl_showhitboxes.GetBool())
     {
-        cmd->debug_hitboxes = true;
+        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ALWAYS_ON;
+    }
+    else if (cl_showfirebullethitboxes.GetBool())
+    {
+        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ON_BULLET;
+    }
+    else if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+    {
+        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ON_HIT;
     }
     else
     {
-        cmd->debug_hitboxes = false;
+		cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
 	}
+
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

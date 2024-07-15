@@ -3049,7 +3049,7 @@ static Vector	hullcolor[8] =
 	Vector( 1.0, 1.0, 1.0 )
 };
 
-void CBaseAnimating::RecordServerHitboxes( CBasePlayer* player )
+void CBaseAnimating::RecordServerHitboxes( CBasePlayer* localPlayer )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
@@ -3061,7 +3061,7 @@ void CBaseAnimating::RecordServerHitboxes( CBasePlayer* player )
 
 	Vector position;
 	QAngle angles;
-    const auto localPlayerIndex = player->entindex();
+    const auto localPlayerIndex = localPlayer->entindex();
 
     for ( int i = 0; i < set->numhitboxes; i++ )
 	{

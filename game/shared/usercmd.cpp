@@ -10,6 +10,7 @@
 #include "bitbuf.h"
 #include "checksum_md5.h"
 #include "const.h"
+#include "platform.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #ifdef CLIENT_DLL
@@ -218,7 +219,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	if ( to->debug_hitboxes != from->debug_hitboxes )
 	{
 		buf->WriteOneBit( 1 );
-		buf->WriteOneBit( to->debug_hitboxes );
+		buf->WriteByte( to->debug_hitboxes );
 	}
 	else
 	{
@@ -376,7 +377,7 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
 	if ( buf->ReadOneBit() )
 	{
-		move->debug_hitboxes = buf->ReadOneBit();
+		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadByte();
     }
 
 #if defined( HL2_DLL )
