@@ -5064,10 +5064,6 @@ bool C_BaseAnimating::TestHitboxes( const Ray_t &ray, unsigned int fContentsMask
 	if ( !set || !set->numhitboxes )
 		return false;
 
-	// Use vcollide for box traces.
-	if ( !ray.m_IsRay )
-		return false;
-
 	// This *has* to be true for the existing code to function correctly.
 	Assert( ray.m_StartOffset == vec3_origin );
 

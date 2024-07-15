@@ -1490,9 +1490,10 @@ bool IntersectRayWithOBB( const Ray_t &ray, const matrix3x4_t &matOBBToWorld,
 	VectorSubtract( vecOBBMaxs, vecOBBMins, vecOBBHalfDiagonal );
 	vecOBBHalfDiagonal *= 0.5f;
 
-	float flRadius = vecOBBHalfDiagonal.Length() + ray.m_Extents.Length();
-	if ( !IsRayIntersectingSphere( ray.m_Start, ray.m_Delta, vecOBBCenter, flRadius, flTolerance ) )
-		return false;
+    // TODO_ENHANCED: make sphere hitboxes.
+	// float flRadius = vecOBBHalfDiagonal.Length() + ray.m_Extents.Length();
+	// if ( !IsRayIntersectingSphere( ray.m_Start, ray.m_Delta, vecOBBCenter, flRadius, flTolerance ) )
+	// 	return false;
 
 	// Ok, we passed the trivial reject, so lets do the dirty deed.
 	// Basically we're going to do the GJK thing explicitly. We'll shrink the ray down
@@ -1670,7 +1671,7 @@ bool IntersectRayWithOBB( const Ray_t &ray, const matrix3x4_t &matOBBToWorld,
 		}
 		temp.type = 3;
 
-		MatrixITransformPlane( matOBBToWorld, temp, pTrace->plane );
+		MatrixTransformPlane( matOBBToWorld, temp, pTrace->plane );
 		return true;
 	}
 
