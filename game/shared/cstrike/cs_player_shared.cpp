@@ -35,6 +35,7 @@
 
 ConVar sv_showimpacts("sv_showimpacts", "0", FCVAR_REPLICATED, "Shows client (red) and server (blue) bullet impact point (1=both, 2=client-only, 3=server-only)" );
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
+ConVar cl_showfirebullethitboxes( "cl_showfirebullethitboxes", "0" );
 
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
@@ -463,7 +464,7 @@ void CCSPlayer::FireBullet(
 #ifdef CLIENT_DLL
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
 
-	if( cl_showhitboxes.GetBool() )
+	if( cl_showhitboxes.GetBool() || cl_showfirebullethitboxes.GetBool() )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
