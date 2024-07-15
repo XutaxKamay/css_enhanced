@@ -26,7 +26,7 @@
 #include "portal_util_shared.h"
 #endif
 
-#define MAX_PLAYER_BULLET_POSITIONS 128
+#define MAX_PLAYER_BULLET_SERVER_POSITIONS 128
 
 //-----------------------------------------------------------------------------
 // Forward declarations

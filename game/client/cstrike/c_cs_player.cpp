@@ -52,6 +52,7 @@
 #include "steam/steam_api.h"
 
 #include "cs_blackmarket.h"				// for vest/helmet prices
+#include "weapon_csbase.h"
 
 #if defined( CCSPlayer )
 	#undef CCSPlayer
@@ -2226,6 +2227,38 @@ void C_CSPlayer::Simulate( void )
 	}
 
     BaseClass::Simulate();
+
+    static ConVarRef cl_showimpacts("cl_showimpacts");
+
+	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_lastBulletDiameter != -1.0f && m_iBulletServerPositionCount > 0)
+    {
+        auto weaponInfo = GetActiveWeapon();
+
+        if (!weaponInfo)
+        {
+            return;
+        }
+        
+		for (int i = 0; i < m_iBulletServerPositionCount; i++)
+		{
+            debugoverlay->AddBoxOverlay(
+              m_vecBulletServerPositions[i],
+              Vector(-m_lastBulletDiameter,
+                     -m_lastBulletDiameter,
+                     -m_lastBulletDiameter)
+                / 2,
+              Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter)
+                / 2,
+              QAngle(0, 0, 0),
+              0,
+              0,
+              255,
+              127,
+              60);
+        }
+
+        m_lastBulletDiameter = -1.0f;
+	}
 }
 
 void C_CSPlayer::PostThink()

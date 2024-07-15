@@ -247,7 +247,9 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-END_RECV_TABLE()
+		RecvPropArray3		( RECVINFO_ARRAY(m_vecBulletServerPositions), RecvPropVector( RECVINFO(m_vecBulletServerPositions[0])) ),
+		RecvPropInt(RECVINFO(m_iBulletServerPositionCount)),
+	END_RECV_TABLE()
 
 	
 // -------------------------------------------------------------------------------- //
@@ -443,6 +445,7 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	ListenForGameEvent( "base_player_teleported" );
 
     m_nTickBaseFireBullet = -1;
+	m_iBulletServerPositionCount = 0;
 }
 
 //-----------------------------------------------------------------------------
