@@ -5611,7 +5611,7 @@ void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monoco
 			b = ( int ) ( 255.0f * hullcolor[j][2] );
 		}
 
-		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 0 ,duration );
+		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 127 ,duration );
 	}
 }
 
@@ -5647,7 +5647,7 @@ void C_BaseAnimating::DrawServerHitboxes( float duration /*= 0.0f*/, bool monoco
 			b = ( int ) ( 255.0f * hullcolor[j][2] );
 		}
 
-		debugoverlay->AddBoxOverlay( m_vecHitboxServerPositions[i], pbox->bbmin, pbox->bbmax, m_angHitboxServerAngles[i], r, g, b, 0 ,duration );
+		debugoverlay->AddBoxOverlay( m_vecHitboxServerPositions[i], pbox->bbmin, pbox->bbmax, m_angHitboxServerAngles[i], r, g, b, 127 ,duration );
 	}
 }
 
