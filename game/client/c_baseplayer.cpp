@@ -7,6 +7,8 @@
 //===========================================================================//
 #include "cbase.h"
 #include "c_baseplayer.h"
+#include "convar.h"
+#include "dt_recv.h"
 #include "flashlighteffect.h"
 #include "weapon_selection.h"
 #include "history_resource.h"
@@ -24,6 +26,7 @@
 #include "view_shared.h"
 #include "movevars_shared.h"
 #include "prediction.h"
+#include "engine/ivdebugoverlay.h"
 #include "tier0/vprof.h"
 #include "filesystem.h"
 #include "bitbuf.h"
@@ -244,7 +247,8 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-
+		RecvPropArray3		( RECVINFO_ARRAY(m_vecBulletPositions), RecvPropVector( RECVINFO(m_vecBulletPositions[0])) ),
+		RecvPropInt(RECVINFO(m_iBulletPositionCount)),
 	END_RECV_TABLE()
 
 	
@@ -2131,7 +2135,30 @@ void C_BasePlayer::Simulate()
 	if (m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1)
     {
         DrawServerHitboxes(60.0f, true);
-		m_nTickBaseFireBullet = -1;
+        static ConVarRef cl_showimpacts("cl_showimpacts");
+        
+        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+        {
+            extern float g_bulletDiameter;
+            for (int i = 0; i < m_iBulletPositionCount; i++)
+            {
+                debugoverlay->AddBoxOverlay(m_vecBulletPositions[i],
+                                            Vector(-g_bulletDiameter,
+                                                   -g_bulletDiameter,
+                                                   -g_bulletDiameter),
+                                            Vector(g_bulletDiameter,
+                                                   g_bulletDiameter,
+                                                   g_bulletDiameter),
+                                            QAngle(0, 0, 0),
+                                            0,
+                                            0,
+                                            255,
+                                            127,
+                                            60);
+            }
+        }
+
+        m_nTickBaseFireBullet = -1;
 	}
 }
 

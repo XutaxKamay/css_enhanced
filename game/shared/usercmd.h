@@ -106,7 +106,7 @@ public:
         {
             animationdata[i] = {};
         }
-		debug_hitboxes = false;
+		debug_hitboxes = DEBUG_HITBOXES_OFF;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
 #endif
@@ -194,7 +194,7 @@ public:
 		upmove = 0.f;
 		buttons = 0;
 		impulse = 0;
-		debug_hitboxes = false;
+		debug_hitboxes = DEBUG_HITBOXES_OFF;
 	}
 
 	// For matching server and client commands for debugging
@@ -234,7 +234,16 @@ public:
     bool has_animation[MAX_EDICTS];
     float simulationtimes[MAX_EDICTS];
 	ClientSideAnimationData animationdata[MAX_PLAYERS+1];
-	bool debug_hitboxes;
+
+    enum debug_hitboxes_t : uint8
+    {
+		DEBUG_HITBOXES_OFF,
+        DEBUG_HITBOXES_ALWAYS_ON,
+        DEBUG_HITBOXES_ON_BULLET,
+       	DEBUG_HITBOXES_ON_HIT
+	};
+
+	debug_hitboxes_t debug_hitboxes;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

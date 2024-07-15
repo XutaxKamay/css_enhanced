@@ -6,6 +6,9 @@
 
 #include "cbase.h"
 #include "debugoverlay_shared.h"
+#ifndef CLIENT_DLL
+#include "player.h"
+#endif
 #include "weapon_csbase.h"
 #include "decals.h"
 #include "cs_gamerules.h"
@@ -33,10 +36,8 @@
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
 
-ConVar sv_showimpacts("sv_showimpacts", "0", FCVAR_REPLICATED, "Shows client (red) and server (blue) bullet impact point (1=both, 2=client-only, 3=server-only)" );
-ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
-ConVar cl_showfirebullethitboxes( "cl_showfirebullethitboxes", "0" );
 
+ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
 void DispatchEffect( const char *pName, const CEffectData &data );
@@ -407,6 +408,8 @@ void CCSPlayer::FireBullet(
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
 
+    int iPenetrationCount = 0;
+
 	if ( weapon_accuracy_nospread.GetBool() )
 	{
 		xSpread = 0.0f;
@@ -461,22 +464,26 @@ void CCSPlayer::FireBullet(
 	bool bFirstHit = true;
 
 	CBasePlayer *lastPlayerHit = NULL;
-#ifdef CLIENT_DLL
-    static ConVarRef cl_showhitboxes("cl_showhitboxes");
 
-	if( cl_showhitboxes.GetBool() || cl_showfirebullethitboxes.GetBool() )
+    if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
-			CBasePlayer *lagPlayer = UTIL_PlayerByIndex( i );
+            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
+#ifdef CLIENT_DLL
 			if( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
 			{
 				lagPlayer->DrawClientHitboxes(60, true);
 				lagPlayer->m_nTickBaseFireBullet = int(lagPlayer->GetTimeBase() / TICK_INTERVAL);
             }
+#else
+			if( lagPlayer )
+			{
+				lagPlayer->RecordServerHitboxes(this);
+            }
+#endif
 		}
 	}
-#endif
 	MDLCACHE_CRITICAL_SECTION();
 	while ( fCurrentDamage > 0 )
 	{
@@ -536,33 +543,33 @@ void CCSPlayer::FireBullet(
 			// If we're a concrete grate (TOOLS/TOOLSINVISIBLE texture) allow more penetrating power.
 			flPenetrationModifier = 1.0f;
 			flDamageModifier = 0.99f;
-		}
+        }
 
-#ifdef CLIENT_DLL
-		if ( sv_showimpacts.GetInt() == 1 || sv_showimpacts.GetInt() == 2 )
+		if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT )
 		{
+#ifdef CLIENT_DLL
 			// draw red client impact markers
-			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 4 );
+			debugoverlay->AddBoxOverlay( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), QAngle( 0, 0, 0), 255,0,0,127, 60 );
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				C_BasePlayer *player = ToBasePlayer( tr.m_pEnt );
 				player->DrawClientHitboxes( 60, true );
+				player->m_nTickBaseFireBullet = int(player->GetTimeBase() / TICK_INTERVAL);
 			}
-		}
+
 #else
-		if ( sv_showimpacts.GetInt() == 1 || sv_showimpacts.GetInt() == 3 )
-		{
-			// draw blue server impact markers
-			NDebugOverlay::Box( tr.endpos, Vector(-g_bulletDiameter,-g_bulletDiameter,-g_bulletDiameter), Vector(g_bulletDiameter,g_bulletDiameter,g_bulletDiameter), 0,0,255,127, 4 );
+            m_vecBulletPositions.Set(iPenetrationCount, tr.endpos);
+            iPenetrationCount++;
+            m_iBulletPositionCount.Set(iPenetrationCount);
 
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
 			{
 				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->DrawServerHitboxes( 60, true );
+				player->RecordServerHitboxes( this );
 			}
-		}
 #endif
+        }
 
 		//calculate the damage based on the distance the bullet travelled.
 		flCurrentDistance += tr.fraction * flDistance;

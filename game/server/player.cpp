@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "const.h"
 #include "baseplayer_shared.h"
+#include "dt_send.h"
 #include "trains.h"
 #include "soundent.h"
 #include "gib.h"
@@ -633,6 +634,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_flLastUserCommandTime = 0.f;
 	m_flMovementTimeForUserCmdProcessingRemaining = 0.0f;
+	m_iBulletPositionCount.Set(0);
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -7968,7 +7970,8 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 
 		SendPropInt			( SENDINFO( m_nWaterLevel ), 2, SPROP_UNSIGNED ),
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
-
+		SendPropArray3( SENDINFO_ARRAY3(m_vecBulletPositions), SendPropVector(SENDINFO_ARRAY(m_vecBulletPositions))),
+		SendPropInt(SENDINFO(m_iBulletPositionCount)),
 	END_SEND_TABLE()
 
 
