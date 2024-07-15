@@ -53,7 +53,7 @@ def remove_waifulib(path):
 		sys.path.remove(waifulib)
 
 @opt
-def add_subproject(ctx, names):
+def add_subproject(ctx, names, prepend = None):
 	names_lst = Utils.to_list(names)
 
 	for name in names_lst:
@@ -126,8 +126,11 @@ def add_subproject(ctx, dirs, prepend = None):
 			
 			if prepend:
 				subprj_path.append(prepend)
+			conf_name = prj
+			if os.path.isabs(prj):
+				conf_name = prj.replace('/','_').replace('\\','_')
 			
-			subprj_path.append(prj)
+			subprj_path.append(conf_name)
 			
 			saveenv = ctx.env
 			
@@ -160,8 +163,12 @@ def add_subproject(ctx, dirs, prepend = None):
 			
 			if prepend:
 				subprj_path.append(prepend)
+
+			conf_name = prj
+			if os.path.isabs(prj):
+				conf_name = prj.replace('/','_').replace('\\','_')
 			
-			subprj_path.append(prj)
+			subprj_path.append(conf_name)
 			saveenv = ctx.env
 			try:
 				ctx.env = ctx.all_envs['_'.join(subprj_path)]

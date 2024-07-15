@@ -106,7 +106,7 @@ public:
         {
             animationdata[i] = {};
         }
-
+		debug_hitboxes = false;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
 #endif
@@ -144,6 +144,7 @@ public:
         {
             animationdata[i] = src.animationdata[i];
 		}
+		debug_hitboxes = src.debug_hitboxes;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
@@ -178,6 +179,7 @@ public:
         CRC32_ProcessBuffer(&crc, has_animation, sizeof(has_animation));
 		CRC32_ProcessBuffer( &crc, simulationtimes, sizeof( simulationtimes ) );
         CRC32_ProcessBuffer(&crc, animationdata, sizeof(animationdata));
+        CRC32_ProcessBuffer(&crc, &debug_hitboxes, sizeof(debug_hitboxes));
 		CRC32_Final( &crc );
 
 		return crc;
@@ -192,6 +194,7 @@ public:
 		upmove = 0.f;
 		buttons = 0;
 		impulse = 0;
+		debug_hitboxes = false;
 	}
 
 	// For matching server and client commands for debugging
@@ -231,6 +234,7 @@ public:
     bool has_animation[MAX_EDICTS];
     float simulationtimes[MAX_EDICTS];
 	ClientSideAnimationData animationdata[MAX_PLAYERS+1];
+	bool debug_hitboxes;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

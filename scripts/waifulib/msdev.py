@@ -120,7 +120,7 @@ def options(opt):
 	:type opt: waflib.Options.OptionsContext
 	'''
 	opt.add_option('--msdev', dest='msdev', default=False, action='store_true', help='select msdev for export/import actions')
-	opt.add_option('--clean', dest='clean', default=False, action='store_true', help='delete exported files')
+	opt.add_option('--msdev-clean', dest='msdev_clean', default=False, action='store_true', help='delete exported msdev files')
 
 
 def configure(conf):
@@ -159,7 +159,7 @@ class MsDevContext(BuildContext):
 			pass
 		
 		self.msdev = True
-		if self.options.clean:
+		if self.options.msdev_clean:
 			cleanup(self)
 		else:
 			export(self)

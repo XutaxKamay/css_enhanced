@@ -438,6 +438,8 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	m_nForceVisionFilterFlags = 0;
 
 	ListenForGameEvent( "base_player_teleported" );
+
+    m_nTickBaseFireBullet = -1;
 }
 
 //-----------------------------------------------------------------------------
@@ -2124,6 +2126,12 @@ void C_BasePlayer::Simulate()
 	if ( IsNoInterpolationFrame() || Teleported() )
 	{
 		ResetLatched();
+	}
+
+	if (m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1)
+    {
+        DrawServerHitboxes(60.0f, true);
+		m_nTickBaseFireBullet = -1;
 	}
 }
 

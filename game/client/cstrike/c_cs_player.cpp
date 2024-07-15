@@ -9,6 +9,7 @@
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
 #include "dt_recv.h"
+#include "iconvar.h"
 #include "interpolatedvar.h"
 #include "shareddefs.h"
 #include "studio.h"
@@ -2148,7 +2149,6 @@ const Vector& C_CSPlayer::GetRenderOrigin( void )
 	return BaseClass::GetRenderOrigin();
 }
 
-
 void C_CSPlayer::Simulate( void )
 {
 	if( this != C_BasePlayer::GetLocalPlayer() )
@@ -2226,10 +2226,6 @@ void C_CSPlayer::Simulate( void )
 	}
 
     BaseClass::Simulate();
-
-    static ConVar cl_showhitboxes("cl_showhitboxes", "-1");
-    if (cl_showhitboxes.GetInt() == index)
-    	DrawClientHitboxes(0.0f, true);
 }
 
 void C_CSPlayer::PostThink()

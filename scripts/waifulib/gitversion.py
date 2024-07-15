@@ -14,34 +14,48 @@
 import subprocess
 from waflib import Configure, Logs
 
+def run_git(conf, argv):
+	try:
+		stdout = conf.cmd_and_log([conf.env.GIT[0]] + argv, cwd = conf.srcnode)
+		data = stdout.strip()
+	except Exception as e:
+		Logs.debug(str(e))
+		return None
+
+	if len(data) == 0:
+		return None
+
+	return data
+
 @Configure.conf
 def get_git_version(conf):
 	# try grab the current version number from git
-	node = conf.path.find_node('.git')
-	
+	node = conf.srcnode.find_node('.git')
+
 	if not node:
+		Logs.debug('can\'t find .git in conf.srcnode')
 		return None
-	
-	try:
-		stdout = conf.cmd_and_log([conf.env.GIT[0], 'describe', '--dirty', '--always'],
-			cwd = node.parent)
-		version = stdout.strip()
-	except Exception as e:
-		version = ''
-		Logs.debug(str(e))
 
-	if len(version) == 0:
-		version = None
+	return run_git(conf, ['describe', '--dirty', '--always'])
 
-	return version
+@Configure.conf
+def get_git_branch(conf):
+	node = conf.srcnode.find_node('.git')
+
+	if not node:
+		Logs.debug('can\'t find .git in conf.srcnode')
+		return None
+
+	return run_git(conf, ['rev-parse', '--abbrev-ref', 'HEAD'])
 
 def configure(conf):
-	if conf.find_program('git', mandatory = False):	
-		conf.start_msg('Checking git hash')
-		ver = conf.get_git_version()
+	if not conf.find_program('git', mandatory = False):
+		return
 
-		if ver:
-			conf.env.GIT_VERSION = ver
-			conf.end_msg(conf.env.GIT_VERSION)
-		else:
-			conf.end_msg('no', color='YELLOW')
+	conf.start_msg('Git commit hash')
+	conf.env.GIT_VERSION = conf.get_git_version()
+	conf.end_msg(conf.env.GIT_VERSION)
+
+	conf.start_msg('Git branch')
+	conf.env.GIT_BRANCH = conf.get_git_branch()
+	conf.end_msg(conf.env.GIT_BRANCH)

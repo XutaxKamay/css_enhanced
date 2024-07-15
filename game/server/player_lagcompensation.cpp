@@ -12,6 +12,7 @@
 #include "igamesystem.h"
 #include "ilagcompensationmanager.h"
 #include "inetchannelinfo.h"
+#include "util.h"
 #include "utllinkedlist.h"
 #include "BaseAnimatingOverlay.h"
 #include "tier0/vprof.h"
@@ -33,7 +34,6 @@ ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag com
 ConVar sv_maxunlag( "sv_maxunlag", "1.0", FCVAR_DEVELOPMENTONLY, "Maximum lag compensation in seconds", true, 0.0f, true, 1.0f );
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", FCVAR_DEVELOPMENTONLY, "Flushes entity bone cache on lag compensation" );
 ConVar sv_unlag_fixstuck( "sv_unlag_fixstuck", "0", FCVAR_DEVELOPMENTONLY, "Disallow backtracking a player for lag compensation if it will cause them to become stuck" );
-ConVar sv_showhitboxes( "sv_showhitboxes", "-1");
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -428,7 +428,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
         recordSim = &trackSim->Element(currSim);
 
         if (recordSim->m_flSimulationTime
-            <= animationData->m_flUninterpolatedSimulationTime and !foundAnimationData)
+            <= animationData->m_flUninterpolatedSimulationTime && !foundAnimationData)
         {
             recordAnim = recordSim;
             foundAnimationData = true;
@@ -455,7 +455,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	Assert( recordAnim );
 	Assert( recordSim );
 
-	if ( !recordSim or !recordAnim )
+	if ( !recordSim || !recordAnim )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
@@ -677,9 +677,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	m_bNeedToRestore = true;  // we changed at least one player
 	restore->m_fFlags = flags; // we need to restore these flags
 	change->m_fFlags = flags; // we have changed these flags
-
-    if (sv_showhitboxes.GetInt() == pPlayer->entindex())
-    	pPlayer->DrawServerHitboxes(0.0f, true);
 }
 
 

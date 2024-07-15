@@ -16,7 +16,7 @@
 #include "datacache/idatacache.h"
 #include "tier0/threadtools.h"
 
-
+class CBasePlayer;
 struct animevent_t;
 struct matrix3x4_t;
 class CIKContext;
@@ -263,7 +263,8 @@ public:
 	virtual int DrawDebugTextOverlays( void );
 	
 	// See note in code re: bandwidth usage!!!
-	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );
+	void				RecordServerHitboxes( CBasePlayer* player );
+	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );		
 	void				DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest = true, float duration = 0.0f, bool monocolor = false );
 
 	void				SetModelScale( float scale, float change_duration = 0.0f );
@@ -390,6 +391,9 @@ private:
 	CNetworkArray( float, m_flPoseParameter, NUM_POSEPAREMETERS );	// must be private so manual mode works!
 	CNetworkArray( float, m_flEncodedController, NUM_BONECTRLS );		// bone controller setting (0..1)
 
+    Vector m_vecHitboxServerPositions[MAX_PLAYERS+1][MAXSTUDIOBONES];
+	QAngle m_angHitboxServerAngles[MAX_PLAYERS +1][MAXSTUDIOBONES];
+    
 	// Client-side animation (useful for looping animation objects)
 	CNetworkVar( bool, m_bClientSideAnimation );
 	CNetworkVar( bool, m_bClientSideFrameReset );
