@@ -215,6 +215,16 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
         }
 	}
 
+	if ( to->debug_hitboxes != from->debug_hitboxes )
+	{
+		buf->WriteOneBit( 1 );
+		buf->WriteOneBit( to->debug_hitboxes );
+	}
+	else
+	{
+		buf->WriteOneBit( 0 );
+	}
+
 #if defined( HL2_CLIENT_DLL )
 	if ( to->entitygroundcontact.Count() != 0 )
 	{
@@ -363,6 +373,11 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 			move->animationdata[i].m_flUninterpolatedSimulationTime = buf->ReadFloat();
         }
 	}
+
+	if ( buf->ReadOneBit() )
+	{
+		move->debug_hitboxes = buf->ReadOneBit();
+    }
 
 #if defined( HL2_DLL )
 	if ( buf->ReadOneBit() )

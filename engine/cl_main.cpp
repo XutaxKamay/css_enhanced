@@ -2128,6 +2128,8 @@ void CL_SendMove( void )
 
 void CL_Move(float accumulated_extra_samples, bool bFinalTick )
 {
+    CL_ReadPackets(bFinalTick);
+
 	if ( !cl.IsConnected() )
 		return;
 

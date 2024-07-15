@@ -445,6 +445,8 @@ public:
 	virtual eFindMapResult FindMap( /* in/out */ char *pMapName, int nMapNameMax ) = 0;
 	
 	virtual void SetPausedForced( bool bPaused, float flDuration = -1.f ) = 0;
+	virtual void SetSendTableCurrentEntityIndex(int index) = 0;
+    virtual int GetSendTableCurrentEntityIndex() = 0;
 };
 
 // These only differ in new items added to the end

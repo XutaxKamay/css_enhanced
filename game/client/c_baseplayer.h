@@ -636,6 +636,8 @@ public:
 	bool  ShouldGoSouth( Vector vNPCForward, Vector vNPCRight ); //Such a bad name.
 
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
+	
+	int m_nTickBaseFireBullet;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);
