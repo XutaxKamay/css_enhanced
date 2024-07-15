@@ -292,11 +292,16 @@ void FX_FireBullets(
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
 
+#ifndef CLIENT_DLL
+    pPlayer->m_iBulletServerPositionCount.Set(0);
+    pPlayer->m_vecServerShootPosition.Set(vOrigin);
+#endif
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
+#ifdef CLIENT_DLL
         if (debug_screenshot_bullet_position.GetBool())
             gpGlobals->client_taking_screenshot = true;
-
+#endif
 		pPlayer->FireBullet(
 			vOrigin,
 			vAngles,

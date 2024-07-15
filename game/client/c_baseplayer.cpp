@@ -249,7 +249,8 @@ END_RECV_TABLE()
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
 		RecvPropArray3		( RECVINFO_ARRAY(m_vecBulletServerPositions), RecvPropVector( RECVINFO(m_vecBulletServerPositions[0])) ),
 		RecvPropInt(RECVINFO(m_iBulletServerPositionCount)),
-	END_RECV_TABLE()
+		RecvPropVector(RECVINFO(m_vecServerShootPosition)),		
+END_RECV_TABLE()
 
 	
 // -------------------------------------------------------------------------------- //

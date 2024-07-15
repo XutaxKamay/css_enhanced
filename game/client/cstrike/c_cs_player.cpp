@@ -2230,7 +2230,7 @@ void C_CSPlayer::Simulate( void )
 
     static ConVarRef cl_showimpacts("cl_showimpacts");
 
-	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_lastBulletDiameter != -1.0f && m_iBulletServerPositionCount > 0)
+	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_iBulletServerPositionCount > 0 && m_lastBulletDiameter != -1.0f)
     {
         auto weaponInfo = GetActiveWeapon();
 
@@ -2241,7 +2241,7 @@ void C_CSPlayer::Simulate( void )
         
 		for (int i = 0; i < m_iBulletServerPositionCount; i++)
 		{
-            debugoverlay->AddSweptBoxOverlay(Weapon_ShootPosition(),
+            debugoverlay->AddSweptBoxOverlay(m_vecServerShootPosition,
               m_vecBulletServerPositions[i],
               Vector(-m_lastBulletDiameter,
                      -m_lastBulletDiameter,
@@ -2254,7 +2254,7 @@ void C_CSPlayer::Simulate( void )
               0,
               255,
               127,
-              60);
+              60.f);
         }
 
         m_lastBulletDiameter = -1.0f;

@@ -452,7 +452,6 @@ void CCSPlayer::FireBullet(
 	float flDamageModifier = 0.5;		// default modification of bullets power after they go through a wall.
     float flPenetrationModifier = 1.f;
     float flBulletDiameter = 0.0f;
-    int iPenetrationCount       = 0;
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
 
@@ -608,11 +607,10 @@ void CCSPlayer::FireBullet(
 				player->RecordServerHitboxes( this );
             }
 
-            if (iPenetrationCount < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+            if (m_iBulletServerPositionCount.Get() < MAX_PLAYER_BULLET_SERVER_POSITIONS)
             {
-				m_vecBulletServerPositions.Set(iPenetrationCount, tr.endpos);
-				iPenetrationCount++;
-				m_iBulletServerPositionCount.Set(iPenetrationCount);
+				m_vecBulletServerPositions.Set(m_iBulletServerPositionCount.Get(), tr.endpos);
+				m_iBulletServerPositionCount.Set(m_iBulletServerPositionCount.Get() + 1);
 			}
 #endif
         }
