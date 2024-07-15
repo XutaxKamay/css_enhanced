@@ -294,7 +294,6 @@ void FX_FireBullets(
 
 #ifndef CLIENT_DLL
     pPlayer->m_iBulletServerPositionCount.Set(0);
-    pPlayer->m_vecServerShootPosition.Set(vOrigin);
 #endif
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
