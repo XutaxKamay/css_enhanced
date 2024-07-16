@@ -1305,7 +1305,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 
 	// Send interpolated simulation time for lag compensation
-	for (int i = 0; i <= gpGlobals->maxClients; i++)
+	for (int i = 0; i <= ClientEntityList().GetHighestEntityIndex(); i++)
     {
         auto pEntity = ClientEntityList().GetEnt(i);
 

@@ -15,13 +15,12 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #ifdef CLIENT_DLL
 #include "c_baseplayer.h"
+#include "cliententitylist.h"
 #else
 #include "player.h"
 #endif
-#include "shareddefs.h"
+
 #include "tier0/memdbgon.h"
-#include "util_shared.h"
-#include "utlvector.h"
 
 // TF2 specific, need enough space for OBJ_LAST items from tf_shareddefs.h
 #define WEAPON_SUBTYPE_BITS	6
@@ -179,44 +178,59 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
-	for (int i = 0; i < MAX_EDICTS; i++)
+    int entityCount = 0;
+#ifdef CLIENT_DLL
+    if (cl_entitylist)
+    	entityCount = cl_entitylist->GetHighestEntityIndex();
+#else
+    entityCount = MAX_EDICTS;
+#endif
+
+    buf->WriteSignedVarInt32(entityCount);
+
+    if (entityCount > 0)
     {
-        buf->WriteOneBit(to->has_simulation[i]);
-
-        if (!to->has_simulation[i])
+        for (int i = 0; i <= entityCount; i++)
         {
-            continue;
-		}
+            buf->WriteOneBit(to->has_simulation[i]);
 
-		if (to->simulationtimes[i] != from->simulationtimes[i])
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationtimes[i] );
-		}
-		else
-		{
-			buf->WriteOneBit(0);
+            if (!to->has_simulation[i])
+            {
+                continue;
+            }
+
+            if (to->simulationtimes[i] != from->simulationtimes[i])
+            {
+                buf->WriteOneBit(1);
+                buf->WriteFloat(to->simulationtimes[i]);
+            }
+            else
+            {
+                buf->WriteOneBit(0);
+            }
+
+            buf->WriteOneBit(to->has_animation[i]);
+
+            if (!to->has_animation[i])
+            {
+                continue;
+            }
+
+            if (to->animationdata[i].m_flUninterpolatedSimulationTime
+                != from->animationdata[i].m_flUninterpolatedSimulationTime)
+            {
+                buf->WriteOneBit(1);
+                buf->WriteFloat(
+                  to->animationdata[i].m_flUninterpolatedSimulationTime);
+            }
+            else
+            {
+                buf->WriteOneBit(0);
+            }
         }
+    }
 
-        buf->WriteOneBit(to->has_animation[i]);
-
-        if (!to->has_animation[i])
-        {
-            continue;
-		}
-
-		if (to->animationdata[i].m_flUninterpolatedSimulationTime != from->animationdata[i].m_flUninterpolatedSimulationTime)
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->animationdata[i].m_flUninterpolatedSimulationTime );
-		}
-		else
-		{
-			buf->WriteOneBit(0);
-        }
-	}
-
-	if ( to->debug_hitboxes != from->debug_hitboxes )
+    if ( to->debug_hitboxes != from->debug_hitboxes )
 	{
 		buf->WriteOneBit( 1 );
 		buf->WriteByte( to->debug_hitboxes );
@@ -333,7 +347,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		}
 	}
 
-
 	move->random_seed = MD5_PseudoRandom( move->command_number ) & 0x7fffffff;
 
 	if ( buf->ReadOneBit() )
@@ -346,36 +359,42 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		move->mousedy = buf->ReadShort();
 	}
 
-	for (int i = 0; i < MAX_EDICTS; i++)
+    const auto entityCount = buf->ReadSignedVarInt32();
+
+    if (entityCount > 0)
     {
-        // Has simulation ?
-        move->has_simulation[i] = buf->ReadOneBit();
-
-        if (!move->has_simulation[i])
+        for (int i = 0; i <= entityCount; i++)
         {
-            continue;
-		}
+            // Has simulation ?
+            move->has_simulation[i] = buf->ReadOneBit();
 
-		if (buf->ReadOneBit())
-		{
-			move->simulationtimes[i] = buf->ReadFloat();
+            if (!move->has_simulation[i])
+            {
+                continue;
+            }
+
+            if (buf->ReadOneBit())
+            {
+                move->simulationtimes[i] = buf->ReadFloat();
+            }
+
+            // Has animation ?
+            move->has_animation[i] = buf->ReadOneBit();
+
+            if (!move->has_animation[i])
+            {
+                continue;
+            }
+
+            if (buf->ReadOneBit())
+            {
+                move->animationdata[i].m_flUninterpolatedSimulationTime = buf
+                                                                            ->ReadFloat();
+            }
         }
+    }
 
-        // Has animation ?
-        move->has_animation[i] = buf->ReadOneBit();
-
-        if (!move->has_animation[i])
-        {
-            continue;
-		}
-
-		if (buf->ReadOneBit())
-		{
-			move->animationdata[i].m_flUninterpolatedSimulationTime = buf->ReadFloat();
-        }
-	}
-
-	if ( buf->ReadOneBit() )
+    if ( buf->ReadOneBit() )
 	{
 		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadByte();
     }
