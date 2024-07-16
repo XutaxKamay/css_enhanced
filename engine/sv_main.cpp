@@ -223,18 +223,6 @@ ConVar  sv_maxcmdrate( "sv_maxcmdrate", "100", FCVAR_REPLICATED, "(If sv_mincmdr
 ConVar  sv_client_cmdrate_difference( "sv_client_cmdrate_difference", "20", FCVAR_REPLICATED, 
 	"cl_cmdrate is moved to within sv_client_cmdrate_difference units of cl_updaterate before it "
 	"is clamped between sv_mincmdrate and sv_maxcmdrate." );
-
-ConVar  sv_client_min_interp_ratio( "sv_client_min_interp_ratio", "1", FCVAR_REPLICATED, 
-								   "This can be used to limit the value of cl_interp_ratio for connected clients "
-								   "(only while they are connected).\n"
-								   "              -1 = let clients set cl_interp_ratio to anything\n"
-								   " any other value = set minimum value for cl_interp_ratio"
-								   );
-ConVar  sv_client_max_interp_ratio( "sv_client_max_interp_ratio", "5", FCVAR_REPLICATED, 
-								   "This can be used to limit the value of cl_interp_ratio for connected clients "
-								   "(only while they are connected). If sv_client_min_interp_ratio is -1, "
-								   "then this cvar has no effect."
-								   );
 ConVar  sv_client_predict( "sv_client_predict", "-1", FCVAR_REPLICATED, 
 	"This can be used to force the value of cl_predict for connected clients "
 	"(only while they are connected).\n"

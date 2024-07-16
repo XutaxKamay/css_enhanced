@@ -652,9 +652,6 @@ float CClientState::GetClientInterpAmount()
 	float flInterpRatio = s_cl_interp_ratio->GetFloat();
 	float flInterp = s_cl_interp->GetFloat();
 
-	const ConVar_ServerBounded *pBounded = static_cast<const ConVar_ServerBounded*>( s_cl_interp_ratio );
-	if ( pBounded )
-		flInterpRatio = pBounded->GetFloat();
 	//#define FIXME_INTERP_RATIO
 	return max( flInterpRatio / cl_updaterate->GetFloat(), flInterp );
 }
