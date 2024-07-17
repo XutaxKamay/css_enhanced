@@ -1,6 +1,6 @@
 [submodule "thirdparty"]
 	path = thirdparty
-	url = https://github.com/nillerusr/source-thirdparty
+	url = https://github.com/xutaxkamay/source-engine-thirdparty
 [submodule "ivp"]
 	path = ivp
 	url = https://github.com/nillerusr/source-physics
