@@ -5,20 +5,17 @@ from waflib import Utils
 import os
 
 top = '.'
-PROJECT_NAME = 'stdshader_dx9'
+PROJECT_NAME = 'stdshader_'
 
 def options(opt):
 	# stub
 	return
 
 def configure(conf):
-	conf.env.append_unique('DEFINES',[
-		'STDSHADER_DX9_DLL_EXPORT',
-		'FAST_MATERIALVAR_ACCESS'
-	])
+	return
 
 def build(bld):
-	source = [
+	source_dx9 = [
 		'aftershock.cpp',
 		'aftershock_helper.cpp',
 		'AccumBuff4Sample.cpp',
@@ -139,16 +136,141 @@ def build(bld):
 
 	]
 
+	source_dx8 = [
+		'BaseVSShader.cpp',					
+		'BlurFilterX_dx80.cpp',
+		'Bik_dx80.cpp',
+		'Bik_dx81.cpp',
+		'BlurFilterY_dx80.cpp',
+		'BufferClearObeyStencil_dx8.cpp',
+		'cable_dx8.cpp',
+		'cloak_blended_pass_dx8_helper.cpp',
+		'cloud_dx8.cpp',
+		'core_dx8.cpp',
+		'DecalBaseTimesLightmapAlphaBlendSelfIllum_dx8.cpp',
+		'detail.cpp',
+		'downsample_nohdr_dx80.cpp',
+		'dx8fallbacks.cpp',
+		'eyes.cpp',
+		'emissive_scroll_blended_pass_dx8_helper.cpp',
+		'flesh_interior_blended_pass_dx8_helper.cpp',
+		'eyes_dx8_dx9_helper.cpp',					
+		'filmdust_dx8_dx9.cpp',							
+		'filmgrain_dx8_dx9.cpp',							
+		'gooinglass.cpp',						
+		'introscreenspaceeffect_dx80.cpp',				
+		'lightmappedgeneric_decal.cpp',					
+		'lightmappedgeneric_dx8.cpp',					
+		'modulate_dx8.cpp',						
+		'MonitorScreen_dx8.cpp',						
+		'occlusion_dx8.cpp',						
+		'overlay_fit.cpp',						
+		'particlesphere_dx8.cpp',					
+		'portal_dx80.cpp',						
+		'portal_refract_dx8.cpp',
+		'portal_refract_dx8_helper.cpp',
+		'portalstaticoverlay_dx80.cpp',					
+		'predator.cpp',							
+		'refract_dx80.cpp',						
+		'screenspace_general_dx8.cpp',						
+		'shadow_dx8.cpp',						
+		'shadowbuild_dx8.cpp',						
+		'shadowmodel_dx8.cpp',						
+		'shatteredglass_dx8.cpp',					
+		'sprite.cpp',							
+		'spritecard.cpp',
+		'teeth_dx8.cpp',							
+		'unlitgeneric_dx8.cpp',						
+		'unlittwotexture_dx8.cpp',					
+		'vertexlitgeneric_dx8.cpp',					
+		'vortwarp_dx8.cpp',						
+		'water_dx80.cpp',						
+		'water_dx81.cpp',						
+		'windowimposter_dx80.cpp',					
+		'wireframe_dx8.cpp',						
+		'worldtwotextureblend_dx8.cpp',					
+		'worldvertexalpha_dx8.cpp',					
+		'WorldVertexTransition_dx8.cpp',					
+		'worldvertextransition_dx8_helper.cpp',				
+		'writez_dx8.cpp',						
+		'writestencil_dx8.cpp',						
+		'yuv.cpp',
+		'../../public/tier0/memoverride.cpp'
+	]
+
+	source_dx7 = [
+		'core_dx7.cpp',
+		'filmdust_dx7.cpp',
+		'filmgrain_dx7.cpp',
+		'shatteredglass_dx7.cpp',
+		'vertexlitgeneric_dx7.cpp',
+		'vortwarp_dx7.cpp',
+		'../../public/tier0/memoverride.cpp'
+	]
+
+	source_dx6 = [
+		'BufferClearObeyStencil_dx6.cpp',
+		'cable_dx6.cpp',
+		'cloud.cpp',
+		'decal.cpp',
+		'DecalBaseTimesLightmapAlphaBlendSelfIllum_dx6.cpp',
+		'decalmodulate.cpp',
+		'eyeball.cpp',
+		'eyes_dx6.cpp',
+		'introscreenspaceeffect_dx60.cpp',
+		'lightmappedgeneric_dx6.cpp',
+		'lightmappedtwotexture.cpp',
+		'modulate_dx6.cpp',
+		'portal_dx60.cpp',
+		'portalstaticoverlay_dx60.cpp',
+		'refract_dx60.cpp',
+		'rift_dx6.cpp',
+		'SetZ.cpp',
+		'shadow_dx6.cpp',
+		'shadowbuild_dx6.cpp',
+		'sky_dx6.cpp',
+		'sprite_dx6.cpp',
+		'teeth_dx6.cpp',
+		'unlitgeneric_dx6.cpp',
+		'unlittwotexture_dx6.cpp',
+		'vertexlitgeneric_dx6.cpp',
+		'viewalpha.cpp',
+		'volumetricfog.cpp',
+		'water_dx60.cpp',
+		'worldtwotextureblend_dx6.cpp',
+		'worldvertextransition_dx6.cpp',
+		'worldvertextransition_dx6_helper.cpp',
+		'writez_dx6.cpp',
+		'../../public/tier0/memoverride.cpp'
+	]
+
+	source_dbg = [
+		'BaseVSShader.cpp',
+		'debugdepth.cpp',
+		'DebugDrawEnvmapMask.cpp',
+		'debugluxel.cpp',
+		'debugnormalmap.cpp',
+		'debugtangentspace.cpp',
+		'fillrate.cpp',
+	]
+
 	includes = [
 		'.',
 		'../../public',
 		'../../public/tier0',
 		'../../public/tier1',
+		'../../dx9sdk/include',
 		'fxctmp9',
-		'vshtmp9'
+		'vshtmp9',
+		'fxctmp9_360',
+		'vshtmp9_360'
 	] + bld.env.INCLUDES_SDL2
 
-	defines = []
+	defines_dx9 = ['STDSHADER_DX9_DLL_EXPORT', 'FAST_MATERIALVAR_ACCESS']
+	defines_dx8 = ['STDSHADER_DX8_DLL_EXPORT', 'FAST_MATERIALVAR_ACCESS']
+	defines_dx7 = ['STDSHADER_DX7_DLL_EXPORT', 'FAST_MATERIALVAR_ACCESS']	
+	defines_dx6 = ['STDSHADER_DX6_DLL_EXPORT', 'FAST_MATERIALVAR_ACCESS']
+	defines_dbg = ['STDSHADER_DBG_DLL_EXPORT', 'FAST_MATERIALVAR_ACCESS']
 
 	libs = ['tier0','shaderlib','tier1','mathlib']
 
@@ -158,15 +280,66 @@ def build(bld):
 	install_path = bld.env.LIBDIR
 
 	bld.shlib(
-		source   = source,
-		target   = PROJECT_NAME,
-		name     = PROJECT_NAME,
+		source   = source_dx9,
+		target   = PROJECT_NAME + 'dx9',
+		name     = PROJECT_NAME + 'dx9',
 		features = 'c cxx',
 		includes = includes,
-		defines  = defines,
+		defines  = defines_dx9,
+		use      = libs,
+		install_path = install_path,
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		idx      = bld.get_taskgen_count()
+	)
+	
+	bld.shlib(
+		source   = source_dx8,
+		target   = PROJECT_NAME + 'dx8',
+		name     = PROJECT_NAME + 'dx8',
+		features = 'c cxx',
+		includes = includes,
+		defines  = defines_dx8,
 		use      = libs,
 		install_path = install_path,
 		subsystem = bld.env.MSVC_SUBSYSTEM,
 		idx      = bld.get_taskgen_count()
 	)
 
+	bld.shlib(
+		source   = source_dx7,
+		target   = PROJECT_NAME + 'dx7',
+		name     = PROJECT_NAME + 'dx7',
+		features = 'c cxx',
+		includes = includes,
+		defines  = defines_dx7,
+		use      = libs,
+		install_path = install_path,
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		idx      = bld.get_taskgen_count()
+	)
+
+	bld.shlib(
+		source   = source_dx6,
+		target   = PROJECT_NAME + 'dx6',
+		name     = PROJECT_NAME + 'dx6',
+		features = 'c cxx',
+		includes = includes,
+		defines  = defines_dx6,
+		use      = libs,
+		install_path = install_path,
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		idx      = bld.get_taskgen_count()
+	)
+
+	bld.shlib(
+		source   = source_dbg,
+		target   = PROJECT_NAME + 'dbg',
+		name     = PROJECT_NAME + 'dbg',
+		features = 'c cxx',
+		includes = includes,
+		defines  = defines_dbg,
+		use      = libs,
+		install_path = install_path,
+		subsystem = bld.env.MSVC_SUBSYSTEM,
+		idx      = bld.get_taskgen_count()
+	)
