@@ -398,8 +398,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
 	VPROF_BUDGET( "BacktrackPlayer", "CLagCompensationManager" );
 	int pl_index = pPlayer->entindex() - 1;
 
-	float flTargetSimulationTime = cmd->simulationtimes[pl_index + 1];
-    auto animationData = &cmd->animationdata[pl_index + 1];
+	float flTargetSimulationTime = cmd->simulationdata[pl_index + 1].m_flInterpolatedSimulationTime;
+    float flTargetSimulatedAnimationTime = cmd->simulationdata[pl_index + 1].m_flSimulationTime;
     
 	// get track history of this player
 	CUtlFixedLinkedList< LagRecord > *trackSim = &m_PlayerTrack[ pl_index ];
@@ -428,7 +428,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer *pPlayer, CUserCmd *c
         recordSim = &trackSim->Element(currSim);
 
         if (recordSim->m_flSimulationTime
-            <= animationData->m_flUninterpolatedSimulationTime && !foundAnimationData)
+            <= flTargetSimulatedAnimationTime && !foundAnimationData)
         {
             recordAnim = recordSim;
             foundAnimationData = true;

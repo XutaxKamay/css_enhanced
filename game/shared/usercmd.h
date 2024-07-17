@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //
 //=============================================================================//
+#include "const.h"
 #ifdef CLIENT_DLL
 #include "cbase.h"
 #endif
@@ -51,12 +52,13 @@ struct LayerRecord
 	}
 };
 
-struct ClientSideAnimationData
+struct SimulationData
 {
     // TODO_ENHANCED:
     // For now we send the last received update for animations.
     // anim time is unreliable on low fps.
-	float					m_flUninterpolatedSimulationTime;   
+    float m_flInterpolatedSimulationTime;
+	float m_flSimulationTime;   
 };
 
 class CEntityGroundContact
@@ -93,18 +95,11 @@ public:
 		mousedx = 0;
 		mousedy = 0;
 
-		hasbeenpredicted = false;
+        hasbeenpredicted = false;
 
         for (int i = 0; i < MAX_EDICTS; i++)
         {
-            simulationtimes[i] = 0.0f;
-            has_simulation[i] = false;
-            has_animation[i] = false;
-        }
-
-        for (int i = 0; i <= MAX_PLAYERS; i++)
-        {
-            animationdata[i] = {};
+            simulationdata[i] = {};
         }
 		debug_hitboxes = DEBUG_HITBOXES_OFF;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
@@ -135,14 +130,7 @@ public:
 
         for (int i = 0; i < MAX_EDICTS; i++)
         {
-            simulationtimes[i] = src.simulationtimes[i];
-            has_simulation[i] = src.has_simulation[i];
-            has_animation[i] = src.has_animation[i];
-		}
-
-        for (int i = 0; i <= MAX_PLAYERS; i++)
-        {
-            animationdata[i] = src.animationdata[i];
+            simulationdata[i] = src.simulationdata[i];
 		}
 		debug_hitboxes = src.debug_hitboxes;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
@@ -175,10 +163,7 @@ public:
 		CRC32_ProcessBuffer( &crc, &random_seed, sizeof( random_seed ) );
 		CRC32_ProcessBuffer( &crc, &mousedx, sizeof( mousedx ) );
         CRC32_ProcessBuffer(&crc, &mousedy, sizeof(mousedy));
-        CRC32_ProcessBuffer(&crc, has_simulation, sizeof(has_simulation));
-        CRC32_ProcessBuffer(&crc, has_animation, sizeof(has_animation));
-		CRC32_ProcessBuffer( &crc, simulationtimes, sizeof( simulationtimes ) );
-        CRC32_ProcessBuffer(&crc, animationdata, sizeof(animationdata));
+        CRC32_ProcessBuffer(&crc, simulationdata, sizeof(simulationdata));
         CRC32_ProcessBuffer(&crc, &debug_hitboxes, sizeof(debug_hitboxes));
 		CRC32_Final( &crc );
 
@@ -230,10 +215,7 @@ public:
 
     // TODO_ENHANCED: Lag compensate also other entities when needed.
     // Send simulation times for each players for lag compensation.
-    bool has_simulation[MAX_EDICTS];
-    bool has_animation[MAX_EDICTS];
-    float simulationtimes[MAX_EDICTS];
-	ClientSideAnimationData animationdata[MAX_PLAYERS+1];
+	SimulationData simulationdata[MAX_EDICTS];
 
     enum debug_hitboxes_t : uint8
     {

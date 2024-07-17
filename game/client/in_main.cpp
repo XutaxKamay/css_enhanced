@@ -9,6 +9,8 @@
 
 
 #include "cbase.h"
+#include "baseentity_shared.h"
+#include "c_baseanimating.h"
 #include <cmath>
 #include <cstdio>
 #include "bone_setup.h"
@@ -1298,12 +1300,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
-    for (int i = 0; i < MAX_EDICTS; i++)
-    {
-        cmd->has_simulation[i] = false;
-        cmd->has_animation[i] = false;
-    }
-
 	// Send interpolated simulation time for lag compensation
 	for (int i = 0; i <= ClientEntityList().GetHighestEntityIndex(); i++)
     {
@@ -1314,23 +1310,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
             continue;
         }
 
-        cmd->has_simulation[pEntity->index] = true;
-        cmd->simulationtimes[pEntity->index] = pEntity->m_flInterpolatedSimulationTime;
-
-        if (pEntity->index < 1 && pEntity->index > MAX_PLAYERS)
-        {
-            continue;
-		}
-
-		auto pBasePlayer = ToBasePlayer(pEntity);
-
-		if (!pBasePlayer)
-		{
-			continue;
-        }
-
-        cmd->has_animation[pBasePlayer->index] = true;
-        cmd->animationdata[pBasePlayer->index].m_flUninterpolatedSimulationTime = pBasePlayer->m_flSimulationTime;
+        cmd->simulationdata[pEntity->index].m_flInterpolatedSimulationTime = pEntity->m_flInterpolatedSimulationTime;
+        cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flSimulationTime;
     }
 
     static ConVarRef cl_showhitboxes("cl_showhitboxes");

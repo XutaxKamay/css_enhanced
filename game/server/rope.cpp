@@ -43,7 +43,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CRopeKeyframe, DT_RopeKeyframe )
 	SendPropInt( SENDINFO(m_iRopeMaterialModelIndex), 16, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_Subdiv), 4, SPROP_UNSIGNED ),
 
-	SendPropFloat( SENDINFO(m_TextureScale), 10, 0, 0.1f, 10.0f ),
+	SendPropFloat( SENDINFO(m_TextureScale), 10, 0, 0.0f, 10.0f ),
 	SendPropFloat( SENDINFO(m_Width), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO(m_flScrollSpeed), 0, SPROP_NOSCALE ),
 
