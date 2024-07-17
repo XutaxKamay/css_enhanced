@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "const.h"
 #include "baseplayer_shared.h"
+#include "dt_common.h"
 #include "dt_send.h"
 #include "trains.h"
 #include "soundent.h"
@@ -7934,9 +7935,9 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		
 // If HL2_DLL is defined, then baseflex.cpp already sends these.
 #ifndef HL2_DLL
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 0), 8, SPROP_ROUNDDOWN, -32.0, 32.0f),
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 1), 8, SPROP_ROUNDDOWN, -32.0, 32.0f),
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 2), 20, SPROP_CHANGES_OFTEN,	0.0f, 256.0f),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 0), -1, 0, -32.0, 32.0f),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 1), -1, 0, -32.0, 32.0f),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 2), -1, 0,	0.0f, 256.0f),
 #endif
 
 		SendPropFloat		( SENDINFO(m_flFriction),		8,	SPROP_ROUNDDOWN,	0.0f,	4.0f),
@@ -7956,9 +7957,9 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 2), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 
 #if PREDICTION_ERROR_CHECK_LEVEL > 1 
-		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_COORD ),
+		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
 #else
-		SendPropVector		( SENDINFO( m_vecBaseVelocity ), 20, 0, -1000, 1000 ),
+		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
 #endif
 
 		SendPropEHandle		( SENDINFO( m_hConstraintEntity)),

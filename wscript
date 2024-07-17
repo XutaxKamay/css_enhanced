@@ -94,6 +94,7 @@ projects={
 		'utils/vtex',
 		'unicode',
 		'video',
+		'thirdparty/ALP'
 	],
 	'tests': [
 		'appframework',
@@ -145,7 +146,8 @@ projects={
 		'vpklib',
 		'vstdlib',
 		'vtf',
-		'stub_steam'
+		'stub_steam',
+		'thirdparty/ALP'
 	]
 }
 
@@ -297,13 +299,13 @@ def options(opt):
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
 		help = 'build with -DDEBUG [default: %default]')
 
-	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = 'int', default = sys.platform != 'win32',
+	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = sys.platform != 'win32',
 		help = 'build engine with SDL [default: %default]')
 
-	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = 'int', default = sys.platform != 'win32',
+	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = sys.platform != 'win32',
 		help = 'build engine with ToGL [default: %default]')
 
-	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = 'string', default = 'cstrike',
+	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = str, default = 'cstrike',
 		help = 'build games [default: %default]')
 
 	grp.add_option('--use-ccache', action = 'store_true', dest = 'CCACHE', default = False,
@@ -321,10 +323,7 @@ def options(opt):
 
 	grp.add_option('--sanitize', action = 'store', dest = 'SANITIZE', default = '',
 		help = 'build with sanitizers [default: %default]')
-
-	opt.load('compiler_optimizations subproject')
-
-	opt.load('xcompile compiler_cxx compiler_c sdl2 clang_compilation_database strip_on_install_v2 waf_unit_test subproject')
+	opt.load('xcompile compiler_cxx compiler_c compiler_optimizations sdl2 clang_compilation_database strip_on_install waf_unit_test subproject')
 	if sys.platform == 'win32':
 		opt.load('msvc msdev msvs')
 	opt.load('reconfigure')
@@ -435,7 +434,6 @@ def check_deps(conf):
 
 def configure(conf):
 	conf.load('fwgslib reconfigure compiler_optimizations')
-
 	# Force XP compability, all build targets should add
 	# subsystem=bld.env.MSVC_SUBSYSTEM
 	# TODO: wrapper around bld.stlib, bld.shlib and so on?

@@ -24,7 +24,7 @@
 
 #define MAX_ARRAY_ELEMENTS	2048		// a network array should have more that 1024 elements
 
-#define HIGH_DEFAULT		-121121.121121f
+#define HIGH_DEFAULT		2048.0f * 2048.0f
 
 #define BITS_FULLRES	-1	// Use the full resolution of the type being encoded.
 #define BITS_WORLDCOORD	-2	// Encode as a world coordinate.
