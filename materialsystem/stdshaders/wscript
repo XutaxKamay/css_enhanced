@@ -139,8 +139,8 @@ def build(bld):
 	source_dx8 = [
 		'BaseVSShader.cpp',					
 		'BlurFilterX_dx80.cpp',
-		'Bik_dx80.cpp',
-		'Bik_dx81.cpp',
+		'bik_dx80.cpp',
+		'bik_dx81.cpp',
 		'BlurFilterY_dx80.cpp',
 		'BufferClearObeyStencil_dx8.cpp',
 		'cable_dx8.cpp',
@@ -318,18 +318,19 @@ def build(bld):
 		idx      = bld.get_taskgen_count()
 	)
 
-	bld.shlib(
-		source   = source_dx6,
-		target   = PROJECT_NAME + 'dx6',
-		name     = PROJECT_NAME + 'dx6',
-		features = 'c cxx',
-		includes = includes,
-		defines  = defines_dx6,
-		use      = libs,
-		install_path = install_path,
-		subsystem = bld.env.MSVC_SUBSYSTEM,
-		idx      = bld.get_taskgen_count()
-	)
+	# TODO_ENHANCED(xutaxkamay):
+	# bld.shlib(
+	# 	source   = source_dx6,
+	# 	target   = PROJECT_NAME + 'dx6',
+	# 	name     = PROJECT_NAME + 'dx6',
+	# 	features = 'c cxx',
+	# 	includes = includes,
+	# 	defines  = defines_dx6,
+	# 	use      = libs,
+	# 	install_path = install_path,
+	# 	subsystem = bld.env.MSVC_SUBSYSTEM,
+	# 	idx      = bld.get_taskgen_count()
+	# )
 
 	bld.shlib(
 		source   = source_dbg,
