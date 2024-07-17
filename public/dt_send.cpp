@@ -8,6 +8,7 @@
 
 
 #include "dt_send.h"
+#include "dt_common.h"
 #include "mathlib/mathlib.h"
 #include "mathlib/vector.h"
 #include "tier0/dbg.h"
@@ -374,10 +375,6 @@ SendProp SendPropFloat(
 	)
 {
 	SendProp ret;
-
-	// Remove float compression to avoid errors
-	flags = SPROP_NOSCALE;
-	nBits = 32;
 	
 	if ( varProxy == SendProxy_FloatToFloat )
 	{
@@ -389,19 +386,16 @@ SendProp SendPropFloat(
 		flags |= SPROP_NOSCALE;
 		fLowValue = 0.f;
 		fHighValue = 0.f;
-	}
-	else
-	{
-		if(fHighValue == HIGH_DEFAULT)
-			fHighValue = (1 << nBits);
+    }
+    else
+    {
+        if (fHighValue == HIGH_DEFAULT)
+        {
+            fLowValue = -HIGH_DEFAULT;
+        }
+    }
 
-		if (flags & SPROP_ROUNDDOWN)
-			fHighValue = fHighValue - ((fHighValue - fLowValue) / (1 << nBits));
-		else if (flags & SPROP_ROUNDUP)
-			fLowValue = fLowValue + ((fHighValue - fLowValue) / (1 << nBits));
-	}
-
-	ret.m_Type = DPT_Float;
+    ret.m_Type = DPT_Float;
 	ret.m_pVarName = pVarName;
 	ret.SetOffset( offset );
 	ret.m_nBits = nBits;
@@ -429,17 +423,24 @@ SendProp SendPropVector(
 {
 	SendProp ret;
 
-	// Remove float compression to avoid errors
-	flags = SPROP_NOSCALE;
-	nBits = 32;
-
 	if(varProxy == SendProxy_VectorToVector)
 	{
 		Assert(sizeofVar == sizeof(Vector));
 	}
 
-	if ( nBits == 32 )
+	if ( nBits <= 0 || nBits == 32 )
+	{
 		flags |= SPROP_NOSCALE;
+		fLowValue = 0.f;
+		fHighValue = 0.f;
+    }
+    else
+    {
+        if (fHighValue == HIGH_DEFAULT)
+        {
+            fLowValue = -HIGH_DEFAULT;
+        }
+    }
 
 	ret.m_Type = DPT_Vector;
 	ret.m_pVarName = pVarName;
@@ -469,17 +470,24 @@ SendProp SendPropVectorXY(
 {
 	SendProp ret;
 
-	// Remove float compression to avoid errors
-	flags = SPROP_NOSCALE;
-	nBits = 32;
-
 	if(varProxy == SendProxy_VectorXYToVectorXY)
 	{
 		Assert(sizeofVar == sizeof(Vector));
 	}
 
-	if ( nBits == 32 )
+	if ( nBits <= 0 || nBits == 32 )
+	{
 		flags |= SPROP_NOSCALE;
+		fLowValue = 0.f;
+		fHighValue = 0.f;
+    }
+    else
+    {
+        if (fHighValue == HIGH_DEFAULT)
+        {
+            fLowValue = -HIGH_DEFAULT;
+        }
+    }
 
 	ret.m_Type = DPT_VectorXY;
 	ret.m_pVarName = pVarName;
@@ -515,8 +523,19 @@ SendProp SendPropQuaternion(
 		Assert(sizeofVar == sizeof(Quaternion));
 	}
 
-	if ( nBits == 32 )
+	if ( nBits <= 0 || nBits == 32 )
+	{
 		flags |= SPROP_NOSCALE;
+		fLowValue = 0.f;
+		fHighValue = 0.f;
+    }
+    else
+    {
+        if (fHighValue == HIGH_DEFAULT)
+        {
+            fLowValue = -HIGH_DEFAULT;
+        }
+    }
 
 	ret.m_Type = DPT_Quaternion;
 	ret.m_pVarName = pVarName;
@@ -550,10 +569,6 @@ SendProp SendPropAngle(
 		Assert(sizeofVar == 4);
 	}
 
-	// Remove float compression to avoid errors
-	flags = SPROP_NOSCALE;
-	nBits = 32;
-
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;
 
@@ -586,10 +601,6 @@ SendProp SendPropQAngles(
 	{
 		Assert(sizeofVar == 4);
 	}
-
-	// Remove float compression to avoid errors
-	flags = SPROP_NOSCALE;
-	nBits = 32;
 
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;
