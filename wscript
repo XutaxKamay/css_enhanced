@@ -93,8 +93,7 @@ projects={
 		'vtf',
 		'utils/vtex',
 		'unicode',
-		'video',
-		'thirdparty/ALP'
+		'video'
 	],
 	'tests': [
 		'appframework',
@@ -146,8 +145,7 @@ projects={
 		'vpklib',
 		'vstdlib',
 		'vtf',
-		'stub_steam',
-		'thirdparty/ALP'
+		'stub_steam'
 	]
 }
 
@@ -444,7 +442,7 @@ def configure(conf):
 
 	if sys.platform == 'win32':
 		conf.load('msvc_pdb_ext msdev msvs msvcdeps')
-	conf.load('subproject xcompile compiler_c compiler_cxx gccdeps gitversion clang_compilation_database strip_on_install_v2 waf_unit_test enforce_pic')
+	conf.load('subproject xcompile compiler_c compiler_cxx gccdeps gitversion clang_compilation_database strip_on_install waf_unit_test enforce_pic')
 	if conf.env.DEST_OS == 'win32' and conf.env.DEST_CPU == 'amd64':
 		conf.load('masm')
 	elif conf.env.DEST_OS == 'darwin':
@@ -567,7 +565,8 @@ def configure(conf):
 
 		linkflags += [
 			'/LIBPATH:'+os.path.abspath('.')+'/lib/win32/'+conf.env.DEST_CPU+'/',
-			'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/'
+			'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/',
+			'/STACK:0x10000000'
 		]
 
 	# And here C++ flags starts to be treated separately
