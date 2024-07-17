@@ -192,36 +192,23 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
     {
         for (int i = 0; i <= entityCount; i++)
         {
-            buf->WriteOneBit(to->has_simulation[i]);
-
-            if (!to->has_simulation[i])
-            {
-                continue;
-            }
-
-            if (to->simulationtimes[i] != from->simulationtimes[i])
+            if (to->simulationdata[i].m_flInterpolatedSimulationTime
+                != from->simulationdata[i].m_flInterpolatedSimulationTime)
             {
                 buf->WriteOneBit(1);
-                buf->WriteFloat(to->simulationtimes[i]);
+                buf->WriteFloat(
+                  to->simulationdata[i].m_flInterpolatedSimulationTime);
             }
             else
             {
                 buf->WriteOneBit(0);
             }
 
-            buf->WriteOneBit(to->has_animation[i]);
-
-            if (!to->has_animation[i])
-            {
-                continue;
-            }
-
-            if (to->animationdata[i].m_flUninterpolatedSimulationTime
-                != from->animationdata[i].m_flUninterpolatedSimulationTime)
+            if (to->simulationdata[i].m_flSimulationTime
+                != from->simulationdata[i].m_flSimulationTime)
             {
                 buf->WriteOneBit(1);
-                buf->WriteFloat(
-                  to->animationdata[i].m_flUninterpolatedSimulationTime);
+                buf->WriteFloat(to->simulationdata[i].m_flSimulationTime);
             }
             else
             {
@@ -365,31 +352,16 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
     {
         for (int i = 0; i <= entityCount; i++)
         {
-            // Has simulation ?
-            move->has_simulation[i] = buf->ReadOneBit();
-
-            if (!move->has_simulation[i])
+            if (buf->ReadOneBit())
             {
-                continue;
+                move->simulationdata[i].m_flInterpolatedSimulationTime = buf
+                                                                           ->ReadFloat();
             }
 
             if (buf->ReadOneBit())
             {
-                move->simulationtimes[i] = buf->ReadFloat();
-            }
-
-            // Has animation ?
-            move->has_animation[i] = buf->ReadOneBit();
-
-            if (!move->has_animation[i])
-            {
-                continue;
-            }
-
-            if (buf->ReadOneBit())
-            {
-                move->animationdata[i].m_flUninterpolatedSimulationTime = buf
-                                                                            ->ReadFloat();
+                move->simulationdata[i].m_flSimulationTime = buf
+                                                               ->ReadFloat();
             }
         }
     }
