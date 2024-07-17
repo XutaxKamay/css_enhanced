@@ -353,11 +353,12 @@ def build(bld):
 		'audio',
 		'../public/engine/audio/',
 		'audio/',
+		'../thirdparty/ALP/include'
 	]
 
 	defines = []
 
-	libs = ['tier0','vgui_controls','dmxloader','tier1','tier2','tier3','bitmap','vstdlib','appframework','datamodel','vtf','mathlib','steam_api','matsys_controls','BZ2','SDL2','JPEG','ZLIB','OPENAL','CURL' ]
+	libs = ['ALP','tier0','vgui_controls','dmxloader','tier1','tier2','tier3','bitmap','vstdlib','appframework','datamodel','vtf','mathlib','steam_api','matsys_controls','BZ2','SDL2','JPEG','ZLIB','OPENAL','CURL' ]
 
 	if bld.env.DEST_OS == 'android':
 		libs += ['SSL', 'CRYPTO'] # android curl was built with openssl
