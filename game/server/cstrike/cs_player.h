@@ -296,7 +296,8 @@ public:
 
 	virtual float GetPlayerMaxSpeed();
 
-	void FireBullet( 
+    void FireBullet(
+		int iBullet,
 		Vector vecSrc, 
 		const QAngle &shootAngles, 
 		float flDistance, 

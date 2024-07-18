@@ -176,7 +176,8 @@ public:
 		float &flPenetrationDistance,
 		float &flBulletDiameter );
 
-	void FireBullet(
+    void FireBullet(
+		int iBullet,
 		Vector vecSrc,
 		const QAngle &shootAngles,
 		float flDistance,

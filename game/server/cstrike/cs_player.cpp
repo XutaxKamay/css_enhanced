@@ -304,7 +304,7 @@ LINK_ENTITY_TO_CLASS( player, CCSPlayer );
 PRECACHE_REGISTER(player);
 
 BEGIN_SEND_TABLE_NOBASE( CCSPlayer, DT_CSLocalPlayerExclusive )
-	SendPropFloat( SENDINFO( m_flStamina ), 14, 0, 0, 1400  ),
+	SendPropFloat( SENDINFO( m_flStamina ) ),
 	SendPropInt( SENDINFO( m_iDirection ), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_iShotsFired ), 8, SPROP_UNSIGNED ),
 	SendPropFloat( SENDINFO( m_flVelocityModifier ), 8, 0, 0, 1  ),

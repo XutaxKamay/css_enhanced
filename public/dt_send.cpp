@@ -381,13 +381,17 @@ SendProp SendPropFloat(
 		Assert( sizeofVar == 0 || sizeofVar == 4 );
 	}
 
+    // TODO_ENHANCED: These variables will get compressed with zstd
+    flags = SPROP_NOSCALE;
+    nBits = 0;
+    
 	if ( nBits <= 0 || nBits == 32 )
 	{
 		flags |= SPROP_NOSCALE;
 		fLowValue = 0.f;
 		fHighValue = 0.f;
     }
-    else
+	else
     {
         if (fHighValue == HIGH_DEFAULT)
         {
@@ -428,13 +432,17 @@ SendProp SendPropVector(
 		Assert(sizeofVar == sizeof(Vector));
 	}
 
+    // TODO_ENHANCED: These variables will get compressed with zstd
+    flags = SPROP_NOSCALE;
+    nBits = 0;
+    
 	if ( nBits <= 0 || nBits == 32 )
 	{
 		flags |= SPROP_NOSCALE;
 		fLowValue = 0.f;
 		fHighValue = 0.f;
     }
-    else
+	else
     {
         if (fHighValue == HIGH_DEFAULT)
         {
@@ -475,13 +483,17 @@ SendProp SendPropVectorXY(
 		Assert(sizeofVar == sizeof(Vector));
 	}
 
+    // TODO_ENHANCED: These variables will get compressed with zstd
+    flags = SPROP_NOSCALE;
+    nBits = 0;
+
 	if ( nBits <= 0 || nBits == 32 )
 	{
 		flags |= SPROP_NOSCALE;
 		fLowValue = 0.f;
 		fHighValue = 0.f;
     }
-    else
+	else
     {
         if (fHighValue == HIGH_DEFAULT)
         {
@@ -504,7 +516,8 @@ SendProp SendPropVectorXY(
 	return ret;
 }
 
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
+    #if 0 // We can't ship this since it changes the size of DTVariant to
+          // be 20 bytes instead of 16 and that breaks MODs!!!
 SendProp SendPropQuaternion(
 	const char *pVarName,
 	int offset,
@@ -523,13 +536,17 @@ SendProp SendPropQuaternion(
 		Assert(sizeofVar == sizeof(Quaternion));
 	}
 
+    // TODO_ENHANCED: These variables will get compressed with zstd
+    flags = SPROP_NOSCALE;
+    nBits = 0;
+
 	if ( nBits <= 0 || nBits == 32 )
 	{
 		flags |= SPROP_NOSCALE;
 		fLowValue = 0.f;
 		fHighValue = 0.f;
     }
-    else
+	else
     {
         if (fHighValue == HIGH_DEFAULT)
         {
