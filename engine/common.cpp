@@ -1308,7 +1308,7 @@ static constexpr int ZSTD_COMPRESSION_LEVEL = 999;
 static auto g_pZSTDCCtx                     = ZSTD_createCCtx();
 
 template<typename T>
-static T* GetZSTD_CDictionary()
+static T* GetZSTD_Dictionary()
 {
     static T* dict = nullptr;
     static constexpr auto dictionaryFilePath = "bin/zstd.dictionary";
@@ -1367,7 +1367,7 @@ void* COM_CompressBuffer_ZSTD(const void* source,
       nMaxCompressedSize,
       (const char*)source,
       sourceLen,
-      GetZSTD_CDictionary<ZSTD_CDict>());
+      GetZSTD_Dictionary<ZSTD_CDict>());
     compressed_length        += 4;
     Assert( compressed_length <= nMaxCompressedSize );
 
@@ -1391,7 +1391,7 @@ bool COM_BufferToBufferCompress_ZSTD(void* dest,
 	Assert( destLen );
 	Assert( source );
 
-#define ZSTD_GENERATE_TRAINING_SET
+// #define ZSTD_GENERATE_TRAINING_SET
 
 #ifdef ZSTD_GENERATE_TRAINING_SET
 static int zstdTrainingSetCount = 0;
@@ -1439,7 +1439,7 @@ static int zstdTrainingSetCount = 0;
       nMaxCompressedSize,
       (const char*)source,
       sourceLen,
-      GetZSTD_CDictionary<ZSTD_CDict>());
+      GetZSTD_Dictionary<ZSTD_CDict>());
     if (ZSTD_isError(compressed_length))
     {
         return false;
@@ -1583,7 +1583,7 @@ bool COM_BufferToBufferDecompress( void *dest, unsigned int *destLen, const void
                   *destLen,
                   (const char*)source + 4,
                   sourceLen - 4,
-                  GetZSTD_CDictionary<ZSTD_DDict>())))
+                  GetZSTD_Dictionary<ZSTD_DDict>())))
             {
 				Warning( "NET_BufferToBufferDecompress: ZSTD decompression failed\n" );
 				return false;
