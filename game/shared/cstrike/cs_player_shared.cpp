@@ -185,19 +185,14 @@ float CCSPlayer::GetPlayerMaxSpeed()
 	return speed;
 }
 
-void UTIL_ClipTraceToPlayersHull( float flBulletDiameter, const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask, ITraceFilter *filter, trace_t *tr )
+void UTIL_ClipTraceToPlayersHull(const Vector& vecAbsStart, const Vector& vecAbsEnd, const Vector& mins, const Vector& maxs, unsigned int mask, ITraceFilter *filter, trace_t *tr )
 {
 	trace_t playerTrace;
 	Ray_t ray;
 	float smallestFraction = tr->fraction;
 	const float maxRange = 60.0f;
 
-    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
-	vecBulletDiameterMaxs /= 2.0f;
-    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
-    vecBulletDiameterMins /= 2.0f;
-    
-	ray.Init( vecAbsStart, vecAbsEnd , vecBulletDiameterMins, vecBulletDiameterMaxs );
+	ray.Init( vecAbsStart, vecAbsEnd , mins, maxs );
 
 	for ( int k = 1; k <= gpGlobals->maxClients; ++k )
 	{
@@ -411,25 +406,21 @@ static bool TraceToExit(Vector &start, Vector &dir, Vector &end, float flStepSiz
 	return false;
 }
 
-inline void UTIL_TraceLineIgnoreTwoEntities(float flBulletDiameter, const Vector& vecAbsStart, const Vector& vecAbsEnd, unsigned int mask,
+inline void UTIL_TraceLineIgnoreTwoEntities(const Vector& vecAbsStart, const Vector& vecAbsEnd, const Vector& mins, const Vector& maxs, unsigned int mask,
 					 const IHandleEntity *ignore, const IHandleEntity *ignore2, int collisionGroup, trace_t *ptr )
 {
-    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
-	vecBulletDiameterMaxs /= 2.0f;
-    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
-    vecBulletDiameterMins /= 2.0f;
-
 	Ray_t ray;
-	ray.Init( vecAbsStart, vecAbsEnd, vecBulletDiameterMins, vecBulletDiameterMaxs );
+	ray.Init( vecAbsStart, vecAbsEnd, mins, maxs );
 	CTraceFilterSkipTwoEntities traceFilter( ignore, ignore2, collisionGroup );
 	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
 	if( r_visualizetraces.GetBool() )
 	{
-		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, QAngle(), 255, 0, 0, true, 100.0f );
+		NDebugOverlay::SweptBox( ptr->startpos, ptr->endpos, mins, maxs, QAngle(), 255, 0, 0, true, 100.0f );
 	}
 }
 
 void CCSPlayer::FireBullet(
+	int iBullet, // bullet number
 	Vector vecSrc,	// shooting postion
 	const QAngle &shootAngles,  //shooting angle
 	float flDistance, // max distance
@@ -457,10 +448,10 @@ void CCSPlayer::FireBullet(
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
 
-    Vector vecBulletDiameterMaxs(flBulletDiameter, flBulletDiameter, flBulletDiameter);
-	vecBulletDiameterMaxs /= 2.0f;
-    Vector vecBulletDiameterMins(-flBulletDiameter, -flBulletDiameter, -flBulletDiameter);
-    vecBulletDiameterMins /= 2.0f;
+    float flBulletRadius = flBulletDiameter / 2.0f;
+    
+    Vector vecBulletRadiusMaxs(flBulletRadius, flBulletRadius, flBulletRadius);
+	Vector vecBulletRadiusMins(-flBulletRadius, -flBulletRadius, -flBulletRadius);
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
@@ -534,13 +525,13 @@ void CCSPlayer::FireBullet(
 
 		trace_t tr; // main enter bullet trace
 
-		UTIL_TraceLineIgnoreTwoEntities(flBulletDiameter, vecSrc, vecEnd, CS_MASK_SHOOT|CONTENTS_HITBOX, this, lastPlayerHit, COLLISION_GROUP_NONE, &tr );
+		UTIL_TraceLineIgnoreTwoEntities(vecSrc, vecEnd, vecBulletRadiusMins, vecBulletRadiusMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, this, lastPlayerHit, COLLISION_GROUP_NONE, &tr );
 		{
 			CTraceFilterSkipTwoEntities filter( this, lastPlayerHit, COLLISION_GROUP_NONE );
 
 			// Check for player hitboxes extending outside their collision bounds
 			const float rayExtension = 40.0f;
-			UTIL_ClipTraceToPlayersHull(flBulletDiameter, vecSrc, vecEnd + vecDir * rayExtension, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
+			UTIL_ClipTraceToPlayersHull(vecSrc, vecEnd + vecDir * rayExtension, vecBulletRadiusMins, vecBulletRadiusMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, &filter, &tr );
 		}
 
 		lastPlayerHit = ToBasePlayer(tr.m_pEnt);
@@ -583,8 +574,8 @@ void CCSPlayer::FireBullet(
         {
             NDebugOverlay::SweptBox(vecSrc,
                                     tr.endpos,
-                                    vecBulletDiameterMins,
-                                    vecBulletDiameterMaxs,
+                                    vecBulletRadiusMins,
+                                    vecBulletRadiusMaxs,
                                     QAngle(0, 0, 0),
                                     255,
                                     0,
@@ -609,23 +600,17 @@ void CCSPlayer::FireBullet(
 #else
         if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
 		{
-            if (m_iBulletServerPositionCount.Get()
-                < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+            if (iBullet < MAX_PLAYER_BULLET_SERVER_POSITIONS)
             {
-                m_vecBulletServerPositions.Set(
-                  m_iBulletServerPositionCount.Get(),
-                  tr.endpos);
-                m_vecServerShootPosition.Set(
-                  m_iBulletServerPositionCount.Get(),
-                  vecSrc);
-                m_iBulletServerPositionCount.Set(
-                  m_iBulletServerPositionCount.Get() + 1);
+                m_vecBulletServerPositions.Set(m_iBulletServerPositionCount.Get(), tr.endpos);
+                m_vecServerShootPosition.Set(m_iBulletServerPositionCount.Get(), vecSrc);
+                m_iBulletServerPositionCount.Set(m_iBulletServerPositionCount.Get() + 1);
             }
 
-            if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() )
-			{
-				CBasePlayer *player = ToBasePlayer( tr.m_pEnt );
-				player->RecordServerHitboxes( this );
+            if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
+            {
+                CBasePlayer* player = ToBasePlayer(tr.m_pEnt);
+                player->RecordServerHitboxes(this);
             }
         }
 #endif
@@ -651,7 +636,7 @@ void CCSPlayer::FireBullet(
 			if ( enginetrace->GetPointContents( tr.endpos ) & (CONTENTS_WATER|CONTENTS_SLIME) )
 			{
 				trace_t waterTrace;
-				UTIL_TraceHull( vecSrc, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
+				UTIL_TraceHull( vecSrc, tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, (MASK_SHOT|CONTENTS_WATER|CONTENTS_SLIME), this, COLLISION_GROUP_NONE, &waterTrace );
 
 				if( waterTrace.allsolid != 1 )
 				{
@@ -734,12 +719,12 @@ void CCSPlayer::FireBullet(
 
 		// find exact penetration exit
 		trace_t exitTr;
-		UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
+		UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
 
 		if( exitTr.m_pEnt != tr.m_pEnt && exitTr.m_pEnt != NULL )
 		{
 			// something was blocking, trace again
-			UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletDiameterMins, vecBulletDiameterMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
+			UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, exitTr.m_pEnt, COLLISION_GROUP_NONE, &exitTr );
 		}
 
 		// get material at exit point

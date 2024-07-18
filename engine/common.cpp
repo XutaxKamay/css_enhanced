@@ -9,12 +9,16 @@
 #include "host.h"
 #include <ctype.h>
 #include "draw.h"
+#include "strtools.h"
+#include "sysexternal.h"
+#include "utlbuffer.h"
 #include "zone.h"
 #include "sys.h"
 #include <edict.h>
 #include <coordsize.h>
 #include <characterset.h>
 #include <bitbuf.h>
+#include <mutex>
 #include "common.h"
 #ifdef OSX
 #include <malloc/malloc.h>
@@ -44,6 +48,8 @@
 #include <vgui/ILocalize.h>
 #include "tier1/lzss.h"
 #include "tier1/snappy.h"
+#include "zstd.h"
+#include <limits>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1292,6 +1298,160 @@ bool COM_BufferToBufferCompress_Snappy( void *dest, unsigned int *destLen, const
 	return true;
 }
 
+unsigned int COM_GetIdealDestinationCompressionBufferSize_ZSTD(
+  unsigned int uncompressedSize)
+{
+    return 4 + ZSTD_compressBound(uncompressedSize);
+}
+
+static constexpr int ZSTD_COMPRESSION_LEVEL = 999;
+static auto g_pZSTDCCtx                     = ZSTD_createCCtx();
+
+template<typename T>
+static T* GetZSTD_CDictionary()
+{
+    static T* dict = nullptr;
+    static constexpr auto dictionaryFilePath = "bin/zstd.dictionary";
+
+    static std::once_flag flag;
+    std::call_once(flag,
+                   [&]
+                   {
+                       CUtlBuffer buffer;
+                       if (!g_pFileSystem->ReadFile(dictionaryFilePath,
+                                                    "DEFAULT_WRITE_PATH",
+                                                    buffer))
+                       {
+                           Sys_Error("g_pZSTDInfo: could not find "
+                                     "dictionary at %s!\n",
+                                     dictionaryFilePath);
+                       }
+
+                       if constexpr (std::is_same<T, ZSTD_CDict>::value)
+                       {
+                           dict = ZSTD_createCDict(buffer.Base(),
+                                                   buffer.Size(),
+                                                   ZSTD_COMPRESSION_LEVEL);
+                       }
+                       else if constexpr (std::is_same<T, ZSTD_DDict>::value)
+                       {
+                           dict = ZSTD_createDDict(buffer.Base(),
+                                                   buffer.Size());
+                       }
+
+                       ErrorIfNot(dict != NULL, ("GetZSTD_Dictionary() failed!\n"));
+                   });
+
+    return dict;
+};
+
+void* COM_CompressBuffer_ZSTD(const void* source,
+                              unsigned int sourceLen,
+                              unsigned int* compressedLen,
+                              unsigned int maxCompressedLen)
+{
+	Assert( source );
+	Assert( compressedLen );
+
+	// Allocate a buffer big enough to hold the worst case.
+	unsigned nMaxCompressedSize = COM_GetIdealDestinationCompressionBufferSize_ZSTD( sourceLen );
+	char *pCompressed = (char*)malloc( nMaxCompressedSize );
+	if ( pCompressed == NULL )
+		return NULL;
+
+	// Do the compression
+	*(uint32 *)pCompressed = ZSTD_ID;
+    size_t compressed_length = ZSTD_compress_usingCDict(
+      g_pZSTDCCtx,
+      pCompressed + sizeof(uint32),
+      nMaxCompressedSize,
+      (const char*)source,
+      sourceLen,
+      GetZSTD_CDictionary<ZSTD_CDict>());
+    compressed_length        += 4;
+    Assert( compressed_length <= nMaxCompressedSize );
+
+	// Check if this result is OK
+	if ( (maxCompressedLen != 0 && compressed_length > maxCompressedLen) || ZSTD_isError(compressed_length) )
+	{
+		free( pCompressed );
+		return NULL;
+	}
+
+	*compressedLen = compressed_length;
+	return pCompressed;
+}
+
+bool COM_BufferToBufferCompress_ZSTD(void* dest,
+                                     unsigned int* destLen,
+                                     const void* source,
+                                     unsigned int sourceLen)
+{
+	Assert( dest );
+	Assert( destLen );
+	Assert( source );
+
+//#define ZSTD_GENERATE_TRAINING_SET
+
+#ifdef ZSTD_GENERATE_TRAINING_SET
+static int zstdTrainingSetCount = 0;
+#endif
+
+#ifdef ZSTD_GENERATE_TRAINING_SET 
+    char fileName[64];
+#ifdef SWDS
+    const auto strContext = "dedicated";
+#else
+    const auto strContext = "client";
+#endif
+
+    V_sprintf_safe(fileName, "css_zstd_training_set/%s_%i.bin", strContext, zstdTrainingSetCount++);
+    CUtlBuffer buffer;
+    buffer.CopyBuffer(source, sourceLen);
+    static std::once_flag flag;
+    std::call_once(flag, [&]{g_pFileSystem->CreateDirHierarchy("css_zstd_training_set", "DEFAULT_WRITE_PATH");});
+    g_pFileSystem->WriteFile(fileName, NULL, buffer);
+#endif
+    
+	// Check if we need to use a temporary buffer
+	unsigned nMaxCompressedSize = COM_GetIdealDestinationCompressionBufferSize_ZSTD( sourceLen );
+	unsigned compressedLen = *destLen;
+	if ( compressedLen < nMaxCompressedSize )
+	{
+
+		// Yep.  Use the other function to allocate the buffer of the right size and comrpess into it
+		void *temp = COM_CompressBuffer_ZSTD( source, sourceLen, &compressedLen, compressedLen );
+		if ( temp == NULL )
+			return false;
+
+		// Copy over the data
+		V_memcpy( dest, temp, compressedLen );
+		*destLen = compressedLen;
+		free( temp );
+		return true;
+	}
+
+	// We have room and should be able to compress directly
+	*(uint32 *)dest = ZSTD_ID;
+    size_t compressed_length = ZSTD_compress_usingCDict(
+      g_pZSTDCCtx,
+      (char*)dest + sizeof(uint32),
+      nMaxCompressedSize,
+      (const char*)source,
+      sourceLen,
+      GetZSTD_CDictionary<ZSTD_CDict>());
+    if (ZSTD_isError(compressed_length))
+    {
+        return false;
+    }
+
+	compressed_length += 4;
+	Assert( compressed_length <= nMaxCompressedSize );
+	*destLen = compressed_length;
+	return true;
+}
+
+
 //-----------------------------------------------------------------------------
 unsigned COM_GetIdealDestinationCompressionBufferSize_LZSS( unsigned int uncompressedSize )
 {
@@ -1354,6 +1514,19 @@ int COM_GetUncompressedSize( const void *compressed, unsigned int compressedLen 
 		size_t snappySize;
 		if ( snappy::GetUncompressedLength( (const char *)compressed + sizeof(pHeader->id), compressedLen-sizeof(pHeader->id), &snappySize ) )
 			return (int)snappySize;
+    }
+
+    if (pHeader->id == ZSTD_ID)
+    {
+        auto srcSize = ZSTD_getFrameContentSize((const char*)compressed + sizeof(pHeader->id),
+                                                compressedLen);
+        if (srcSize > std::numeric_limits<int>::max() || ZSTD_isError(srcSize))
+        {
+            Warning("COM_GetUncompressedSize: ZSTD Failed on getting uncompressed size\n");
+            return -1;
+        }
+
+        return static_cast<int>(srcSize);
 	}
 
 	return -1;
@@ -1399,6 +1572,25 @@ bool COM_BufferToBufferDecompress( void *dest, unsigned int *destLen, const void
 			*destLen = nDecompressedSize;
 			return true;
 		}
+
+    	if ( pHeader->id == ZSTD_ID )
+        {
+            static auto g_pZSTDDCtx = ZSTD_createDCtx();
+
+            if (ZSTD_isError(ZSTD_decompress_usingDDict(
+                  g_pZSTDDCtx,
+                  (char*)dest,
+                  *destLen,
+                  (const char*)source + 4,
+                  sourceLen - 4,
+                  GetZSTD_CDictionary<ZSTD_DDict>())))
+            {
+				Warning( "NET_BufferToBufferDecompress: ZSTD decompression failed\n" );
+				return false;
+			}
+			*destLen = nDecompressedSize;
+			return true;
+        }
 
 		// Mismatch between this routine and COM_GetUncompressedSize
 		AssertMsg( false, "Unknown compression type?" );
