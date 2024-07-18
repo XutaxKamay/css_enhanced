@@ -89,7 +89,7 @@ void WriteConfig_f( ConVar *var, const char *pOldString );
 // If we get more than 250 messages in the incoming buffer queue, dump any above this #
 #define MAX_INCOMING_MESSAGES		250
 // Size of command send buffer
-#define MAX_CMD_BUFFER				4000
+#define MAX_CMD_BUFFER				0x10000
 
 CGlobalVarsBase g_ClientGlobalVariables( true );
 IVideoRecorder *g_pVideoRecorder = NULL;
