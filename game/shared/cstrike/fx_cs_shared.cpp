@@ -301,7 +301,8 @@ void FX_FireBullets(
         if (debug_screenshot_bullet_position.GetBool())
             gpGlobals->client_taking_screenshot = true;
 #endif
-		pPlayer->FireBullet(
+        pPlayer->FireBullet(
+			iBullet,
 			vOrigin,
 			vAngles,
 			flRange,

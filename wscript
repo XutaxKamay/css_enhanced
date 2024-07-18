@@ -327,6 +327,7 @@ def options(opt):
 	opt.load('reconfigure')
 
 def check_deps(conf):
+	conf.check_cc(lib='zstd', mandatory=False)
 	if conf.env.DEST_OS != 'win32':
 		conf.check_cc(lib='dl', mandatory=False)
 		conf.check_cc(lib='bz2', mandatory=True)

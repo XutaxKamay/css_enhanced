@@ -114,6 +114,10 @@ void *COM_CompressBuffer_Snappy( const void *source, unsigned int sourceLen, uns
 bool COM_BufferToBufferCompress_Snappy( void *dest, unsigned int *destLen, const void *source, unsigned int sourceLen );
 unsigned int COM_GetIdealDestinationCompressionBufferSize_Snappy( unsigned int uncompressedSize );
 
+void *COM_CompressBuffer_ZSTD( const void *source, unsigned int sourceLen, unsigned int *compressedLen, unsigned int maxCompressedLen = 0 );
+bool COM_BufferToBufferCompress_ZSTD( void *dest, unsigned int *destLen, const void *source, unsigned int sourceLen );
+unsigned int COM_GetIdealDestinationCompressionBufferSize_ZSTD( unsigned int uncompressedSize );
+
 /// Fetch ideal working buffer size.  You should allocate the buffer you wish to compress into
 /// at least this big, in order to get the best performance when using COM_BufferToBufferCompress
 inline unsigned int COM_GetIdealDestinationCompressionBufferSize( unsigned int uncompressedSize )

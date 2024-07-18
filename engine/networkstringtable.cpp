@@ -1433,7 +1433,7 @@ void CNetworkStringTableContainer::WriteBaselines( bf_write &buf )
 			unsigned int compressedSize = (unsigned int)numBytes;
 			char *compressedData = new char[numBytes];
 
-			if ( COM_BufferToBufferCompress_Snappy( compressedData, &compressedSize, (char *)msg.m_DataOut.GetData(), numBytes ) )
+			if ( COM_BufferToBufferCompress_ZSTD( compressedData, &compressedSize, (char *)msg.m_DataOut.GetData(), numBytes ) )
 			{
 				msg.m_bDataCompressed = true;
 				msg.m_DataOut.Reset();

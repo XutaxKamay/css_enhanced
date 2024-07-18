@@ -6,6 +6,7 @@
 
 #include "../utils/bzip2/bzlib.h"
 #include "net_chan.h"
+#include "common.h"
 #include "tier1/strtools.h"
 #include "filesystem_engine.h"
 #include "demo.h"
@@ -167,10 +168,10 @@ void CNetChan::CompressFragments()
 			compressTimer.Start();
 
 			// fragments data is in memory
-			unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_Snappy( data->bytes );
+			unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_ZSTD( data->bytes );
 			char * compressedData = new char[ compressedSize ];
 
-			if ( COM_BufferToBufferCompress_Snappy( compressedData, &compressedSize, data->buffer, data->bytes ) &&
+			if ( COM_BufferToBufferCompress_ZSTD( compressedData, &compressedSize, data->buffer, data->bytes ) &&
 				( compressedSize < data->bytes ) )
 			{
 				compressTimer.End(); 
@@ -218,7 +219,7 @@ void CNetChan::CompressFragments()
 			{
 				// create compressed version of source file
 				unsigned int uncompressedSize = data->bytes;
-				unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_Snappy( uncompressedSize );
+				unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_ZSTD( uncompressedSize );
 				char *uncompressed = new char[uncompressedSize];
 				char *compressed = new char[compressedSize];
 					
@@ -226,7 +227,7 @@ void CNetChan::CompressFragments()
 				g_pFileSystem->Read( uncompressed, data->bytes, data->file );
 
 				// compress into buffer
-				if ( COM_BufferToBufferCompress_Snappy( compressed, &compressedSize, uncompressed, uncompressedSize ) )
+				if ( COM_BufferToBufferCompress_ZSTD( compressed, &compressedSize, uncompressed, uncompressedSize ) )
 				{
 					// write out to disk compressed version
 					hZipFile = g_pFileSystem->Open( compressedfilename, "wb", NULL );

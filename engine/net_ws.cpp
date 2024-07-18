@@ -2346,6 +2346,8 @@ int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const uns
 	struct sockaddr	addr;
 	int		net_socket;
 
+    bUseCompression = true;
+      
 	if ( net_showudp.GetInt() && (*(unsigned int*)data == CONNECTIONLESS_HEADER) )
 	{
 		Assert( !bUseCompression );
@@ -2405,7 +2407,7 @@ int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const uns
 	if ( pVoicePayload )
 	{
 		VPROF_BUDGET( "NET_SendPacket_CompressVoice", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-		unsigned int nCompressedLength = COM_GetIdealDestinationCompressionBufferSize_Snappy( pVoicePayload->GetNumBytesWritten() );
+		unsigned int nCompressedLength = COM_GetIdealDestinationCompressionBufferSize_ZSTD( pVoicePayload->GetNumBytesWritten() );
 		memCompressedVoice.EnsureCapacity( nCompressedLength + sizeof( unsigned short ) );
 
 		byte *pVoice = (byte *)memCompressedVoice.Base();
@@ -2417,7 +2419,7 @@ int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const uns
 		byte *pOutput = NULL;
 		if ( net_compressvoice.GetBool() )
 		{
-			if ( COM_BufferToBufferCompress_Snappy( pVoice, &nCompressedLength, pVoicePayload->GetData(), pVoicePayload->GetNumBytesWritten()
+			if ( COM_BufferToBufferCompress_ZSTD( pVoice, &nCompressedLength, pVoicePayload->GetData(), pVoicePayload->GetNumBytesWritten()
 				&& ( (int)nCompressedLength < pVoicePayload->GetNumBytesWritten() ) ) )
 			{
 				pOutput = pVoice;
@@ -2432,17 +2434,17 @@ int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const uns
 	}
 
 	if ( bUseCompression )
-	{
+    {
 		VPROF_BUDGET( "NET_SendPacket_Compress", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-		unsigned int nCompressedLength = COM_GetIdealDestinationCompressionBufferSize_Snappy( length );
+		unsigned int nCompressedLength = COM_GetIdealDestinationCompressionBufferSize_ZSTD( length );
 	
 		memCompressed.EnsureCapacity( nCompressedLength + nVoiceBytes + sizeof( unsigned int ) );
 
 		*(int *)memCompressed.Base() = LittleLong( NET_HEADER_FLAG_COMPRESSEDPACKET );
 
-		if ( COM_BufferToBufferCompress_Snappy( memCompressed.Base() + sizeof( unsigned int ), &nCompressedLength, data, length )
+		if ( COM_BufferToBufferCompress_ZSTD( memCompressed.Base() + sizeof( unsigned int ), &nCompressedLength, data, length )
 			&& (int)nCompressedLength < length )
-		{
+        {
 			data	= memCompressed.Base();
 			length	= nCompressedLength + sizeof( unsigned int );
 

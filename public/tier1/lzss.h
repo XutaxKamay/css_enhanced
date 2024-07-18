@@ -11,6 +11,7 @@
 
 #define LZSS_ID   uint32( BigLong( ('L'<<24)|('Z'<<16)|('S'<<8)|('S') ) )
 #define SNAPPY_ID uint32( BigLong( ('S'<<24)|('N'<<16)|('A'<<8)|('P') ) )
+#define ZSTD_ID uint32( BigLong( ('Z'<<24)|('S'<<16)|('T'<<8)|('D') ) )
 
 // bind the buffer for correct identification
 struct lzss_header_t
