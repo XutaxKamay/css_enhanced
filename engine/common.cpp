@@ -1391,7 +1391,7 @@ bool COM_BufferToBufferCompress_ZSTD(void* dest,
 	Assert( destLen );
 	Assert( source );
 
-//#define ZSTD_GENERATE_TRAINING_SET
+#define ZSTD_GENERATE_TRAINING_SET
 
 #ifdef ZSTD_GENERATE_TRAINING_SET
 static int zstdTrainingSetCount = 0;

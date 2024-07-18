@@ -10,7 +10,8 @@
 #include "bitbuf.h"
 #include "checksum_md5.h"
 #include "const.h"
-#include "platform.h"
+#include "utlvector.h"
+#include "shareddefs.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #ifdef CLIENT_DLL
@@ -176,56 +177,54 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	else
 	{
 		buf->WriteOneBit( 0 );
-	}
+    }
 
-    int entityCount = 0;
+
 #ifdef CLIENT_DLL
+    int highestEntityIndex = 0;
     if (cl_entitylist)
-    	entityCount = cl_entitylist->GetHighestEntityIndex();
+    	highestEntityIndex = cl_entitylist->GetHighestEntityIndex();
 #else
-    entityCount = MAX_EDICTS;
+    static constexpr auto highestEntityIndex = MAX_EDICTS-1;
 #endif
 
-    buf->WriteSignedVarInt32(entityCount);
+    // Write entity count
+    buf->WriteUBitLong(highestEntityIndex, 11);
 
-    if (entityCount > 0)
+    // Write finally simulation data with entity index
+    for (unsigned int i = 0; i <= highestEntityIndex; i++)
     {
-        for (int i = 0; i <= entityCount; i++)
+        if (from->simulationdata[i].m_flInterpolatedSimulationTime
+            != to->simulationdata[i].m_flInterpolatedSimulationTime)
         {
-            if (to->simulationdata[i].m_flInterpolatedSimulationTime
-                != from->simulationdata[i].m_flInterpolatedSimulationTime)
-            {
-                buf->WriteOneBit(1);
-                buf->WriteFloat(
-                  to->simulationdata[i].m_flInterpolatedSimulationTime);
-            }
-            else
-            {
-                buf->WriteOneBit(0);
-            }
+            buf->WriteOneBit(1);
+            buf->WriteBitFloat(to->simulationdata[i].m_flInterpolatedSimulationTime);
+        }
+        else
+        {
+            buf->WriteOneBit(0);
+        }
 
-            if (to->simulationdata[i].m_flSimulationTime
-                != from->simulationdata[i].m_flSimulationTime)
-            {
-                buf->WriteOneBit(1);
-                buf->WriteFloat(to->simulationdata[i].m_flSimulationTime);
-            }
-            else
-            {
-                buf->WriteOneBit(0);
-            }
+        if (from->simulationdata[i].m_flSimulationTime != to->simulationdata[i].m_flSimulationTime)
+        {
+            buf->WriteOneBit(1);
+            buf->WriteBitFloat(to->simulationdata[i].m_flSimulationTime);
+        }
+        else
+        {
+            buf->WriteOneBit(0);
         }
     }
 
-    if ( to->debug_hitboxes != from->debug_hitboxes )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteByte( to->debug_hitboxes );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-	}
+    if (to->debug_hitboxes != from->debug_hitboxes)
+    {
+        buf->WriteOneBit(1);
+        buf->WriteUBitLong(to->debug_hitboxes, 2);
+    }
+    else
+    {
+        buf->WriteOneBit(0);
+    }
 
 #if defined( HL2_CLIENT_DLL )
 	if ( to->entitygroundcontact.Count() != 0 )
@@ -346,29 +345,24 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		move->mousedy = buf->ReadShort();
 	}
 
-    const auto entityCount = buf->ReadSignedVarInt32();
+    const auto highestEntityIndex = buf->ReadUBitLong(11);
 
-    if (entityCount > 0)
+    for (unsigned int i = 0; i <= highestEntityIndex;i++)
     {
-        for (int i = 0; i <= entityCount; i++)
-        {
-            if (buf->ReadOneBit())
-            {
-                move->simulationdata[i].m_flInterpolatedSimulationTime = buf
-                                                                           ->ReadFloat();
-            }
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].m_flInterpolatedSimulationTime = buf->ReadBitFloat();
+		}
 
-            if (buf->ReadOneBit())
-            {
-                move->simulationdata[i].m_flSimulationTime = buf
-                                                               ->ReadFloat();
-            }
-        }
-    }
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].m_flSimulationTime = buf->ReadBitFloat();
+		}
+	}
 
     if ( buf->ReadOneBit() )
 	{
-		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadByte();
+		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadUBitLong(2);
     }
 
 #if defined( HL2_DLL )
