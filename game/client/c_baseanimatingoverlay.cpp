@@ -114,7 +114,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 
 BEGIN_RECV_TABLE_NOBASE( C_BaseAnimatingOverlay, DT_OverlayVars )
 	 RecvPropUtlVector( 
-		RECVINFO_UTLVECTOR( m_AnimOverlay ), 
+		RECVINFO_UTLVECTOR_SIZEFN( m_AnimOverlay, ResizeAnimationLayerCallback ), 
 		C_BaseAnimatingOverlay::MAX_OVERLAYS,
 		RecvPropDataTable(NULL, 0, 0, &REFERENCE_RECV_TABLE( DT_Animationlayer ) ) )
 END_RECV_TABLE()
