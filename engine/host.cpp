@@ -3139,7 +3139,7 @@ void _Host_RunFrame (float time)
 
 		g_pMDLCache->MarkFrame();
 	}
-
+#ifndef SWDS
     const auto CalcInterpolationAmount = [&]()
     {
         // TODO_ENHANCED:
@@ -3200,7 +3200,7 @@ void _Host_RunFrame (float time)
 #endif
         }
     };
-
+#endif
     {
 		// Profile scope, protect from setjmp() problems
 		VPROF( "_Host_RunFrame" );
@@ -3394,13 +3394,6 @@ void _Host_RunFrame (float time)
                 CL_RunPrediction( PREDICTION_NORMAL );
 
 				CL_ApplyAddAngle();
-
-				// The mouse is always simulated for the current frame's time
-				// This makes updates smooth in every case
-				// continuous controllers affecting the view are also simulated this way
-				// but they have a cap applied by IN_SetSampleTime() so they are not also
-				// simulated during input gathering
-				CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
 			}
 #endif
 #if defined( REPLAY_ENABLED )
@@ -3515,13 +3508,6 @@ void _Host_RunFrame (float time)
 			}
 
 			Host_SetClientInSimulation( false );
-
-			// The mouse is always simulated for the current frame's time
-			// This makes updates smooth in every case
-			// continuous controllers affecting the view are also simulated this way
-			// but they have a cap applied by IN_SetSampleTime() so they are not also
-			// simulated during input gathering
-			CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
 
 			g_ClientGlobalVariables.tickcount = saveTick;
 			numticks_last_frame = numticks;
@@ -3657,6 +3643,16 @@ void _Host_RunFrame (float time)
 	} // Profile scope, protect from setjmp() problems
 
     Host_ShowIPCCallCount();
+#ifndef SWDS
+    // TODO_ENHANCED:
+    // Update the mouse as last so we can get the right prediction viewangles on a frame
+	// The mouse is always simulated for the current frame's time
+	// This makes updates smooth in every case
+	// continuous controllers affecting the view are also simulated this way
+	// but they have a cap applied by IN_SetSampleTime() so they are not also
+	// simulated during input gathering
+	CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
+#endif
 }
 /*
 ==============================
