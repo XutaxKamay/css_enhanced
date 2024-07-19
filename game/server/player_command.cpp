@@ -346,7 +346,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
     g_pGameMovement->StartTrackPredictionErrors( player );
 
-    if (ucmd->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON)
+    if (ucmd->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ALWAYS_ON)
     {
 		lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
 

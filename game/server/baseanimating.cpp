@@ -203,6 +203,32 @@ void* SendTableProxy_HitboxServerAngles(const SendProp* pProp,
     return ((QAngle*)pData + entity->entindex() * MAXSTUDIOBONES);
 }
 
+void SendProxy_ShouldShowServerHitboxesOnFire(const SendProp* pProp,
+                                               const void* pStructBase,
+                                               const void* pData,
+                                               DVariant* pOut,
+                                               int iElement,
+                                               int objectID)
+{
+    auto index = engine->GetSendTableCurrentEntityIndex();
+
+    if (index == -1)
+    {
+        pOut->m_Int = false;
+        return;
+    }
+
+	CBaseEntity* entity = UTIL_EntityByIndex(index);
+
+	if (!entity)
+    {
+        pOut->m_Int = false;
+        return;
+    }
+
+    pOut->m_Int = *((bool*)pData + entity->entindex());
+}
+
 static CIKSaveRestoreOps s_IKSaveRestoreOp;
 
 
@@ -311,7 +337,6 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
 	SendPropArray3 (SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions), MAXSTUDIOBONES, SendPropVector(SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions[0]) ), SendTableProxy_HitboxServerPositions),
 	SendPropArray3 (SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles), MAXSTUDIOBONES, SendPropQAngles(SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles[0]) ), SendTableProxy_HitboxServerAngles),
-
 END_SEND_TABLE()
 
 
@@ -346,7 +371,7 @@ CBaseAnimating::CBaseAnimating()
 		{
 			m_vecHitboxServerPositions[i][j] = vec3_origin;
 			m_angHitboxServerAngles[i][j] = vec3_angle;
-		}
+        }
     }
 }
 

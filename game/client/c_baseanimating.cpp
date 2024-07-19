@@ -22,6 +22,8 @@
 #include "c_te_legacytempents.h"
 #include "activitylist.h"
 #include "animation.h"
+#include "recvproxy.h"
+#include "studio.h"
 #include "tier0/vprof.h"
 #include "clienteffectprecachesystem.h"
 #include "IEffects.h"
@@ -200,8 +202,7 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
 	RecvPropFloat( RECVINFO( m_flFadeScale ) ),
 	RecvPropArray3( RECVINFO_ARRAY(m_vecHitboxServerPositions), RecvPropVector(RECVINFO(m_vecHitboxServerPositions[0]))),
-	RecvPropArray3( RECVINFO_ARRAY(m_angHitboxServerAngles), RecvPropQAngles(RECVINFO(m_angHitboxServerAngles[0]))),
- 
+	RecvPropArray3( RECVINFO_ARRAY(m_angHitboxServerAngles), RecvPropQAngles(RECVINFO(m_angHitboxServerAngles[0])))
 
 END_RECV_TABLE()
 
@@ -4538,7 +4539,7 @@ void C_BaseAnimating::PreDataUpdate( DataUpdateType_t updateType )
 	for ( i=0;i<MAXSTUDIOPOSEPARAM;i++ )
 	{
 		 m_flOldPoseParameters[i] = m_flPoseParameter[i];
-	}
+    }
 
 	BaseClass::PreDataUpdate( updateType );
 }
@@ -4583,7 +4584,8 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		if ( m_flOldEncodedController[i] != m_flEncodedController[i] )
 		{
-			bBoneControllersChanged = true;
+            bBoneControllersChanged = true;
+            break;
 		}
 	}
 
@@ -4593,11 +4595,12 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		if ( m_flOldPoseParameters[i] != m_flPoseParameter[i] )
 		{
-			bPoseParametersChanged = true;
+            bPoseParametersChanged = true;
+            break;
 		}
-	}
+    }
 
-	// Cycle change? Then re-render
+    // Cycle change? Then re-render
 	bool bAnimationChanged = m_flOldCycle != GetCycle() || bBoneControllersChanged || bPoseParametersChanged;
 	bool bSequenceChanged = m_nOldSequence != GetSequence();
 	bool bScaleChanged = ( m_flOldModelScale != GetModelScale() );
@@ -5012,12 +5015,6 @@ void C_BaseAnimating::Simulate()
 	if ( GetSequence() != -1 && m_pRagdoll && ( m_nRenderFX != kRenderFxRagdoll ) )
 	{
 		ClearRagdoll();
-	}
-
-    if (cl_showhitboxes.GetBool() && IsPlayer() && (this != C_BasePlayer::GetLocalPlayer()))
-    {
-        DrawClientHitboxes(gpGlobals->frametime, true);
-        DrawServerHitboxes(gpGlobals->frametime, true);
 	}
 }
 

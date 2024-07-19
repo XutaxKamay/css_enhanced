@@ -13,6 +13,7 @@
 #pragma once
 #endif
 
+#include "utlvector.h"
 #include "c_playerlocaldata.h"
 #include "c_basecombatcharacter.h"
 #include "PlayerState.h"
@@ -639,10 +640,11 @@ public:
 
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
 	
-	int m_nTickBaseFireBullet;
-    Vector m_vecBulletServerPositions[MAX_PLAYER_BULLET_SERVER_POSITIONS];
-    int m_iBulletServerPositionCount;
-    Vector m_vecServerShootPosition[MAX_PLAYER_BULLET_SERVER_POSITIONS];
+	float m_lastBulletDiameter;
+    bool m_bDebugServerBullets;
+    CUtlVector<Vector> m_vecBulletServerPositions;
+    CUtlVector<Vector> m_vecServerShootPositions;
+    CUtlVector<int> m_touchedEntitiesWithBullet;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

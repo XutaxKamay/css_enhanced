@@ -1316,22 +1316,22 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
 
+    cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
+      
     if (cl_showhitboxes.GetBool())
     {
-        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ALWAYS_ON;
+        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ALWAYS_ON;
     }
-    else if (cl_showfirebullethitboxes.GetBool())
+
+    if (cl_showfirebullethitboxes.GetBool())
     {
-        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ON_BULLET;
+        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_FIRE;
     }
-    else if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+
+    if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
     {
-        cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_ON_HIT;
+        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
     }
-    else
-    {
-		cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
-	}
 
 
 	pVerified->m_cmd = *cmd;

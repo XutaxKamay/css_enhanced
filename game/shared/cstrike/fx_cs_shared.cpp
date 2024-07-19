@@ -10,7 +10,7 @@
 #include "weapon_csbase.h"
 
 #ifndef CLIENT_DLL
-	#include "ilagcompensationmanager.h"
+    #include "ilagcompensationmanager.h"
 #endif
 
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
@@ -292,8 +292,12 @@ void FX_FireBullets(
 	}
 
 #ifndef CLIENT_DLL
-    pPlayer->m_iBulletServerPositionCount.Set(0);
+	pPlayer->m_vecBulletServerPositions.RemoveAll();
+	pPlayer->m_vecServerShootPositions.RemoveAll();
+	pPlayer->m_touchedEntitiesWithBullet.RemoveAll();
+	pPlayer->m_bDebugServerBullets = true;
 #endif
+
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
 #ifdef CLIENT_DLL
@@ -314,7 +318,7 @@ void FX_FireBullets(
 			pPlayer,
 			bDoEffects,
 			x0 + x1[iBullet], y0 + y1[iBullet] );
-	}
+    }
 
 #if !defined (CLIENT_DLL)
 	lagcompensation->FinishLagCompensation( pPlayer );
