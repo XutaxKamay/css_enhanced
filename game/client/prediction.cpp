@@ -890,6 +890,12 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 
+	// Copy from command to player unless game .dll has set angle using fixangle
+	// if ( !player->pl.fixangle )
+	{
+		player->SetLocalViewAngles( ucmd->viewangles );
+	}
+	
     RunPostThink( player );
 
 // TODO
@@ -936,12 +942,6 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// 	player->pl.v_angle = ucmd->viewangles + player->pl.anglechange;
     // }
 
-	// Copy from command to player unless game .dll has set angle using fixangle
-	// if ( !player->pl.fixangle )
-	{
-		player->SetLocalViewAngles( ucmd->viewangles );
-	}
-	
 	// Call standard client pre-think
 	RunPreThink( player );
 
@@ -1695,8 +1695,12 @@ void CPrediction::Update( int startframe, bool validframe,
 
 	_Update( received_new_world_update, validframe, incoming_acknowledged, outgoing_command );
 
+    // TODO_ENHANCED: This, exactly, have made me debugging for 2h...
+    // the value isn't saved.
+    bool is_taking_screenshot = gpGlobals->client_taking_screenshot;
 	// Restore current timer values, etc.
-	*gpGlobals = saveVars;
+    *gpGlobals = saveVars;
+    gpGlobals->client_taking_screenshot = is_taking_screenshot;
 #endif
 }
 
