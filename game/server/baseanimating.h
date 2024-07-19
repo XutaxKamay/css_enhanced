@@ -6,6 +6,8 @@
 
 #ifndef BASEANIMATING_H
 #define BASEANIMATING_H
+#include "networkvar.h"
+#include "shareddefs.h"
 #ifdef _WIN32
 #pragma once
 #endif

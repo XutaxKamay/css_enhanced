@@ -1349,6 +1349,10 @@ void C_CSPlayer::ValidateModelIndex( void )
 	UpdateMinModels();
 }
 
+void C_CSPlayer::PreDataUpdate(DataUpdateType_t updateType)
+{
+ 	BaseClass::PreDataUpdate( updateType );
+}
 
 void C_CSPlayer::PostDataUpdate( DataUpdateType_t updateType )
 {
@@ -2227,42 +2231,6 @@ void C_CSPlayer::Simulate( void )
 	}
 
     BaseClass::Simulate();
-
-    static ConVarRef cl_showimpacts("cl_showimpacts");
-
-	if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3) && m_lastBulletDiameter != -1.0f)
-    {
-        auto weaponInfo = GetActiveWeapon();
-
-        if (!weaponInfo)
-        {
-            return;
-        }
-        
-		for (int i = 0; i < m_iBulletServerPositionCount; i++)
-        {
-            NDebugOverlay::SweptBox(m_vecServerShootPosition[i],
-                                    m_vecBulletServerPositions[i],
-                                    Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
-                                    Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
-                                    QAngle(0, 0, 0),
-                                    0,
-                                    0,
-                                    255,
-                                    127,
-                                    60.f);
-            NDebugOverlay::Box(m_vecBulletServerPositions[i],
-                               Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
-                               Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
-                               0,
-                               0,
-                               255,
-                               127,
-                               60.f);
-        }
-
-        m_lastBulletDiameter = -1.0f;
-	}
 }
 
 void C_CSPlayer::PostThink()

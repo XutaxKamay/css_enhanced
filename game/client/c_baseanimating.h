@@ -640,6 +640,8 @@ private:
 	mutable CStudioHdr				*m_pStudioHdr;
 	mutable MDLHandle_t				m_hStudioHdr;
 	CThreadFastMutex				m_StudioHdrInitLock;
+
+  public:
 	Vector							m_vecHitboxServerPositions[MAXSTUDIOBONES];
 	QAngle							m_angHitboxServerAngles[MAXSTUDIOBONES];
 };
