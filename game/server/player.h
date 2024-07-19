@@ -10,6 +10,7 @@
 #pragma once
 #endif
 
+#include "utlvector.h"
 #include "basecombatcharacter.h"
 #include "usercmd.h"
 #include "playerlocaldata.h"
@@ -1210,9 +1211,10 @@ private:
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set
-    CNetworkArray(Vector, m_vecBulletServerPositions, MAX_PLAYER_BULLET_SERVER_POSITIONS);
-    CNetworkVar(int, m_iBulletServerPositionCount);
-    CNetworkArray(Vector, m_vecServerShootPosition, MAX_PLAYER_BULLET_SERVER_POSITIONS);
+	CNetworkVar(bool, m_bDebugServerBullets);
+    CUtlVector<Vector> m_vecBulletServerPositions;
+    CUtlVector<Vector> m_vecServerShootPositions;
+    CUtlVector<int> m_touchedEntitiesWithBullet;
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;
