@@ -9,6 +9,8 @@
 #include "baseplayer_shared.h"
 #include "dt_common.h"
 #include "dt_send.h"
+#include "sendproxy.h"
+#include "shareddefs.h"
 #include "trains.h"
 #include "soundent.h"
 #include "gib.h"
@@ -636,7 +638,6 @@ CBasePlayer::CBasePlayer( )
 
 	m_flLastUserCommandTime = 0.f;
 	m_flMovementTimeForUserCmdProcessingRemaining = 0.0f;
-	m_iBulletServerPositionCount.Set(0);
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -4521,6 +4522,7 @@ void CBasePlayer::ForceOrigin( const Vector &vecOrigin )
 //-----------------------------------------------------------------------------
 void CBasePlayer::PostThink()
 {
+    m_bDebugServerBullets = false;
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
 	if ( !g_fGameOver && !m_iPlayerLocked )
@@ -7972,9 +7974,10 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 
 		SendPropInt			( SENDINFO( m_nWaterLevel ), 2, SPROP_UNSIGNED ),
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
-		SendPropArray3( SENDINFO_ARRAY3(m_vecBulletServerPositions), SendPropVector(SENDINFO_ARRAY(m_vecBulletServerPositions))),
-		SendPropInt(SENDINFO(m_iBulletServerPositionCount)),
-		SendPropArray3( SENDINFO_ARRAY3(m_vecServerShootPosition), SendPropVector(SENDINFO_ARRAY(m_vecServerShootPosition))),
+		SendPropUtlVector( SENDINFO_UTLVECTOR(m_vecBulletServerPositions), MAX_PLAYER_BULLET_SERVER_POSITIONS, SendPropVector(NULL, 0)),
+		SendPropUtlVector( SENDINFO_UTLVECTOR(m_vecServerShootPositions), MAX_PLAYER_BULLET_SERVER_POSITIONS, SendPropVector(NULL, 0)),
+		SendPropBool(SENDINFO(m_bDebugServerBullets)),
+		SendPropUtlVector( SENDINFO_UTLVECTOR(m_touchedEntitiesWithBullet), MAX_PLAYER_BULLET_SERVER_POSITIONS, SendPropVector(NULL, 0)),
 END_SEND_TABLE()
 
 

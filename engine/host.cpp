@@ -3189,7 +3189,7 @@ void _Host_RunFrame (float time)
             g_ClientGlobalVariables.interpolation_amount = flInterpAmount - flLastInterpolationAmountOnTick;
 
             ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
-                       ("Interpolation amount was bigger than 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
+                       ("Interpolation amount was lower than 0 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
 #ifdef false
             printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
                    g_ClientGlobalVariables.interpolation_amount,

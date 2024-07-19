@@ -91,6 +91,7 @@ public:
 	virtual void ClientThink();
 
 	virtual void OnDataChanged( DataUpdateType_t type );
+	virtual void PreDataUpdate( DataUpdateType_t updateType );
 	virtual void PostDataUpdate( DataUpdateType_t updateType );
 	virtual bool Interpolate( float currentTime );
 	virtual void UpdateStepSound( surfacedata_t *psurface, const Vector &vecOrigin, const Vector &vecVelocity  );
@@ -168,7 +169,6 @@ public:
 public:
 	virtual float GetPlayerMaxSpeed();
 
-    float m_lastBulletDiameter;
     float GetBulletDiameter(int iBulletType);
 	void GetBulletTypeParameters( 
 		int iBulletType, 

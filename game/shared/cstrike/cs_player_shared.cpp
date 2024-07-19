@@ -491,6 +491,7 @@ void CCSPlayer::FireBullet(
 
 #ifdef CLIENT_DLL
     static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+
     if (cl_showfirebullethitboxes.GetBool())
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
@@ -500,12 +501,11 @@ void CCSPlayer::FireBullet(
 			if ( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
 			{
 				lagPlayer->DrawClientHitboxes(60, true);
-				lagPlayer->m_nTickBaseFireBullet = int(lagPlayer->GetTimeBase() / TICK_INTERVAL);
 			}
         }
 	}
 #else
-    if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_BULLET || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
+    if ( m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
@@ -563,12 +563,11 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-#ifdef CLIENT_DLL
-        m_lastBulletDiameter = flBulletDiameter;
-#endif
 
 #ifdef CLIENT_DLL
-    	static ConVarRef cl_showimpacts("cl_showimpacts");
+        m_lastBulletDiameter = flBulletDiameter;
+
+        static ConVarRef cl_showimpacts("cl_showimpacts");
 
         if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2)
         {
@@ -582,38 +581,30 @@ void CCSPlayer::FireBullet(
                                     0,
                                     127,
                                     60.0f);
-		}
+            NDebugOverlay::Box(tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, 255, 0, 0, 127, 60.f);
+        }
 
-		if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
-		{
-			C_BasePlayer* player = ToBasePlayer(tr.m_pEnt);
+        if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
+        {
+            C_BasePlayer* player = ToBasePlayer(tr.m_pEnt);
 
-			if (cl_showimpacts.GetInt() == 1
-				|| cl_showimpacts.GetInt() == 2)
+            if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2)
             {
-                NDebugOverlay::Box(tr.endpos,
-                                   vecBulletRadiusMins,
-                                   vecBulletRadiusMaxs,
-                                   255,
-                                   0,
-                                   0,
-                                   127,
-                                   60.f);
                 player->DrawClientHitboxes(60.0f, true);
             }
-
-			player->m_nTickBaseFireBullet = int(player->GetTimeBase()
-										/ TICK_INTERVAL);
-		}
+        }
 #else
-        if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
-		{
-            if (m_iBulletServerPositionCount.Get() < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+        bool shouldShowServerHitRegistration = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
+        
+        if (shouldShowServerHitRegistration)
+        {
+            m_vecBulletServerPositions.AddToTail(tr.endpos);
+            m_vecServerShootPositions.AddToTail(vecSrc);
+
+            if (tr.m_pEnt)
             {
-                m_vecBulletServerPositions.Set(m_iBulletServerPositionCount.Get(), tr.endpos);
-                m_vecServerShootPosition.Set(m_iBulletServerPositionCount.Get(), vecSrc);
-                m_iBulletServerPositionCount.Set(m_iBulletServerPositionCount.Get() + 1);
-            }
+                m_touchedEntitiesWithBullet.AddToTail(tr.m_pEnt->entindex());
+			}
 
             if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
             {
@@ -623,7 +614,7 @@ void CCSPlayer::FireBullet(
         }
 #endif
 
-		//calculate the damage based on the distance the bullet travelled.
+        //calculate the damage based on the distance the bullet travelled.
 		flCurrentDistance += tr.fraction * flDistance;
 		fCurrentDamage *= pow (flRangeModifier, (flCurrentDistance / 500));
 

@@ -7,9 +7,13 @@
 //===========================================================================//
 #include "cbase.h"
 #include "c_baseplayer.h"
+#include "cdll_client_int.h"
 #include "convar.h"
 #include "dt_recv.h"
 #include "flashlighteffect.h"
+#include "recvproxy.h"
+#include "shareddefs.h"
+#include "util_shared.h"
 #include "weapon_selection.h"
 #include "history_resource.h"
 #include "iinput.h"
@@ -59,6 +63,8 @@
 
 // NVNT haptics system interface
 #include "haptics/ihaptics.h"
+
+#include "debugoverlay_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -247,9 +253,10 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-		RecvPropArray3		( RECVINFO_ARRAY(m_vecBulletServerPositions), RecvPropVector( RECVINFO(m_vecBulletServerPositions[0])) ),
-		RecvPropInt(RECVINFO(m_iBulletServerPositionCount)),
-		RecvPropArray3		( RECVINFO_ARRAY(m_vecServerShootPosition), RecvPropVector( RECVINFO(m_vecServerShootPosition[0])) ),	
+		RecvPropUtlVector		( RECVINFO_UTLVECTOR(m_vecBulletServerPositions), MAX_PLAYER_BULLET_SERVER_POSITIONS,RecvPropVector(NULL, 0) ),	
+		RecvPropUtlVector		( RECVINFO_UTLVECTOR(m_vecServerShootPositions) ,MAX_PLAYER_BULLET_SERVER_POSITIONS, RecvPropVector(NULL, 0) ),
+		RecvPropBool			(RECVINFO(m_bDebugServerBullets)),
+		RecvPropUtlVector		( RECVINFO_UTLVECTOR(m_touchedEntitiesWithBullet) ,MAX_PLAYER_BULLET_SERVER_POSITIONS, RecvPropVector(NULL, 0) ),
 END_RECV_TABLE()
 
 	
@@ -445,8 +452,8 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 
 	ListenForGameEvent( "base_player_teleported" );
 
-    m_nTickBaseFireBullet = -1;
-	m_iBulletServerPositionCount = 0;
+    m_lastBulletDiameter = 1.0f;
+    m_bDebugServerBullets = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -488,7 +495,7 @@ void C_BasePlayer::Spawn( void )
 
 	m_bWasFreezeFraming = false;
 
-	m_bFiredWeapon = false;
+    m_bFiredWeapon = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -913,7 +920,7 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 	if ( engine->IsPaused() || bForceEFNoInterp )
 	{
 		ResetLatched();
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -2135,15 +2142,70 @@ void C_BasePlayer::Simulate()
 		ResetLatched();
 	}
 
+	static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
     static ConVarRef cl_showimpacts("cl_showimpacts");
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-    bool shouldShowFireBulletHitbox = m_nTickBaseFireBullet <= m_nTickBase && m_nTickBaseFireBullet != -1;
-
-    if (shouldShowFireBulletHitbox && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3 || cl_showfirebullethitboxes.GetBool()))
+    static ConVarRef cl_showhitboxes("cl_showhitboxes");
+    
+    if (m_bDebugServerBullets)
     {
-        DrawServerHitboxes(60.0f, true);
-        m_nTickBaseFireBullet = -1;
+        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+        {
+            for (int i = 0; i < m_vecServerShootPositions.Count(); i++)
+            {
+                NDebugOverlay::SweptBox(m_vecServerShootPositions[i],
+                                        m_vecBulletServerPositions[i],
+                                        Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                                        Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                                        QAngle(0, 0, 0),
+                                        0,
+                                        0,
+                                        255,
+                                        127,
+                                        60.f);
+                NDebugOverlay::Box(m_vecBulletServerPositions[i],
+                                   Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                                   Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                                   0,
+                                   0,
+                                   255,
+                                   127,
+                                   60.f);
+            }
+        }
+
+        if (cl_showfirebullethitboxes.GetBool())
+        {
+            for (int i = 1; i <= gpGlobals->maxClients; i++)
+            {
+                auto player = UTIL_PlayerByIndex(i);
+
+                if (player && player != GetLocalPlayer())
+                {
+                    player->DrawServerHitboxes(60.0f, true);
+                }
+            }
+        }
+        else
+        {
+            for (auto&& entityIndex : m_touchedEntitiesWithBullet)
+            {
+                auto player = UTIL_PlayerByIndex(entityIndex);
+
+                if (player && player != GetLocalPlayer())
+                {
+                    player->DrawServerHitboxes(60.0f, true);
+                }
+            }
+        }
+        
+        m_bDebugServerBullets = false;
     }
+
+    if (cl_showhitboxes.GetBool() && IsPlayer() && this != GetLocalPlayer())
+    {
+        DrawClientHitboxes(gpGlobals->frametime, true);
+        DrawServerHitboxes(gpGlobals->frametime, true);
+	}
 }
 
 //-----------------------------------------------------------------------------
