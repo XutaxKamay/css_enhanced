@@ -13,12 +13,11 @@
 	#include "ilagcompensationmanager.h"
 #endif
 
-ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
 ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED );
 
 #ifdef CLIENT_DLL
-
+ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
 #include "fx_impact.h"
 
 	// this is a cheap ripoff from CBaseCombatWeapon::WeaponSound():
@@ -299,7 +298,9 @@ void FX_FireBullets(
     {
 #ifdef CLIENT_DLL
         if (debug_screenshot_bullet_position.GetBool())
+        {
             gpGlobals->client_taking_screenshot = true;
+		}
 #endif
         pPlayer->FireBullet(
 			iBullet,

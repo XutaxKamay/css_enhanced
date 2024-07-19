@@ -57,7 +57,7 @@
 #if defined( CCSPlayer )
 	#undef CCSPlayer
 #endif
-
+#include "debugoverlay_shared.h"
 #include "materialsystem/imesh.h"		//for materials->FindMaterial
 #include "iviewrender.h"				//for view->
 
@@ -2240,21 +2240,25 @@ void C_CSPlayer::Simulate( void )
         }
         
 		for (int i = 0; i < m_iBulletServerPositionCount; i++)
-		{
-            debugoverlay->AddSweptBoxOverlay(m_vecServerShootPosition[i],
-              m_vecBulletServerPositions[i],
-              Vector(-m_lastBulletDiameter,
-                     -m_lastBulletDiameter,
-                     -m_lastBulletDiameter)
-                / 2,
-              Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter)
-                / 2,
-              QAngle(0, 0, 0),
-              0,
-              0,
-              255,
-              127,
-              60.f);
+        {
+            NDebugOverlay::SweptBox(m_vecServerShootPosition[i],
+                                    m_vecBulletServerPositions[i],
+                                    Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                                    Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                                    QAngle(0, 0, 0),
+                                    0,
+                                    0,
+                                    255,
+                                    127,
+                                    60.f);
+            NDebugOverlay::Box(m_vecBulletServerPositions[i],
+                               Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                               Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                               0,
+                               0,
+                               255,
+                               127,
+                               60.f);
         }
 
         m_lastBulletDiameter = -1.0f;
