@@ -590,7 +590,15 @@ void CCSPlayer::FireBullet(
 
 			if (cl_showimpacts.GetInt() == 1
 				|| cl_showimpacts.GetInt() == 2)
-			{
+            {
+                NDebugOverlay::Box(tr.endpos,
+                                   vecBulletRadiusMins,
+                                   vecBulletRadiusMaxs,
+                                   255,
+                                   0,
+                                   0,
+                                   127,
+                                   60.f);
                 player->DrawClientHitboxes(60.0f, true);
             }
 
@@ -600,7 +608,7 @@ void CCSPlayer::FireBullet(
 #else
         if ( m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ON_HIT || m_pCurrentCommand->debug_hitboxes == CUserCmd::DEBUG_HITBOXES_ALWAYS_ON )
 		{
-            if (iBullet < MAX_PLAYER_BULLET_SERVER_POSITIONS)
+            if (m_iBulletServerPositionCount.Get() < MAX_PLAYER_BULLET_SERVER_POSITIONS)
             {
                 m_vecBulletServerPositions.Set(m_iBulletServerPositionCount.Get(), tr.endpos);
                 m_vecServerShootPosition.Set(m_iBulletServerPositionCount.Get(), vecSrc);

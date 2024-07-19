@@ -4,6 +4,7 @@
 //
 //===========================================================================//
 
+#include "dbg.h"
 #include "tier0/fasttimer.h"
 
 #ifdef _WIN32
@@ -3139,7 +3140,68 @@ void _Host_RunFrame (float time)
 		g_pMDLCache->MarkFrame();
 	}
 
-	{
+    const auto CalcInterpolationAmount = [&]()
+    {
+        // TODO_ENHANCED:
+        // Notice_Enhanced:
+        // This check permits to fix interpolation problems on the
+        // local player that valve has been (fucking finally)
+        // caring about on counter-strike 2.
+        //
+        // To recall the original issue, the
+        // problem that Valve cared about is that interpolation
+        // had some problems with interpolating the local
+        // player because the screen would never in the first
+        // place match the tick "screen", because interpolation
+        // amount could never reach 0.0 or 1.0
+        //
+        // Valve solution was to introduce bugs with lag
+        // compensating the local player and made the game worse,
+        // introducing a new way for cheaters to cheat even more
+        // on their games.
+        // I'm joking, but you can clearly see the outcome anyway.
+        //
+        // My solution is to simply set interpolation amount
+        // to 0.0 when a tick arrives.
+        //
+        // So when we shoot, we get the frame we shot with an
+        // interpolation amount at 0.0, perfectly aligned to user
+        // commands which is ideal for us.
+        //
+        // Now includes smoothing.
+
+        static float flLastInterpolationAmountOnTick = 0.0f;
+        float flInterpAmount                   = cl.m_tickRemainder / host_state.interval_per_tick;
+
+        if (numticks > 0)
+        {
+#ifdef false
+            printf("interpolation amount was %f, corrected to "
+                   "fix interpolation issues.\n",
+                   flInterpAmount);
+#endif
+            g_ClientGlobalVariables.interpolation_amount = 0.0f;
+            flLastInterpolationAmountOnTick = flInterpAmount;
+        }
+        else
+        {
+            // Just subtract the amount, so we can get a smooth interpolation being on a correct amount.
+            g_ClientGlobalVariables.interpolation_amount = flInterpAmount - flLastInterpolationAmountOnTick;
+
+            ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
+                       ("Interpolation amount was bigger than 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
+#ifdef false
+            printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
+                   g_ClientGlobalVariables.interpolation_amount,
+                   flInterpAmount,
+                   time,
+                   host_frametime,
+                   flLastInterpolationAmountOnTick);
+#endif
+        }
+    };
+
+    {
 		// Profile scope, protect from setjmp() problems
 		VPROF( "_Host_RunFrame" );
 		tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "_Host_RunFrame" );
@@ -3311,52 +3373,7 @@ void _Host_RunFrame (float time)
 				// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
                 Host_SetClientInSimulation(false);
 
-                // TODO_ENHANCED:
-                // Notice_Enhanced:
-                // This check permits to fix interpolation problems on the
-                // local player that valve has been (fucking finally)
-                // caring about on counter-strike 2.
-                //
-                // To recall the original issue, the
-                // problem that Valve cared about is that interpolation
-                // had some problems with interpolating the local
-                // player because the screen would never in the first
-                // place match the tick "screen", because interpolation
-                // amount could never reach 0.0 or 1.0
-                //
-                // Valve solution was to introduce bugs with lag
-                // compensating the local player and made the game worse,
-                // introducing a new way for cheaters to cheat even more
-                // on their games.
-                // I'm joking, but you can clearly see the outcome anyway.
-                //
-                // My solution is to simply set interpolation amount
-                // to 0.0 when a tick arrives.
-                //
-                // So when we shoot, we get the frame we shot with an
-                // interpolation amount at 0.0, perfectly aligned to user
-                // commands which is ideal for us.
-                //
-                // It might look a bit more unsmooth with lower fps
-                // but with high enough fps, the issue goes away anyway.
-                // It's not very noticeable which is very nice for us.
-                // No need to lag compensate the local player anymore !
-                if (numticks == 0)
-                {
-                    g_ClientGlobalVariables.interpolation_amount = (cl.m_tickRemainder
-                                                                    / host_state
-                                                                        .interval_per_tick);
-                }
-                else
-                {
-                    g_ClientGlobalVariables.interpolation_amount = 0.0f;
-    #ifdef false
-                    printf("interpolation amount was %f, corrected to "
-                           "fix interpolation issues.\n",
-                           cl.m_tickRemainder
-                             / host_state.interval_per_tick);
-    #endif
-                }
+                CalcInterpolationAmount();
 
     #if defined(REPLAY_ENABLED)
                 // Update client-side replay history manager - called here
@@ -3465,23 +3482,8 @@ void _Host_RunFrame (float time)
 			// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
 			Host_SetClientInSimulation( false );
 
-            // Please check Notice_Enhanced.
-			if (numticks == 0)
-			{
-				g_ClientGlobalVariables.interpolation_amount = (cl.m_tickRemainder
-																/ host_state
-																	.interval_per_tick);
-			}
-			else
-			{
-				g_ClientGlobalVariables.interpolation_amount = 0.0f;
-#ifdef false
-				printf("interpolation amount was %f, corrected to "
-						"fix interpolation issues.\n",
-						cl.m_tickRemainder
-							/ host_state.interval_per_tick);
-#endif
-			}
+            CalcInterpolationAmount();
+            
 			//-------------------
 			// Run prediction if it hasn't been run yet
 			//-------------------
