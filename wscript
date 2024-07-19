@@ -327,11 +327,11 @@ def options(opt):
 	opt.load('reconfigure')
 
 def check_deps(conf):
-	conf.check_cc(lib='zstd', mandatory=False)
 	if conf.env.DEST_OS != 'win32':
 		conf.check_cc(lib='dl', mandatory=False)
 		conf.check_cc(lib='bz2', mandatory=True)
 		conf.check_cc(lib='rt', mandatory=False)
+		conf.check_cc(lib='zstd', mandatory=True)
 
 		if not conf.env.LIB_M: # HACK: already added in xcompile!
 			conf.check_cc(lib='m')
@@ -417,6 +417,7 @@ def check_deps(conf):
 
 	if conf.env.DEST_OS == 'win32':
 		conf.check(lib='libz', uselib_store='ZLIB', define_name='USE_ZLIB')
+		conf.check(lib='libzstd', uselib_store='ZSTD')
 		# conf.check(lib='nvtc', uselib_store='NVTC')
 		# conf.check(lib='ati_compress_mt_vc10', uselib_store='ATI_COMPRESS_MT_VC10')
 		conf.check(lib='SDL2', uselib_store='SDL2')
@@ -492,7 +493,6 @@ def configure(conf):
 
 	cflags, linkflags = conf.get_optimization_flags()
 
-
 	flags = []
 
 	if conf.options.SANITIZE:
@@ -534,6 +534,7 @@ def configure(conf):
 		linkflags += flags
 	else:
 		cflags += [
+			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
 			'/GF',
@@ -545,7 +546,7 @@ def configure(conf):
 			'/TP',
 			'/EHsc'
 		]
-
+		
 		if conf.options.BUILD_TYPE == 'debug':
 			linkflags += [
 				'/FORCE:MULTIPLE',
