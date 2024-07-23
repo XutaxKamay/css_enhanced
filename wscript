@@ -280,7 +280,7 @@ def define_platform(conf):
 		])
 
 	conf.define('GIT_COMMIT_HASH', conf.env.GIT_VERSION)
-
+	conf.define('VPROF_LEVEL', 1)
 
 def options(opt):
 	grp = opt.add_option_group('Common options')

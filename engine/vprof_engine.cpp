@@ -567,6 +567,16 @@ DEFERRED_CON_COMMAND(vprof_reset_peaks, "Reset just the peak time in VProf profi
 	g_VProfCurrentProfile.ResetPeaks();
 }
 
+DEFERRED_CON_COMMAND(vprof_generate_report_full, "Generate a report to the console.")
+{
+	g_VProfCurrentProfile.Pause();
+	ConsoleLogger consoleLog;
+	// This used to generate six different reports, which is expensive and hard to read. Default to
+	// two to save time and space.
+	g_VProfCurrentProfile.OutputReport( VPRT_FULL );
+	g_VProfCurrentProfile.Resume();
+}
+
 DEFERRED_CON_COMMAND(vprof_generate_report, "Generate a report to the console.")
 {
 	g_VProfCurrentProfile.Pause();

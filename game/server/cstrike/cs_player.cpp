@@ -607,10 +607,11 @@ void CCSPlayer::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
 		return;
 
 	// don't run commands in the future
-	if ( !IsEngineThreaded() &&
-		( ucmd->tick_count > (gpGlobals->tickcount + sv_max_usercmd_future_ticks.GetInt()) ) )
+    if (!IsEngineThreaded()
+        && ((ucmd->tick_count > (gpGlobals->tickcount + sv_max_usercmd_future_ticks.GetInt()))
+        || ( ucmd->tick_count < (gpGlobals->tickcount - sv_max_usercmd_future_ticks.GetInt()) )))
 	{
-		DevMsg( "Client cmd out of sync (delta %i).\n", ucmd->tick_count - gpGlobals->tickcount );
+		DevMsg( "Client cmd out of sync (delta: %i, client: %i != server: %i).\n", ucmd->tick_count - gpGlobals->tickcount, ucmd->tick_count, gpGlobals->tickcount);
 		return;
 	}
 

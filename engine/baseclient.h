@@ -230,6 +230,7 @@ public:
 	int				m_nSignonState;		// connection state
 	int				m_nDeltaTick;		// -1 = no compression.  This is where the server is creating the
 										// compressed info from.
+	int             m_nClientTick;
 	int				m_nStringTableAckTick; // Highest tick acked for string tables (usually m_nDeltaTick, except when it's -1)
 	int				m_nSignonTick;		// tick the client got his signon data
 	CSmartPtr<CFrameSnapshot,CRefCountAccessorLongName> m_pLastSnapshot;	// last send snapshot
