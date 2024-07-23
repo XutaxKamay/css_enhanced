@@ -96,7 +96,8 @@ void CHLTVDemoRecorder::StartRecording( const char *filename, bool bContinuously
 
 	m_nFrameCount = 0;
 
-	m_nStartTick = host_tickcount;
+    m_nStartTick = host_tickcount;
+    m_nClientTick = host_tickcount;
 
 	// Demo playback should read this as an incoming message.
 	// Write the client's realtime value out so we can synchronize the reads.
@@ -173,7 +174,7 @@ void CHLTVDemoRecorder::WriteServerInfo()
 	serverinfo.WriteToBuffer( msg );
 
 	// send first tick
-	NET_Tick signonTick( m_nSignonTick, 0, 0 );
+	NET_Tick signonTick( m_nSignonTick, m_nClientTick, 0, 0 );
 	signonTick.WriteToBuffer( msg );
 
 	// write stringtable baselines
@@ -345,7 +346,7 @@ void CHLTVDemoRecorder::WriteFrame( CHLTVFrame *pFrame )
 	//now send snapshot data
 
 	// send tick time
-	NET_Tick tickmsg( pFrame->tick_count, host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tickmsg( pFrame->tick_count, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 	tickmsg.WriteToBuffer( msg );
 
 
@@ -380,7 +381,8 @@ void CHLTVDemoRecorder::WriteFrame( CHLTVFrame *pFrame )
 		msg.WriteBits( data->GetBasePointer(), data->GetNumBitsWritten()  );
 
 	// update delta tick just like fakeclients do
-	m_nDeltaTick = pFrame->tick_count;
+    m_nDeltaTick = pFrame->tick_count;
+    m_nClientTick = pFrame->tick_count;
 
 	// write packet to demo file
 	WriteMessages( dem_packet, msg ); 

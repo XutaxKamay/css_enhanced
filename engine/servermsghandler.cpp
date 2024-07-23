@@ -287,16 +287,16 @@ void CClientState::Disconnect( const char *pszReason, bool bShowMainMenu )
 
 bool CClientState::ProcessTick( NET_Tick *msg )
 {
-	int tick = msg->m_nTick;
+    int tick = msg->m_nTick;
 
-	m_NetChannel->SetRemoteFramerate( msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation );
+    m_NetChannel->SetRemoteFramerate(msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation);
 
-	m_ClockDriftMgr.SetServerTick( tick );
+    m_ClockDriftMgr.SetServerTick(tick,  msg->m_nLagTick, msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation);
 
-	// Remember this for GetLastTimeStamp().
-	m_flLastServerTickTime = tick * host_state.interval_per_tick;
+    // Remember this for GetLastTimeStamp().
+    m_flLastServerTickTime = tick * host_state.interval_per_tick;
 
-	// Use the server tick while reading network data (used for interpolation samples, etc).
+    // Use the server tick while reading network data (used for interpolation samples, etc).
 	g_ClientGlobalVariables.tickcount = tick;	
 	g_ClientGlobalVariables.curtime = tick * host_state.interval_per_tick;
 	g_ClientGlobalVariables.frametime = (tick - oldtickcount) * host_state.interval_per_tick;	// We used to call GetFrameTime() here, but 'insimulation' is always

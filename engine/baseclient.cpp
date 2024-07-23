@@ -529,7 +529,7 @@ void CBaseClient::SpawnPlayer( void )
 	}
 
 	// Set client clock to match server's
-	NET_Tick tick( m_Server->GetTick(), host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tick( m_Server->GetTick(), m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 	SendNetMsg( tick, true );
 	
 	// Spawned into server, not fully active, though
@@ -717,7 +717,7 @@ bool CBaseClient::SendServerInfo( void )
 	// send first tick
 	m_nSignonTick = m_Server->m_nTickCount;
 	
-	NET_Tick signonTick( m_nSignonTick, 0, 0 );
+	NET_Tick signonTick( m_nSignonTick, m_nClientTick, 0, 0 );
 	signonTick.WriteToBuffer( msg );
 
 	// write stringtable baselines
@@ -794,6 +794,7 @@ void CBaseClient::ConnectionStart(INetChannel *chan)
 bool CBaseClient::ProcessTick( NET_Tick *msg )
 {
 	m_NetChannel->SetRemoteFramerate( msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation );
+    m_nClientTick = msg->m_nLagTick;
 	return UpdateAcknowledgedFramecount( msg->m_nTick );
 }
 
@@ -1179,7 +1180,7 @@ write_again:
 	}
 
 	// send tick time
-	NET_Tick tickmsg( pFrame->tick_count, host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tickmsg( pFrame->tick_count, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 
 	StartTrace( msg );
 
