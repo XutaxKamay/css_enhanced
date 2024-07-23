@@ -99,9 +99,10 @@ void CClockDriftMgr::ApplyClockCorrection(bool bFinalTick)
 {
     if (bFinalTick)
     {
-        m_nCachedRealClientTick++;
+        cl.m_ClockDriftMgr.m_nCachedRealClientTick += cl.m_ClockDriftMgr.m_nNumberOfTicks;
     }
-    m_nClientTick = m_nCachedRealClientTick + m_nLagDiff + g_ClientGlobalVariables.simTicksThisFrame - 1;
+
+     m_nClientTick = m_nCachedRealClientTick + m_nLagDiff;
 }
 
 void CClockDriftMgr::ShowDebugInfo()

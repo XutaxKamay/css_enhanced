@@ -2234,7 +2234,15 @@ void CL_Move(float accumulated_extra_samples, bool bFinalTick )
 
 	if ( cl.IsActive() )
     {
-        NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick, host_frametime_unbounded, host_frametime_stddeviation );
+        // TODO_ENHANCED:
+        // When fps is lower than tickrate,
+        // the server doesn't really know how many ticks were processed this frame client-side.
+        //
+        // When the client tick count is sent to server, sv_max_usercmd_future_ticks doesn't take into account when
+        // multiple commands are ran from client because it had low fps.
+        // We could probably store in CUserCmd structure the current tick number to account for that ?
+        // This works anyway.
+        NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick + cl.m_ClockDriftMgr.m_nCurrentTick, host_frametime_unbounded, host_frametime_stddeviation );
 		cl.m_NetChannel->SendNetMsg( mymsg );
     }
 

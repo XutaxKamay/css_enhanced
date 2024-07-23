@@ -3130,6 +3130,8 @@ void _Host_RunFrame (float time)
 			host_remainder -= numticks * host_state.interval_per_tick;
 		}
 
+        cl.m_ClockDriftMgr.m_nNumberOfTicks = numticks;
+
 		host_nexttick = host_state.interval_per_tick - host_remainder;
 
 		g_pMDLCache->MarkFrame();
@@ -3246,7 +3248,7 @@ void _Host_RunFrame (float time)
 #endif
 			cl.m_tickRemainder = host_remainder;
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
-			cl.SetFrameTime( host_frametime );
+            cl.SetFrameTime(host_frametime);
 			for ( int tick = 0; tick < numticks; tick++ )
 			{ 
 				// Emit an ETW event every simulation frame.
@@ -3315,8 +3317,9 @@ void _Host_RunFrame (float time)
 				//-------------------
 #ifndef SWDS
 				if ( !sv.IsDedicated() )
-				{
-					_Host_RunFrame_Client( bFinalTick );
+                {
+                    cl.m_ClockDriftMgr.m_nCurrentTick = tick;
+                    _Host_RunFrame_Client(bFinalTick);
 				}
 
 				toolframework->Think( bFinalTick );
@@ -3358,7 +3361,8 @@ void _Host_RunFrame (float time)
 			// as quickly as we can.
 			if ( numticks == 0 && ( demoplayer->IsPlayingTimeDemo() || demoplayer->IsSkipping() ) )
 			{
-				_Host_RunFrame_Client( true );
+                cl.m_ClockDriftMgr.m_nCurrentTick = 0;
+                _Host_RunFrame_Client(true);
 			}
 
 			if ( !sv.IsDedicated() )
@@ -3455,7 +3459,8 @@ void _Host_RunFrame (float time)
 				//-------------------
 				if ( !sv.IsDedicated() )
 				{
-					_Host_RunFrame_Client( bFinalTick );
+                    cl.m_ClockDriftMgr.m_nCurrentTick = tick;
+                    _Host_RunFrame_Client(bFinalTick);
 				}
 				toolframework->Think( bFinalTick );
 			}
