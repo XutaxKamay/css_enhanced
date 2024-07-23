@@ -2495,11 +2495,8 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime ) ? true : false;
 
 	// Store simulation time for lag compensation.
-	if (simTimeChanged)
-		m_flInterpolatedSimulationTime = m_flSimulationTime;
-
-	if (animTimeChanged)
-		m_flInterpolatedAnimTime = m_flAnimTime;
+	m_flInterpolatedSimulationTime = m_flSimulationTime;
+	m_flInterpolatedAnimTime = m_flAnimTime;
 
 	// Detect simulation changes 
 	bool simulationChanged = originChanged || anglesChanged || simTimeChanged;
