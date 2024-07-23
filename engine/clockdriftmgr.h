@@ -39,6 +39,8 @@ public:
     int m_nOldServerTick;
 	int m_nServerTick;		// Last-received tick from the server.
     int m_nClientTick;
+    int m_nNumberOfTicks;
+    int m_nCurrentTick;
     int m_nCachedRealClientTick; // The client's own tick counter (specifically, for interpolation during rendering).
 							 // The server may be on a slightly different tick and the client will drift towards it.
     int m_nLaggedClientTick;
