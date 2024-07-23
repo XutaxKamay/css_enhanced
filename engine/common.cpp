@@ -1304,7 +1304,7 @@ unsigned int COM_GetIdealDestinationCompressionBufferSize_ZSTD(
     return 4 + ZSTD_compressBound(uncompressedSize);
 }
 
-static constexpr int ZSTD_COMPRESSION_LEVEL = 22;
+static constexpr int ZSTD_COMPRESSION_LEVEL = 22; // ZSTD_btultra2
 static auto g_pZSTDCCtx                     = ZSTD_createCCtx();
 
 template<typename T>
