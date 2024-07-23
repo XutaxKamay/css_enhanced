@@ -473,7 +473,7 @@ void CHLTVClient::SendSnapshot( CClientFrame * pFrame )
 	// now create client snapshot packet
 
 	// send tick time
-	NET_Tick tickmsg( pFrame->tick_count, host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tickmsg( pFrame->tick_count, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 	tickmsg.WriteToBuffer( msg );
 
 	// Update shared client/server string tables. Must be done before sending entities

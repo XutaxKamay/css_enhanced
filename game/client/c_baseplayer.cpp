@@ -2179,7 +2179,7 @@ void C_BasePlayer::Simulate()
             {
                 auto player = UTIL_PlayerByIndex(i);
 
-                if (player && player != GetLocalPlayer())
+                if (player)
                 {
                     player->DrawServerHitboxes(60.0f, true);
                 }
@@ -2191,7 +2191,7 @@ void C_BasePlayer::Simulate()
             {
                 auto player = UTIL_PlayerByIndex(entityIndex);
 
-                if (player && player != GetLocalPlayer())
+                if (player)
                 {
                     player->DrawServerHitboxes(60.0f, true);
                 }

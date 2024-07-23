@@ -407,7 +407,7 @@ BITBUF_INLINE void bf_write::WriteUBitLong( unsigned int curData, int numbits, b
 		SetOverflowFlag();
 		CallErrorHandler( BITBUFERROR_BUFFER_OVERRUN, GetDebugName() );
 		return;
-	}
+    }
 
 	int iCurBitMasked = m_iCurBit & 31;
 	int iDWord = m_iCurBit >> 5;
@@ -417,16 +417,17 @@ BITBUF_INLINE void bf_write::WriteUBitLong( unsigned int curData, int numbits, b
 	Assert( (iDWord*4 + sizeof(int32)) <= (unsigned int)m_nDataBytes );
     uint32 * RESTRICT pOut = &m_pData[iDWord];
 
-	// Rotate data into dword alignment
-	curData = (curData << iCurBitMasked) | (curData >> (32 - iCurBitMasked));
-
+    // Rotate data into dword alignment
+    uint32 dwordCurData = LoadLittleDWord(&curData, 0);
+    curData             = (dwordCurData << iCurBitMasked) | (dwordCurData >> (32 - iCurBitMasked));
+    
 	// Calculate bitmasks for first and second word
-	unsigned int temp = 1 << (numbits-1);
-	unsigned int mask1 = (temp*2-1) << iCurBitMasked;
-	unsigned int mask2 = (temp-1) >> (31 - iCurBitMasked);
+    unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1 << numbits) - 1;
+	unsigned int mask1 = bitmask << iCurBitMasked;
+	unsigned int mask2 = ((1 << (numbits - 1))-1) >> (31 - iCurBitMasked);
 	
 	// Only look beyond current word if necessary (avoid access violation)
-	int i = mask2 & 1;
+	unsigned int i = mask2 & 1;
     uint32 dword1 = LoadLittleDWord( pOut, 0 );
     uint32 dword2 = LoadLittleDWord( pOut, i );
 	
@@ -784,12 +785,7 @@ BITBUF_INLINE unsigned int bf_read::ReadUBitLong( int numbits ) RESTRICT
 	unsigned int iWordOffset2 = iLastBit >> 5;
 	m_iCurBit += numbits;
 	
-#if __i386__
-	unsigned int bitmask = (2 << (numbits-1)) - 1;
-#else
-	extern uint32 g_ExtraMasks[33];
-	unsigned int bitmask = g_ExtraMasks[numbits];
-#endif
+	unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1 << numbits) - 1;
 
 	unsigned int dw1 = LoadLittleDWord( (uint32* RESTRICT)m_pData, iWordOffset1 ) >> iStartBit;
 	unsigned int dw2 = LoadLittleDWord( (uint32* RESTRICT)m_pData, iWordOffset2 ) << (32 - iStartBit);

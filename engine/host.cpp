@@ -1943,11 +1943,6 @@ void Host_AccumulateTime( float dt )
 	}
 #endif
 
-	// Adjust the client clock very slightly to keep it in line with the server clock.
-	float adj = cl.GetClockDriftMgr().AdjustFrameTime( host_frametime ) - host_frametime;
-	host_frametime += adj;
-	host_frametime_unbounded += adj;
-
 	if ( g_pSoundServices )									// not present on linux server
 		g_pSoundServices->SetSoundFrametime(dt, host_frametime);
 
@@ -3289,7 +3284,7 @@ void _Host_RunFrame (float time)
 				++host_tickcount;
 				++host_currentframetick;
 #ifndef SWDS
-				g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+                g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
 
 				// Make sure state is correct
 				CL_CheckClientState();
@@ -3447,7 +3442,7 @@ void _Host_RunFrame (float time)
 				// initialize networking for dedicated server after commandline & autoexec.cfg have been parsed
 				if ( NET_IsDedicated() && !NET_IsMultiplayer() )
 					NET_SetMutiplayer( true );
-				g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+                g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
 
 				// Make sure state is correct
 				CL_CheckClientState();

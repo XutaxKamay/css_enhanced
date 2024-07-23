@@ -60,7 +60,8 @@ public:
 	int				m_nFrameCount;
 	float			m_nStartTick;
 	int				m_SequenceInfo;
-	int				m_nDeltaTick;	
+	int				m_nDeltaTick;
+	int             m_nClientTick;	
 	int				m_nSignonTick;
 	bf_write		m_MessageData; // temp buffer for all network messages
 };

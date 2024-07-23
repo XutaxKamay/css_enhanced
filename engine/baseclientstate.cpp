@@ -1010,8 +1010,9 @@ bool CBaseClientState::ProcessTick( NET_Tick *msg )
 
 	// Note: CClientState separates the client and server clock states and drifts
 	// the client's clock to match the server's, but right here, we keep the two clocks in sync.
-	SetClientTickCount( msg->m_nTick );
-	SetServerTickCount( msg->m_nTick );
+    SetClientTickCount( msg->m_nTick );
+    SetServerTickCount( msg->m_nTick );
+	m_ClockDriftMgr.m_nLaggedClientTick = msg->m_nLagTick;
 
 	if ( m_StringTableContainer )
 	{
