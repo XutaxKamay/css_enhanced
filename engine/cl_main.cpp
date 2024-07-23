@@ -518,19 +518,6 @@ void CL_ReadPackets ( bool bFinalTick )
 	// update client times/tick
 
 	cl.oldtickcount = cl.GetServerTickCount();
-	if ( !cl.IsPaused() )
-	{
-		cl.SetClientTickCount( cl.GetClientTickCount() + 1 );
-		
-		// While clock correction is off, we have the old behavior of matching the client and server clocks.
-		if ( !CClockDriftMgr::IsClockCorrectionEnabled() )
-			cl.SetServerTickCount( cl.GetClientTickCount() );
-
-		g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
-		g_ClientGlobalVariables.curtime = cl.GetTime();
-	}
-	// 0 or tick_rate if simulating
-	g_ClientGlobalVariables.frametime = cl.GetFrameTime();
 
 	// read packets, if any in queue
 	if ( demoplayer->IsPlayingBack() && cl.m_NetChannel )
@@ -573,6 +560,26 @@ void CL_ReadPackets ( bool bFinalTick )
 		return;
 	}
 #endif
+
+    // Moved after process socket so we can receive the lastest updates.
+	if ( !cl.IsPaused() )
+    {
+		// While clock correction is off, we have the old behavior of matching the client and server clocks.
+        if (!CClockDriftMgr::IsClockCorrectionEnabled())
+        {
+            cl.SetClientTickCount(cl.GetClientTickCount() + 1);
+            cl.SetServerTickCount(cl.GetClientTickCount());
+        }
+        else
+        {
+            cl.m_ClockDriftMgr.ApplyClockCorrection(bFinalTick);
+        }
+
+        g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+		g_ClientGlobalVariables.curtime = cl.GetTime();
+	}
+	// 0 or tick_rate if simulating
+	g_ClientGlobalVariables.frametime = cl.GetFrameTime();
 
 }
 
@@ -2128,8 +2135,6 @@ void CL_SendMove( void )
 
 void CL_Move(float accumulated_extra_samples, bool bFinalTick )
 {
-    CL_ReadPackets(bFinalTick);
-
 	if ( !cl.IsConnected() )
 		return;
 
@@ -2228,10 +2233,10 @@ void CL_Move(float accumulated_extra_samples, bool bFinalTick )
 	}
 
 	if ( cl.IsActive() )
-	{
-		NET_Tick mymsg( cl.m_nDeltaTick, host_frametime_unbounded, host_frametime_stddeviation );
+    {
+        NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 		cl.m_NetChannel->SendNetMsg( mymsg );
-	}
+    }
 
 	//COM_Log( "cl.log", "Sending command number %i(%i) to server\n", cl.m_NetChan->m_nOutSequenceNr, cl.m_NetChan->m_nOutSequenceNr & CL_UPDATE_MASK );
 

@@ -1032,8 +1032,10 @@ const char *SVC_VoiceData::ToString(void) const
 
 bool NET_Tick::WriteToBuffer( bf_write &buffer )
 {
+    VPROF( "NET_Tick::WriteToBuffer" );
 	buffer.WriteUBitLong( GetType(), NETMSG_TYPE_BITS );
 	buffer.WriteLong( m_nTick );
+	buffer.WriteLong( m_nLagTick );
 #if PROTOCOL_VERSION > 10
 	buffer.WriteUBitLong( clamp( (int)( NET_TICK_SCALEUP * m_flHostFrameTime ), 0, 65535 ), 16 );
 	buffer.WriteUBitLong( clamp( (int)( NET_TICK_SCALEUP * m_flHostFrameTimeStdDeviation ), 0, 65535 ), 16 );
@@ -1046,6 +1048,7 @@ bool NET_Tick::ReadFromBuffer( bf_read &buffer )
 	VPROF( "NET_Tick::ReadFromBuffer" );
 
 	m_nTick = buffer.ReadLong();
+	m_nLagTick = buffer.ReadLong();
 #if PROTOCOL_VERSION > 10
 	m_flHostFrameTime				= (float)buffer.ReadUBitLong( 16 ) / NET_TICK_SCALEUP;
 	m_flHostFrameTimeStdDeviation	= (float)buffer.ReadUBitLong( 16 ) / NET_TICK_SCALEUP;
@@ -1055,7 +1058,7 @@ bool NET_Tick::ReadFromBuffer( bf_read &buffer )
 
 const char *NET_Tick::ToString(void) const
 {
-	Q_snprintf(s_text, sizeof(s_text), "%s: tick %i", GetName(), m_nTick );
+	Q_snprintf(s_text, sizeof(s_text), "%s: tick %i, lagtick %i", GetName(), m_nTick, m_nLagTick );
 	return s_text;
 }
 

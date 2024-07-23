@@ -292,7 +292,7 @@ void CHLTVClientState::SendPacket()
 	
 	if ( IsActive() )
 	{
-		NET_Tick tick( m_nDeltaTick, host_frametime_unbounded, host_frametime_stddeviation );
+		NET_Tick tick( m_nDeltaTick, host_tickcount, host_frametime_unbounded, host_frametime_stddeviation );
 		m_NetChannel->SendNetMsg( tick );
 	}
 

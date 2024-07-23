@@ -61,6 +61,10 @@
 
 #ifdef VPROF_ENABLED
 
+#ifndef VPROF_LEVEL
+#define VPROF_LEVEL 0
+#endif
+
 #define VPROF_VTUNE_GROUP
 
 #define	VPROF( name )						VPROF_(name, 1, VPROF_BUDGETGROUP_OTHER_UNACCOUNTED, false, 0)
@@ -68,7 +72,7 @@
 #define	VPROF_( name, detail, group, bAssertAccounted, budgetFlags )		VPROF_##detail(name,group, bAssertAccounted, budgetFlags)
 
 #define VPROF_BUDGET( name, group )					VPROF_BUDGET_FLAGS(name, group, BUDGETFLAG_OTHER)
-#define VPROF_BUDGET_FLAGS( name, group, flags )	VPROF_(name, 0, group, false, flags)
+#define VPROF_BUDGET_FLAGS( name, group, flags )	VPROF_(name, 1, group, false, flags)
 
 #define VPROF_SCOPE_BEGIN( tag )	do { VPROF( tag )
 #define VPROF_SCOPE_END()			} while (0)
@@ -151,10 +155,6 @@
 #endif
 
 //-------------------------------------
-
-#ifndef VPROF_LEVEL
-#define VPROF_LEVEL 0
-#endif
 
 //these macros exist to create VProf_<line number> variables. This is important because it avoids /analyze warnings about variable aliasing when VPROF's are nested within each other, and allows
 //for multiple VPROF's to exist within the same scope. Three macros must be used to force the __LINE__ to be resolved prior to the token concatenation, but just ignore the _INTERNAL macros and use

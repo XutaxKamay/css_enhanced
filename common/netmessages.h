@@ -144,18 +144,21 @@ class NET_Tick : public CNetMessage
 	DECLARE_NET_MESSAGE( Tick );
 
 	NET_Tick() 
-	{ 
-		m_bReliable = false; 
+	{
+        m_bReliable = false;
+        m_nTick = 0;
+        m_nLagTick = 0;
 #if PROTOCOL_VERSION > 10
 		m_flHostFrameTime				= 0;
 		m_flHostFrameTimeStdDeviation	= 0;
 #endif
 	};
 
-	NET_Tick( int tick, float hostFrametime, float hostFrametime_stddeviation ) 
+	NET_Tick( int tick, int lagTick, float hostFrametime, float hostFrametime_stddeviation ) 
 	{ 
-		m_bReliable = false; 
-		m_nTick = tick; 
+		m_bReliable = false;
+        m_nTick     = tick;
+        m_nLagTick = lagTick; 
 #if PROTOCOL_VERSION > 10
 		m_flHostFrameTime			= hostFrametime;
 		m_flHostFrameTimeStdDeviation	= hostFrametime_stddeviation;
@@ -166,7 +169,8 @@ class NET_Tick : public CNetMessage
 	};
 	
 public:
-	int			m_nTick; 
+	int			m_nTick;
+	int         m_nLagTick; 
 #if PROTOCOL_VERSION > 10
 	float		m_flHostFrameTime;
 	float		m_flHostFrameTimeStdDeviation;

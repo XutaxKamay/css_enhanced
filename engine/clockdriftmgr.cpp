@@ -19,33 +19,6 @@ ConVar cl_clockdrift_max_ms_threadmode( "cl_clockdrift_max_ms_threadmode", "0", 
 ConVar cl_clock_showdebuginfo( "cl_clock_showdebuginfo", "0", FCVAR_CHEAT, "Show debugging info about the clock drift. ");
 
 ConVar cl_clock_correction_force_server_tick( "cl_clock_correction_force_server_tick", "999", FCVAR_CHEAT, "Force clock correction to match the server tick + this offset (-999 disables it)."  );
-
-ConVar cl_clock_correction_adjustment_max_amount( "cl_clock_correction_adjustment_max_amount", "200", FCVAR_CHEAT, 
-	"Sets the maximum number of milliseconds per second it is allowed to correct the client clock. "
-	"It will only correct this amount if the difference between the client and server clock is equal to or larger than cl_clock_correction_adjustment_max_offset." );
-
-ConVar cl_clock_correction_adjustment_min_offset( "cl_clock_correction_adjustment_min_offset", "10", FCVAR_CHEAT, 
-	"If the clock offset is less than this amount (in milliseconds), then no clock correction is applied." );
-
-ConVar cl_clock_correction_adjustment_max_offset( "cl_clock_correction_adjustment_max_offset", "90", FCVAR_CHEAT, 
-	"As the clock offset goes from cl_clock_correction_adjustment_min_offset to this value (in milliseconds), "
-	"it moves towards applying cl_clock_correction_adjustment_max_amount of adjustment. That way, the response "
-	"is small when the offset is small." );
-
-
-
-// Given the offset (in milliseconds) of the client clock from the server clock,
-// returns how much correction we'd like to apply per second (in seconds).
-static float GetClockAdjustmentAmount( float flCurDiffInMS )
-{
-	flCurDiffInMS = clamp( flCurDiffInMS, cl_clock_correction_adjustment_min_offset.GetFloat(), cl_clock_correction_adjustment_max_offset.GetFloat() );
-
-	float flReturnValue = RemapVal( flCurDiffInMS,
-		cl_clock_correction_adjustment_min_offset.GetFloat(), cl_clock_correction_adjustment_max_offset.GetFloat(),
-		0, cl_clock_correction_adjustment_max_amount.GetFloat() / 1000.0f );
-
-	return flReturnValue;
-}
 	 
 
 // -------------------------------------------------------------------------------------------------- /
@@ -60,10 +33,12 @@ CClockDriftMgr::CClockDriftMgr()
 
 void CClockDriftMgr::Clear()
 {
-	m_nClientTick = 0;
+    m_nClientTick = 0;
 	m_nServerTick = 0;
-	m_iCurClockOffset = 0;
-	memset( m_ClockOffsets, 0, sizeof( m_ClockOffsets ) );
+    m_nOldServerTick  = 0;
+    m_nLaggedClientTick = 0;
+    m_flServerHostFrametime = 0.0f;
+    m_flServerHostFrametimeStdDeviation = 0.0f;
 }
 
 
@@ -76,137 +51,76 @@ void CClockDriftMgr::Clear()
 // NOTE: or decrementing the client tick after receiving pause
 // NOTE: This is due to the fact that currently pause is applied at frame start on the server
 // NOTE: and frame end on the client
-void CClockDriftMgr::SetServerTick( int nTick )
+void CClockDriftMgr::SetServerTick( int nTick, int nLaggedTick, float flServerHostFrametime, float flServerHostFrametimeStdDeviation )
 {
 #if !defined( SWDS )
-	m_nServerTick = nTick;
+    m_nServerTick = nTick;
+    m_nLaggedClientTick = nLaggedTick;
+    m_flServerHostFrametime = flServerHostFrametime;
+    m_flServerHostFrametimeStdDeviation = flServerHostFrametimeStdDeviation;
 
-	int nMaxDriftTicks = IsEngineThreaded() ? 
-		TIME_TO_TICKS( (cl_clockdrift_max_ms_threadmode.GetFloat() / 1000.0) ) :
-		TIME_TO_TICKS( (cl_clockdrift_max_ms.GetFloat() / 1000.0) );
+    int clientTick = m_nClientTick + g_ClientGlobalVariables.simTicksThisFrame - 1;
+    int nMaxDriftTicks = IsEngineThreaded() ? TIME_TO_TICKS((cl_clockdrift_max_ms_threadmode.GetFloat() / 1000.0)) :
+                                              TIME_TO_TICKS((cl_clockdrift_max_ms.GetFloat() / 1000.0));
 
-	int clientTick = cl.GetClientTickCount() + g_ClientGlobalVariables.simTicksThisFrame - 1;
-	if ( cl_clock_correction_force_server_tick.GetInt() == 999 )
+
+	if (cl_clock_correction_force_server_tick.GetInt() == 999)
 	{
-		// If this is the first tick from the server, or if we get further than cl_clockdrift_max_ticks off, then 
+        if (IsClockCorrectionEnabled())
+        {
+            // Take the difference between last sent client tick and server tick
+            // This will give how much we are shifted from the server perfectly
+            // If server fps is higher than tickrate.
+            m_nLagDiff = m_nServerTick - m_nLaggedClientTick;
+        }
+    	// If this is the first tick from the server, or if we get further than cl_clockdrift_max_ticks off, then
 		// use the old behavior and slam the server's tick into the client tick.
-		if ( !IsClockCorrectionEnabled() ||
-			 clientTick == 0 || 
-			 abs(nTick - clientTick) > nMaxDriftTicks
-			)
-		{
-			cl.SetClientTickCount( nTick - (g_ClientGlobalVariables.simTicksThisFrame - 1) );
-			if ( cl.GetClientTickCount() < cl.oldtickcount )
-			{
-				cl.oldtickcount = cl.GetClientTickCount();
-			}
-			memset( m_ClockOffsets, 0, sizeof( m_ClockOffsets ) );
-		}
-	}
+        else if (!IsClockCorrectionEnabled() || clientTick == 0 || abs(nTick - clientTick) > nMaxDriftTicks)
+        {
+            m_nClientTick = (nTick - (g_ClientGlobalVariables.simTicksThisFrame - 1));
+            if (m_nClientTick < cl.oldtickcount)
+            {
+                cl.oldtickcount = m_nClientTick;
+            }
+        }
+    }
 	else
 	{
 		// Used for testing..
-		cl.SetClientTickCount( nTick + cl_clock_correction_force_server_tick.GetInt() );
+		m_nClientTick = (nTick + cl_clock_correction_force_server_tick.GetInt());
 	}
 
-	// adjust the clock offset by the clock with thread mode compensation
-	m_ClockOffsets[m_iCurClockOffset] = clientTick - m_nServerTick;
-	m_iCurClockOffset = (m_iCurClockOffset + 1) % NUM_CLOCKDRIFT_SAMPLES;
+    ShowDebugInfo();
+    m_nOldServerTick = m_nServerTick;
 #endif // SWDS
 }
 
-
-float CClockDriftMgr::AdjustFrameTime( float inputFrameTime )
+void CClockDriftMgr::ApplyClockCorrection(bool bFinalTick)
 {
-	float flAdjustmentThisFrame = 0;
-	float flAdjustmentPerSec = 0;
-	if ( IsClockCorrectionEnabled() 
-#if !defined( _XBOX ) && !defined( SWDS )
-		 && !demoplayer->IsPlayingBack()
-#endif
-		)
-	{
-		// Get the clock difference in seconds.
-		float flCurDiffInSeconds = GetCurrentClockDifference() * host_state.interval_per_tick;
-		float flCurDiffInMS = flCurDiffInSeconds * 1000.0f;
-
-		// Is the server ahead or behind us?
-		if ( flCurDiffInMS > cl_clock_correction_adjustment_min_offset.GetFloat() )
-		{
-			flAdjustmentPerSec = -GetClockAdjustmentAmount( flCurDiffInMS );
-			flAdjustmentThisFrame = inputFrameTime * flAdjustmentPerSec;
-			flAdjustmentThisFrame = max( flAdjustmentThisFrame, -flCurDiffInSeconds );
-		}
-		else if ( flCurDiffInMS < -cl_clock_correction_adjustment_min_offset.GetFloat() )
-		{
-			flAdjustmentPerSec = GetClockAdjustmentAmount( -flCurDiffInMS );
-			flAdjustmentThisFrame = inputFrameTime * flAdjustmentPerSec;
-			flAdjustmentThisFrame = min( flAdjustmentThisFrame, -flCurDiffInSeconds );
-		}
-
-		if ( IsEngineThreaded() )
-		{
-			flAdjustmentThisFrame = -flCurDiffInSeconds;
-		}
-
-		AdjustAverageDifferenceBy( flAdjustmentThisFrame );
-	}
-
-	ShowDebugInfo( flAdjustmentPerSec );
-	return inputFrameTime + flAdjustmentThisFrame;
+    if (bFinalTick)
+    {
+        m_nCachedRealClientTick++;
+    }
+    m_nClientTick = m_nCachedRealClientTick + m_nLagDiff + g_ClientGlobalVariables.simTicksThisFrame - 1;
 }
 
-
-float CClockDriftMgr::GetCurrentClockDifference() const
+void CClockDriftMgr::ShowDebugInfo()
 {
-	// Note: this could be optimized a little by updating it each time we add
-	// a sample (subtract the old value from the total and add the new one in).
-	float total = 0;
-	for ( int i=0; i < NUM_CLOCKDRIFT_SAMPLES; i++ )
-		total += m_ClockOffsets[i];
-
-	return total / NUM_CLOCKDRIFT_SAMPLES;
-}
-
-
-void CClockDriftMgr::ShowDebugInfo( float flAdjustment )
-{
+#if !defined( SWDS )
 	if ( !cl_clock_showdebuginfo.GetInt() )
 		return;
 
 	if ( IsClockCorrectionEnabled() )
-	{
-		int high=-999, low=999;
-		int exactDiff = cl.GetClientTickCount() - m_nServerTick;
-		for ( int i=0; i < NUM_CLOCKDRIFT_SAMPLES; i++ )
-		{
-			high = max( (float)high, m_ClockOffsets[i] );
-			low = min( (float)low, m_ClockOffsets[i] );
-		}
+    {
+        int clientTick = m_nClientTick + g_ClientGlobalVariables.simTicksThisFrame - 1;
 
-		Msg( "Clock drift: adjustment (per sec): %.2fms, avg: %.3f, lo: %d, hi: %d, ex: %d\n", flAdjustment*1000.0f, GetCurrentClockDifference(), low, high, exactDiff );
+		ConMsg( "Clock drift: client sim tick: %i, client tick: %i, server tick: %i, lagged tick: %i, cached server tick: %i\n", clientTick, m_nClientTick, m_nServerTick, m_nLaggedClientTick, m_nCachedRealClientTick);
 	}
 	else
 	{
-		Msg( "Clock drift disabled.\n" );
-	}
-}
-
-
-void CClockDriftMgr::AdjustAverageDifferenceBy( float flAmountInSeconds )
-{
-	// Don't adjust the average if it's already tiny.
-	float c = GetCurrentClockDifference();
-	if ( c < 0.05f )
-		return;
-
-	float flAmountInTicks = flAmountInSeconds / host_state.interval_per_tick;
-	float factor = 1 + flAmountInTicks / c;
-
-	for ( int i=0; i < NUM_CLOCKDRIFT_SAMPLES; i++ )
-		m_ClockOffsets[i] *= factor;
-	
-	Assert( fabs( GetCurrentClockDifference() - (c + flAmountInTicks) ) < 0.001f );
+		ConMsg( "Clock drift disabled.\n" );
+    }
+#endif
 }
 
 extern float NET_GetFakeLag();
