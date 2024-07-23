@@ -492,7 +492,7 @@ void CCSPlayer::FireBullet(
 #ifdef CLIENT_DLL
     static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
 
-    if (cl_showfirebullethitboxes.GetBool())
+    if (cl_showfirebullethitboxes.GetBool() && IsLocalPlayer())
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
@@ -569,7 +569,7 @@ void CCSPlayer::FireBullet(
 
         static ConVarRef cl_showimpacts("cl_showimpacts");
 
-        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2)
+        if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2) && IsLocalPlayer())
         {
             NDebugOverlay::SweptBox(vecSrc,
                                     tr.endpos,
@@ -588,7 +588,7 @@ void CCSPlayer::FireBullet(
         {
             C_BasePlayer* player = ToBasePlayer(tr.m_pEnt);
 
-            if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2)
+            if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2) && IsLocalPlayer())
             {
                 player->DrawClientHitboxes(60.0f, true);
             }
