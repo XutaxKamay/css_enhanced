@@ -2146,7 +2146,7 @@ void C_BasePlayer::Simulate()
     static ConVarRef cl_showimpacts("cl_showimpacts");
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
     
-    if (m_bDebugServerBullets)
+    if (m_bDebugServerBullets && IsLocalPlayer())
     {
         if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
         {
@@ -2179,7 +2179,7 @@ void C_BasePlayer::Simulate()
             {
                 auto player = UTIL_PlayerByIndex(i);
 
-                if (player)
+                if (player && !player->IsLocalPlayer())
                 {
                     player->DrawServerHitboxes(60.0f, true);
                 }
@@ -2191,7 +2191,7 @@ void C_BasePlayer::Simulate()
             {
                 auto player = UTIL_PlayerByIndex(entityIndex);
 
-                if (player)
+                if (player && !player->IsLocalPlayer())
                 {
                     player->DrawServerHitboxes(60.0f, true);
                 }
