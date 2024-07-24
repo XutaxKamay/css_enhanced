@@ -2145,67 +2145,192 @@ void C_BasePlayer::Simulate()
 	static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
     static ConVarRef cl_showimpacts("cl_showimpacts");
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
-    
+    static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
+
+    static auto DrawBullet = [&](Vector src, Vector endpos, int r, int g, int b, int a, float duration)
+    {
+        NDebugOverlay::SweptBox(src,
+                                endpos,
+                                Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                                Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                                QAngle(0, 0, 0),
+                                r,
+                                g,
+                                b,
+                                a,
+                                duration);
+        NDebugOverlay::Box(endpos,
+                           Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
+                           Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
+                           r,
+                           g,
+                           b,
+                           a,
+                           duration);
+    };
+
+    // HACK: Server var is always more delayed than client, should be safe.
     if (m_bDebugServerBullets && IsLocalPlayer())
     {
-        if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+		bool shouldDrawClientBullets = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
+        bool shouldDrawServerBullets = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2;
+        static constexpr float flShowDuration = 60.f;
+
+        if (shouldDrawClientBullets)
         {
-            for (int i = 0; i < m_vecServerShootPositions.Count(); i++)
+            for (int i = 0; i < m_vecClientShootPositions.Count(); i++)
             {
-                NDebugOverlay::SweptBox(m_vecServerShootPositions[i],
-                                        m_vecBulletServerPositions[i],
-                                        Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
-                                        Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
-                                        QAngle(0, 0, 0),
-                                        0,
-                                        0,
-                                        255,
-                                        127,
-                                        60.f);
-                NDebugOverlay::Box(m_vecBulletServerPositions[i],
-                                   Vector(-m_lastBulletDiameter, -m_lastBulletDiameter, -m_lastBulletDiameter) / 2,
-                                   Vector(m_lastBulletDiameter, m_lastBulletDiameter, m_lastBulletDiameter) / 2,
-                                   0,
-                                   0,
-                                   255,
-                                   127,
-                                   60.f);
+                DrawBullet(m_vecClientShootPositions[i],
+                           m_vecBulletClientPositions[i],
+                           0,
+                           255,
+                           0,
+                           127,
+                           flShowDuration);
             }
         }
 
-        if (cl_showfirebullethitboxes.GetBool())
+        if (shouldDrawServerBullets)
+        {
+            for (int i = 0; i < m_vecServerShootPositions.Count(); i++)
+            {
+                DrawBullet(m_vecServerShootPositions[i],
+                           m_vecBulletServerPositions[i],
+                           0,
+                           0,
+                           255,
+                           127,
+                           flShowDuration);
+            }
+        }
+
+        bool shouldDrawClientSS = debug_screenshot_bullet_position.GetInt() == 1 || debug_screenshot_bullet_position.GetInt() == 3;
+        bool shouldDrawServerSS = debug_screenshot_bullet_position.GetInt() == 1 || debug_screenshot_bullet_position.GetInt() == 2;
+
+        if (shouldDrawClientSS)
+        {
+            for (int i = 0; i < m_vecClientShootPositions.Count(); i++)
+            {
+                DrawBullet(m_vecClientShootPositions[i],
+                           m_vecBulletClientPositions[i],
+                           0,
+                           255,
+                           0,
+                           127,
+                           gpGlobals->frametime);
+            }
+        }
+
+        if (shouldDrawServerSS)
+        {
+            for (int i = 0; i < m_vecServerShootPositions.Count(); i++)
+            {
+                DrawBullet(m_vecServerShootPositions[i],
+                           m_vecBulletServerPositions[i],
+                           0,
+                           0,
+                           255,
+                           127,
+                           gpGlobals->frametime);
+            }
+        }
+
+		bool shouldDrawClientBulletPlayerHitbox = cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 3;
+		bool shouldDrawServerBulletPlayerHitbox = cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 2;
+
+        if (shouldDrawClientBulletPlayerHitbox || shouldDrawServerBulletPlayerHitbox)
         {
             for (int i = 1; i <= gpGlobals->maxClients; i++)
             {
                 auto player = UTIL_PlayerByIndex(i);
 
-                if (player && !player->IsLocalPlayer())
+                if (!player || player->IsLocalPlayer())
                 {
-                    player->DrawServerHitboxes(60.0f, true);
+                    continue;
+                }
+
+                if (shouldDrawClientBulletPlayerHitbox)
+                {
+                    player->DrawClientRecordedHitboxes(flShowDuration, true);
+                }
+
+                if (shouldDrawServerBulletPlayerHitbox)
+                {
+                    player->DrawServerHitboxes(flShowDuration, true);
                 }
             }
         }
-        else
+        else if (shouldDrawClientBullets || shouldDrawServerBullets)
         {
             for (auto&& entityIndex : m_touchedEntitiesWithBullet)
             {
                 auto player = UTIL_PlayerByIndex(entityIndex);
 
-                if (player && !player->IsLocalPlayer())
+                if (!player || player->IsLocalPlayer())
                 {
-                    player->DrawServerHitboxes(60.0f, true);
+                    continue;
+                }
+
+                if (shouldDrawClientBullets)
+                {
+                    player->DrawClientRecordedHitboxes(flShowDuration, true);
+                }
+
+                if (shouldDrawServerBullets)
+                {
+                    player->DrawServerHitboxes(flShowDuration, true);
                 }
             }
         }
-        
+
+        if (shouldDrawClientSS || shouldDrawServerSS)
+		{
+            for (auto&& entityIndex : m_touchedEntitiesWithBullet)
+            {
+                auto player = UTIL_PlayerByIndex(entityIndex);
+
+                if (!player || player->IsLocalPlayer())
+                {
+                    continue;
+                }
+
+                if (shouldDrawClientSS)
+                {
+                    player->DrawClientRecordedHitboxes(gpGlobals->frametime, true);
+                }
+
+                if (shouldDrawServerSS)
+                {
+                    player->DrawServerHitboxes(gpGlobals->frametime, true);
+                }
+            }
+        }
+
+        if (shouldDrawClientSS || shouldDrawServerSS)
+        {
+            gpGlobals->client_taking_screenshot = true;
+        }
+
+        // Remove accumulated client bullets.
+        m_vecBulletClientPositions.RemoveAll();
+        m_vecClientShootPositions.RemoveAll();
         m_bDebugServerBullets = false;
     }
 
-    if (cl_showhitboxes.GetBool() && IsPlayer() && this != GetLocalPlayer())
+    bool shouldShowClientHitboxes = cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 3;
+    bool shouldShowServerHitboxes = cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2;
+    bool shouldShowHitboxes = IsPlayer() && this != GetLocalPlayer();
+    
+    if (shouldShowClientHitboxes && shouldShowHitboxes)
     {
-        DrawClientHitboxes(gpGlobals->frametime, true);
+        RecordClientHitboxes();
+        DrawClientRecordedHitboxes(gpGlobals->frametime, true);
+    }
+
+    if (shouldShowServerHitboxes && shouldShowHitboxes)
+    {
         DrawServerHitboxes(gpGlobals->frametime, true);
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
