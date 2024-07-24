@@ -22,6 +22,7 @@
 #include "con_nprint.h"
 #include "hud_pdump.h"
 #include "datacache/imdlcache.h"
+#include "util_shared.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -895,7 +896,9 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		player->SetLocalViewAngles( ucmd->viewangles );
 	}
-	
+
+    // Always record for debugging.
+    // Sometimes the hitbox wasn't hit by the player client side!
     RunPostThink( player );
 
 // TODO

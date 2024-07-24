@@ -5574,6 +5574,49 @@ static Vector	hullcolor[8] =
 	Vector( 1.0, 1.0, 1.0 )
 };
 
+void C_BaseAnimating::RecordClientHitboxes()
+{
+    CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( !pStudioHdr )
+		return;
+
+	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+		return;
+
+	for ( int i = 0; i < set->numhitboxes; i++ )
+	{
+		mstudiobbox_t *pbox = set->pHitbox( i );
+
+		GetBonePosition( pbox->bone, m_vecHitboxClientPositions[pbox->bone], m_angHitboxClientAngles[pbox->bone] );
+	}
+}
+
+void C_BaseAnimating::DrawClientRecordedHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
+{
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( !pStudioHdr )
+		return;
+
+	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+		return;
+
+	Vector position;
+	QAngle angles;
+
+	int r = 0;
+	int g = 255;
+	int b = 0;
+
+	for ( int i = 0; i < set->numhitboxes; i++ )
+	{
+		mstudiobbox_t *pbox = set->pHitbox( i );
+
+		debugoverlay->AddBoxOverlay( m_vecHitboxClientPositions[pbox->bone], pbox->bbmin, pbox->bbmax, m_angHitboxClientAngles[pbox->bone], r, g, b, 127 ,duration );
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Draw the current hitboxes
 //-----------------------------------------------------------------------------
