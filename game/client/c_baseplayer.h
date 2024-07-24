@@ -645,6 +645,8 @@ public:
     CUtlVector<Vector> m_vecBulletServerPositions;
     CUtlVector<Vector> m_vecServerShootPositions;
     CUtlVector<int> m_touchedEntitiesWithBullet;
+    CUtlVector<Vector> m_vecBulletClientPositions;
+    CUtlVector<Vector> m_vecClientShootPositions;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

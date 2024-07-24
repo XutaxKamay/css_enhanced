@@ -369,7 +369,9 @@ public:
 	int								GetHitboxSet( void );
 	char const						*GetHitboxSetName( void );
 	int								GetHitboxSetCount( void );
+	void                            RecordClientHitboxes();
 	void							DrawClientHitboxes( float duration = 0.0f, bool monocolor = false );
+	void							DrawClientRecordedHitboxes( float duration = 0.0f, bool monocolor = false );
 	void							DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );
 
 	C_BaseAnimating*				FindFollowedEntity();
@@ -644,6 +646,8 @@ private:
   public:
 	Vector							m_vecHitboxServerPositions[MAXSTUDIOBONES];
 	QAngle							m_angHitboxServerAngles[MAXSTUDIOBONES];
+	Vector							m_vecHitboxClientPositions[MAXSTUDIOBONES];
+	QAngle							m_angHitboxClientAngles[MAXSTUDIOBONES];
 };
 
 enum 

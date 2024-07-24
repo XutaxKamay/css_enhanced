@@ -489,35 +489,28 @@ void CCSPlayer::FireBullet(
 	CBasePlayer *lastPlayerHit = NULL;
     MDLCACHE_CRITICAL_SECTION();
 
-#ifdef CLIENT_DLL
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+    bool shouldTakeAllPlayers = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE;
+    bool shouldTakeHitPlayer = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
 
-    if (cl_showfirebullethitboxes.GetBool() && IsLocalPlayer())
-    {
-        for (int i = 1; i <= gpGlobals->maxClients; i++)
-        {
-            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
-
-			if ( lagPlayer && !lagPlayer->IsLocalPlayer() && IsLocalPlayer())
-			{
-				lagPlayer->DrawClientHitboxes(60, true);
-			}
-        }
-	}
-#else
-    if ( m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE )
+    if ( shouldTakeAllPlayers && !shouldTakeHitPlayer )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
             CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
 
 			if( lagPlayer )
-			{
-				lagPlayer->RecordServerHitboxes(this);
+            {
+#ifdef CLIENT_DLL
+                if (!m_pCurrentCommand->hasbeenpredicted)
+                {
+                    lagPlayer->RecordClientHitboxes();
+                }
+#else
+                lagPlayer->RecordServerHitboxes(this);
+#endif
             }
 		}
     }
-#endif
 
 	while ( fCurrentDamage > 0 )
 	{
@@ -563,56 +556,34 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-
-#ifdef CLIENT_DLL
-        m_lastBulletDiameter = flBulletDiameter;
-
-        static ConVarRef cl_showimpacts("cl_showimpacts");
-
-        if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2) && IsLocalPlayer())
+        if (shouldTakeHitPlayer)
         {
-            NDebugOverlay::SweptBox(vecSrc,
-                                    tr.endpos,
-                                    vecBulletRadiusMins,
-                                    vecBulletRadiusMaxs,
-                                    QAngle(0, 0, 0),
-                                    255,
-                                    0,
-                                    0,
-                                    127,
-                                    60.0f);
-            NDebugOverlay::Box(tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, 255, 0, 0, 127, 60.f);
-        }
-
-        if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
-        {
-            C_BasePlayer* player = ToBasePlayer(tr.m_pEnt);
-
-            if ((cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2) && IsLocalPlayer())
-            {
-                player->DrawClientHitboxes(60.0f, true);
-            }
-        }
-#else
-        bool shouldShowServerHitRegistration = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
-        
-        if (shouldShowServerHitRegistration)
-        {
+#ifndef CLIENT_DLL
             m_vecBulletServerPositions.AddToTail(tr.endpos);
             m_vecServerShootPositions.AddToTail(vecSrc);
-
+#else
+            m_vecBulletClientPositions.AddToTail(tr.endpos);
+            m_vecClientShootPositions.AddToTail(vecSrc);
+#endif
             if (tr.m_pEnt)
             {
+#ifndef CLIENT_DLL
                 m_touchedEntitiesWithBullet.AddToTail(tr.m_pEnt->entindex());
-			}
-
-            if (tr.m_pEnt && tr.m_pEnt->IsPlayer())
-            {
-                CBasePlayer* player = ToBasePlayer(tr.m_pEnt);
-                player->RecordServerHitboxes(this);
+#endif
+                if (tr.m_pEnt->IsPlayer() && !shouldTakeAllPlayers)
+                {
+                    CBasePlayer* player = ToBasePlayer(tr.m_pEnt);
+    #ifdef CLIENT_DLL
+                    if (!m_pCurrentCommand->hasbeenpredicted)
+                    {
+                        player->RecordClientHitboxes();
+                    }
+    #else
+                    player->RecordServerHitboxes(this);
+    #endif
+                }
             }
         }
-#endif
 
         //calculate the damage based on the distance the bullet travelled.
 		flCurrentDistance += tr.fraction * flDistance;

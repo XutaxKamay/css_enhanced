@@ -1315,7 +1315,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
-
+    static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
+    
     cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
       
     if (cl_showhitboxes.GetBool())
@@ -1328,11 +1329,10 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_FIRE;
     }
 
-    if (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3)
+    if (cl_showimpacts.GetBool() || debug_screenshot_bullet_position.GetBool())
     {
         cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
     }
-
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();
