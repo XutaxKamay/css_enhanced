@@ -116,7 +116,10 @@ CCSBotManager::CCSBotManager()
 	m_commonEventListeners.AddToTail( &m_WeaponFireOnEmptyEvent );
 	m_commonEventListeners.AddToTail( &m_WeaponReloadEvent );
 	m_commonEventListeners.AddToTail( &m_WeaponZoomEvent );
-	m_commonEventListeners.AddToTail( &m_BulletImpactEvent );
+    m_commonEventListeners.AddToTail( &m_BulletImpactEvent );
+    m_commonEventListeners.AddToTail( &m_BulletHitPlayerEvent );
+	m_commonEventListeners.AddToTail( &m_BulletPlayerHitboxesEvent );
+	m_commonEventListeners.AddToTail( &m_PlayerLagHitboxesEvent );
 	m_commonEventListeners.AddToTail( &m_GrenadeBounceEvent );
 	m_commonEventListeners.AddToTail( &m_NavBlockedEvent );
 
@@ -2004,6 +2007,20 @@ void CCSBotManager::OnBulletImpact( IGameEvent *event )
 	CCSBOTMANAGER_ITERATE_BOTS( OnBulletImpact, event );
 }
 
+void CCSBotManager::OnBulletHitPlayer( IGameEvent *event )
+{
+	CCSBOTMANAGER_ITERATE_BOTS( OnBulletHitPlayer, event );
+}
+
+void CCSBotManager::OnBulletPlayerHitboxes( IGameEvent *event )
+{
+	CCSBOTMANAGER_ITERATE_BOTS( OnBulletPlayerHitboxes, event );
+}
+
+void CCSBotManager::OnPlayerLagHitboxes( IGameEvent *event )
+{
+	CCSBOTMANAGER_ITERATE_BOTS( OnPlayerLagHitboxes, event );
+}
 
 //--------------------------------------------------------------------------------------------------------------
 void CCSBotManager::OnHEGrenadeDetonate( IGameEvent *event )

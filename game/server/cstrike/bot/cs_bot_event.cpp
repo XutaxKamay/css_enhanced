@@ -198,6 +198,17 @@ void CCSBot::OnBulletImpact( IGameEvent *event )
 	//OnAudibleEvent( event, player, 1100.0f, PRIORITY_MEDIUM, true, false, &actualOrigin ); // bullet_impact
 }
 
+void CCSBot::OnBulletHitPlayer( IGameEvent *event )
+{
+}
+
+void CCSBot::OnBulletPlayerHitboxes( IGameEvent *event )
+{
+}
+
+void CCSBot::OnPlayerLagHitboxes( IGameEvent *event )
+{
+}
 
 //--------------------------------------------------------------------------------------------------------------
 void CCSBot::OnBreakProp( IGameEvent *event )

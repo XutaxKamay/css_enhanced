@@ -291,18 +291,9 @@ void FX_FireBullets(
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
 
-#ifndef CLIENT_DLL
-	pPlayer->m_vecBulletServerPositions.RemoveAll();
-	pPlayer->m_vecServerShootPositions.RemoveAll();
-	pPlayer->m_touchedEntitiesWithBullet.RemoveAll();
-	pPlayer->m_bDebugServerBullets = true;
-#endif
-
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
-        // Still take the screenshot where we shooted, make a screenshot when we received the server bullet hits too.
 #ifdef CLIENT_DLL
-    	static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
         if (pPlayer->IsLocalPlayer() && debug_screenshot_bullet_position.GetBool())
         {
             gpGlobals->client_taking_screenshot = true;

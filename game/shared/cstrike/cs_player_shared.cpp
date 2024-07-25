@@ -6,6 +6,7 @@
 
 #include "cbase.h"
 #include "debugoverlay_shared.h"
+#include "strtools.h"
 #ifndef CLIENT_DLL
 #include "player.h"
 #else
@@ -419,6 +420,22 @@ inline void UTIL_TraceLineIgnoreTwoEntities(const Vector& vecAbsStart, const Vec
 	}
 }
 
+#ifdef CLIENT_DLL
+void CCSPlayer::DrawBullet(const Vector& src,
+                    const Vector& endpos,
+                    const Vector& mins,
+                    const Vector& maxs,
+                    int r,
+                    int g,
+                    int b,
+                    int a,
+                    float duration)
+{
+    NDebugOverlay::SweptBox(src, endpos, mins, maxs, QAngle(0, 0, 0), r, g, b, a, duration);
+    NDebugOverlay::Box(endpos, mins, maxs, r, g, b, a, duration);
+}
+#endif
+
 void CCSPlayer::FireBullet(
 	int iBullet, // bullet number
 	Vector vecSrc,	// shooting postion
@@ -450,8 +467,8 @@ void CCSPlayer::FireBullet(
 
     float flBulletRadius = flBulletDiameter / 2.0f;
     
-    Vector vecBulletRadiusMaxs(flBulletRadius, flBulletRadius, flBulletRadius);
-	Vector vecBulletRadiusMins(-flBulletRadius, -flBulletRadius, -flBulletRadius);
+    Vector vecBulletRadiusMaxs(flBulletRadius);
+	Vector vecBulletRadiusMins(-flBulletRadius);
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
@@ -489,27 +506,68 @@ void CCSPlayer::FireBullet(
 	CBasePlayer *lastPlayerHit = NULL;
     MDLCACHE_CRITICAL_SECTION();
 
-    bool shouldTakeAllPlayers = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE;
-    bool shouldTakeHitPlayer = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
+    bool shouldDebugHitboxesOnFire = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE;
+    bool shouldDebugHitboxesOnHit = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
 
-    if ( shouldTakeAllPlayers && !shouldTakeHitPlayer )
+    // TODO_ENHANCED:
+    // Send only to only one client,
+    // others clients don't need the information on how other players lag compensated players.
+#ifdef CLIENT_DLL
+    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+    static ConVarRef cl_showimpacts("cl_showimpacts");
+    shouldDebugHitboxesOnHit = shouldDebugHitboxesOnHit && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2);
+    shouldDebugHitboxesOnFire = shouldDebugHitboxesOnFire && (cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 2);
+#endif
+    if ( shouldDebugHitboxesOnFire && !shouldDebugHitboxesOnHit )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
             CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
-
-			if( lagPlayer )
+            if (lagPlayer && lagPlayer != this)
             {
 #ifdef CLIENT_DLL
                 if (!m_pCurrentCommand->hasbeenpredicted)
                 {
-                    lagPlayer->RecordClientHitboxes();
+                    lagPlayer->DrawClientHitboxes(m_flDebugDuration, true);
                 }
 #else
-                lagPlayer->RecordServerHitboxes(this);
+                IGameEvent* event = gameeventmanager->CreateEvent("bullet_player_hitboxes");
+                if (event)
+                {
+                    event->SetInt("userid", GetUserID());
+                    event->SetInt("player_index", lagPlayer->entindex());
+
+                    Vector positions[MAXSTUDIOBONES];
+                    QAngle angles[MAXSTUDIOBONES];
+                    int indexes[MAXSTUDIOBONES];
+
+                    int numhitboxes = lagPlayer->GetServerHitboxes(positions, angles, indexes);
+                    event->SetInt("num_hitboxes", numhitboxes);
+
+                    for (int i = 0; i < numhitboxes; i++)
+                    {
+                        char buffer[256];
+                        V_sprintf_safe(buffer, "hitbox_index_%i", i);
+                        event->SetInt(buffer, indexes[i]);
+                        V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
+                        event->SetFloat(buffer, positions[indexes[i]].x);
+                        V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
+                        event->SetFloat(buffer, positions[indexes[i]].y);
+                        V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
+                        event->SetFloat(buffer, positions[indexes[i]].z);
+                        V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
+                        event->SetFloat(buffer, angles[indexes[i]].x);
+                        V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
+                        event->SetFloat(buffer, angles[indexes[i]].y);
+                        V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
+                        event->SetFloat(buffer, angles[indexes[i]].z);
+                    }
+
+                    gameeventmanager->FireEventClientSide(event);
+                }
 #endif
             }
-		}
+        }
     }
 
 	while ( fCurrentDamage > 0 )
@@ -556,32 +614,80 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-        if (shouldTakeHitPlayer)
+        if (shouldDebugHitboxesOnHit)
         {
-#ifndef CLIENT_DLL
-            m_vecBulletServerPositions.AddToTail(tr.endpos);
-            m_vecServerShootPositions.AddToTail(vecSrc);
-#else
-            m_vecBulletClientPositions.AddToTail(tr.endpos);
-            m_vecClientShootPositions.AddToTail(vecSrc);
-#endif
-            if (tr.m_pEnt)
+#ifdef CLIENT_DLL
+            if (!m_pCurrentCommand->hasbeenpredicted)
             {
-#ifndef CLIENT_DLL
-                m_touchedEntitiesWithBullet.AddToTail(tr.m_pEnt->entindex());
+                DrawBullet(vecSrc,
+                           tr.endpos,
+                           vecBulletRadiusMins,
+                           vecBulletRadiusMaxs,
+                           0,
+                           255,
+                           0,
+                           127,
+                           m_flDebugDuration);
+            }
+#else
+            IGameEvent* event = gameeventmanager->CreateEvent("bullet_impact");
+            if (event)
+            {
+                event->SetInt("userid", GetUserID());
+                event->SetFloat("src_x", vecSrc.x);
+                event->SetFloat("src_y", vecSrc.y);
+                event->SetFloat("src_z", vecSrc.z);
+                event->SetFloat("dst_x", tr.endpos.x);
+                event->SetFloat("dst_y", tr.endpos.y);
+                event->SetFloat("dst_z", tr.endpos.z);
+                event->SetFloat("radius", flBulletRadius);
+                gameeventmanager->FireEventClientSide(event);
+            }
 #endif
-                if (tr.m_pEnt->IsPlayer() && !shouldTakeAllPlayers)
+            if (tr.m_pEnt && tr.m_pEnt->IsPlayer() && !shouldDebugHitboxesOnFire)
+            {
+                const auto lagPlayer = UTIL_PlayerByIndex(tr.m_pEnt->entindex());
+#ifdef CLIENT_DLL
+                if (!m_pCurrentCommand->hasbeenpredicted)
                 {
-                    CBasePlayer* player = ToBasePlayer(tr.m_pEnt);
-    #ifdef CLIENT_DLL
-                    if (!m_pCurrentCommand->hasbeenpredicted)
-                    {
-                        player->RecordClientHitboxes();
-                    }
-    #else
-                    player->RecordServerHitboxes(this);
-    #endif
+                    lagPlayer->DrawClientHitboxes(m_flDebugDuration, true);
                 }
+#else
+                IGameEvent* eventHit = gameeventmanager->CreateEvent("bullet_hit_player");
+                if (eventHit)
+                {
+                    eventHit->SetInt("userid", GetUserID());
+                    eventHit->SetInt("player_index", lagPlayer->entindex());
+
+                    Vector positions[MAXSTUDIOBONES];
+                    QAngle angles[MAXSTUDIOBONES];
+                    int indexes[MAXSTUDIOBONES];
+
+                    int numhitboxes = lagPlayer->GetServerHitboxes(positions, angles, indexes);
+                    eventHit->SetInt("num_hitboxes", numhitboxes);
+
+                    for (int i = 0; i < numhitboxes; i++)
+                    {
+                        char buffer[256];
+                        V_sprintf_safe(buffer, "hitbox_index_%i", i);
+                        eventHit->SetInt(buffer, indexes[i]);
+                        V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
+                        eventHit->SetFloat(buffer, positions[indexes[i]].x);
+                        V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
+                        eventHit->SetFloat(buffer, positions[indexes[i]].y);
+                        V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
+                        eventHit->SetFloat(buffer, positions[indexes[i]].z);
+                        V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
+                        eventHit->SetFloat(buffer, angles[indexes[i]].x);
+                        V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
+                        eventHit->SetFloat(buffer, angles[indexes[i]].y);
+                        V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
+                        eventHit->SetFloat(buffer, angles[indexes[i]].z);
+                    }
+
+                    gameeventmanager->FireEventClientSide(eventHit);
+                }
+#endif
             }
         }
 

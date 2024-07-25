@@ -100,8 +100,6 @@ ConVar thirdperson_platformer( "thirdperson_platformer", "0", 0, "Player will ai
 ConVar thirdperson_screenspace( "thirdperson_screenspace", "0", 0, "Movement will be relative to the camera, eg: left means screen-left" );
 
 ConVar sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCVAR_CHEAT, "If cheats are enabled, then you can noclip with the game paused (for doing screenshots, etc.)." );
-ConVar cl_showimpacts("cl_showimpacts", "0");
-ConVar cl_showfirebullethitboxes( "cl_showfirebullethitboxes", "0" );
 extern ConVar cl_mouselook;
 
 #define UsingMouselook() cl_mouselook.GetBool()
@@ -1314,9 +1312,12 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flSimulationTime;
     }
 
+#ifdef CSTRIKE_DLL
     static ConVarRef cl_showhitboxes("cl_showhitboxes");
     static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
-    
+    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+    static ConVarRef cl_showimpacts("cl_showimpacts");
+
     cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
       
     if (cl_showhitboxes.GetBool())
@@ -1333,6 +1334,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     {
         cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
     }
+#endif
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

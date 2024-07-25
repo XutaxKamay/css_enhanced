@@ -4,15 +4,19 @@
 //
 //=============================================================================//
 
+#include "KeyValues.h"
 #include "cbase.h"
 #include "c_cs_player.h"
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
+#include "convar.h"
 #include "dt_recv.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
+#include "mathlib/vector.h"
 #include "shareddefs.h"
 #include "studio.h"
+#include "util_shared.h"
 #include "view.h"
 #include "iclientvehicle.h"
 #include "ivieweffects.h"
@@ -79,6 +83,9 @@ extern ConVar	spec_freeze_distance_max;
 //=============================================================================
 // HPE_END
 //=============================================================================
+ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT);
+ConVar cl_showimpacts("cl_showimpacts", "0");
+ConVar cl_showfirebullethitboxes("cl_showfirebullethitboxes", "0");
 
 ConVar cl_left_hand_ik( "cl_left_hand_ik", "0", 0, "Attach player's left hand to rifle with IK." );
 
@@ -87,7 +94,6 @@ ConVar cl_ragdoll_physics_enable( "cl_ragdoll_physics_enable", "1", 0, "Enable/d
 ConVar cl_minmodels( "cl_minmodels", "0", 0, "Uses one player model for each team." );
 ConVar cl_min_ct( "cl_min_ct", "1", 0, "Controls which CT model is used when cl_minmodels is set.", true, 1, true, 4 );
 ConVar cl_min_t( "cl_min_t", "1", 0, "Controls which Terrorist model is used when cl_minmodels is set.", true, 1, true, 4 );
-const float CycleLatchTolerance = 0.15;	// amount we can diverge from the server's cycle before we're corrected
 
 extern ConVar mp_playerid_delay;
 extern ConVar mp_playerid_hold;
@@ -783,6 +789,26 @@ C_CSPlayer::C_CSPlayer() :
 	view->SetScreenOverlayMaterial( NULL );
 
     m_bPlayingFreezeCamSound = false;
+
+    // HACK_ENHANCED:
+    static bool bDoOnce = false;
+    if (!bDoOnce)
+    {
+        static auto bullet_impact_kv = new KeyValues("bullet_impact");
+        gameeventmanager->RegisterEvent(bullet_impact_kv);
+        static auto bullet_hit_player_kv = new KeyValues("bullet_hit_player");
+        gameeventmanager->RegisterEvent(bullet_hit_player_kv);
+        static auto bullet_player_hitboxes_kv = new KeyValues("bullet_player_hitboxes");
+        gameeventmanager->RegisterEvent(bullet_player_hitboxes_kv);
+        static auto player_lag_hitboxes_kv = new KeyValues("player_lag_hitboxes");
+        gameeventmanager->RegisterEvent(player_lag_hitboxes_kv);
+        bDoOnce = true;
+    }
+
+    ListenForGameEvent( "bullet_impact" );
+	ListenForGameEvent( "bullet_hit_player" );
+	ListenForGameEvent( "bullet_player_hitboxes" );
+	ListenForGameEvent( "player_lag_hitboxes" );
 }
 
 
@@ -2129,6 +2155,100 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 		BaseClass::FireEvent( origin, angles, event, options );
 }
 
+void C_CSPlayer::FireGameEvent(IGameEvent* event)
+{
+	static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+	static ConVarRef cl_showimpacts("cl_showimpacts");
+    static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
+
+    BaseClass::FireGameEvent(event);
+    
+    bool shouldShowImpacts = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
+    bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 3;
+    bool shouldShowHitboxes = cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 3;
+    
+    const auto showEventHitboxes = [&](float flDuration)
+    {
+        const int index = event->GetInt("userid");
+        if (index == GetUserID() && IsLocalPlayer())
+        {
+            const auto playerIndex = event->GetInt("player_index");
+            const auto player      = UTIL_PlayerByIndex(playerIndex);
+
+            if (player && !player->IsLocalPlayer())
+            {
+                const auto numhitboxes = event->GetInt("num_hitboxes");
+                QAngle angles[MAXSTUDIOBONES];
+                Vector positions[MAXSTUDIOBONES];
+
+                for (int i = 0; i < numhitboxes; i++)
+                {
+                    char buffer[256];
+                    V_sprintf_safe(buffer, "hitbox_index_%i", i);
+                    const auto hitboxIndex = event->GetInt(buffer);
+
+                    V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
+                    positions[hitboxIndex].x = event->GetFloat(buffer);
+                    V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
+                    positions[hitboxIndex].y = event->GetFloat(buffer);
+                    V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
+                    positions[hitboxIndex].z = event->GetFloat(buffer);
+
+                    V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
+                    angles[hitboxIndex].x = event->GetFloat(buffer);
+                    V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
+                    angles[hitboxIndex].y = event->GetFloat(buffer);
+                    V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
+                    angles[hitboxIndex].z = event->GetFloat(buffer);
+
+                }
+
+                player->DrawServerHitboxes(positions, angles, flDuration, true);
+            }
+        }
+    };
+
+    if ( FStrEq( event->GetName(), "bullet_impact" ) && shouldShowImpacts )
+	{
+		const int index = event->GetInt( "userid" );
+		if ( index == GetUserID() && IsLocalPlayer() )
+        {
+            Vector src(event->GetFloat("src_x"), event->GetFloat("src_y"), event->GetFloat("src_z"));
+            Vector dst(event->GetFloat("dst_x"), event->GetFloat("dst_y"), event->GetFloat("dst_z"));
+            float flBulletRadius = event->GetFloat("radius");
+
+            Vector mins(-flBulletRadius);
+            Vector maxs(flBulletRadius);
+
+            DrawBullet(src, dst, mins, maxs, 0, 0, 255, 127, m_flDebugDuration);
+
+            // If both happens to be on the same frame, let it be.
+            if (debug_screenshot_bullet_position.GetBool())
+            {
+                gpGlobals->client_taking_screenshot = true;
+            }
+        }
+    }
+    else if (FStrEq(event->GetName(), "bullet_hit_player") && shouldShowImpacts)
+    {
+        showEventHitboxes(m_flDebugDuration);
+
+        // If both happens to be on the same frame, let it be.
+        if (debug_screenshot_bullet_position.GetBool())
+        {
+            gpGlobals->client_taking_screenshot = true;
+        }
+    }
+    else if (FStrEq(event->GetName(), "bullet_player_hitboxes") && shouldShowFireBulletHitboxes)
+    {
+        showEventHitboxes(m_flDebugDuration);
+    }
+    else if (FStrEq(event->GetName(), "player_lag_hitboxes") && shouldShowHitboxes)
+    {
+        showEventHitboxes(-1.0f);
+	}
+}
+
 
 void C_CSPlayer::SetActivity( Activity eActivity )
 {
@@ -2231,6 +2351,11 @@ void C_CSPlayer::Simulate( void )
 	}
 
     BaseClass::Simulate();
+
+    if ((cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2) && !IsLocalPlayer())
+    {
+        DrawClientHitboxes(-1.0f, true);
+	}
 }
 
 void C_CSPlayer::PostThink()
