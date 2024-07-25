@@ -57,6 +57,7 @@
 #include "gamestats.h"
 #include "holiday_gift.h"
 #include "../../shared/cstrike/cs_achievement_constants.h"
+#include "ilagcompensationmanager.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -506,7 +507,6 @@ CCSPlayer::CCSPlayer()
 	m_vLastHitLocationObjectSpace = Vector(0,0,0);
 
 	m_wasNotKilledNaturally = false;
-	 
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
@@ -1585,7 +1585,57 @@ void CCSPlayer::UpdateMouseoverHints()
 }
 
 void CCSPlayer::PostThink()
-{   
+{
+    if (m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ALWAYS_ON)
+    {
+		lagcompensation->StartLagCompensation( this, GetCurrentCommand() );
+
+        for (int i = 1; i <= gpGlobals->maxClients; i++)
+        {
+            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
+
+            if (!lagPlayer)
+                continue;
+
+            IGameEvent* event = gameeventmanager->CreateEvent("player_lag_hitboxes");
+            if (event)
+            {
+                event->SetInt("userid", GetUserID());
+                event->SetInt("player_index", lagPlayer->entindex());
+
+                Vector positions[MAXSTUDIOBONES];
+                QAngle angles[MAXSTUDIOBONES];
+                int indexes[MAXSTUDIOBONES];
+
+                int numhitboxes = lagPlayer->GetServerHitboxes(positions, angles, indexes);
+                event->SetInt("num_hitboxes", numhitboxes);
+
+                for (int i = 0; i < numhitboxes; i++)
+                {
+                    char buffer[256];
+                    V_sprintf_safe(buffer, "hitbox_index_%i", i);
+                    event->SetInt(buffer, indexes[i]);
+                    V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
+                    event->SetFloat(buffer, positions[indexes[i]].x);
+                    V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
+                    event->SetFloat(buffer, positions[indexes[i]].y);
+                    V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
+                    event->SetFloat(buffer, positions[indexes[i]].z);
+                    V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
+                    event->SetFloat(buffer, angles[indexes[i]].x);
+                    V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
+                    event->SetFloat(buffer, angles[indexes[i]].y);
+                    V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
+                    event->SetFloat(buffer, angles[indexes[i]].z);
+                }
+
+                gameeventmanager->FireEventClientSide(event);
+            }
+        }
+    
+		lagcompensation->FinishLagCompensation( this );
+    }
+
 	BaseClass::PostThink();
 
 	UpdateAddonBits();

@@ -123,6 +123,7 @@ public:
 	void PlayReloadEffect();
 
 	virtual void FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options );
+    virtual void FireGameEvent(IGameEvent* event);
 
 	bool		 HasC4( void );
 
@@ -380,7 +381,16 @@ private:
     // HPE_END
     //=============================================================================
 
-
+    static constexpr auto m_flDebugDuration = 60.f;
+    void DrawBullet(const Vector& src,
+                    const Vector& endpos,
+                    const Vector& mins,
+                    const Vector& maxs,
+                    int r,
+                    int g,
+                    int b,
+                    int a,
+                    float duration);
 
 	C_CSPlayer( const C_CSPlayer & );
 };

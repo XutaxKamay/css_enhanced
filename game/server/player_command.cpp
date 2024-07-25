@@ -346,23 +346,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
     g_pGameMovement->StartTrackPredictionErrors( player );
 
-    if (ucmd->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ALWAYS_ON)
-    {
-		lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
-
-        for (int i = 1; i <= gpGlobals->maxClients; i++)
-        {
-            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
-
-            if (!lagPlayer)
-                continue;
-
-			lagPlayer->RecordServerHitboxes( player );
-        }
-    
-		lagcompensation->FinishLagCompensation( player );
-    }
-
     RunPostThink( player );
 
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash

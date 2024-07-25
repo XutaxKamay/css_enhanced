@@ -912,8 +912,9 @@ void DrawOverlay( OverlayBase_t *pOverlay )
 
 	case OVERLAY_SWEPT_BOX:
 		{
-			OverlaySweptBox_t *pBox = static_cast<OverlaySweptBox_t*>(pOverlay);
-			RenderWireframeSweptBox( pBox->start, pBox->end, pBox->angles, pBox->mins, pBox->maxs, Color( pBox->r, pBox->g, pBox->b, pBox->a ), true );
+            OverlaySweptBox_t* pBox = static_cast<OverlaySweptBox_t*>(pOverlay);
+			RenderSweptBox( pBox->start, pBox->end, pBox->angles, pBox->mins, pBox->maxs, Color( pBox->r, pBox->g, pBox->b, pBox->a ), false );
+			RenderWireframeSweptBox( pBox->start, pBox->end, pBox->angles, pBox->mins, pBox->maxs, Color( pBox->r, pBox->g, pBox->b, pBox->a ), false );
 		}
 		break;
 

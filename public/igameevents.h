@@ -134,6 +134,7 @@ public:
 	// write/read event to/from bitbuffer
 	virtual bool SerializeEvent( IGameEvent *event, bf_write *buf ) = 0;
 	virtual IGameEvent *UnserializeEvent( bf_read *buf ) = 0; // create new KeyValues, must be deleted
+	virtual bool RegisterEvent( KeyValues * keys ) = 0;
 };
 
 // the old game event manager interface, don't use it. Rest is legacy support:

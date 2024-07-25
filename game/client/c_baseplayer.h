@@ -639,14 +639,6 @@ public:
 	bool  ShouldGoSouth( Vector vNPCForward, Vector vNPCRight ); //Such a bad name.
 
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
-	
-	float m_lastBulletDiameter;
-    bool m_bDebugServerBullets;
-    CUtlVector<Vector> m_vecBulletServerPositions;
-    CUtlVector<Vector> m_vecServerShootPositions;
-    CUtlVector<int> m_touchedEntitiesWithBullet;
-    CUtlVector<Vector> m_vecBulletClientPositions;
-    CUtlVector<Vector> m_vecClientShootPositions;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);
