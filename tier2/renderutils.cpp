@@ -664,6 +664,73 @@ static void DrawExtrusionFace( const Vector& start, const Vector& end,
 	meshBuilder.AdvanceVertex();
 }
 
+void RenderSweptBox( const Vector &vStart, const Vector &vEnd, const QAngle &angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer )
+{
+    InitializeStandardMaterials();
+
+	CMatRenderContextPtr pRenderContext( g_pMaterialSystem );
+	pRenderContext->Bind( bZBuffer ? s_pVertexColor : s_pVertexColorIgnoreZ );
+
+	Color cActual( c.r(), c.g(), c.b(), c.a() );
+
+	// Build a rotation matrix from angles
+	matrix3x4_t fRotateMatrix;
+	AngleMatrix( angles, fRotateMatrix );
+
+	IMesh *pMesh = pRenderContext->GetDynamicMesh( );
+	CMeshBuilder meshBuilder;
+	meshBuilder.Begin( pMesh, MATERIAL_LINES, 30 );
+
+	Vector vDelta;
+	VectorSubtract( vEnd, vStart, vDelta );
+
+	// Compute the box points, rotated but without the origin added
+	Vector temp;
+	Vector pts[8];
+	float dot[8];
+	int minidx = 0;
+	for ( int i = 0; i < 8; ++i )
+	{
+		temp.x = (i & 0x1) ? vMaxs[0] : vMins[0];
+		temp.y = (i & 0x2) ? vMaxs[1] : vMins[1];
+		temp.z = (i & 0x4) ? vMaxs[2] : vMins[2];
+
+		// Rotate the corner point
+		VectorRotate( temp, fRotateMatrix, pts[i] );
+
+		// Find the dot product with dir
+		dot[i] = DotProduct( pts[i], vDelta );
+		if ( dot[i] < dot[minidx] )
+		{
+			minidx = i;
+		}
+	}
+
+	// Choose opposite corner
+	int maxidx = minidx ^ 0x7;
+
+	// Draw the start + end axes...
+	DrawAxes( vStart, pts, minidx, cActual, meshBuilder );
+	DrawAxes( vEnd, pts, maxidx, cActual, meshBuilder );
+
+	// Draw the extrusion faces
+	for (int j = 0; j < 3; ++j )
+	{
+		int dirflag1 = ( 1 << ((j+1)%3) );
+		int dirflag2 = ( 1 << ((j+2)%3) );
+
+		int idx1, idx2, idx3;
+		idx1 = (minidx & dirflag1) ? minidx - dirflag1 : minidx + dirflag1;
+		idx2 = (minidx & dirflag2) ? minidx - dirflag2 : minidx + dirflag2;
+		idx3 = (minidx & dirflag2) ? idx1 - dirflag2 : idx1 + dirflag2;
+
+		DrawExtrusionFace( vStart, vEnd, pts, idx1, idx3, cActual, meshBuilder );
+		DrawExtrusionFace( vStart, vEnd, pts, idx2, idx3, cActual, meshBuilder );
+	}
+	meshBuilder.End();
+	pMesh->Draw();
+}
+
 void RenderWireframeSweptBox( const Vector &vStart, const Vector &vEnd, const QAngle &angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer )
 {
     InitializeStandardMaterials();

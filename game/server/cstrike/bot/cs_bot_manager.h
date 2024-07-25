@@ -362,6 +362,9 @@ private:
 	DECLARE_CSBOTMANAGER_EVENT_LISTENER( WeaponZoom,			weapon_zoom )
 
 	DECLARE_CSBOTMANAGER_EVENT_LISTENER( BulletImpact,			bullet_impact )
+	DECLARE_CSBOTMANAGER_EVENT_LISTENER( BulletHitPlayer,		bullet_hit_player )
+	DECLARE_CSBOTMANAGER_EVENT_LISTENER( BulletPlayerHitboxes,	bullet_player_hitboxes )
+	DECLARE_CSBOTMANAGER_EVENT_LISTENER( PlayerLagHitboxes,		player_lag_hitboxes )
 
 	DECLARE_CSBOTMANAGER_EVENT_LISTENER( HEGrenadeDetonate,		hegrenade_detonate )
 	DECLARE_CSBOTMANAGER_EVENT_LISTENER( FlashbangDetonate,		flashbang_detonate )

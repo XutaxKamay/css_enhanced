@@ -34,6 +34,7 @@ void RenderSphere( const Vector &vCenter, float flRadius, int nTheta, int nPhi, 
 void RenderWireframeBox( const Vector &vOrigin, const QAngle& angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer );
 
 // Renders a swept wireframe box
+void RenderSweptBox( const Vector &vStart, const Vector &vEnd, const QAngle &angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer );
 void RenderWireframeSweptBox( const Vector &vStart, const Vector &vEnd, const QAngle &angles, const Vector &vMins, const Vector &vMaxs, Color c, bool bZBuffer );
 
 // Renders a solid box 

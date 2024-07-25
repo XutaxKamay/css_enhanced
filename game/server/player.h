@@ -1211,10 +1211,6 @@ private:
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set
-	CNetworkVar(bool, m_bDebugServerBullets);
-    CUtlVector<Vector> m_vecBulletServerPositions;
-    CUtlVector<Vector> m_vecServerShootPositions;
-    CUtlVector<int> m_touchedEntitiesWithBullet;
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;

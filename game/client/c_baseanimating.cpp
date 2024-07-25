@@ -9,6 +9,7 @@
 #include "c_baseanimating.h"
 #include "c_sprite.h"
 #include "cdll_client_int.h"
+#include "convar.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
 #include "model_types.h"
@@ -200,9 +201,7 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
-	RecvPropFloat( RECVINFO( m_flFadeScale ) ),
-	RecvPropArray3( RECVINFO_ARRAY(m_vecHitboxServerPositions), RecvPropVector(RECVINFO(m_vecHitboxServerPositions[0]))),
-	RecvPropArray3( RECVINFO_ARRAY(m_angHitboxServerAngles), RecvPropQAngles(RECVINFO(m_angHitboxServerAngles[0])))
+	RecvPropFloat( RECVINFO( m_flFadeScale ) )
 
 END_RECV_TABLE()
 
@@ -4994,8 +4993,6 @@ void C_BaseAnimating::UpdateClientSideAnimation()
 	}
 }
 
-ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT);
-
 void C_BaseAnimating::Simulate()
 {
 	if ( m_bInitModelEffects )
@@ -5574,25 +5571,40 @@ static Vector	hullcolor[8] =
 	Vector( 1.0, 1.0, 1.0 )
 };
 
-void C_BaseAnimating::RecordClientHitboxes()
+void C_BaseAnimating::DrawServerHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], float duration /*= 0.0f*/, bool monocolor /*= false*/  )
 {
-    CStudioHdr *pStudioHdr = GetModelPtr();
+	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
 		return;
 
-	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	mstudiohitboxset_t *set = pStudioHdr->pHitboxSet( m_nHitboxSet );
 	if ( !set )
 		return;
+
+	int r = 0;
+	int g = 0;
+	int b = 255;
 
 	for ( int i = 0; i < set->numhitboxes; i++ )
 	{
 		mstudiobbox_t *pbox = set->pHitbox( i );
 
-		GetBonePosition( pbox->bone, m_vecHitboxClientPositions[pbox->bone], m_angHitboxClientAngles[pbox->bone] );
+		if ( !monocolor )
+		{
+			int j = (pbox->group % 8);
+			r = ( int ) ( 255.0f * hullcolor[j][0] );
+			g = ( int ) ( 255.0f * hullcolor[j][1] );
+			b = ( int ) ( 255.0f * hullcolor[j][2] );
+		}
+
+		debugoverlay->AddBoxOverlay( position[pbox->bone], pbox->bbmin, pbox->bbmax, angles[pbox->bone], r, g, b, 127, duration );
 	}
 }
 
-void C_BaseAnimating::DrawClientRecordedHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
+//-----------------------------------------------------------------------------
+// Purpose: Draw the current hitboxes
+//-----------------------------------------------------------------------------
+void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
@@ -5613,34 +5625,6 @@ void C_BaseAnimating::DrawClientRecordedHitboxes( float duration /*= 0.0f*/, boo
 	{
 		mstudiobbox_t *pbox = set->pHitbox( i );
 
-		debugoverlay->AddBoxOverlay( m_vecHitboxClientPositions[pbox->bone], pbox->bbmin, pbox->bbmax, m_angHitboxClientAngles[pbox->bone], r, g, b, 127 ,duration );
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Draw the current hitboxes
-//-----------------------------------------------------------------------------
-void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
-{
-	CStudioHdr *pStudioHdr = GetModelPtr();
-	if ( !pStudioHdr )
-		return;
-
-	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
-	if ( !set )
-		return;
-
-	Vector position;
-	QAngle angles;
-
-	int r = 255;
-	int g = 0;
-	int b = 0;
-
-	for ( int i = 0; i < set->numhitboxes; i++ )
-	{
-		mstudiobbox_t *pbox = set->pHitbox( i );
-
 		GetBonePosition( pbox->bone, position, angles );
 
 		if ( !monocolor )
@@ -5654,43 +5638,6 @@ void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monoco
 		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 127 ,duration );
 	}
 }
-
-//-----------------------------------------------------------------------------
-// Purpose: Draw the current hitboxes
-//-----------------------------------------------------------------------------
-void C_BaseAnimating::DrawServerHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
-{
-	CStudioHdr *pStudioHdr = GetModelPtr();
-	if ( !pStudioHdr )
-		return;
-
-	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
-	if ( !set )
-		return;
-
-	Vector position;
-	QAngle angles;
-
-	int r = 0;
-	int g = 0;
-	int b = 255;
-
-	for ( int i = 0; i < set->numhitboxes; i++ )
-	{
-		mstudiobbox_t *pbox = set->pHitbox( i );
-
-		if ( !monocolor )
-		{
-			int j = (pbox->group % 8);
-			r = ( int ) ( 255.0f * hullcolor[j][0] );
-			g = ( int ) ( 255.0f * hullcolor[j][1] );
-			b = ( int ) ( 255.0f * hullcolor[j][2] );
-		}
-
-		debugoverlay->AddBoxOverlay( m_vecHitboxServerPositions[i], pbox->bbmin, pbox->bbmax, m_angHitboxServerAngles[i], r, g, b, 127 ,duration );
-	}
-}
-
 
 //-----------------------------------------------------------------------------
 // Purpose: 

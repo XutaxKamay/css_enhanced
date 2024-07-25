@@ -294,7 +294,7 @@ public:
 	virtual CWeaponCSBase* CSAnim_GetActiveWeapon();
 	virtual bool CSAnim_CanMove();
 
-	virtual float GetPlayerMaxSpeed();
+    virtual float GetPlayerMaxSpeed();
 
     void FireBullet(
 		int iBullet,
@@ -1037,7 +1037,6 @@ private:
 	// HPE_END
 	//=============================================================================
 	int m_iDeathFlags; // Flags holding revenge and domination info about a death
-
 //=============================================================================
 // HPE_END
 //=============================================================================

@@ -6,6 +6,7 @@
 
 #ifndef BASEANIMATING_H
 #define BASEANIMATING_H
+#include "mathlib/vector.h"
 #include "networkvar.h"
 #include "shareddefs.h"
 #ifdef _WIN32
@@ -265,7 +266,7 @@ public:
 	virtual int DrawDebugTextOverlays( void );
 	
 	// See note in code re: bandwidth usage!!!
-	void				RecordServerHitboxes( CBasePlayer* localPlayer );
+	int					GetServerHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], int indexes[MAXSTUDIOBONES] );
 	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );		
 	void				DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest = true, float duration = 0.0f, bool monocolor = false );
 
@@ -392,9 +393,6 @@ private:
 	CNetworkVar( int, m_nSequence );	
 	CNetworkArray( float, m_flPoseParameter, NUM_POSEPAREMETERS );	// must be private so manual mode works!
 	CNetworkArray( float, m_flEncodedController, NUM_BONECTRLS );		// bone controller setting (0..1)
-
-    Vector m_vecHitboxServerPositions[MAX_PLAYERS+1][MAXSTUDIOBONES];
-	QAngle m_angHitboxServerAngles[MAX_PLAYERS +1][MAXSTUDIOBONES];
     
 	// Client-side animation (useful for looping animation objects)
 	CNetworkVar( bool, m_bClientSideAnimation );

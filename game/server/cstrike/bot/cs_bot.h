@@ -877,6 +877,9 @@ public:
 	void OnWeaponZoom( IGameEvent *event );
 
 	void OnBulletImpact( IGameEvent *event );
+	void OnBulletHitPlayer( IGameEvent *event );
+	void OnBulletPlayerHitboxes( IGameEvent *event );
+	void OnPlayerLagHitboxes( IGameEvent *event );
 
 	void OnHEGrenadeDetonate( IGameEvent *event );
 	void OnFlashbangDetonate( IGameEvent *event );
