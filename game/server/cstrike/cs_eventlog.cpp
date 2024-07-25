@@ -50,7 +50,6 @@ public:
 		ListenForGameEvent( "hostage_killed" );
 		ListenForGameEvent( "hostage_follows" );
 		ListenForGameEvent( "player_hurt" );
-		ListenForGameEvent( "bullet_impact" );
 
 		return true;
 	}

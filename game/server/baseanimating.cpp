@@ -156,79 +156,6 @@ int CInfoLightingRelative::UpdateTransmitState( void )
 	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
-void* SendTableProxy_HitboxServerPositions(
-  const SendProp* pProp,
-  const void* pStructBase,
-  const void* pData,
-  CSendProxyRecipients* pRecipients,
-  int objectID)
-{
-    auto index = engine->GetSendTableCurrentEntityIndex();
-
-    if (index == -1)
-    {
-        return (void*)pData;
-    }
-
-	CBaseEntity* entity = UTIL_EntityByIndex(index);
-
-	if (!entity)
-    {
-        return (void*)pData;
-    }
-
-    return ((Vector*)pData + entity->entindex() * MAXSTUDIOBONES);
-}
-
-void* SendTableProxy_HitboxServerAngles(const SendProp* pProp,
-                                        const void* pStructBase,
-                                        const void* pData,
-                                        CSendProxyRecipients* pRecipients,
-                                        int objectID)
-{
-    auto index = engine->GetSendTableCurrentEntityIndex();
-
-    if (index == -1)
-    {
-        return (void*)pData;
-    }
-
-	CBaseEntity* entity = UTIL_EntityByIndex(index);
-
-	if (!entity)
-    {
-        return (void*)pData;
-    }
-
-    return ((QAngle*)pData + entity->entindex() * MAXSTUDIOBONES);
-}
-
-void SendProxy_ShouldShowServerHitboxesOnFire(const SendProp* pProp,
-                                               const void* pStructBase,
-                                               const void* pData,
-                                               DVariant* pOut,
-                                               int iElement,
-                                               int objectID)
-{
-    auto index = engine->GetSendTableCurrentEntityIndex();
-
-    if (index == -1)
-    {
-        pOut->m_Int = false;
-        return;
-    }
-
-	CBaseEntity* entity = UTIL_EntityByIndex(index);
-
-	if (!entity)
-    {
-        pOut->m_Int = false;
-        return;
-    }
-
-    pOut->m_Int = *((bool*)pData + entity->entindex());
-}
-
 static CIKSaveRestoreOps s_IKSaveRestoreOp;
 
 
@@ -334,9 +261,7 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	// Fading
 	SendPropFloat( SENDINFO( m_fadeMinDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_fadeMaxDist ), 0, SPROP_NOSCALE ),
-	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
-	SendPropArray3 (SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions), MAXSTUDIOBONES, SendPropVector(SENDINFO_NAME(m_vecHitboxServerPositions[0][0], m_vecHitboxServerPositions[0]) ), SendTableProxy_HitboxServerPositions),
-	SendPropArray3 (SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles), MAXSTUDIOBONES, SendPropQAngles(SENDINFO_NAME(m_angHitboxServerAngles[0][0], m_angHitboxServerAngles[0]) ), SendTableProxy_HitboxServerAngles),
+	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE )
 END_SEND_TABLE()
 
 
@@ -364,15 +289,6 @@ CBaseAnimating::CBaseAnimating()
 	m_fadeMaxDist = 0;
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
-
-    for (int i = 0; i <= MAX_PLAYERS; i++)
-    {
-		for (int j = 0; j < MAXSTUDIOBONES; j++)
-		{
-			m_vecHitboxServerPositions[i][j] = vec3_origin;
-			m_angHitboxServerAngles[i][j] = vec3_angle;
-        }
-    }
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -3074,29 +2990,30 @@ static Vector	hullcolor[8] =
 	Vector( 1.0, 1.0, 1.0 )
 };
 
-void CBaseAnimating::RecordServerHitboxes( CBasePlayer* localPlayer )
+int CBaseAnimating::GetServerHitboxes(Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], int indexes[MAXSTUDIOBONES])
 {
-	CStudioHdr *pStudioHdr = GetModelPtr();
+    CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
-		return;
+		return 0;
 
 	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
 	if ( !set )
-		return;
+		return 0;
 
-	Vector position;
-	QAngle angles;
-    const auto localPlayerIndex = localPlayer->entindex();
+	int r = 0;
+	int g = 0;
+	int b = 255;
 
-    for ( int i = 0; i < set->numhitboxes; i++ )
+	for ( int i = 0; i < set->numhitboxes; i++ )
 	{
-		mstudiobbox_t *pbox = set->pHitbox( i );
+        mstudiobbox_t* pbox = set->pHitbox(i);
 
-        GetBonePosition(pbox->bone, position, angles);
+        indexes[i] = pbox->bone;
 
-        m_vecHitboxServerPositions[localPlayerIndex][i] = position;
-        m_angHitboxServerAngles[localPlayerIndex][i] = angles;
-	}
+		GetBonePosition( pbox->bone, position[pbox->bone], angles[pbox->bone] );
+    }
+
+    return set->numhitboxes;
 }
 
 //-----------------------------------------------------------------------------
