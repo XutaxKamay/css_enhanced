@@ -1319,11 +1319,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     static ConVarRef cl_showimpacts("cl_showimpacts");
 
     cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
-      
-    if (cl_showhitboxes.GetBool())
-    {
-        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ALWAYS_ON;
-    }
 
     if (cl_showfirebullethitboxes.GetBool())
     {
