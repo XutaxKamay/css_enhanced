@@ -2150,7 +2150,6 @@ void C_CSPlayer::FireGameEvent(IGameEvent* event)
     
     bool shouldShowImpacts = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
     bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 3;
-    bool shouldShowHitboxes = cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 3;
     
     const auto showEventHitboxes = [&](float flDuration)
     {
@@ -2228,10 +2227,6 @@ void C_CSPlayer::FireGameEvent(IGameEvent* event)
     {
         showEventHitboxes(m_flDebugDuration);
     }
-    else if (FStrEq(event->GetName(), "player_lag_hitboxes") && shouldShowHitboxes)
-    {
-        showEventHitboxes(-1.0f);
-	}
 }
 
 
@@ -2339,7 +2334,7 @@ void C_CSPlayer::Simulate( void )
 
     if ((cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2) && !IsLocalPlayer())
     {
-        DrawClientHitboxes(gpGlobals->absoluteframetime, true);
+        DrawClientHitboxes(gpGlobals->frametime, true);
 	}
 }
 

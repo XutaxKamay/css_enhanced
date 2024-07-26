@@ -219,7 +219,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
     if (to->debug_hitboxes != from->debug_hitboxes)
     {
         buf->WriteOneBit(1);
-        buf->WriteUBitLong(to->debug_hitboxes, 3);
+        buf->WriteUBitLong(to->debug_hitboxes, 2);
     }
     else
     {
@@ -362,7 +362,7 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
     if ( buf->ReadOneBit() )
 	{
-		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadUBitLong(3);
+		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadUBitLong(2);
     }
 
 #if defined( HL2_DLL )
