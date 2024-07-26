@@ -793,9 +793,12 @@ void CBaseClient::ConnectionStart(INetChannel *chan)
 
 bool CBaseClient::ProcessTick( NET_Tick *msg )
 {
-	m_NetChannel->SetRemoteFramerate( msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation );
-    m_nClientTick = msg->m_nLagTick;
-	return UpdateAcknowledgedFramecount( msg->m_nTick );
+    m_NetChannel->SetRemoteFramerate(msg->m_flHostFrameTime, msg->m_flHostFrameTimeStdDeviation);
+    if (msg->m_nLagTick != -1)
+    {
+        m_nClientTick = msg->m_nLagTick;
+    }
+    return UpdateAcknowledgedFramecount( msg->m_nTick );
 }
 
 bool CBaseClient::ProcessStringCmd( NET_StringCmd *msg )

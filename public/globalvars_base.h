@@ -62,6 +62,7 @@ public:
 
 	// Simulation ticks
 	int				tickcount;
+	int             currenttick;
 
 	// Simulation tick interval
 	float			interval_per_tick;

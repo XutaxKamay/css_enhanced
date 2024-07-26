@@ -3250,7 +3250,11 @@ void _Host_RunFrame (float time)
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
             cl.SetFrameTime(host_frametime);
 			for ( int tick = 0; tick < numticks; tick++ )
-			{ 
+            {
+                g_ServerGlobalVariables.currenttick = tick;
+#ifndef SWDS
+                g_ClientGlobalVariables.currenttick = tick;
+#endif
 				// Emit an ETW event every simulation frame.
 				ETWSimFrameMark( sv.IsDedicated() );
 
@@ -3318,7 +3322,6 @@ void _Host_RunFrame (float time)
 #ifndef SWDS
 				if ( !sv.IsDedicated() )
                 {
-                    cl.m_ClockDriftMgr.m_nCurrentTick = tick;
                     _Host_RunFrame_Client(bFinalTick);
 				}
 
@@ -3361,7 +3364,6 @@ void _Host_RunFrame (float time)
 			// as quickly as we can.
 			if ( numticks == 0 && ( demoplayer->IsPlayingTimeDemo() || demoplayer->IsSkipping() ) )
 			{
-                cl.m_ClockDriftMgr.m_nCurrentTick = 0;
                 _Host_RunFrame_Client(true);
 			}
 
@@ -3436,7 +3438,9 @@ void _Host_RunFrame (float time)
 			// THREADED: Run Client
 			// -------------------
 			for ( int tick = 0; tick < clientticks; tick++ )
-			{ 
+            {
+                g_ServerGlobalVariables.currenttick = tick;
+                g_ClientGlobalVariables.currenttick = tick;
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame(  Plat_FloatTime() );
 
@@ -3459,7 +3463,6 @@ void _Host_RunFrame (float time)
 				//-------------------
 				if ( !sv.IsDedicated() )
 				{
-                    cl.m_ClockDriftMgr.m_nCurrentTick = tick;
                     _Host_RunFrame_Client(bFinalTick);
 				}
 				toolframework->Think( bFinalTick );
@@ -3468,7 +3471,9 @@ void _Host_RunFrame (float time)
 			// Also when demoplayer is skipping packets to a certain tick we should process the queue
 			// as quickly as we can.
 			if ( clientticks == 0 && ( demoplayer->IsPlayingTimeDemo() || demoplayer->IsSkipping() ) )
-			{
+            {
+                g_ServerGlobalVariables.currenttick = 0;
+                g_ClientGlobalVariables.currenttick = 0;
 				_Host_RunFrame_Client( true );
 			}
 
@@ -3493,7 +3498,9 @@ void _Host_RunFrame (float time)
 			int saveTick = g_ClientGlobalVariables.tickcount;
 
 			for ( int tick = 0; tick < serverticks; tick++ )
-			{
+            {
+                g_ServerGlobalVariables.currenttick = tick;
+                g_ClientGlobalVariables.currenttick = tick;
 				// NOTE:  Do we want do this at start or end of this loop?
 				++host_tickcount;
 				++host_currentframetick;

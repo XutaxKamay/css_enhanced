@@ -518,7 +518,7 @@ void CCSPlayer::FireBullet(
     shouldDebugHitboxesOnHit = shouldDebugHitboxesOnHit && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2);
     shouldDebugHitboxesOnFire = shouldDebugHitboxesOnFire && (cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 2);
 #endif
-    if ( shouldDebugHitboxesOnFire && !shouldDebugHitboxesOnHit )
+    if ( shouldDebugHitboxesOnFire )
     {
         for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
@@ -563,7 +563,7 @@ void CCSPlayer::FireBullet(
                         event->SetFloat(buffer, angles[indexes[i]].z);
                     }
 
-                    gameeventmanager->FireEventClientSide(event);
+                    gameeventmanager->FireEvent(event);
                 }
 #endif
             }
@@ -641,7 +641,7 @@ void CCSPlayer::FireBullet(
                 event->SetFloat("dst_y", tr.endpos.y);
                 event->SetFloat("dst_z", tr.endpos.z);
                 event->SetFloat("radius", flBulletRadius);
-                gameeventmanager->FireEventClientSide(event);
+                gameeventmanager->FireEvent(event);
             }
 #endif
             if (tr.m_pEnt && tr.m_pEnt->IsPlayer() && !shouldDebugHitboxesOnFire)
@@ -685,7 +685,7 @@ void CCSPlayer::FireBullet(
                         eventHit->SetFloat(buffer, angles[indexes[i]].z);
                     }
 
-                    gameeventmanager->FireEventClientSide(eventHit);
+                    gameeventmanager->FireEvent(eventHit);
                 }
 #endif
             }
