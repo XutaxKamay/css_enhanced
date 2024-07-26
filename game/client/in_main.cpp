@@ -1313,7 +1313,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 
 #ifdef CSTRIKE_DLL
-    static ConVarRef cl_showhitboxes("cl_showhitboxes");
     static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
     static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
     static ConVarRef cl_showimpacts("cl_showimpacts");
