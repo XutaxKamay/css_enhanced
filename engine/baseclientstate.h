@@ -105,6 +105,7 @@ public: // IServerMessageHandlers
 	PROCESS_SVC_MESSAGE( SetView );
 	PROCESS_SVC_MESSAGE( PacketEntities );
 	PROCESS_SVC_MESSAGE( Menu );
+	PROCESS_SVC_MESSAGE( GameEvent );
 	PROCESS_SVC_MESSAGE( GameEventList );
 	PROCESS_SVC_MESSAGE( GetCvarValue );
 	PROCESS_SVC_MESSAGE( CmdKeyValues );

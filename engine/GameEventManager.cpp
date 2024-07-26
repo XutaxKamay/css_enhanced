@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "GameEventManager.h"
+#include "KeyValues.h"
 #include "filesystem_engine.h"
 #include "server.h"
 #include "client.h"
@@ -113,6 +114,11 @@ bool CGameEvent::IsReliable() const
 	return m_pDescriptor->reliable;
 }
 
+KeyValues* CGameEvent::GetDataKeys()
+{
+    return m_pDataKeys;
+}
+
 CGameEventManager::CGameEventManager()
 {
 	Reset();
@@ -129,6 +135,16 @@ bool CGameEventManager::Init()
 
 	LoadEventsFromFile( "resource/serverevents.res" );
 
+    // TODO_ENHANCED: write this into a res file.
+    static auto bullet_impact_kv = new KeyValues("bullet_impact");
+	RegisterEvent(bullet_impact_kv);
+	static auto bullet_hit_player_kv = new KeyValues("bullet_hit_player");
+	RegisterEvent(bullet_hit_player_kv);
+	static auto bullet_player_hitboxes_kv = new KeyValues("bullet_player_hitboxes");
+	RegisterEvent(bullet_player_hitboxes_kv);
+	static auto player_lag_hitboxes_kv = new KeyValues("player_lag_hitboxes");
+    RegisterEvent(player_lag_hitboxes_kv);
+    
 	return true;
 }
 
@@ -369,19 +385,18 @@ void CGameEventManager::ConPrintEvent( IGameEvent *event)
 	if ( !descriptor )
 		return;
 
-	KeyValues *key = descriptor->keys->GetFirstSubKey(); 
+	KeyValues *key = event->GetDataKeys()->GetFirstSubKey(); 
 
 	while ( key )
 	{
 		const char * keyName = key->GetName();
 
-		int type = key->GetInt();
+		int type = key->GetDataType();
 
 		switch ( type )
 		{
-		case TYPE_LOCAL : ConMsg( "- \"%s\" = \"%s\" (local)\n", keyName, event->GetString(keyName) ); break;
-		case TYPE_STRING : ConMsg( "- \"%s\" = \"%s\"\n", keyName, event->GetString(keyName) ); break;
-		case TYPE_FLOAT : ConMsg( "- \"%s\" = \"%.2f\"\n", keyName, event->GetFloat(keyName) ); break;
+		case KeyValues::types_t::TYPE_STRING : ConMsg( "- \"%s\" = \"%s\"\n", keyName, event->GetString(keyName) ); break;
+		case KeyValues::types_t::TYPE_FLOAT : ConMsg( "- \"%s\" = \"%.2f\"\n", keyName, event->GetFloat(keyName) ); break;
 		default: ConMsg( "- \"%s\" = \"%i\"\n", keyName, event->GetInt(keyName) ); break;
 		}
 		key = key->GetNextKey();
@@ -482,28 +497,43 @@ bool CGameEventManager::SerializeEvent( IGameEvent *event, bf_write* buf )
 	CGameEventDescriptor *descriptor = GetEventDescriptor( event );
 
 	Assert( descriptor );
-
+    
 	buf->WriteUBitLong( descriptor->eventid, MAX_EVENT_BITS );
 
-	// now iterate trough all fields described in gameevents.res and put them in the buffer
+    // TODO_ENHANCED: this now gets directly from event keys,
+    // because they can be different (bullet_impact), or not enumerated at all. (bullet_hit_player)
 
-	KeyValues * key = descriptor->keys->GetFirstSubKey();
+	KeyValues * key = event->GetDataKeys()->GetFirstSubKey();
 
 	if ( net_showevents.GetInt() > 2 )
 	{
 		DevMsg("Serializing event '%s' (%i):\n", descriptor->name, descriptor->eventid );
 	}
-	
+
+    uint32 keyCount = 0;
+    while ( key )
+    {
+        keyCount++;
+        key = key->GetNextKey();
+    }
+
+    buf->WriteVarInt32(keyCount);
+
+    key = event->GetDataKeys()->GetFirstSubKey();
+    
 	while ( key )
 	{
 		const char * keyName = key->GetName();
 
-		int type = key->GetInt();
+		int type = key->GetDataType();
 
 		if ( net_showevents.GetInt() > 2 )
 		{
 			DevMsg(" - %s (%i)\n", keyName, type );
-		}
+        }
+
+        buf->WriteString(keyName);
+        buf->WriteByte(type);
 
 		//Make sure every key is used in the event
 		// Assert( event->FindKey(keyName) && "GameEvent field not found in passed KeyValues" );
@@ -511,14 +541,10 @@ bool CGameEventManager::SerializeEvent( IGameEvent *event, bf_write* buf )
 		// see s_GameEnventTypeMap for index
 		switch ( type )
 		{
-			case TYPE_LOCAL : break; // don't network this guy
-			case TYPE_STRING: buf->WriteString( event->GetString( keyName, "") ); break;
-			case TYPE_FLOAT : buf->WriteFloat( event->GetFloat( keyName, 0.0f) ); break;
-			case TYPE_LONG	: buf->WriteLong( event->GetInt( keyName, 0) ); break;
-			case TYPE_SHORT	: buf->WriteShort( event->GetInt( keyName, 0) ); break;
-			case TYPE_BYTE	: buf->WriteByte( event->GetInt( keyName, 0) ); break;
-			case TYPE_BOOL	: buf->WriteOneBit( event->GetInt( keyName, 0) ); break;
-			default: DevMsg(1, "CGameEventManager: unkown type %i for key '%s'.\n", type, key->GetName() ); break;
+			case KeyValues::types_t::TYPE_STRING : buf->WriteString( event->GetString( keyName, "") ); break;
+			case KeyValues::types_t::TYPE_FLOAT  : buf->WriteFloat( event->GetFloat( keyName, 0.0f) ); break;
+			case KeyValues::types_t::TYPE_INT	 : buf->WriteLong( event->GetInt( keyName, 0) ); break;
+			default: DevMsg(1, "CGameEventManager::SerializeEvent: can't serialize type %i yet for key '%s'.\n", type, keyName ); break;
 		}
 
 		key = key->GetNextKey();
@@ -553,29 +579,30 @@ IGameEvent *CGameEventManager::UnserializeEvent( bf_read *buf)
 		return NULL;
 	}
 
-	KeyValues * key = descriptor->keys->GetFirstSubKey(); 
+	KeyValues * key = event->GetDataKeys()->GetFirstSubKey();
+	uint32 keyCount = buf->ReadVarInt32(); 
 
-	while ( key )
-	{
-		const char * keyName = key->GetName();
+	while ( keyCount > 0 )
+    {
+        char keyName[256];
+		buf->ReadString(keyName, sizeof(keyName));
 
-		int type = key->GetInt();
+		int type = buf->ReadByte();
 
 		switch ( type )
 		{
-			case TYPE_LOCAL		: break; // ignore 
-			case TYPE_STRING	: if ( buf->ReadString( databuf, sizeof(databuf) ) )
-									event->SetString( keyName, databuf );
-								  break;
-			case TYPE_FLOAT		: event->SetFloat( keyName, buf->ReadFloat() ); break;
-			case TYPE_LONG		: event->SetInt( keyName, buf->ReadLong() ); break;
-			case TYPE_SHORT		: event->SetInt( keyName, buf->ReadShort() ); break;
-			case TYPE_BYTE		: event->SetInt( keyName, buf->ReadByte() ); break;
-			case TYPE_BOOL		: event->SetInt( keyName, buf->ReadOneBit() ); break;
-			default: DevMsg(1, "CGameEventManager: unknown type %i for key '%s'.\n", type, key->GetName() ); break;
-		}
+            case KeyValues::types_t::TYPE_STRING:
+                if (buf->ReadString(databuf, sizeof(databuf)))
+                {
+                    event->SetString(keyName, databuf);
+                }
+                break;
+            case KeyValues::types_t::TYPE_FLOAT	: event->SetFloat( keyName, buf->ReadFloat() ); break;
+			case KeyValues::types_t::TYPE_INT	: event->SetInt( keyName, buf->ReadLong() ); break;
+			default: DevMsg(1, "CGameEventManager::UnserializeEvent: can't unserialize type %i yet for key '%s'.\n", type, keyName ); break;
+        }
 
-		key = key->GetNextKey();
+        keyCount--;
 	}
 
 	return event;

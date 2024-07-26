@@ -72,7 +72,7 @@
 
 #define NETMSG_TYPE_BITS	6	// must be 2^NETMSG_TYPE_BITS > SVC_LASTMSG
 
-#define NETMSG_LENGTH_BITS	11	// 256 bytes 
+#define NETMSG_LENGTH_BITS	20	// 256 bytes 
 
 // This is the payload plus any header info (excluding UDP header)
 

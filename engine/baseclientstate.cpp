@@ -1768,13 +1768,21 @@ bool CBaseClientState::GetClassBaseline( int iClass, void const **pData, int *pD
 	return *pData != NULL;
 }
 
+bool CBaseClientState::ProcessGameEvent( SVC_GameEvent *msg )
+{
+	VPROF( "ProcessGameEvent" );
+
+    const auto deserializedEvent = g_GameEventManager.UnserializeEvent(&msg->m_DataIn);
+    
+    return g_GameEventManager.FireEvent(deserializedEvent);
+}
+
 bool CBaseClientState::ProcessGameEventList( SVC_GameEventList *msg )
 {
 	VPROF( "ProcessGameEventList" );
 
 	return g_GameEventManager.ParseEventList( msg );
 }
-
 
 bool CBaseClientState::ProcessGetCvarValue( SVC_GetCvarValue *msg )
 {

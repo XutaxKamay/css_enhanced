@@ -57,7 +57,7 @@ data field should not be broadcasted to clients, use the type "local".
 #define MAX_EVENT_NAME_LENGTH	32		// max game event name length
 #define MAX_EVENT_BITS			9		// max bits needed for an event index
 #define MAX_EVENT_NUMBER		(1<<MAX_EVENT_BITS)		// max number of events allowed
-#define MAX_EVENT_BYTES			1024	// max size in bytes for a serialized event
+#define MAX_EVENT_BYTES			(1<<12)	// max size in bytes for a serialized event
 
 class KeyValues;
 class CGameEvent;
@@ -82,6 +82,7 @@ public:
 	virtual void SetInt( const char *keyName, int value ) = 0;
 	virtual void SetFloat( const char *keyName, float value ) = 0;
 	virtual void SetString( const char *keyName, const char *value ) = 0;
+	virtual KeyValues *GetDataKeys() = 0;
 };
 
 
