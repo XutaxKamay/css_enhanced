@@ -220,9 +220,8 @@ public:
     enum debug_hitboxes_t : uint8
     {
 		DEBUG_HITBOXES_OFF,
-        DEBUG_HITBOXES_ALWAYS_ON = 1 << 0,
-        DEBUG_HITBOXES_ON_FIRE = 1 << 1,
-       	DEBUG_HITBOXES_ON_HIT = 1 << 2
+        DEBUG_HITBOXES_ON_FIRE = 1 << 0,
+       	DEBUG_HITBOXES_ON_HIT = 1 << 1
 	};
 
 	uint8 debug_hitboxes;
