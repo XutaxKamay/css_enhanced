@@ -1629,7 +1629,7 @@ void CCSPlayer::PostThink()
                     event->SetFloat(buffer, angles[indexes[i]].z);
                 }
 
-                gameeventmanager->FireEventClientSide(event);
+                gameeventmanager->FireEvent(event);
             }
         }
     

@@ -249,6 +249,14 @@ void DrawGridOverlay();
 void ClearAllOverlays();
 void ClearDeadOverlays();
 
+//-----------------------------------------------------------------------------
+// Purpose: Allow all debug overlays to be cleared at once
+//-----------------------------------------------------------------------------
+CON_COMMAND( clear_debug_overlays, "clears debug overlays" )
+{
+	ClearAllOverlays();
+}
+
 
 //-----------------------------------------------------------------------------
 // Init static member variables

@@ -790,21 +790,6 @@ C_CSPlayer::C_CSPlayer() :
 
     m_bPlayingFreezeCamSound = false;
 
-    // HACK_ENHANCED:
-    static bool bDoOnce = false;
-    if (!bDoOnce)
-    {
-        static auto bullet_impact_kv = new KeyValues("bullet_impact");
-        gameeventmanager->RegisterEvent(bullet_impact_kv);
-        static auto bullet_hit_player_kv = new KeyValues("bullet_hit_player");
-        gameeventmanager->RegisterEvent(bullet_hit_player_kv);
-        static auto bullet_player_hitboxes_kv = new KeyValues("bullet_player_hitboxes");
-        gameeventmanager->RegisterEvent(bullet_player_hitboxes_kv);
-        static auto player_lag_hitboxes_kv = new KeyValues("player_lag_hitboxes");
-        gameeventmanager->RegisterEvent(player_lag_hitboxes_kv);
-        bDoOnce = true;
-    }
-
     ListenForGameEvent( "bullet_impact" );
 	ListenForGameEvent( "bullet_hit_player" );
 	ListenForGameEvent( "bullet_player_hitboxes" );
@@ -2209,7 +2194,7 @@ void C_CSPlayer::FireGameEvent(IGameEvent* event)
     };
 
     if ( FStrEq( event->GetName(), "bullet_impact" ) && shouldShowImpacts )
-	{
+    {
 		const int index = event->GetInt( "userid" );
 		if ( index == GetUserID() && IsLocalPlayer() )
         {
@@ -2354,7 +2339,7 @@ void C_CSPlayer::Simulate( void )
 
     if ((cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2) && !IsLocalPlayer())
     {
-        DrawClientHitboxes(-1.0f, true);
+        DrawClientHitboxes(gpGlobals->absoluteframetime, true);
 	}
 }
 

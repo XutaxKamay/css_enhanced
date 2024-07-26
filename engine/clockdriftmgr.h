@@ -27,7 +27,7 @@ public:
 	// This is called each time a server packet comes in. It is used to correlate
 	// where the server is in time compared to us.
 	void SetServerTick( int iServerTick, int nLaggedTick, float flServerHostFrametime, float flServerHostFrametimeStdDeviation);
-	void ApplyClockCorrection(bool bFinalTick);
+	void IncrementCachedTickCount(bool bFinalTick);
 
 private:
 
@@ -40,7 +40,6 @@ public:
 	int m_nServerTick;		// Last-received tick from the server.
     int m_nClientTick;
     int m_nNumberOfTicks;
-    int m_nCurrentTick;
     int m_nCachedRealClientTick; // The client's own tick counter (specifically, for interpolation during rendering).
 							 // The server may be on a slightly different tick and the client will drift towards it.
     int m_nLaggedClientTick;

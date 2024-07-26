@@ -7,6 +7,7 @@
 // $NoKeywords: $
 //===========================================================================//
 
+#include "client.h"
 #include "client_pch.h"
 #include "sound.h"
 #include <inetchannel.h>
@@ -572,7 +573,7 @@ void CL_ReadPackets ( bool bFinalTick )
         }
         else
         {
-            cl.m_ClockDriftMgr.ApplyClockCorrection(bFinalTick);
+            cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
         }
 
         g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
@@ -2242,7 +2243,7 @@ void CL_Move(float accumulated_extra_samples, bool bFinalTick )
         // multiple commands are ran from client because it had low fps.
         // We could probably store in CUserCmd structure the current tick number to account for that ?
         // This works anyway.
-        NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick + cl.m_ClockDriftMgr.m_nCurrentTick, host_frametime_unbounded, host_frametime_stddeviation );
+        NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick + g_ClientGlobalVariables.currenttick, host_frametime_unbounded, host_frametime_stddeviation );
 		cl.m_NetChannel->SendNetMsg( mymsg );
     }
 

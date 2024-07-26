@@ -242,28 +242,3 @@ void DebugDrawLine( const Vector& vecAbsStart, const Vector& vecAbsEnd, int r, i
 {
 	NDebugOverlay::Line( vecAbsStart + Vector( 0,0,0.1), vecAbsEnd + Vector( 0,0,0.1), r,g,b, test, duration );
 }
-
-//-----------------------------------------------------------------------------
-// Purpose: Allow all debug overlays to be cleared at once
-//-----------------------------------------------------------------------------
-CON_COMMAND( clear_debug_overlays, "clears debug overlays" )
-{
-	if ( !UTIL_IsCommandIssuedByServerAdmin() )
-		return;
-
-	CBaseEntity *pEntity = gEntList.FirstEnt();
-	
-	// Clear all entities of their debug overlays
-	while ( pEntity )
-	{
-		pEntity->m_debugOverlays = 0;
-		// UNDONE: Clear out / expire timed overlays?
-		pEntity = gEntList.NextEnt( pEntity );
-	}
-	
-	// Clear all engine overlays
-	if ( debugoverlay )
-	{
-		debugoverlay->ClearAllOverlays();
-	}
-}
