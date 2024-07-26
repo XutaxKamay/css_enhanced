@@ -95,14 +95,14 @@ void CClockDriftMgr::SetServerTick( int nTick, int nLaggedTick, float flServerHo
 #endif // SWDS
 }
 
-void CClockDriftMgr::ApplyClockCorrection(bool bFinalTick)
+void CClockDriftMgr::IncrementCachedTickCount(bool bFinalTick)
 {
     if (bFinalTick)
     {
-        cl.m_ClockDriftMgr.m_nCachedRealClientTick += cl.m_ClockDriftMgr.m_nNumberOfTicks;
+        m_nCachedRealClientTick += m_nNumberOfTicks;
     }
 
-     m_nClientTick = m_nCachedRealClientTick + m_nLagDiff;
+    m_nClientTick = m_nCachedRealClientTick + m_nLagDiff;
 }
 
 void CClockDriftMgr::ShowDebugInfo()
