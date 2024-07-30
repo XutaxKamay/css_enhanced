@@ -286,41 +286,41 @@ def options(opt):
 	grp = opt.add_option_group('Common options')
 
 	grp.add_option('-4', '--32bits', action = 'store_true', dest = 'TARGET32', default = False,
-		help = 'allow targetting 32-bit engine(Linux/Windows/OSX x86 only) [default: %default]')
+		help = 'allow targetting 32-bit engine(Linux/Windows/OSX x86 only) [default: %(default)r]')
 
 	grp.add_option('-d', '--dedicated', action = 'store_true', dest = 'DEDICATED', default = False,
-		help = 'build dedicated server [default: %default]')
+		help = 'build dedicated server [default: %(default)r]')
 
 	grp.add_option('--tests', action = 'store_true', dest = 'TESTS', default = False,
-		help = 'build unit tests [default: %default]')
+		help = 'build unit tests [default: %(default)r]')
 
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
-		help = 'build with -DDEBUG [default: %default]')
+		help = 'build with -DDEBUG [default: %(default)r]')
 
 	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = sys.platform != 'win32',
-		help = 'build engine with SDL [default: %default]')
+		help = 'build engine with SDL [default: %(default)r]')
 
 	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = sys.platform != 'win32',
-		help = 'build engine with ToGL [default: %default]')
+		help = 'build engine with ToGL [default: %(default)r]')
 
 	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = str, default = 'cstrike',
-		help = 'build games [default: %default]')
+		help = 'build games [default: %(default)s]')
 
 	grp.add_option('--use-ccache', action = 'store_true', dest = 'CCACHE', default = False,
-		help = 'build using ccache [default: %default]')
+		help = 'build using ccache [default: %(default)r]')
 
 	grp.add_option('--disable-warns', action = 'store_true', dest = 'DISABLE_WARNS', default = False,
-		help = 'build using ccache [default: %default]')
+		help = 'build without warnings [default: %(default)r]')
 
 	grp.add_option('--togles', action = 'store_true', dest = 'TOGLES', default = False,
-		help = 'build engine with ToGLES [default: %default]')
+		help = 'build engine with ToGLES [default: %(default)r]')
 
 	# TODO(nillerusr): add wscript for opus building
 	grp.add_option('--enable-opus', action = 'store_true', dest = 'OPUS', default = False,
-		help = 'build engine with Opus voice codec [default: %default]')
+		help = 'build engine with Opus voice codec [default: %(default)r]')
 
-	grp.add_option('--sanitize', action = 'store', dest = 'SANITIZE', default = '',
-		help = 'build with sanitizers [default: %default]')
+	grp.add_option('--sanitize', action = 'store_true', dest = 'SANITIZE', default = False,
+		help = 'build with sanitizers [default: %(default)r]')
 	opt.load('xcompile compiler_cxx compiler_c compiler_optimizations sdl2 clang_compilation_database strip_on_install waf_unit_test subproject')
 	if sys.platform == 'win32':
 		opt.load('msvc msdev msvs')
