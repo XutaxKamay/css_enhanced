@@ -109,13 +109,13 @@ def options(opt):
 	grp = opt.add_option_group('Compiler optimization options')
 
 	grp.add_option('-T', '--build-type', action='store', dest='BUILD_TYPE', default=None,
-		help = 'build type: debug, release or none(custom flags)')
+		help = 'build type: debug | release [default: %(default)r] (custom flags)')
 
 	grp.add_option('--enable-lto', action = 'store_true', dest = 'LTO', default = False,
-		help = 'enable Link Time Optimization if possible [default: %default]')
+		help = 'enable Link Time Optimization if possible [default: %(default)r]')
 
 	grp.add_option('--enable-poly-opt', action = 'store_true', dest = 'POLLY', default = False,
-		help = 'enable polyhedral optimization if possible [default: %default]')
+		help = 'enable polyhedral optimization if possible [default: %(default)r]')
 
 def configure(conf):
 	conf.start_msg('Build type')
