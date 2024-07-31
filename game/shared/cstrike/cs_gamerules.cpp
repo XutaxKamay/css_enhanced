@@ -229,6 +229,8 @@ ConVar sv_allowminmodels(
 	FCVAR_REPLICATED | FCVAR_NOTIFY,
 	"Allow or disallow the use of cl_minmodels on this server." );
 
+ConVar sv_falldamage_scale("sv_falldamage_scale", "1", FCVAR_NOTIFY | FCVAR_REPLICATED);
+
 #ifdef CLIENT_DLL
 
 ConVar cl_autowepswitch(
@@ -1624,7 +1626,7 @@ ConVar cl_autohelp(
 	float CCSGameRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 	{
 		float fFallVelocity = pPlayer->m_Local.m_flFallVelocity - CS_PLAYER_MAX_SAFE_FALL_SPEED;
-		float fallDamage = fFallVelocity * CS_DAMAGE_FOR_FALL_SPEED * 1.25;
+		float fallDamage = fFallVelocity * CS_DAMAGE_FOR_FALL_SPEED * 1.25 * sv_falldamage_scale.GetFloat();
 
 		if ( fallDamage > 0.0f )
 		{
