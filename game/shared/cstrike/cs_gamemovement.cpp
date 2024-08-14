@@ -31,25 +31,6 @@ ConVar sv_enableboost( "sv_enableboost", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "
 
 ConVar sv_autobunnyhopping( "sv_autobunnyhopping", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
-CON_COMMAND(sv_low_gravity, "")
-{
-	CBasePlayer* pPlayer;
-#ifdef CLIENT_DLL
-	pPlayer = C_BasePlayer::GetLocalPlayer();
-#else
-	pPlayer= ToBasePlayer( UTIL_GetCommandClient() );
-#endif
-
-	if ( pPlayer->GetGravity() == 0.7 )
-	{
-		pPlayer->SetGravity( 1.0 );
-	}
-	else
-	{
-		pPlayer->SetGravity(0.7);
-	}
-}
-
 class CCSGameMovement : public CGameMovement
 {
 public:
