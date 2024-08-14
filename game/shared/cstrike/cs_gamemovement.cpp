@@ -50,20 +50,6 @@ CON_COMMAND(sv_low_gravity, "")
 	}
 }
 
-#ifdef GAME_DLL
-CON_COMMAND(sv_enable_bhop, "")
-{
-	CBasePlayer *pLocalPlayer = ToBasePlayer( UTIL_GetCommandClient() );
-
-	engine->ClientCommand(pLocalPlayer->edict(), "sv_cheats 1");
-
-	engine->ClientCommand(pLocalPlayer->edict(), "god");
-	engine->ClientCommand(pLocalPlayer->edict(), "sv_autobunnyhopping 1");
-	engine->ClientCommand(pLocalPlayer->edict(), "sv_enablebunnyhopping 1");
-	engine->ClientCommand(pLocalPlayer->edict(), "sv_airaccelerate 1000");
-}
-#endif
-
 class CCSGameMovement : public CGameMovement
 {
 public:
