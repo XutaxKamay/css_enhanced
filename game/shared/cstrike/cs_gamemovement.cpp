@@ -28,7 +28,41 @@ extern bool g_bMovementOptimizations;
 
 ConVar sv_timebetweenducks( "sv_timebetweenducks", "0", FCVAR_REPLICATED, "Minimum time before recognizing consecutive duck key", true, 0.0, true, 2.0 );
 ConVar sv_enableboost( "sv_enableboost", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Allow boost exploits");
-ConVar cs_autojump( "cs_autojump", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
+
+ConVar sv_autobunnyhopping( "sv_autobunnyhopping", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
+
+CON_COMMAND(sv_low_gravity, "")
+{
+	CBasePlayer* pPlayer;
+#ifdef CLIENT_DLL
+	pPlayer = C_BasePlayer::GetLocalPlayer();
+#else
+	pPlayer= ToBasePlayer( UTIL_GetCommandClient() );
+#endif
+
+	if ( pPlayer->GetGravity() == 0.7 )
+	{
+		pPlayer->SetGravity( 1.0 );
+	}
+	else
+	{
+		pPlayer->SetGravity(0.7);
+	}
+}
+
+#ifdef GAME_DLL
+CON_COMMAND(sv_enable_bhop, "")
+{
+	CBasePlayer *pLocalPlayer = ToBasePlayer( UTIL_GetCommandClient() );
+
+	engine->ClientCommand(pLocalPlayer->edict(), "sv_cheats 1");
+
+	engine->ClientCommand(pLocalPlayer->edict(), "god");
+	engine->ClientCommand(pLocalPlayer->edict(), "sv_autobunnyhopping 1");
+	engine->ClientCommand(pLocalPlayer->edict(), "sv_enablebunnyhopping 1");
+	engine->ClientCommand(pLocalPlayer->edict(), "sv_airaccelerate 1000");
+}
+#endif
 
 class CCSGameMovement : public CGameMovement
 {
@@ -692,7 +726,7 @@ bool CCSGameMovement::CheckJumpButton( void )
 	}
 
 	if ( (mv->m_nOldButtons & IN_JUMP) &&
-		(!cs_autojump.GetBool() && m_pCSPlayer->GetGroundEntity()) )
+		(!sv_autobunnyhopping.GetBool() && m_pCSPlayer->GetGroundEntity()) )
 	{
 		return false;		// don't pogo stick
 	}

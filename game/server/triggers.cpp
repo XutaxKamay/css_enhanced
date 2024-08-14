@@ -33,6 +33,7 @@
 #include "ai_behavior_follow.h"
 #include "ai_behavior_lead.h"
 #include "gameinterface.h"
+#include "sendproxy.h"
 
 #ifdef HL2_DLL
 #include "hl2_player.h"
@@ -40,6 +41,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
 
 #define DEBUG_TRANSITIONS_VERBOSE	2
 ConVar g_debug_transitions( "g_debug_transitions", "0", FCVAR_NONE, "Set to 1 and restart the map to be warned if the map has no trigger_transition volumes. Set to 2 to see a dump of all entities & associated results during a transition." );
@@ -102,6 +104,8 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_KEYFIELD( m_bDisabled,		FIELD_BOOLEAN,	"StartDisabled" ),
 	DEFINE_UTLVECTOR( m_hTouchingEntities, FIELD_EHANDLE ),
 
+	DEFINE_PRED_FIELD(m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+
 	// Inputs	
 	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
@@ -120,6 +124,12 @@ BEGIN_DATADESC( CBaseTrigger )
 	DEFINE_OUTPUT( m_OnNotTouching, "OnNotTouching" ),
 
 END_DATADESC()
+
+IMPLEMENT_SERVERCLASS_ST(CBaseTrigger, DT_BaseTrigger) 
+	SendPropInt(SENDINFO(m_bDisabled)),
+	SendPropStringT(SENDINFO(m_target)),
+	SendPropStringT(SENDINFO(m_iFilterName)),
+END_SEND_TABLE();
 
 
 LINK_ENTITY_TO_CLASS( trigger, CBaseTrigger );
@@ -215,9 +225,9 @@ void CBaseTrigger::Enable( void )
 void CBaseTrigger::Activate( void ) 
 { 
 	// Get a handle to my filter entity if there is one
-	if (m_iFilterName != NULL_STRING)
+	if (m_iFilterName.Get() != NULL_STRING)
 	{
-		m_hFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iFilterName ));
+		m_hFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iFilterName.Get() ));
 	}
 
 	BaseClass::Activate();
@@ -576,6 +586,11 @@ void CBaseTrigger::InputToggle( inputdata_t &inputdata )
 	PhysicsTouchTriggers();
 }
 
+int CBaseTrigger::UpdateTransmitState()
+{
+	return SetTransmitState( FL_EDICT_ALWAYS );  //SetTransmitState( FL_EDICT_PVSCHECK );
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Removes anything that touches it. If the trigger has a targetname,
@@ -872,6 +887,9 @@ void CTriggerHurt::Touch( CBaseEntity *pOther )
 // ##################################################################################
 LINK_ENTITY_TO_CLASS( trigger_multiple, CTriggerMultiple );
 
+
+IMPLEMENT_SERVERCLASS_ST(CTriggerMultiple, DT_TriggerMultiple)
+END_SEND_TABLE();
 
 BEGIN_DATADESC( CTriggerMultiple )
 
@@ -2354,7 +2372,7 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 	}
 
 	// The activator and caller are the same
-	pentTarget = gEntList.FindEntityByName( pentTarget, m_target, NULL, pOther, pOther );
+	pentTarget = gEntList.FindEntityByName( pentTarget, m_target.Get(), NULL, pOther, pOther );
 	if (!pentTarget)
 	{
 	   return;
@@ -2646,9 +2664,9 @@ void CAI_ChangeTarget::InputActivate( inputdata_t &inputdata )
 {
 	CBaseEntity *pTarget = NULL;
 
-	while ((pTarget = gEntList.FindEntityByName( pTarget, m_target, NULL, inputdata.pActivator, inputdata.pCaller )) != NULL)
+	while ((pTarget = gEntList.FindEntityByName( pTarget, m_target.Get(), NULL, inputdata.pActivator, inputdata.pCaller )) != NULL)
 	{
-		pTarget->m_target = m_iszNewTarget;
+		pTarget->m_target.GetForModify() = m_iszNewTarget;
 		CAI_BaseNPC *pNPC = pTarget->MyNPCPointer( );
 		if (pNPC)
 		{

@@ -639,6 +639,16 @@ public:
 	bool  ShouldGoSouth( Vector vNPCForward, Vector vNPCRight ); //Such a bad name.
 
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
+
+
+
+public:
+
+	float PredictedServerTime() const;
+
+	float					m_fLastUpdateServerTime;
+	int						m_nLastUpdateTickBase;
+	int						m_nLastUpdateServerTickCount;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

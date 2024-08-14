@@ -149,8 +149,8 @@ void CMoveHelperClient::ProcessImpacts( void )
 	// Relink in order to build absorigin and absmin/max to reflect any changes
 	//  from prediction.  Relink will early out on SOLID_NOT
 
-	// TODO: Touch triggers on the client
-	//pPlayer->PhysicsTouchTriggers();
+	// Touch triggers on the client
+	pPlayer->PhysicsTouchTriggers();
 
 	// Don't bother if the player ain't solid
 	if ( pPlayer->IsSolidFlagSet( FSOLID_NOT_SOLID ) )

@@ -85,6 +85,53 @@
 #include <iconv.h>
 #endif
 
+const char *nexttoken(char *token, const char *str, char sep, size_t tokenLen)
+{
+	if ((str == NULL) || (*str == '\0'))
+	{
+		*token = '\0';
+        if (tokenLen)
+        {
+            *token = '\0';
+        }
+		return(NULL);
+	}
+
+	//
+	// Copy everything up to the first separator into the return buffer.
+	// Do not include separators in the return buffer.
+	//
+	while ((*str != sep) && (*str != '\0') && (tokenLen > 1))
+	{
+		*token++ = *str++;
+        tokenLen--;
+	}
+
+    //
+    // If the token is too big for the return buffer, skip the rest of the token
+    //
+    while ((*str != sep) && (*str != '\0'))
+    {
+        str++;
+    }
+
+    if (tokenLen)
+    {
+        *token = '\0';
+        tokenLen--;
+    }
+
+	//
+	// Advance the pointer unless we hit the end of the input string.
+	//
+	if (*str == '\0')
+	{
+		return(str);
+	}
+
+	return(++str);
+}
+
 static int FastToLower( char c )
 {
 	int i = (unsigned char) c;

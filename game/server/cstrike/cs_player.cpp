@@ -995,6 +995,9 @@ void CCSPlayer::CreateRagdollEntity()
 
 int CCSPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 {
+	if ( GetFlags() & FL_GODMODE )
+		return 0;
+
 	// set damage type sustained
 	m_bitsDamageType |= info.GetDamageType();
 
@@ -2721,7 +2724,7 @@ void CCSPlayer::MoveToNextIntroCamera()
 
 	if( m_pIntroCamera )
 	{
-		Target = gEntList.FindEntityByName( NULL, STRING(m_pIntroCamera->m_target) );
+		Target = gEntList.FindEntityByName( NULL, STRING(m_pIntroCamera->m_target.Get()) );
 	}
 
 	// if we still couldn't find a camera, goto T spawn

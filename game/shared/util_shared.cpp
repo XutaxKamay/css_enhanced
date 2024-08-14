@@ -1175,3 +1175,214 @@ const char* UTIL_GetActiveHolidayString()
 	return NULL;
 #endif
 }
+
+#ifdef CLIENT_DLL
+
+CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
+{
+	//
+	// Check for the name escape character.
+	//
+	if ( szName[0] == '!' )
+	{
+		const char *pName = szName + 1;
+
+		//
+		// It is a procedural name, look for the ones we understand.
+		//
+		if ( FStrEq( pName, "player" ) )
+		{
+			return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
+		}
+		// XYZ_TODO implement this 
+		else if ( FStrEq( pName, "pvsplayer" ) )
+		{
+			/*if ( pSearchingEntity )
+			{
+				return CBaseEntity::Instance( UTIL_FindClientInPVS( pSearchingEntity->edict() ) );
+			}
+			else if ( pActivator )
+			{
+				// FIXME: error condition?
+				return CBaseEntity::Instance( UTIL_FindClientInPVS( pActivator->edict() ) );
+			}
+			else
+			{
+				// FIXME: error condition?
+				return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
+			}*/
+		
+			return NULL;
+		}
+		else if ( FStrEq( pName, "activator" ) )
+		{
+			return pActivator;
+		}
+		else if ( FStrEq( pName, "caller" ) )
+		{
+			return pCaller;
+		}
+		else if ( FStrEq( pName, "picker" ) )
+		{
+			//return UTIL_PlayerByIndex(1) ? UTIL_PlayerByIndex(1)->FindPickerEntity() : NULL;
+			return NULL;
+		}
+		else if ( FStrEq( pName, "self" ) )
+		{
+			return pSearchingEntity;
+		}
+#ifdef PORTAL2
+		else if ( FStrEq( pName, "player_orange" ) )
+		{
+			CTeam *pTeam = GetGlobalTeam( TEAM_RED );
+			Assert( pTeam );
+			if ( pTeam == NULL )
+				return NULL;
+
+			for ( int i = 0; i < pTeam->GetNumPlayers(); i++ )
+			{
+				if ( pTeam->GetPlayer( i ) != NULL )
+				{
+					return (CBaseEntity *) pTeam->GetPlayer( i );
+				}
+			}
+		}
+		else if ( FStrEq( pName, "player_blue" ) )
+		{
+			CTeam *pTeam = GetGlobalTeam( TEAM_BLUE );
+			Assert( pTeam );
+			if ( pTeam == NULL )
+				return NULL;
+
+			for ( int i = 0; i < pTeam->GetNumPlayers(); i++ )
+			{
+				if ( pTeam->GetPlayer( i ) != NULL )
+				{
+					return (CBaseEntity *) pTeam->GetPlayer( i );
+				}
+			}
+		}
+#endif // PORTAL2
+		else 
+		{
+			Warning( "Invalid entity search name %s\n", szName );
+			Assert(0);
+		}
+	}
+
+	return NULL;
+}
+
+/*
+	XYZ_TODO: use hashed entity names
+*/
+CBaseEntity* UTIL_FindEntityByName(const char* szName)
+{
+    for (int i = 0; i < cl_entitylist->GetHighestEntityIndex(); ++i)
+    {
+        IClientEntity* pClientEntity = cl_entitylist->GetClientEntity( i );
+
+        if (!pClientEntity)
+		{
+			continue;
+		}
+
+		CBaseEntity* pEntity = pClientEntity->GetBaseEntity();
+
+        if (FStrEq(pEntity->GetEntityName(), szName))
+        {
+            return pEntity->GetBaseEntity();
+        }
+    }
+
+    return NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Iterates the entities with a given name.
+// Input  : pStartEntity - Last entity found, NULL to start a new iteration.
+//			szName - Name to search for.
+//			pActivator - Activator entity if this was called from an input
+//				handler or Use handler.
+//-----------------------------------------------------------------------------
+CBaseEntity *UTIL_FindEntityByName( CBaseEntity *pStartEntity, const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
+{
+	if ( !szName || szName[0] == 0 )
+		return NULL;
+
+	if ( szName[0] == '!' )
+	{
+		//
+		// Avoid an infinite loop, only find one match per procedural search!
+		//
+		if (pStartEntity == NULL)
+			return UTIL_FindEntityProcedural( szName, pSearchingEntity, pActivator, pCaller );
+
+		return NULL;
+	}
+	
+	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
+
+	for ( ;pInfo; pInfo = pInfo->m_pNext )
+	{
+		CBaseEntity *ent = (CBaseEntity *)pInfo->m_pEntity;
+		if ( !ent )
+		{
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
+		}
+
+		string_t szEntityName = ent->GetEntityName();
+
+		if (FStrEq(szEntityName, szName))
+        {
+            return ent;
+        }
+	}
+
+	return NULL;
+}
+
+CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName )
+{
+	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
+
+	for ( ;pInfo; pInfo = pInfo->m_pNext )
+	{
+		CBaseEntity *pEntity = (CBaseEntity *)pInfo->m_pEntity;
+		if ( !pEntity )
+		{
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
+		}
+
+		if ( FStrEq( szName, pEntity->GetClassname() ) )
+			return pEntity;
+	}
+
+	return NULL;
+}
+
+/*
+	Pretty sure this always just returns true anyway
+	XYZ_TODO
+*/
+bool UTIL_IsMasterTriggered(string_t sMaster, CBaseEntity *pActivator)
+{
+	/*if (sMaster != NULL_STRING)
+	{
+		CBaseEntity *pMaster = gEntList.FindEntityByName( NULL, sMaster, NULL, pActivator );
+	
+		if ( pMaster && (pMaster->ObjectCaps() & FCAP_MASTER) )
+		{
+			return pMaster->IsTriggered( pActivator );
+		}
+
+		Warning( "Master was null or not a master!\n");
+	}*/
+
+	// if this isn't a master entity, just say yes.
+	return true;
+}
+
+#endif

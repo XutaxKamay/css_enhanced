@@ -349,7 +349,7 @@ void CFuncLadder::FindNearbyDismountPoints( const Vector& origin, float radius, 
 		Assert( landingspot );
 
 		// If spot has a target, then if the target is not this ladder, don't add to our list.
-		if ( landingspot->m_target != NULL_STRING )
+		if ( landingspot->m_target.Get() != NULL_STRING )
 		{
 			if ( landingspot->GetNextTarget() != this )
 			{

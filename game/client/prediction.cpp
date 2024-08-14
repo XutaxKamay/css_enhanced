@@ -23,6 +23,7 @@
 #include "hud_pdump.h"
 #include "datacache/imdlcache.h"
 #include "util_shared.h"
+#include "css_enhanced/c_eventqueue.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -1575,6 +1576,7 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 	//}
 
 	Assert( i >= 1 );
+	
 	while ( true )
 	{
 		// Incoming_acknowledged is the last usercmd the server acknowledged having acted upon
@@ -1608,6 +1610,8 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 
 		// Call untouch on any entities no longer predicted to be touching
 		Untouch();
+
+		ServiceEventQueue();
 
 		// Store intermediate data into appropriate slot
 		StorePredictionResults( i - 1 ); // Note that I starts at 1

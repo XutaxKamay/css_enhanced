@@ -86,13 +86,14 @@ OUTPUTS:
 #include "env_debughistory.h"
 
 #include "tier0/vprof.h"
+#include "sendproxy.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 extern ISaveRestoreOps *variantFuncs;	// function pointer set for save/restoring variants
 
-BEGIN_SIMPLE_DATADESC( CEventAction )
+BEGIN_DATADESC_NO_BASE( CEventAction )
 	DEFINE_FIELD( m_iTarget, FIELD_STRING ),
 	DEFINE_FIELD( m_iTargetInput, FIELD_STRING ),
 	DEFINE_FIELD( m_iParameter, FIELD_STRING ),
@@ -103,7 +104,6 @@ BEGIN_SIMPLE_DATADESC( CEventAction )
 	// This is dealt with by the Restore method
 	// DEFINE_FIELD( m_pNext, CEventAction ),
 END_DATADESC()
-
 
 // ID Stamp used to uniquely identify every output
 int CEventAction::s_iNextIDStamp = 0;

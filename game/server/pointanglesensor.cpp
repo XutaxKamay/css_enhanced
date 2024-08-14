@@ -136,7 +136,7 @@ void CPointAngleSensor::Activate(void)
 
 	if (!m_hTargetEntity)
 	{
-		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
+		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
 	}
 
 	if (!m_hLookAtEntity && (m_nLookAtName != NULL_STRING))
@@ -287,13 +287,13 @@ void CPointAngleSensor::InputSetTargetEntity(inputdata_t &inputdata)
 {
 	if ((inputdata.value.String() == NULL) || (inputdata.value.StringID() == NULL_STRING) || (inputdata.value.String()[0] == '\0'))
 	{
-		m_target = NULL_STRING;
+		m_target.GetForModify() = NULL_STRING;
 		m_hTargetEntity = NULL;
 		SetNextThink( TICK_NEVER_THINK );
 	}
 	else
 	{
-		m_target = AllocPooledString(inputdata.value.String());
+		m_target.GetForModify() = AllocPooledString(inputdata.value.String());
 		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target, NULL, inputdata.pActivator, inputdata.pCaller );
 		if (!m_bDisabled && m_hTargetEntity)
 		{
@@ -453,7 +453,7 @@ void CPointProximitySensor::Activate( void )
 
 	if ( m_hTargetEntity == NULL )
 	{
-		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
+		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
 	}
 
 	if ( m_bDisabled == false && m_hTargetEntity != NULL )
@@ -469,14 +469,14 @@ void CPointProximitySensor::InputSetTargetEntity(inputdata_t &inputdata)
 {
 	if ((inputdata.value.String() == NULL) || (inputdata.value.StringID() == NULL_STRING) || (inputdata.value.String()[0] == '\0'))
 	{
-		m_target = NULL_STRING;
+		m_target.GetForModify() = NULL_STRING;
 		m_hTargetEntity = NULL;
 		SetNextThink( TICK_NEVER_THINK );
 	}
 	else
 	{
-		m_target = AllocPooledString(inputdata.value.String());
-		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target, NULL, inputdata.pActivator, inputdata.pCaller );
+		m_target.GetForModify() = AllocPooledString(inputdata.value.String());
+		m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get(), NULL, inputdata.pActivator, inputdata.pCaller );
 		if (!m_bDisabled && m_hTargetEntity)
 		{
 			SetNextThink( gpGlobals->curtime );

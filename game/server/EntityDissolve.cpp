@@ -172,7 +172,7 @@ void CEntityDissolve::InputDissolve( inputdata_t &inputdata )
 
 	if (strTarget == NULL_STRING)
 	{
-		strTarget = m_target;
+		strTarget = m_target.Get();
 	}
 
 	CBaseEntity *pTarget = NULL;
