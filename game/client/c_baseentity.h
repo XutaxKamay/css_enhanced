@@ -36,6 +36,8 @@
 #include "toolframework/itoolentity.h"
 #include "tier0/threadtools.h"
 
+#include "css_enhanced/c_entityoutput.h"
+
 class C_Team;
 class IPhysicsObject;
 class IClientVehicle;
@@ -97,6 +99,17 @@ struct VarMapping_t
 	CUtlVector< VarMapEntry_t >	m_Entries;
 	int							m_nInterpolatedEntries;
 	float						m_lastInterpolationTime;
+};
+
+//
+// Structure passed to input handlers.
+//
+struct inputdata_t
+{
+	CBaseEntity *pActivator;		// The entity that initially caused this chain of output events.
+	CBaseEntity *pCaller;			// The entity that fired this particular output.
+	variant_t value;				// The data parameter for this output.
+	int nOutputID;					// The unique ID of the output that was fired.
 };
 
 																	
@@ -1668,6 +1681,78 @@ public:
 	bool							m_bEnableRenderingClipPlane; //true to use the custom clip plane when drawing
 	float *							GetRenderClipPlane( void ); // Rendering clip plane, should be 4 floats, return value of NULL indicates a disabled render clip plane
 
+public: // CSSENHANCED	
+
+	// interface function pts
+	void (CBaseEntity::*m_pfnMoveDone)(void);
+	virtual void MoveDone( void ) { if (m_pfnMoveDone) (this->*m_pfnMoveDone)();};
+	// handles an input (usually caused by outputs)
+	// returns true if the the value in the pass in should be set, false if the input is to be ignored
+	virtual bool 			AcceptInput( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID );
+
+	void					PhysicsTouchTriggers( const Vector *pPrevAbsOrigin = NULL );
+
+	float 					GetLocalTime( void ) const;
+	void 					IncrementLocalTime( float flTimeDelta );
+
+	// returns -1 for now as i dont think it's needed
+	float					GetMoveDoneTime( ) const;
+	void					SetMoveDoneTime( float flTime );
+
+	int 					GetSpawnFlags( void ) const;
+	void 					AddSpawnFlags( int nFlags );
+	void 					RemoveSpawnFlags( int nFlags );
+	void 					ClearSpawnFlags( void );
+	bool 					HasSpawnFlags( int nFlags ) const;
+
+	string_t 				GetEntityName();
+
+	//
+	// Input handlers.
+	//
+	void InputAlternativeSorting( inputdata_t &inputdata );
+	void InputAlpha( inputdata_t &inputdata );
+	void InputColor( inputdata_t &inputdata );
+	void InputSetParent( inputdata_t &inputdata );
+	void SetParentAttachment( const char *szInputName, const char *szAttachment, bool bMaintainOffset );
+	void InputSetParentAttachment( inputdata_t &inputdata );
+	void InputSetParentAttachmentMaintainOffset( inputdata_t &inputdata );
+	void InputClearParent( inputdata_t &inputdata );
+	void InputSetTeam( inputdata_t &inputdata );
+	void InputUse( inputdata_t &inputdata );
+	void InputKill( inputdata_t &inputdata );
+	void InputKillHierarchy( inputdata_t &inputdata );
+	void InputSetDamageFilter( inputdata_t &inputdata );
+	void InputDispatchEffect( inputdata_t &inputdata );
+	void InputEnableDamageForces( inputdata_t &inputdata );
+	void InputDisableDamageForces( inputdata_t &inputdata );
+	void InputAddContext( inputdata_t &inputdata );
+	void InputRemoveContext( inputdata_t &inputdata );
+	void InputClearContext( inputdata_t &inputdata );
+	void InputDispatchResponse( inputdata_t& inputdata );
+	void InputDisableShadow( inputdata_t &inputdata );
+	void InputEnableShadow( inputdata_t &inputdata );
+	void InputAddOutput( inputdata_t &inputdata );
+	void InputFireUser1( inputdata_t &inputdata );
+	void InputFireUser2( inputdata_t &inputdata );
+	void InputFireUser3( inputdata_t &inputdata );
+	void InputFireUser4( inputdata_t &inputdata );
+	
+	float 	m_flLocalTime; // XYZ_TODO: Network this?
+	float 	m_flMoveDoneTime;
+	int		m_spawnflags;
+	char m_iName[MAX_PATH];
+
+	// Damage filtering
+	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.
+	EHANDLE		m_hDamageFilter;		// The entity that controls who can damage us.
+
+	// User outputs. Fired when the "FireInputX" input is triggered.
+	C_OutputEvent m_OnUser1;
+	C_OutputEvent m_OnUser2;
+	C_OutputEvent m_OnUser3;
+	C_OutputEvent m_OnUser4;
+
 protected:
 
 	void AddToInterpolationList();
@@ -2199,6 +2284,52 @@ inline bool C_BaseEntity::ShouldRecordInTools() const
 #else
 	return true;
 #endif
+}
+
+// CSSENHANCED
+
+inline float C_BaseEntity::GetLocalTime( void ) const
+{ 
+	return m_flLocalTime; 
+}
+
+inline void C_BaseEntity::IncrementLocalTime( float flTimeDelta )
+{ 
+	m_flLocalTime += flTimeDelta; 
+}
+
+inline float C_BaseEntity::GetMoveDoneTime( ) const
+{
+	return (m_flMoveDoneTime >= 0) ? m_flMoveDoneTime - GetLocalTime() : -1;
+}
+
+inline int C_BaseEntity::GetSpawnFlags( void ) const
+{ 
+	return m_spawnflags; 
+}
+
+inline void C_BaseEntity::AddSpawnFlags( int nFlags ) 
+{ 
+	m_spawnflags |= nFlags; 
+}
+inline void C_BaseEntity::RemoveSpawnFlags( int nFlags ) 
+{ 
+	m_spawnflags &= ~nFlags; 
+}
+
+inline void C_BaseEntity::ClearSpawnFlags( void ) 
+{ 
+	m_spawnflags = 0; 
+}
+
+inline bool C_BaseEntity::HasSpawnFlags( int nFlags ) const
+{ 
+	return (m_spawnflags & nFlags) != 0; 
+}
+
+inline string_t C_BaseEntity::GetEntityName() 
+{ 
+	return m_iName; 
 }
 
 C_BaseEntity *CreateEntityByName( const char *className );

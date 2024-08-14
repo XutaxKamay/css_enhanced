@@ -55,14 +55,26 @@ ConVar hl2_episodic( "hl2_episodic", "0", FCVAR_REPLICATED );
 
 #include "rumble_shared.h"
 
+
+#ifdef CLIENT_DLL
+#include "css_enhanced/c_entityinput.h"
+#include "css_enhanced/c_entityoutput.h"
+#include "css_enhanced/c_eventqueue.h"
+#else
+#include "eventqueue.h"
+#endif
+
+#ifdef GAME_DLL
+#include "env_debughistory.h"
+#endif
+
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#ifdef GAME_DLL
-	ConVar ent_debugkeys( "ent_debugkeys", "" );
-	extern bool ParseKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, const char *szValue );
-	extern bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, char *szValue, int iMaxLen );
-#endif
+ConVar ent_debugkeys( "ent_debugkeys", "" );
+extern bool ParseKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, const char *szValue );
+extern bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, char *szValue, int iMaxLen );
 
 bool CBaseEntity::m_bAllowPrecache = false;
 
@@ -327,6 +339,14 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		*s = '\0';
 	}
 
+	if (FStrEq(szKeyName, "basevelocity"))
+	{
+		Vector vecOrigin;
+		UTIL_StringToVector( vecOrigin.Base(), szValue );
+
+		SetBaseVelocity( vecOrigin );
+	}
+
 	if ( FStrEq( szKeyName, "rendercolor" ) || FStrEq( szKeyName, "rendercolor32" ))
 	{
 		color32 tmp;
@@ -435,14 +455,14 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		SetAbsOrigin( vecOrigin );
 		return true;
 	}
-
-#ifdef GAME_DLL	
 	
+#ifdef GAME_DLL	
 	if ( FStrEq( szKeyName, "targetname" ) )
 	{
 		m_iName = AllocPooledString( szValue );
 		return true;
 	}
+#endif
 
 	// loop through the data description, and try and place the keys in
 	if ( !*ent_debugkeys.GetString() )
@@ -485,11 +505,10 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 			}
 		}
 
-		if ( printKeyHits )
-			Msg( "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
+			if ( printKeyHits )
+				Msg( "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
 	}
 
-#endif
 
 	// key hasn't been handled
 	return false;
@@ -594,6 +613,7 @@ bool CBaseEntity::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen
 		Q_snprintf( szValue, iMaxLen, "%s", STRING( GetEntityName() ) );
 		return true;
 	}
+#endif
 
 	if ( FStrEq( szKeyName, "classname" ) )
 	{
@@ -606,7 +626,6 @@ bool CBaseEntity::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen
 		if ( ::ExtractKeyvalue( this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue, iMaxLen ) )
 			return true;
 	}
-#endif
 
 	return false;
 }
@@ -2563,4 +2582,529 @@ bool CBaseEntity::IsToolRecording() const
 	return false;
 #endif
 }
+
 #endif
+
+ConVar ent_messages_draw( "ent_messages_draw", "0", FCVAR_CHEAT, "Visualizes all entity input/output activity." );
+
+//-----------------------------------------------------------------------------
+// Purpose: calls the appropriate message mapped function in the entity according
+//			to the fired action.
+// Input  : char *szInputName - input destination
+//			*pActivator - entity which initiated this sequence of actions
+//			*pCaller - entity from which this event is sent
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID )
+{
+	if ( ent_messages_draw.GetBool() )
+	{
+		if ( pCaller != NULL )
+		{
+			NDebugOverlay::Line( pCaller->GetAbsOrigin(), GetAbsOrigin(), 255, 255, 255, false, 3 );
+			NDebugOverlay::Box( pCaller->GetAbsOrigin(), Vector(-4, -4, -4), Vector(4, 4, 4), 255, 0, 0, 0, 3 );
+		}
+
+		NDebugOverlay::Text( GetAbsOrigin(), szInputName, false, 3 );	
+		NDebugOverlay::Box( GetAbsOrigin(), Vector(-4, -4, -4), Vector(4, 4, 4), 0, 255, 0, 0, 3 );
+	}
+
+	// loop through the data description list, restoring each data desc block
+	for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
+	{
+		// search through all the actions in the data description, looking for a match
+		for ( int i = 0; i < dmap->dataNumFields; i++ )
+		{
+			if ( dmap->dataDesc[i].flags & FTYPEDESC_INPUT )
+			{
+				if ( !Q_stricmp(dmap->dataDesc[i].externalName, szInputName) )
+				{
+					// found a match
+
+					char szBuffer[256];
+					// mapper debug message
+					if (pCaller != NULL)
+					{
+						Q_snprintf(
+							szBuffer,
+							sizeof(szBuffer),
+#ifdef CLIENT_DLL
+							"[Client] "
+#else
+							"[Server] "
+#endif
+							"(%0.2f) input %s: %s.%s(%s)\n",
+							gpGlobals->curtime,
+							pCaller->GetClassname(),
+							GetDebugName(),
+							szInputName,
+							Value.String() );
+					}
+					else
+					{
+						#ifdef CLIENT_DLL
+						Q_snprintf( szBuffer, sizeof(szBuffer),
+#ifdef CLIENT_DLL
+							"[Client] "
+#else
+							"[Server] "
+#endif
+							"(%0.2f) input <NULL>: %s.%s(%s)\n", gpGlobals->curtime, GetDebugName(), szInputName, Value.String() );
+						#endif
+					}
+					DevMsg( 2, "%s", szBuffer );
+#ifdef GAME_DLL
+					ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
+
+					if (m_debugOverlays & OVERLAY_MESSAGE_BIT)
+					{
+						DrawInputOverlay(szInputName,pCaller,Value);
+					}
+#endif
+
+					// convert the value if necessary
+					if ( Value.FieldType() != dmap->dataDesc[i].fieldType )
+					{
+						if ( !(Value.FieldType() == FIELD_VOID && dmap->dataDesc[i].fieldType == FIELD_STRING) ) // allow empty strings
+						{
+							if ( !Value.Convert( (fieldtype_t)dmap->dataDesc[i].fieldType ) )
+							{
+								// bad conversion
+								Warning( "!! ERROR: bad input/output link:\n!! %s(%s,%s) doesn't match type from %s(%s)\n", 
+									STRING(m_iClassname), GetDebugName(), szInputName, 
+									( pCaller != NULL ) ? pCaller->GetClassname() : "<null>",
+									( pCaller != NULL ) ? pCaller->GetDebugName() : "<null>" );
+								return false;
+							}
+						}
+					}
+
+					// call the input handler, or if there is none just set the value
+					inputfunc_t pfnInput = dmap->dataDesc[i].inputFunc;
+
+					if ( pfnInput )
+					{ 
+						// Package the data into a struct for passing to the input handler.
+						inputdata_t data;
+						data.pActivator = pActivator;
+						data.pCaller = pCaller;
+						data.value = Value;
+						data.nOutputID = outputID;
+
+						(this->*pfnInput)( data );
+					}
+					else if ( dmap->dataDesc[i].flags & FTYPEDESC_KEY )
+					{
+						// set the value directly
+						Value.SetOther( ((char*)this) + dmap->dataDesc[i].fieldOffset[ TD_OFFSET_NORMAL ]);
+
+						// TODO: if this becomes evil and causes too many full entity updates, then we should make
+						// a macro like this:
+						//
+						// define MAKE_INPUTVAR(x) void Note##x##Modified() { x.GetForModify(); }
+						//
+						// Then the datadesc points at that function and we call it here. The only pain is to add
+						// that function for all the DEFINE_INPUT calls.
+						NetworkStateChanged();
+					}
+
+					return true;
+				}
+			}
+		}
+	}
+
+	DevMsg( 2,
+#ifdef CLIENT_DLL
+	"[Client] "
+#else
+	"[Server] "
+#endif
+	"unhandled input: (%s) -> (%s,%s)\n", szInputName, STRING(m_iClassname), GetDebugName()/*,", from (%s,%s)" STRING(pCaller->m_iClassname), STRING(pCaller->m_iName)*/ );
+	return false;
+}
+
+void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
+{
+#if defined( CLIENT_DLL )
+	IClientEntity *pEntity = this;
+	bool sm_bAccurateTriggerBboxChecks = true;
+#else
+	edict_t *pEntity = edict();
+#endif
+
+	if ( pEntity && !IsWorld() )
+	{
+		Assert(CollisionProp());
+		bool isTriggerCheckSolids = IsSolidFlagSet( FSOLID_TRIGGER );
+		bool isSolidCheckTriggers = IsSolid() && !isTriggerCheckSolids;		// NOTE: Moving triggers (items, ammo etc) are not 
+		// checked against other triggers ot reduce the number of touchlinks created
+		if ( !(isSolidCheckTriggers || isTriggerCheckSolids) )
+			return;
+
+		if ( GetSolid() == SOLID_BSP ) 
+		{
+			if ( !GetModel() && Q_strlen( STRING( GetModelName() ) ) == 0 ) 
+			{
+				Warning( "Inserted %s with no model\n", GetClassname() );
+				return;
+			}
+		}
+
+		SetCheckUntouch( true );
+		if ( isSolidCheckTriggers )
+		{
+			engine->SolidMoved( pEntity, CollisionProp(), pPrevAbsOrigin, sm_bAccurateTriggerBboxChecks );
+		}
+		if ( isTriggerCheckSolids )
+		{
+			engine->TriggerMoved( pEntity, sm_bAccurateTriggerBboxChecks );
+		}
+	}
+}
+
+void CBaseEntity::SetMoveDoneTime( float flDelay )  /* XYZ_TODO: this is not needed, localtime is never incremented */
+{
+	if (flDelay >= 0)
+	{
+		m_flMoveDoneTime = GetLocalTime() + flDelay;
+	}
+	else
+	{
+		m_flMoveDoneTime = -1;
+	}
+	CheckHasGamePhysicsSimulation();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Input handler for the entity alpha.
+// Input  : nAlpha - Alpha value (0 - 255).
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputAlpha( inputdata_t &inputdata )
+{
+	SetRenderColorA( clamp( inputdata.value.Int(), 0, 255 ) );
+}
+
+
+//-----------------------------------------------------------------------------
+// Activate alternative sorting
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputAlternativeSorting( inputdata_t &inputdata )
+{
+	m_bAlternateSorting = inputdata.value.Bool();
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Input handler for the entity color. Ignores alpha since that is handled
+//			by a separate input handler.
+// Input  : Color32 new value for color (alpha is ignored).
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputColor( inputdata_t &inputdata )
+{
+	color32 clr = inputdata.value.Color32();
+
+	SetRenderColor( clr.r, clr.g, clr.b );
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Called whenever the entity is 'Used'.  This can be when a player hits
+//			use, or when an entity targets it without an output name (legacy entities)
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputUse( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	Use( inputdata.pActivator, inputdata.pCaller, (USE_TYPE)inputdata.nOutputID, 0 );
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Sets the damage filter on the object
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputEnableDamageForces( inputdata_t &inputdata )
+{
+	RemoveEFlags( EFL_NO_DAMAGE_FORCES );
+}
+
+void CBaseEntity::InputDisableDamageForces( inputdata_t &inputdata )
+{
+	AddEFlags( EFL_NO_DAMAGE_FORCES );
+}
+
+	
+//-----------------------------------------------------------------------------
+// Purpose: Sets the damage filter on the object
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputSetDamageFilter( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	// Get a handle to my damage filter entity if there is one.
+	m_iszDamageFilterName.GetForModify() = inputdata.value.StringID();
+	if ( m_iszDamageFilterName.Get() != NULL_STRING )
+	{
+		m_hDamageFilter = gEntList.FindEntityByName( NULL, m_iszDamageFilterName.Get() );
+	}
+	else
+	{
+		m_hDamageFilter = NULL;
+	}
+#else
+	// Get a handle to my damage filter entity if there is one.
+	m_iszDamageFilterName = inputdata.value.StringID();
+	if ( m_iszDamageFilterName != NULL_STRING )
+	{
+		m_hDamageFilter = UTIL_FindEntityByName( NULL, m_iszDamageFilterName );
+	}
+	else
+	{
+		m_hDamageFilter = NULL;
+	}
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Dispatch effects on this entity
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputDispatchEffect( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	const char *sEffect = inputdata.value.String();
+	if ( sEffect && sEffect[0] )
+	{
+		CEffectData data;
+		GetInputDispatchEffectPosition( sEffect, data.m_vOrigin, data.m_vAngles );
+		AngleVectors( data.m_vAngles, &data.m_vNormal );
+		data.m_vStart = data.m_vOrigin;
+		data.m_nEntIndex = entindex();
+
+		// Clip off leading attachment point numbers
+		while ( sEffect[0] >= '0' && sEffect[0] <= '9' )
+		{
+			sEffect++;
+		}
+		DispatchEffect( sEffect, data );
+	}
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Marks the entity for deletion
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputKill( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	// tell owner ( if any ) that we're dead.This is mostly for NPCMaker functionality.
+	CBaseEntity *pOwner = GetOwnerEntity();
+	if ( pOwner )
+	{
+		pOwner->DeathNotice( this );
+		SetOwnerEntity( NULL );
+	}
+
+	UTIL_Remove( this );
+#endif
+}
+
+void CBaseEntity::InputKillHierarchy( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	CBaseEntity *pChild, *pNext;
+	for ( pChild = FirstMoveChild(); pChild; pChild = pNext )
+	{
+		pNext = pChild->NextMovePeer();
+		pChild->InputKillHierarchy( inputdata );
+	}
+
+	// tell owner ( if any ) that we're dead. This is mostly for NPCMaker functionality.
+	CBaseEntity *pOwner = GetOwnerEntity();
+	if ( pOwner )
+	{
+		pOwner->DeathNotice( this );
+		SetOwnerEntity( NULL );
+	}
+
+	UTIL_Remove( this );
+#endif
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Input handler for changing this entity's movement parent.
+//------------------------------------------------------------------------------
+void CBaseEntity::InputSetParent( inputdata_t &inputdata )
+{
+	// If we had a parent attachment, clear it, because it's no longer valid.
+	if ( m_iParentAttachment )
+	{
+		m_iParentAttachment = 0;
+	}
+
+#ifdef GAME_DLL
+	SetParent( inputdata.value.StringID(), inputdata.pActivator );
+#else
+	SetParent( UTIL_FindEntityByName( NULL, STRING( inputdata.value.StringID() ), NULL, inputdata.pActivator ) );
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Input handler for changing this entity's movement parent's attachment point
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputSetParentAttachment( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	SetParentAttachment( "SetParentAttachment", inputdata.value.String(), false );
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Input handler for changing this entity's movement parent's attachment point
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputSetParentAttachmentMaintainOffset( inputdata_t &inputdata )
+{
+#ifdef GAME_DLL
+	SetParentAttachment( "SetParentAttachmentMaintainOffset", inputdata.value.String(), true );
+#endif
+}
+
+//------------------------------------------------------------------------------
+// Purpose: Input handler for clearing this entity's movement parent.
+//------------------------------------------------------------------------------
+void CBaseEntity::InputClearParent( inputdata_t &inputdata )
+{
+	SetParent( NULL );
+}
+
+//================================================================================
+// TEAM HANDLING
+//================================================================================
+void CBaseEntity::InputSetTeam( inputdata_t &inputdata )
+{
+	ChangeTeam( inputdata.value.Int() );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : inputdata - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputAddContext( inputdata_t& inputdata )
+{
+#ifdef GAME_DLL
+	const char *contextName = inputdata.value.String();
+	AddContext( contextName );
+#endif
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: User inputs. These fire the corresponding user outputs, and are
+//			a means of forwarding messages through !activator to a target known
+//			known by !activator but not by the targetting entity.
+//
+//			For example, say you have three identical trains, following the same
+//			path. Each train has a sprite in hierarchy with it that needs to
+//			toggle on/off as it passes each path_track. You would hook each train's
+//			OnUser1 output to it's sprite's Toggle input, then connect each path_track's
+//			OnPass output to !activator's FireUser1 input.
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputFireUser1( inputdata_t& inputdata )
+{
+	m_OnUser1.FireOutput( inputdata.pActivator, this );
+}
+
+
+void CBaseEntity::InputFireUser2( inputdata_t& inputdata )
+{
+	m_OnUser2.FireOutput( inputdata.pActivator, this );
+}
+
+
+void CBaseEntity::InputFireUser3( inputdata_t& inputdata )
+{
+	m_OnUser3.FireOutput( inputdata.pActivator, this );
+}
+
+
+void CBaseEntity::InputFireUser4( inputdata_t& inputdata )
+{
+	m_OnUser4.FireOutput( inputdata.pActivator, this );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : inputdata - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputRemoveContext( inputdata_t& inputdata )
+{
+#ifdef GAME_DLL
+	const char *contextName = inputdata.value.String();
+	int idx = FindContextByName( contextName );
+	if ( idx == -1 )
+		return;
+
+	m_ResponseContexts.Remove( idx );
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : inputdata - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputClearContext( inputdata_t& inputdata )
+{
+#ifdef GAME_DLL
+	m_ResponseContexts.RemoveAll();
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : inputdata - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputDispatchResponse( inputdata_t& inputdata )
+{
+#ifdef GAME_DLL
+	DispatchResponse( inputdata.value.String() );
+#endif
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputDisableShadow( inputdata_t &inputdata )
+{
+	AddEffects( EF_NOSHADOW );
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputEnableShadow( inputdata_t &inputdata )
+{
+	RemoveEffects( EF_NOSHADOW );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: An input to add a new connection from this entity
+// Input  : &inputdata - 
+//-----------------------------------------------------------------------------
+void CBaseEntity::InputAddOutput( inputdata_t &inputdata )
+{
+	char sOutputName[MAX_PATH];
+	Q_strncpy( sOutputName, inputdata.value.String(), sizeof(sOutputName) );
+	char *sChar = strchr( sOutputName, ' ' );
+	if ( sChar )
+	{
+		*sChar = '\0';
+		// Now replace all the :'s in the string with ,'s.
+		// Has to be done this way because Hammer doesn't allow ,'s inside parameters.
+		char *sColon = strchr( sChar+1, ':' );
+		while ( sColon )
+		{
+			*sColon = ',';
+			sColon = strchr( sChar+1, ':' );
+		}
+		KeyValue( sOutputName, sChar+1 );
+	}
+	else
+	{
+		Warning("AddOutput input fired with bad string. Format: <output name> <targetname>,<inputname>,<parameter>,<delay>,<max times to fire (-1 == infinite)>\n");
+	}
+}

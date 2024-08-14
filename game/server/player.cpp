@@ -4522,6 +4522,11 @@ void CBasePlayer::ForceOrigin( const Vector &vecOrigin )
 //-----------------------------------------------------------------------------
 void CBasePlayer::PostThink()
 {
+	if ( sv_end_touch_fix.GetInt() && GetCheckUntouch() )
+	{
+		PhysicsCheckForEntityUntouch();
+	}
+
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
 	if ( !g_fGameOver && !m_iPlayerLocked )

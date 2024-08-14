@@ -76,7 +76,6 @@ ConVar debug_touchlinks( "debug_touchlinks", "0", 0, "Spew touch link activity" 
 #endif
 
 
-
 //-----------------------------------------------------------------------------
 // Portal-specific hack designed to eliminate re-entrancy in touch functions
 //-----------------------------------------------------------------------------

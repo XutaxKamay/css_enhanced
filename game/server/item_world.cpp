@@ -76,7 +76,7 @@ void CWorldItem::Spawn( void )
 	}
 	else
 	{
-		pEntity->m_target = m_target;
+		pEntity->m_target.GetForModify() = m_target.Get();
 		pEntity->SetName( GetEntityName() );
 		pEntity->ClearSpawnFlags();
 		pEntity->AddSpawnFlags( m_spawnflags );

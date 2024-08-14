@@ -914,6 +914,11 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		ResetLatched();
     }
+
+	
+	m_fLastUpdateServerTime = engine->GetLastTimeStamp();
+	m_nLastUpdateTickBase = m_nTickBase;
+	m_nLastUpdateServerTickCount = engine->GetServerTick();
 }
 
 //-----------------------------------------------------------------------------
@@ -2021,6 +2026,11 @@ void C_BasePlayer::PostThink( void )
 #if !defined( NO_ENTITY_PREDICTION )
 	MDLCACHE_CRITICAL_SECTION();
 
+	if ( sv_end_touch_fix.GetInt() && GetCheckUntouch() )
+	{
+		PhysicsCheckForEntityUntouch();
+	}
+
 	if ( IsAlive())
 	{
 		// Need to do this on the client to avoid prediction errors
@@ -2970,6 +2980,10 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 	}
 }
 
+float C_BasePlayer::PredictedServerTime() const
+{
+	return m_fLastUpdateServerTime + ((m_nTickBase - m_nLastUpdateTickBase) * TICK_INTERVAL);
+}
 
 
 void CC_DumpClientSoundscapeData( const CCommand& args )

@@ -28,17 +28,19 @@
 class CEventAction
 {
 public:
+	DECLARE_DATADESC();
+
 	CEventAction( const char *ActionData = NULL );
 
-	string_t m_iTarget; // name of the entity(s) to cause the action in
-	string_t m_iTargetInput; // the name of the action to fire
-	string_t m_iParameter; // parameter to send, 0 if none
-	float m_flDelay; // the number of seconds to wait before firing the action
-	int m_nTimesToFire; // The number of times to fire this event, or EVENT_FIRE_ALWAYS.
+	string_t 	m_iTarget; // name of the entity(s) to cause the action in
+	string_t 	m_iTargetInput; // the name of the action to fire
+	string_t 	m_iParameter; // parameter to send, 0 if none
+	float 		m_flDelay; // the number of seconds to wait before firing the action
+	int 		m_nTimesToFire; // The number of times to fire this event, or EVENT_FIRE_ALWAYS.
 
-	int m_iIDStamp;	// unique identifier stamp
+	int 		m_iIDStamp;	// unique identifier stamp
 
-	static int s_iNextIDStamp;
+	static int 	s_iNextIDStamp;
 
 	CEventAction *m_pNext; 
 
@@ -47,10 +49,9 @@ public:
 	static void *operator new( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine );
 	static void operator delete( void *pMem );
 	static void operator delete( void *pMem , int nBlockUse, const char *pFileName, int nLine ) { operator delete(pMem); }
-
-	DECLARE_SIMPLE_DATADESC();
 };
 
+EXTERN_SEND_TABLE( DT_EventAction );
 
 //-----------------------------------------------------------------------------
 // Purpose: Stores a list of connections to other entities, for data/commands to be
@@ -80,7 +81,7 @@ public:
 
 protected:
 	variant_t m_Value;
-	CEventAction *m_ActionList;
+	CEventAction* m_ActionList;
 	DECLARE_SIMPLE_DATADESC();
 
 	CBaseEntityOutput() = default; // this class cannot be created, only it's children

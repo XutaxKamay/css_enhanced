@@ -42,6 +42,7 @@ enum
 class CBaseTrigger : public CBaseToggle
 {
 	DECLARE_CLASS( CBaseTrigger, CBaseToggle );
+	DECLARE_NETWORKCLASS();
 public:
 	CBaseTrigger();
 	
@@ -79,8 +80,10 @@ public:
 
 	bool PointIsWithin( const Vector &vecPoint );
 
-	bool		m_bDisabled;
-	string_t	m_iFilterName;
+	virtual int UpdateTransmitState(void);
+
+	CNetworkVar(bool, m_bDisabled);
+	CNetworkVar(string_t, m_iFilterName);
 	CHandle<class CBaseFilter>	m_hFilter;
 
 protected:
@@ -107,6 +110,7 @@ protected:
 class CTriggerMultiple : public CBaseTrigger
 {
 	DECLARE_CLASS( CTriggerMultiple, CBaseTrigger );
+	DECLARE_NETWORKCLASS();
 public:
 	void Spawn( void );
 	void MultiTouch( CBaseEntity *pOther );

@@ -605,7 +605,7 @@ int CAI_ScriptConditions::AddNewElement( CBaseEntity *pActor )
 
 void CAI_ScriptConditions::Enable( void )
 {
-	m_hTarget = gEntList.FindEntityByName( NULL, m_target );
+	m_hTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
 
 	CBaseEntity *pActor = gEntList.FindEntityByName( NULL, m_Actor );
 	if ( m_ElementList.Count() == 0 )
