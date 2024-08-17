@@ -5686,9 +5686,12 @@ int C_BaseEntity::RestoreData( const char *context, int slot, int type )
 	const void *src = ( slot == SLOT_ORIGINALDATA ) ? GetOriginalNetworkDataObject() : GetPredictedFrame( slot );
 	Assert( src );
 
-	// This assert will fire if the server ack'd a CUserCmd which we hadn't predicted yet...
-	// In that case, we'd be comparing "old" data from this "unused" slot with the networked data and reporting all kinds of prediction errors possibly.
-	Assert( slot == SLOT_ORIGINALDATA || slot <= m_nIntermediateDataCount );
+    if (Q_strcmp(context, "RestoreTouchEntitiesForTriggers"))
+    {
+		// This assert will fire if the server ack'd a CUserCmd which we hadn't predicted yet...
+		// In that case, we'd be comparing "old" data from this "unused" slot with the networked data and reporting all kinds of prediction errors possibly.
+		Assert( slot == SLOT_ORIGINALDATA || slot <= m_nIntermediateDataCount );
+    }
 
 	char sz[ 64 ];
 	sz[0] = 0;

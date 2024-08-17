@@ -1,6 +1,7 @@
 #ifndef C_EVENTQUEUE_H
 #define C_EVENTQUEUE_H
 
+#include "shared_classnames.h"
 #ifdef WIN32
 #pragma once
 #endif
@@ -18,7 +19,7 @@ class variant_t;
 
 struct EventQueuePrioritizedEvent_t
 {
-	int m_iFireTick;
+	float m_flFireTime;
 	string_t m_iTarget;
 	string_t m_iTargetInput;
 	EHANDLE m_pActivator;
@@ -49,6 +50,7 @@ public:
 
 	// services the queue, firing off any events who's time hath come
 	void ServiceEvents( void );
+	void ServiceEvent( CBaseEntity* pActivator );
 
 	// debugging
 	void ValidateQueue( void );
@@ -76,7 +78,7 @@ private:
 };
 
 // XYZ_TODO call this in client prediction
-void ServiceEventQueue( void );
+void ServiceEventQueue( CBaseEntity* pActivator );
 
 extern CEventQueue g_EventQueue;
 

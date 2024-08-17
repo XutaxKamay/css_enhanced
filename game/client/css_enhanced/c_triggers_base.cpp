@@ -1,11 +1,16 @@
 #include "cbase.h"
 #include "c_triggers.h"
+#include "const.h"
+#include "datamap.h"
+#include "dt_utlvector_recv.h"
 #include "in_buttons.h"
 #include "collisionutils.h"
+#include "platform.h"
 #include "prediction.h"
 #include "mapentities_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
+#include "predictioncopy.h"
 #include "tier0/memdbgon.h"
 
 bool IsTriggerClass( CBaseEntity *pEntity );
@@ -87,6 +92,8 @@ BEGIN_PREDICTION_DATA(C_BaseTrigger)
 	DEFINE_PRED_FIELD(m_bDisabled, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE),
 	DEFINE_PRED_FIELD(m_target, FIELD_STRING, FTYPEDESC_INSENDTABLE),
 	DEFINE_PRED_FIELD(m_iFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_ARRAY(m_hPredictedTouchingEntities, FIELD_EHANDLE, MAX_EDICTS, FTYPEDESC_PRIVATE),
+	// DEFINE_PRED_FIELD(m_iCountPredictedTouchingEntities, FIELD_INTEGER, FTYPEDESC_PRIVATE)
 END_PREDICTION_DATA();
 
 // Incase server decides to change the filter name
@@ -94,10 +101,10 @@ void RecvProxy_FilterName(const CRecvProxyData *pData, void *pStruct, void *pOut
 {
 	C_BaseTrigger *entity = (C_BaseTrigger *) pStruct;
 
-	Q_strncpy(entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH);
+	Q_strncpy( entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH );
 
 	// Update the Filter
-	entity->m_hFilter = dynamic_cast<C_BaseFilter *>(UTIL_FindEntityByName(entity->m_iFilterName));
+	entity->m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(entity->m_iFilterName));
 }
 
 // Incase server decides to change m_bDisabled
@@ -166,16 +173,17 @@ void ParseAllEntities(CBaseEntity *pEntity, const char *pMapData)
 
 C_BaseTrigger::C_BaseTrigger()
 {
+    SetPredictionEligible( true );
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
+    Q_memset(m_iFilterName, 0, sizeof(m_iFilterName));
+    Q_memset(m_target, 0, sizeof(m_target));
+    // m_iCountPredictedTouchingEntities = 0;
+    // Q_memset(m_hPredictedTouchingEntities, 0, sizeof(m_hPredictedTouchingEntities));
 }
 
 void C_BaseTrigger::Spawn()
 {
-	// Get a handle to my filter entity if there is one
-	if (m_iFilterName != NULL_STRING)
-	{
-		m_hFilter = dynamic_cast<C_BaseFilter *>(UTIL_FindEntityByName( m_iFilterName ));
-	}
+	m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName( m_iFilterName ));
 
 	SetSolid(SOLID_BSP);
 	AddSolidFlags(FSOLID_TRIGGER);
@@ -195,6 +203,58 @@ void C_BaseTrigger::PostDataUpdate( DataUpdateType_t updateType )
 	BaseClass::PostDataUpdate( updateType );
 }
 
+//////////////////////////////////////////////////////////////////////////////
+/// This needs to be restored on each simulations times during prediction. ///
+/// By defaut data is rested only once but in our situation,               ///
+/// we need to restore everytime a new command processes.                  ///
+//////////////////////////////////////////////////////////////////////////////
+void C_BaseTrigger::RestoreTouchEntitiesTo( int current_command )
+{
+	RestoreData( "RestoreTouchEntitiesForTriggers", current_command, PC_EVERYTHING );
+}
+
+bool C_BaseTrigger::ShouldPredict(void)
+{
+#if !defined( NO_ENTITY_PREDICTION )
+	return true;
+#else
+	return false;
+#endif
+}
+
+int C_BaseTrigger::SaveData(const char* context, int slot, int type)
+{
+    // m_iCountPredictedTouchingEntities = m_hTouchingEntities.Count();
+
+    // if (m_iCountPredictedTouchingEntities >= MAX_EDICTS)
+    // {
+    //     Error("C_BaseTrigger::SaveData: Should never reach this!");
+    // }
+
+    // // NOTE:
+    // // Since UtlVector can't be used for prediction, we use arrays.
+	// for (int i = 0; i < m_iCountPredictedTouchingEntities; i++)
+    // {
+    //     m_hPredictedTouchingEntities[i] = m_hTouchingEntities[i];
+    // }
+
+    return BaseClass::SaveData(context, slot, type);  
+}
+
+int C_BaseTrigger::RestoreData(const char* context, int slot, int type)
+{
+    int ret = BaseClass::RestoreData(context, slot, type);
+
+	// m_hTouchingEntities.RemoveAll();
+
+	// for (int i = 0; i < m_iCountPredictedTouchingEntities; i++)
+	// {
+	// 	m_hTouchingEntities.AddToTail( m_hPredictedTouchingEntities[i] );
+    // }
+
+    return ret;
+}
+    
 void C_BaseTrigger::UpdatePartitionListEntry(void)
 {
 	::partition->RemoveAndInsert( 
@@ -209,7 +269,7 @@ void C_BaseTrigger::UpdateFilter(void)
 	// before the client know about the filter entity
 	if (prediction->IsFirstTimePredicted() && m_hFilter.Get() == nullptr)
 	{
-		m_hFilter = dynamic_cast<C_BaseFilter *>(UTIL_FindEntityByName(m_iFilterName));
+		m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(m_iFilterName));
 	}
 }
 
@@ -297,7 +357,6 @@ void C_BaseTrigger::TouchTest( void )
 	{
 		if ( m_hTouchingEntities.Count() !=0 )
 		{
-			
 			m_OnTouching.FireOutput( this, this );
 		}
 		else
@@ -449,6 +508,7 @@ void C_BaseTrigger::InputEndTouch( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 {
+    printf("start touch\n");
 	if (PassesTriggerFilters(pOther))
 	{
 		EHANDLE hOther;
@@ -464,7 +524,8 @@ void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 		m_OnStartTouch.FireOutput(pOther, this);
 
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
-		{
+        {
+            printf("really start touch\n");
 			// First entity to touch us that passes our filters
 			m_OnStartTouchAll.FireOutput( pOther, this );
 		}
@@ -478,8 +539,10 @@ void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::EndTouch(CBaseEntity *pOther)
 {
+    printf("end touch\n");
 	if ( IsTouching( pOther ) )
-	{
+    {
+        printf("really end touch\n");
 		EHANDLE hOther;
 		hOther = pOther;
 		m_hTouchingEntities.FindAndRemove( hOther );
@@ -567,7 +630,7 @@ void C_BaseTrigger::InputToggle( inputdata_t &inputdata )
 
 bool IsTriggerClass( CBaseEntity *pEntity )
 {
-	if ( NULL != dynamic_cast<C_BaseTrigger *>(pEntity) )
+	if ( pEntity->IsTrigger() )
 		return true;
 
 	//if ( NULL != dynamic_cast<C_TriggerVPhysicsMotion *>(pEntity) )

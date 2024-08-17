@@ -17,6 +17,7 @@
 #include "tier1/strtools.h"
 #include "tier0/icommandline.h"
 #include "dt_common_eng.h"
+#include "common.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -188,12 +189,25 @@ struct MatchingProp_t
 
 static bool MatchRecvPropsToSendProps_R( CUtlRBTree< MatchingProp_t, unsigned short >& lookup, char const *sendTableName, SendTable *pSendTable, RecvTable *pRecvTable, bool bAllowMismatches, bool *pAnyMismatches )
 {
+    /* If no name (EHANDLE) hack it */
+	for ( int i=0; i < pRecvTable->GetNumProps(); i++ )
+	{
+		RecvProp *pProp = pRecvTable->GetProp( i );
+
+        if (!pProp->GetName())
+        {
+            char buffer[256];
+            V_sprintf_safe(buffer, "%s[%i]", pSendTable->m_pNetTableName, i );
+            pProp->m_pVarName = COM_StringCopy(buffer);
+		}
+	}
+
 	for ( int i=0; i < pSendTable->m_nProps; i++ )
 	{
 		SendProp *pSendProp = &pSendTable->m_pProps[i];
 
 		if ( pSendProp->IsExcludeProp() || pSendProp->IsInsideArray() )
-			continue;
+            continue;
 
 		// Find a RecvProp by the same name and type.
 		RecvProp *pRecvProp = 0;

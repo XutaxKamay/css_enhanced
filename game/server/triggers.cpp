@@ -6,6 +6,9 @@
 
 #include "cbase.h"
 #include "ai_basenpc.h"
+#include "const.h"
+#include "dt_send.h"
+#include "dt_utlvector_send.h"
 #include "player.h"
 #include "saverestore.h"
 #include "gamerules.h"
@@ -481,7 +484,7 @@ void CBaseTrigger::StartTouch(CBaseEntity *pOther)
 		m_OnStartTouch.FireOutput(pOther, this);
 
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
-		{
+        {
 			// First entity to touch us that passes our filters
 			m_OnStartTouchAll.FireOutput( pOther, this );
 		}

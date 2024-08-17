@@ -551,7 +551,10 @@ static void CL_CallPostDataUpdates( CEntityReadInfo &u )
 		ErrorIfNot( pEnt, 
 			("CL_CallPostDataUpdates: missing ent %d", pCall->m_iEnt) );
 
-		pEnt->PostDataUpdate( pCall->m_UpdateType );
+        if ( pEnt )
+        {
+			pEnt->PostDataUpdate( pCall->m_UpdateType );
+		}
 	}
 }
 

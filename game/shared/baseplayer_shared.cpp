@@ -91,8 +91,6 @@
 ConVar mp_usehwmmodels( "mp_usehwmmodels", "0", NULL, "Enable the use of the hw morph models. (-1 = never, 1 = always, 0 = based upon GPU)" ); // -1 = never, 0 = if hasfastvertextextures, 1 = always
 #endif
 
-ConVar sv_end_touch_fix("sv_end_touch_fix", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Fix endtouch being fired inconsistently");
-
 bool UseHWMorphModels()
 {
 // #ifdef CLIENT_DLL 
@@ -230,6 +228,11 @@ bool CBasePlayer::UsingStandardWeaponsInVehicle( void )
 void CBasePlayer::ItemPostFrame()
 {
 	VPROF( "CBasePlayer::ItemPostFrame" );
+
+    if ( GetCheckUntouch() )
+    {
+        PhysicsCheckForEntityUntouch();
+    }
 
 	// Put viewmodels into basically correct place based on new player origin
 	CalcViewModelView( EyePosition(), EyeAngles() );

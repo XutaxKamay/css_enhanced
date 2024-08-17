@@ -833,7 +833,7 @@ public:
 		SLOT_ORIGINALDATA = -1,
 	};
 
-	int								SaveData( const char *context, int slot, int type );
+	virtual int						SaveData( const char *context, int slot, int type );
 	virtual int						RestoreData( const char *context, int slot, int type );
 
 	virtual char const *			DamageDecal( int bitsDamageType, int gameMaterial );
@@ -1012,6 +1012,7 @@ public:
 	bool							IsWorld() { return entindex() == 0; }
 	/////////////////
 
+    virtual bool					IsTrigger( void ) { return false; };
 	virtual bool					IsPlayer( void ) const { return false; };
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }
