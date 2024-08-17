@@ -28,7 +28,7 @@ public:
 
 	// touch lists
 	virtual void	ResetTouchList( void );
-	virtual bool	AddToTouched( const trace_t& tr, const Vector& impactvelocity );
+	virtual bool	AddToTouched( int entindex, const trace_t& tr, const Vector& impactvelocity );
 	virtual void	ProcessImpacts( void );
 
 	// Numbered line printf
@@ -53,6 +53,7 @@ private:
 	{
 		Vector	deltavelocity;
 		trace_t trace;
+        int 	entindex;
 
 		touchlist_t() = default;
 
@@ -107,7 +108,7 @@ void CMoveHelperClient::ResetTouchList( void )
 // Adds to the touched list 
 //-----------------------------------------------------------------------------
 
-bool CMoveHelperClient::AddToTouched( const trace_t& tr, const Vector& impactvelocity )
+bool CMoveHelperClient::AddToTouched( int entindex, const trace_t& tr, const Vector& impactvelocity )
 {
     int i;
 
@@ -127,7 +128,7 @@ bool CMoveHelperClient::AddToTouched( const trace_t& tr, const Vector& impactvel
 	// Look for duplicates
 	for (i = 0; i < m_TouchList.Size(); i++)
 	{
-		if (m_TouchList[i].trace.m_pEnt == tr.m_pEnt)
+		if (m_TouchList[i].entindex == entindex)
 		{
 			return false;
 		}
@@ -135,6 +136,7 @@ bool CMoveHelperClient::AddToTouched( const trace_t& tr, const Vector& impactvel
 
 	i = m_TouchList.AddToTail();
 	m_TouchList[i].trace = tr;
+	m_TouchList[i].entindex = entindex;
 	VectorCopy( impactvelocity, m_TouchList[i].deltavelocity );
 
 	return true;
@@ -162,12 +164,13 @@ void CMoveHelperClient::ProcessImpacts( void )
 	// Touch other objects that were intersected during the movement.
 	for (int i = 0 ; i < m_TouchList.Size(); i++)
     {
-        // We didn't touch an entity ...
-        if (!m_TouchList[i].trace.m_pEnt)
+        if (m_TouchList[i].entindex == -1)
+        {
             continue;
-        
+        }
+
 		// Run the impact function as if we had run it during movement.
-		C_BaseEntity *entity = ClientEntityList().GetEnt( m_TouchList[i].trace.m_pEnt->entindex() );
+		C_BaseEntity *entity = ClientEntityList().GetEnt( m_TouchList[i].entindex );
 		if ( !entity )
 			continue;
 
@@ -177,7 +180,7 @@ void CMoveHelperClient::ProcessImpacts( void )
 			continue;
 
 		// Reconstruct trace results.
-		m_TouchList[i].trace.m_pEnt = entity;
+		m_TouchList[i].trace.m_pEnt = CBaseEntity::Instance( entity );
 
 		// Use the velocity we had when we collided, so boxes will move, etc.
 		pPlayer->SetAbsVelocity( m_TouchList[i].deltavelocity );

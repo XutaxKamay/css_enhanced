@@ -49,7 +49,7 @@ public:
 
 	// Touch list...
 	virtual void	ResetTouchList( void );
-	virtual bool	AddToTouched( const trace_t &tr, const Vector& impactvelocity );
+	virtual bool	AddToTouched( int entindex, const trace_t &tr, const Vector& impactvelocity );
  	virtual void	ProcessImpacts( void );
 
 	virtual bool	PlayerFallingDamage( void );
@@ -79,6 +79,7 @@ private:
 	{
 		Vector	deltavelocity;
 		trace_t trace;
+        int 	entindex;
 	};
 
 	CUtlVector<touchlist_t>	m_TouchList;
@@ -175,7 +176,7 @@ void CMoveHelperServer::ResetTouchList( void )
 // When a collision occurs, we add it to the touched list
 //-----------------------------------------------------------------------------
 
-bool CMoveHelperServer::AddToTouched( const trace_t &tr, const Vector& impactvelocity )
+bool CMoveHelperServer::AddToTouched( int entindex, const trace_t &tr, const Vector& impactvelocity )
 {
 	Assert( m_pHostPlayer );
 
@@ -192,7 +193,7 @@ bool CMoveHelperServer::AddToTouched( const trace_t &tr, const Vector& impactvel
 	// Check for duplicate entities
 	for ( int j = m_TouchList.Size(); --j >= 0; )
 	{
-		if ( m_TouchList[j].trace.m_pEnt == tr.m_pEnt )
+		if ( m_TouchList[j].entindex == entindex )
 		{
 			return false;
 		}
@@ -200,6 +201,7 @@ bool CMoveHelperServer::AddToTouched( const trace_t &tr, const Vector& impactvel
 	
 	int i = m_TouchList.AddToTail();
 	m_TouchList[i].trace = tr;
+	m_TouchList[i].entindex = entindex;
 	VectorCopy( impactvelocity, m_TouchList[i].deltavelocity );
 
 	return true;
@@ -226,13 +228,13 @@ void CMoveHelperServer::ProcessImpacts( void )
 
 	// Touch other objects that were intersected during the movement.
 	for (int i = 0 ; i < m_TouchList.Size(); i++)
-	{
-		CBaseHandle entindex = m_TouchList[i].trace.m_pEnt->GetRefEHandle();
+    {
+        if ( m_TouchList[i].entindex == -1 )
+        {
+            continue;
+        }
 
-		// We should have culled negative indices by now
-		Assert( entindex.IsValid() );
-
-		edict_t* ent = GetEdict( entindex );
+		edict_t* ent = GetEdict( m_TouchList[i].entindex );
 		if (!ent)
 			continue;
 

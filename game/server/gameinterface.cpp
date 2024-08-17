@@ -1199,7 +1199,7 @@ void CServerGameDLL::GameFrame( bool simulating )
 #endif
 
 	extern void GameStartFrame( void );
-	extern void ServiceEventQueue( void );
+	extern void ServiceEventQueue( CBaseEntity* pActivator );
 	extern void Physics_RunThinkFunctions( bool simulating );
 
 	// Delete anything that was marked for deletion
@@ -1230,7 +1230,7 @@ void CServerGameDLL::GameFrame( bool simulating )
 
 	// UNDONE: Make these systems IGameSystems and move these calls into FrameUpdatePostEntityThink()
 	// service event queue, firing off any actions whos time has come
-	ServiceEventQueue();
+	ServiceEventQueue( NULL );
 
 	// free all ents marked in think functions
 	gEntList.CleanupDeleteList();

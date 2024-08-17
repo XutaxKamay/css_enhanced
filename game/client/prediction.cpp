@@ -7,6 +7,9 @@
 #include "cbase.h"
 #include "prediction.h"
 #include "cdll_client_int.h"
+#include "cliententitylist.h"
+#include "const.h"
+#include "css_enhanced/c_triggers.h"
 #include "igamemovement.h"
 #include "mathlib/mathlib.h"
 #include "prediction_private.h"
@@ -24,6 +27,7 @@
 #include "datacache/imdlcache.h"
 #include "util_shared.h"
 #include "css_enhanced/c_eventqueue.h"
+#include "utlvector.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -103,6 +107,15 @@ CPrediction::CPrediction( void )
 	m_nCommandsPredicted = 0;
 	m_nServerCommandsAcknowledged = 0;
 	m_bPreviousAckHadErrors = false;
+
+	for (int i = 0; i < MULTIPLAYER_BACKUP; i++)
+	{
+		for (int j = 0; j < MAX_EDICTS; j++)
+        {
+            m_touchedHistory[i][j].savedTouches.RemoveAll();
+			m_touchedHistory[i][j].touchedTriggerEntities.RemoveAll();
+		}
+	}
 #endif
 }
 
@@ -608,8 +621,14 @@ void CPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::SetupMove" );
 
-	move->m_bFirstRunOfFunctions = IsFirstTimePredicted();
-	
+    move->m_bFirstRunOfFunctions = IsFirstTimePredicted();
+
+	move->m_bGameCodeMovedPlayer = false;
+	if ( player->GetPreviouslyPredictedOrigin() != player->GetNetworkOrigin() )
+	{
+		move->m_bGameCodeMovedPlayer = true;
+	}
+
 	move->m_nPlayerHandle = player->GetClientHandle();
 	move->m_vecVelocity		= player->GetAbsVelocity();
 	move->SetAbsOrigin( player->GetNetworkOrigin() );
@@ -720,6 +739,8 @@ void CPrediction::FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData *m
 	m_hLastGround = player->GetGroundEntity();
  
 	player->SetLocalOrigin( move->GetAbsOrigin() );
+
+    player->SetPreviouslyPredictedOrigin(move->GetAbsOrigin());
 
 	IClientVehicle *pVehicle = player->GetVehicle();
 	if (pVehicle)
@@ -885,22 +906,24 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
     #endif
 
-    StartCommand( player, ucmd );
-
-	g_pGameMovement->StartTrackPredictionErrors( player );
-
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
+
+    StartCommand( player, ucmd );
+
+    g_pGameMovement->StartTrackPredictionErrors( player );
 
 	// Copy from command to player unless game .dll has set angle using fixangle
 	// if ( !player->pl.fixangle )
 	{
 		player->SetLocalViewAngles( ucmd->viewangles );
-	}
+    }
 
-    // Always record for debugging.
-    // Sometimes the hitbox wasn't hit by the player client side!
-    RunPostThink( player );
+    moveHelper->ProcessImpacts();
+
+	RunPostThink( player );
+
+    ServiceEventQueue( player );
 
 // TODO
 // TODO:  Check for impulse predicted?
@@ -971,8 +994,6 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	FinishMove( player, ucmd, g_pMoveData );
 
-    moveHelper->ProcessImpacts();
-    
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
 	FinishCommand( player );
@@ -980,7 +1001,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	if ( gpGlobals->frametime > 0 )
 	{
 		player->m_nTickBase++;
-	}
+    }
 #endif
 }
 
@@ -1284,6 +1305,94 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 	// Always reset after running command
 	IPredictionSystem::SuppressEvents( false );
 #endif
+}
+
+// TODO_ENHANCED: we should get rid of this to prefer SaveData/RestoreData.
+void CPrediction::RestorePredictedTouched( int current_command )
+{
+	if (m_nCommandsPredicted == 0)
+	{
+		return;
+	}
+
+    bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
+
+	// Don't call StartTouch/EndTouch here, let run command do it.
+	CBaseEntity::sm_bDisableTouchFuncs = true;
+
+    int pc = predictables->GetPredictableCount();
+	int p;
+	for ( p = 0; p < pc; p++ )
+	{
+		C_BaseEntity *ent = predictables->GetPredictable( p );
+		if ( !ent )
+            continue;
+
+        auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+
+        C_BaseEntity::PhysicsRemoveTouchedList(ent);
+
+		for ( int i = 0; i < savedTouchList.savedTouches.Count(); i++ )
+        {
+            SavedTouch_t& touch = savedTouchList.savedTouches[i];
+            auto pEntity        = ClientEntityList().GetBaseEntity(touch.entityTouched);
+
+            // Entity doesn't exist anymore, don't bother ...
+            if (!pEntity)
+            {
+				continue;
+            }
+
+            ent->PhysicsMarkEntityAsTouched(pEntity);
+			pEntity->PhysicsMarkEntityAsTouched( ent );
+        }
+
+        if (ent->IsTrigger())
+        {
+            auto trigger = static_cast<C_BaseTrigger*>(ent);
+            trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+		}
+    }
+
+    CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
+}
+
+void CPrediction::StorePredictedTouched( int current_command )
+{
+    int pc = predictables->GetPredictableCount();
+    int p;
+
+	for ( p = 0; p < pc; p++ )
+	{
+		C_BaseEntity *ent = predictables->GetPredictable( p );
+		if ( !ent )
+            continue;
+
+		touchlink_t* link     = nullptr;
+		auto root = ( touchlink_t * )ent->GetDataObject( TOUCHLINK );
+		auto &savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+
+		savedTouchList.savedTouches.RemoveAll();
+
+		if ( root )
+		{
+			for (link = root->nextLink; link != root; link = link->nextLink)
+            {
+                SavedTouch_t touch;
+                touch.entityTouched = link->entityTouched->index;
+                touch.touchStamp    = link->touchStamp;
+                touch.flags         = link->flags;
+				savedTouchList.savedTouches.AddToTail(touch);
+			}
+        }
+
+        auto trigger = static_cast<C_BaseTrigger*>(ent);
+
+		if (trigger->IsTrigger())
+		{
+			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1596,6 +1705,7 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 			break;	
 		}
 
+        m_nCommandsPredicted = i;
 
 		// Is this the first time predicting this
 		m_bFirstTimePredicted = !cmd->hasbeenpredicted;
@@ -1603,20 +1713,22 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 		// Set globals appropriately
 		float curtime		= ( localPlayer->m_nTickBase ) * TICK_INTERVAL;
 
+        RestorePredictedTouched( current_command - 1 );
+
 		RunSimulation( current_command, curtime, cmd, localPlayer );
+
+        StorePredictedTouched( current_command );
 
 		gpGlobals->curtime		= curtime;
 		gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 
 		// Call untouch on any entities no longer predicted to be touching
-		Untouch();
+        Untouch();
 
-		ServiceEventQueue();
+		ServiceEventQueue( NULL );
 
 		// Store intermediate data into appropriate slot
 		StorePredictionResults( i - 1 ); // Note that I starts at 1
-
-		m_nCommandsPredicted = i;
 
 		if ( current_command == outgoing_command )
 		{

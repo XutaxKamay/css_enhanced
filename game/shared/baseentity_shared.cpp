@@ -1178,9 +1178,8 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 				}
 				angles = vec3_angle;
 			}
-#ifndef CLIENT_DLL 
+
 			Vector prevOrigin = GetAbsOrigin();
-#endif
 
 			if ( IsEntityPositionReasonable( origin ) )
 			{
@@ -1206,8 +1205,8 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 				SetCollisionGroup( COLLISION_GROUP_DEBRIS );
 			}
 
-#ifndef CLIENT_DLL 
 			PhysicsTouchTriggers( &prevOrigin );
+#ifndef CLIENT_DLL
 			PhysicsRelinkChildren(gpGlobals->frametime);
 #endif
 		}
@@ -2733,7 +2732,7 @@ void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 	edict_t *pEntity = edict();
 #endif
 
-	if ( pEntity && !IsWorld() )
+	if ( pEntity && !IsWorld() && !sm_bDisableTouchFuncs )
 	{
 		Assert(CollisionProp());
 		bool isTriggerCheckSolids = IsSolidFlagSet( FSOLID_TRIGGER );

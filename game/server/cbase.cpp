@@ -74,6 +74,7 @@ OUTPUTS:
 
 
 #include "cbase.h"
+#include "baseentity.h"
 #include "entitylist.h"
 #include "mapentities_shared.h"
 #include "isaverestore.h"
@@ -999,6 +1000,115 @@ void CEventQueue::ServiceEvents( void )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: fires off any events in the queue who's fire time is (or before) the present time
+//-----------------------------------------------------------------------------
+void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
+{
+	if (!CBaseEntity::Debug_ShouldStep())
+	{
+		return;
+	}
+
+	EventQueuePrioritizedEvent_t *pe = m_Events.m_pNext;
+
+#ifdef TF_DLL
+	while ( pe != NULL && pe->m_flFireTime <= engine->GetServerTime() )
+#else
+	while ( pe != NULL && pe->m_flFireTime <= gpGlobals->curtime )
+#endif
+    {
+        if ( pe->m_pActivator != pActivator )
+        {
+            pe = m_Events.m_pNext;
+            continue;
+        }
+
+		MDLCACHE_CRITICAL_SECTION();
+
+		bool targetFound = false;
+
+		// find the targets
+		if ( pe->m_iTarget != NULL_STRING )
+		{
+			// In the context the event, the searching entity is also the caller
+			CBaseEntity *pSearchingEntity = pe->m_pCaller;
+			CBaseEntity *target = NULL;
+			while ( 1 )
+			{
+				target = gEntList.FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+				if ( !target )
+					break;
+
+				// pump the action into the target
+				target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+				targetFound = true;
+			}
+		}
+
+		// direct pointer
+		if ( pe->m_pEntTarget != NULL )
+		{
+			pe->m_pEntTarget->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+			targetFound = true;
+		}
+
+		if ( !targetFound )
+		{
+			// See if we can find a target if we treat the target as a classname
+			if ( pe->m_iTarget != NULL_STRING )
+			{
+				CBaseEntity *target = NULL;
+				while ( 1 )
+				{
+					target = gEntList.FindEntityByClassname( target, STRING(pe->m_iTarget) );
+					if ( !target )
+						break;
+
+					// pump the action into the target
+					target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+					targetFound = true;
+				}
+			}
+		}
+
+		if ( !targetFound )
+		{
+			const char *pClass ="", *pName = "";
+
+			// might be NULL
+			if ( pe->m_pCaller )
+			{
+				pClass = STRING(pe->m_pCaller->m_iClassname);
+				pName = STRING(pe->m_pCaller->GetEntityName());
+			}
+
+			char szBuffer[256];
+			Q_snprintf( szBuffer, sizeof(szBuffer), "unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			DevMsg( 2, "%s", szBuffer );
+			ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
+		}
+
+		// remove the event from the list (remembering that the queue may have been added to)
+		RemoveEvent( pe );
+		delete pe;
+
+		//
+		// If we are in debug mode, exit the loop if we have fired the correct number of events.
+		//
+		if (CBaseEntity::Debug_IsPaused())
+		{
+			if (!CBaseEntity::Debug_Step())
+			{
+				break;
+			}
+		}
+
+		// restart the list (to catch any new items have probably been added to the queue)
+		pe = m_Events.m_pNext;
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Dumps the contents of the Entity I/O event queue to the console.
 //-----------------------------------------------------------------------------
 void CC_DumpEventQueue()
@@ -1114,11 +1224,18 @@ bool CEventQueue::HasEventPending( CBaseEntity *pTarget, const char *sInputName 
 	return false;
 }
 
-void ServiceEventQueue( void )
+void ServiceEventQueue( CBaseEntity* pActivator )
 {
 	VPROF("ServiceEventQueue()");
 
-	g_EventQueue.ServiceEvents();
+	if ( pActivator )
+	{
+		g_EventQueue.ServiceEvent( pActivator );
+	}
+	else
+	{
+		g_EventQueue.ServiceEvents();
+	}
 }
 
 

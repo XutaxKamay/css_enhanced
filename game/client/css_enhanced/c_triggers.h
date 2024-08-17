@@ -1,5 +1,7 @@
 #ifndef C_TRIGGERS_H
 #define C_TRIGGERS_H
+#include "const.h"
+#include "predictioncopy.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -49,9 +51,15 @@ public:
 	void UpdateOnRemove( void );
 	void UpdatePartitionListEntry();
 	void TouchTest(  void );
-	
-	void PostDataUpdate( DataUpdateType_t updateType );
 
+    virtual bool IsTrigger( void ) { return true; };
+	virtual void PostDataUpdate( DataUpdateType_t updateType );
+	virtual void RestoreTouchEntitiesTo( int current_command );
+
+    virtual bool ShouldPredict( void );
+	virtual int	SaveData( const char *context, int slot, int type );
+	virtual int RestoreData(const char* context, int slot, int type );
+	
 	// Input handlers
 	virtual void InputEnable( inputdata_t &inputdata );
 	virtual void InputDisable( inputdata_t &inputdata );
@@ -78,6 +86,7 @@ public:
 	void UpdateFilter(void);
 
 	bool		m_bDisabled;
+	// eChangeTrackerBufSize
 	char m_iFilterName[MAX_PATH];
 	CHandle<class C_BaseFilter>	m_hFilter;
 
@@ -99,9 +108,12 @@ protected:
 	C_OutputEvent m_OnTouching;
 	C_OutputEvent m_OnNotTouching;
 
+public:
 	// Entities currently being touched by this trigger
 	CUtlVector< EHANDLE >	m_hTouchingEntities;
-
+	// EHANDLE					m_hPredictedTouchingEntities[MAX_EDICTS];
+	// int                     m_iCountPredictedTouchingEntities;
+	
 	DECLARE_DATADESC();
 };
 
@@ -115,7 +127,6 @@ class C_TriggerMultiple : public C_BaseTrigger
 public:
 	DECLARE_CLASS(C_TriggerMultiple, C_BaseTrigger);
 	DECLARE_NETWORKCLASS();
-	
 	DECLARE_PREDICTABLE();
 
 	virtual void Spawn(void);

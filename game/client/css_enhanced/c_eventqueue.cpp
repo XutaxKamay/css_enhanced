@@ -1,4 +1,6 @@
 #include "cbase.h"
+#include "cdll_client_int.h"
+#include "shared_classnames.h"
 #include "c_eventqueue.h"
 
 //-----------------------------------------------------------------------------
@@ -12,7 +14,7 @@ CEventQueue g_EventQueue;
 
 CEventQueue::CEventQueue()
 {
-	m_Events.m_iFireTick = INT_MIN;
+	m_Events.m_flFireTime = 0.0f;
 	m_Events.m_pNext = nullptr;
 
 	Init();
@@ -152,8 +154,8 @@ void CEventQueue::Dump( void )
 	{
 		EventQueuePrioritizedEvent_t *next = pe->m_pNext;
 
-		Msg("   (%d) Target: '%s', Input: '%s', Parameter '%s'. Activator: '%s', Caller '%s'.  \n", 
-			pe->m_iFireTick,
+		Msg("   (%f) Target: '%s', Input: '%s', Parameter '%s'. Activator: '%s', Caller '%s'.  \n",
+			pe->m_flFireTime,
 			STRING(pe->m_iTarget), 
 			STRING(pe->m_iTargetInput), 
 			pe->m_VariantValue.String(),
@@ -174,7 +176,7 @@ void CEventQueue::AddEvent( const char *target, const char *targetInput, variant
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-	newEvent->m_iFireTick = gpGlobals->tickcount + round(fireDelay * (1.0f / gpGlobals->interval_per_tick));	// priority key in the priority queue
+	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay * (1.0f / gpGlobals->frametime);	// priority key in the priority queue
 	newEvent->m_iTarget = MAKE_STRING( target );
 	newEvent->m_pEntTarget = NULL;
 	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
@@ -193,7 +195,7 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, varian
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-	newEvent->m_iFireTick = gpGlobals->tickcount + round(fireDelay * (1.0f / gpGlobals->interval_per_tick));	// primary priority key in the priority queue
+	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay * (1.0f / gpGlobals->frametime);	// priority key in the priority queue
 	newEvent->m_iTarget = NULL_STRING;
 	newEvent->m_pEntTarget = target;
 	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
@@ -223,7 +225,7 @@ void CEventQueue::AddEvent( EventQueuePrioritizedEvent_t *newEvent )
 	EventQueuePrioritizedEvent_t *pe;
 	for ( pe = &m_Events; pe->m_pNext != NULL; pe = pe->m_pNext )
 	{
-		if ( pe->m_pNext->m_iFireTick > newEvent->m_iFireTick )
+		if ( pe->m_pNext->m_flFireTime > newEvent->m_flFireTime )
 		{
 			break;
 		}
@@ -259,9 +261,96 @@ void CEventQueue::ServiceEvents( void )
 {
 	EventQueuePrioritizedEvent_t *pe = m_Events.m_pNext;
 
-	while ( pe != NULL && pe->m_iFireTick <= gpGlobals->tickcount )
+	while ( pe != NULL && pe->m_flFireTime <= gpGlobals->curtime )
 	{
 		MDLCACHE_CRITICAL_SECTION();
+
+		bool targetFound = false;
+
+		// find the targets
+		if ( pe->m_iTarget != NULL_STRING )
+		{
+			// In the context the event, the searching entity is also the caller
+			CBaseEntity *pSearchingEntity = pe->m_pCaller;
+			CBaseEntity *target = NULL;
+			while ( 1 )
+			{
+				target = UTIL_FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+
+				if ( !target )
+					break;
+
+				// pump the action into the target
+				target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+				targetFound = true;
+			}
+		}
+
+		// direct pointer
+		if ( pe->m_pEntTarget != NULL )
+		{
+			pe->m_pEntTarget->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+			targetFound = true;
+		}
+
+		if ( !targetFound )
+		{
+			// See if we can find a target if we treat the target as a classname
+			if ( pe->m_iTarget != NULL_STRING )
+			{
+				CBaseEntity *target = NULL;
+				while ( 1 )
+				{
+					target = UTIL_FindEntityByClassname( target, STRING(pe->m_iTarget) );
+
+					if ( !target )
+						break;
+
+					// pump the action into the target
+					target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+					targetFound = true;
+				}
+			}
+		}
+
+		if ( !targetFound )
+		{
+			const char *pClass ="", *pName = "";
+
+			// might be NULL
+			if ( pe->m_pCaller )
+			{
+				pClass = STRING(pe->m_pCaller->m_iClassname);
+				pName = pe->m_pCaller->GetDebugName();
+			}
+
+			char szBuffer[256];
+			Q_snprintf( szBuffer, sizeof(szBuffer), "[Client] unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			DevMsg( 2, "%s", szBuffer );
+		}
+
+		// remove the event from the list (remembering that the queue may have been added to)
+		RemoveEvent( pe );
+		delete pe;
+
+		// restart the list (to catch any new items have probably been added to the queue)
+		pe = m_Events.m_pNext;
+	}
+}
+
+void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
+{
+	EventQueuePrioritizedEvent_t *pe = m_Events.m_pNext;
+
+	while ( pe != NULL && pe->m_flFireTime <= gpGlobals->curtime )
+	{
+        if ( pe->m_pActivator != pActivator )
+        {
+            pe = m_Events.m_pNext;
+            continue;
+        }
+
+        MDLCACHE_CRITICAL_SECTION();
 
 		bool targetFound = false;
 
@@ -451,11 +540,18 @@ bool CEventQueue::HasEventPending( CBaseEntity *pTarget, const char *sInputName 
 	return false;
 }
 
-void ServiceEventQueue( void )
+void ServiceEventQueue( CBaseEntity* pActivator )
 {
 	VPROF("ServiceEventQueue()");
 
-	g_EventQueue.ServiceEvents();
+	if ( pActivator )
+	{
+		g_EventQueue.ServiceEvent( pActivator );
+	}
+	else
+	{
+		g_EventQueue.ServiceEvents();
+	}
 }
 
 
@@ -471,7 +567,7 @@ END_DATADESC()
 
 // save data for a single event in the queue
 BEGIN_SIMPLE_DATADESC( EventQueuePrioritizedEvent_t )
-DEFINE_FIELD( m_iFireTick, FIELD_INTEGER ),
+DEFINE_FIELD( m_flFireTime, FIELD_FLOAT ),
 DEFINE_FIELD( m_iTarget, FIELD_STRING ),
 DEFINE_FIELD( m_iTargetInput, FIELD_STRING ),
 DEFINE_FIELD( m_pActivator, FIELD_EHANDLE ),
@@ -535,7 +631,7 @@ int CEventQueue::Restore( IRestore &restore )
 #ifdef TF_DLL
 				tmpEvent.m_flFireTime - engine->GetServerTime(),
 #else
-				tmpEvent.m_iFireTick - gpGlobals->tickcount,
+				tmpEvent.m_flFireTime - gpGlobals->curtime,
 #endif
 				tmpEvent.m_pActivator,
 				tmpEvent.m_pCaller,
@@ -549,7 +645,7 @@ int CEventQueue::Restore( IRestore &restore )
 #ifdef TF_DLL
 				tmpEvent.m_flFireTime - engine->GetServerTime(),
 #else
-				tmpEvent.m_iFireTick - gpGlobals->tickcount,
+				tmpEvent.m_flFireTime - gpGlobals->curtime,
 #endif
 				tmpEvent.m_pActivator,
 				tmpEvent.m_pCaller,
