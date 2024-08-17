@@ -1019,7 +1019,7 @@ void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
     {
         if ( pe->m_pActivator != pActivator )
         {
-            pe = m_Events.m_pNext;
+            pe = pe->m_pNext;
             continue;
         }
 
