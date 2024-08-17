@@ -8,6 +8,7 @@
 
 #include "client_pch.h"
 #include "con_nprint.h"
+#include "const.h"
 #include "iprediction.h"
 #include "cl_entityreport.h"
 #include "dt_recv_eng.h"
@@ -545,16 +546,18 @@ static void CL_CallPostDataUpdates( CEntityReadInfo &u )
 	for ( int i=0; i < u.m_nPostDataUpdateCalls; i++ )
 	{
 		MDLCACHE_CRITICAL_SECTION_(g_pMDLCache);
-		CPostDataUpdateCall *pCall = &u.m_PostDataUpdateCalls[i];
+        CPostDataUpdateCall* pCall = &u.m_PostDataUpdateCalls[i];
+
+        if (pCall->m_iEnt < 0 || pCall->m_iEnt >= MAX_EDICTS)
+        {
+            continue;
+		}
 	
 		IClientNetworkable *pEnt = entitylist->GetClientNetworkable( pCall->m_iEnt );
 		ErrorIfNot( pEnt, 
 			("CL_CallPostDataUpdates: missing ent %d", pCall->m_iEnt) );
 
-        if ( pEnt )
-        {
-			pEnt->PostDataUpdate( pCall->m_UpdateType );
-		}
+		pEnt->PostDataUpdate( pCall->m_UpdateType );
 	}
 }
 
