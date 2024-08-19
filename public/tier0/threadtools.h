@@ -723,7 +723,7 @@ inline int64 ThreadInterlockedDecrement64(int64 volatile *p)										{ AssertDb
 //-----------------------------------------------------------------------------
 
 template <typename T>
-class CInterlockedIntT
+class ALIGN16 CInterlockedIntT
 {
 public:
 	CInterlockedIntT() : m_value( 0 ) 				{ COMPILE_TIME_ASSERT( ( sizeof(T) == sizeof(int32) ) || ( sizeof(T) == sizeof(int64) ) ); }
@@ -817,7 +817,7 @@ public:
 
 private:
 	volatile T m_value;
-};
+} ALIGN16_POST;
 
 typedef CInterlockedIntT<int> CInterlockedInt;
 typedef CInterlockedIntT<unsigned> CInterlockedUInt;

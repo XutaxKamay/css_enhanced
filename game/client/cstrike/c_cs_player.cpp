@@ -2601,7 +2601,8 @@ float C_CSPlayer::GetDeathCamInterpolationTime()
 
 }
 
-ConVar cl_server_setup_bones("cl_server_setup_bones", "1");
+// Crashes windows
+ConVar cl_server_setup_bones("cl_server_setup_bones", "0");
 
 bool C_CSPlayer::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {

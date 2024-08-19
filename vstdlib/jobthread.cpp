@@ -53,18 +53,11 @@ public:
 		m_nItems( 0 ),
 		m_nMaxItems( INT_MAX )
 	{
-		for ( int i = 0; i < ARRAYSIZE( m_pQueues ); i++ )
-		{
-			m_pQueues[i] = new CTSQueue<CJob *>;
-		}
+
 	}
 
 	~CJobQueue()
 	{
-		for ( int i = 0; i < ARRAYSIZE( m_pQueues ); i++ )
-		{
-			delete m_pQueues[i];
-		}
 	}
 
 	int Count()
@@ -74,7 +67,7 @@ public:
 
 	int Count( JobPriority_t priority )
 	{
-		return m_pQueues[priority]->Count();
+		return m_Queues[priority].Count();
 	}
 
 
@@ -103,7 +96,7 @@ public:
 			nOverflow++;
 		}
 
-		m_pQueues[pJob->GetPriority()]->PushItem( pJob );
+		m_Queues[pJob->GetPriority()].PushItem( pJob );
 
 		m_mutex.Lock();
 		if ( ++m_nItems == 1 )
@@ -132,7 +125,7 @@ public:
 
 		for ( int i = JP_HIGH; i >= 0; --i )
 		{
-			if ( m_pQueues[i]->PopItem( ppJob ) )
+			if ( m_Queues[i].PopItem( ppJob ) )
 			{
 				return true;
 			}
@@ -158,7 +151,7 @@ public:
 		CJob *pJob;
 		for ( int i = JP_HIGH; i >= 0; --i )
 		{
-			while ( m_pQueues[i]->PopItem( &pJob ) )
+			while ( m_Queues[i].PopItem( &pJob ) )
 			{
 				pJob->Abort();
 				pJob->Release();
@@ -168,7 +161,7 @@ public:
 	}
 
 private:
-	CTSQueue<CJob *>	*m_pQueues[JP_HIGH + 1];
+	CTSQueue<CJob *>	m_Queues[JP_HIGH + 1];
 	int					m_nItems;
 	int					m_nMaxItems;
 	CThreadMutex		m_mutex;
