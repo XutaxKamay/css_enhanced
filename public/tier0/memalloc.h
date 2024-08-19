@@ -518,11 +518,12 @@ inline void *MemAlloc_ReallocAligned( void *ptr, size_t size, size_t align )
 	return ptr_new_aligned;
 }
 #else
+#if !defined(NO_MALLOC_OVERRIDE)
 #define MemAlloc_GetDebugInfoSize() g_pMemAlloc->GetDebugInfoSize()
 #define MemAlloc_SaveDebugInfo( pvDebugInfo ) g_pMemAlloc->SaveDebugInfo( pvDebugInfo )
 #define MemAlloc_RestoreDebugInfo( pvDebugInfo ) g_pMemAlloc->RestoreDebugInfo( pvDebugInfo )
 #define MemAlloc_InitDebugInfo( pvDebugInfo, pchRootFileName, nLine ) g_pMemAlloc->InitDebugInfo( pvDebugInfo, pchRootFileName, nLine )
-
+#endif
 #endif // !STEAM && !NO_MALLOC_OVERRIDE
 
 //-----------------------------------------------------------------------------
@@ -560,6 +561,44 @@ inline void MemAlloc_GlobalMemoryStatus( size_t *pusedMemory, size_t *pfreeMemor
 #define MEMALLOC_DEFINE_EXTERNAL_TRACKING( tag )
 #define MemAlloc_RegisterExternalAllocation( tag, p, size ) ((void)0)
 #define MemAlloc_RegisterExternalDeallocation( tag, p, size ) ((void)0)
+
+#if defined(COMPILER_MSVC)
+#include <malloc.h>
+
+inline void *memalign(size_t alignment, size_t size)
+{
+	return _aligned_malloc(size, alignment);
+}
+
+inline void MemAlloc_CheckAlloc( void *ptr, size_t nSize )
+{
+	if ( !ptr )
+		MemAllocOOMError( nSize );
+}
+
+inline void *MemAlloc_Alloc( size_t nSize, const char *pFileName = NULL, int nLine = 0 )							{ void *ptr = malloc( nSize ); MemAlloc_CheckAlloc( ptr, nSize ); return ptr; }
+inline void MemAlloc_Free( void *ptr, const char *pFileName = NULL, int nLine = 0 )									{ free( ptr ); }
+
+inline void *MemAlloc_AllocAligned( size_t size, size_t align, const char *pszFile = NULL, int nLine = 0  )	        { void *ptr = memalign( align, size ); MemAlloc_CheckAlloc( ptr, size ); return ptr; }
+inline void *MemAlloc_AllocAlignedFileLine( size_t size, size_t align, const char *pszFile = NULL, int nLine = 0 )	{ void *ptr = memalign( align, size ); MemAlloc_CheckAlloc( ptr, size ); return ptr; }
+inline void MemAlloc_FreeAligned( void *pMemBlock, const char *pszFile = NULL, int nLine = 0 ) 						{ _aligned_free( pMemBlock ); }
+inline void *MemAlloc_ReallocAligned( void *ptr, size_t size, size_t align )
+{
+	void *ptr_new_aligned = memalign( align, size );
+
+	if( ptr_new_aligned )
+	{
+		size_t old_size = _msize( ptr );
+		size_t copy_size = ( size < old_size ) ? size : old_size;
+
+		memcpy( ptr_new_aligned, ptr, copy_size );
+		MemAlloc_FreeAligned( ptr );
+	}
+
+	MemAlloc_CheckAlloc( ptr_new_aligned, size ); 
+	return ptr_new_aligned;
+}
+#endif
 
 #endif // !STEAM && NO_MALLOC_OVERRIDE
 

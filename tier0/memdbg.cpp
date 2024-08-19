@@ -1964,4 +1964,17 @@ void *operator new[] ( size_t nSize, int nBlockUse, const char *pFileName, int n
 
 #endif // (defined(_DEBUG) || defined(USE_MEM_DEBUG))
 
-#endif // !STEAM && !NO_MALLOC_OVERRIDE
+#else // !STEAM && !NO_MALLOC_OVERRIDE
+extern "C" BOOL APIENTRY MemDbgDllMain( HMODULE hDll, DWORD dwReason, PVOID pvReserved )
+{
+	UNREFERENCED_PARAMETER( pvReserved );
+
+	// Check if we are shutting down
+	if ( dwReason == DLL_PROCESS_DETACH )
+	{
+		exit(-1337);
+	}
+
+	return TRUE;
+}
+#endif
