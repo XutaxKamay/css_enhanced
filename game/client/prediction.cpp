@@ -1386,10 +1386,9 @@ void CPrediction::StorePredictedTouched( int current_command )
 			}
         }
 
-        auto trigger = static_cast<C_BaseTrigger*>(ent);
-
-		if (trigger->IsTrigger())
+		if (ent->IsTrigger())
 		{
+			auto trigger = static_cast<C_BaseTrigger*>(ent);
 			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
 		}
 	}
