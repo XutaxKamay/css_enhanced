@@ -229,7 +229,7 @@ void CMoveHelperServer::ProcessImpacts( void )
 	// Touch other objects that were intersected during the movement.
 	for (int i = 0 ; i < m_TouchList.Size(); i++)
     {
-        if (m_TouchList[i].entindex < 0 || m_TouchList[i].entindex >= MAX_EDICTS)
+        if (m_TouchList[i].entindex < 0 || m_TouchList[i].entindex >= NUM_ENT_ENTRIES)
         {
             continue;
         }
