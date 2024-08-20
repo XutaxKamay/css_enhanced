@@ -2730,6 +2730,11 @@ void C_BaseEntity::OnLatchInterpolatedVariables( int flags )
 		VarMapEntry_t *e = &m_VarMap.m_Entries[ i ];
 		IInterpolatedVar *watcher = e->watcher;
 
+        if (!watcher)
+        {
+            continue;
+        }
+        
 		int type = watcher->GetType();
 
 		if ( !(type & flags) )

@@ -1965,6 +1965,7 @@ void *operator new[] ( size_t nSize, int nBlockUse, const char *pFileName, int n
 #endif // (defined(_DEBUG) || defined(USE_MEM_DEBUG))
 
 #else // !STEAM && !NO_MALLOC_OVERRIDE
+#ifdef COMPILER_MSVC
 extern "C" BOOL APIENTRY MemDbgDllMain( HMODULE hDll, DWORD dwReason, PVOID pvReserved )
 {
 	UNREFERENCED_PARAMETER( pvReserved );
@@ -1977,4 +1978,5 @@ extern "C" BOOL APIENTRY MemDbgDllMain( HMODULE hDll, DWORD dwReason, PVOID pvRe
 
 	return TRUE;
 }
+#endif
 #endif

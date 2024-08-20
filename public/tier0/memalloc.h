@@ -588,7 +588,7 @@ inline void *MemAlloc_ReallocAligned( void *ptr, size_t size, size_t align )
 
 	if( ptr_new_aligned )
 	{
-		size_t old_size = _msize( ptr );
+		size_t old_size = _aligned_msize( ptr, align, 0 );
 		size_t copy_size = ( size < old_size ) ? size : old_size;
 
 		memcpy( ptr_new_aligned, ptr, copy_size );
