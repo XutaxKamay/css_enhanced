@@ -4,6 +4,8 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+#include "css_enhanced/c_basetoggle.h"
+#include "predictable_entity.h"
 #if !defined( C_BASEDOOR_H )
 #define C_BASEDOOR_H
 #ifdef _WIN32
@@ -16,14 +18,15 @@
 #define CBaseDoor C_BaseDoor
 #endif
 
-class C_BaseDoor : public C_BaseEntity
+class C_BaseDoor : public C_BaseToggle
 {
 public:
-	DECLARE_CLASS( C_BaseDoor, C_BaseEntity );
-	DECLARE_CLIENTCLASS();
+	DECLARE_CLASS( C_BaseDoor, C_BaseToggle );
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
 
 	C_BaseDoor( void );
-	~C_BaseDoor( void );
+	virtual ~C_BaseDoor( void );
 
 public:
 	float		m_flWaveHeight;

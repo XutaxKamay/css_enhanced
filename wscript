@@ -559,6 +559,7 @@ def configure(conf):
 			]
 		else:
 			linkflags += [
+				'/FORCE:MULTIPLE',
 				'/INCREMENTAL',
 				'/NODEFAULTLIB:libc',
 				'/NODEFAULTLIB:libcd',
