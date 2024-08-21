@@ -6,6 +6,7 @@
 
 #ifndef BASEANIMATING_H
 #define BASEANIMATING_H
+#include "jigglebones.h"
 #include "mathlib/vector.h"
 #include "networkvar.h"
 #include "shareddefs.h"
@@ -20,6 +21,8 @@
 #include "tier0/threadtools.h"
 #include "bone_merge_cache.h"
 
+class CJiggleBones;
+class CBoneBitList;
 class CBasePlayer;
 struct animevent_t;
 struct matrix3x4_t;
@@ -326,9 +329,7 @@ public:
 	const float* GetPoseParameterArray() { return m_flPoseParameter.Base(); }
     const float *GetEncodedControllerArray() { return m_flEncodedController.Base(); }
 
-	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
-		const Vector& origin, const Vector pos[MAXSTUDIOBONES],
-		const Quaternion q[MAXSTUDIOBONES], matrix3x4_t bonetoworld[MAXSTUDIOBONES], int boneMask );
+	void BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, matrix3x4_t pBonesOut[] );
     virtual void ApplyBoneMatrixTransform(matrix3x4_t& transform);
 
 	void	SetFadeDistance( float minFadeDist, float maxFadeDist );
@@ -430,7 +431,7 @@ public:
 	CThreadFastMutex	m_BoneSetupMutex;
 	CBoneCache          *m_pBoneCache;
 	CBoneMergeCache     *m_pBoneMergeCache;
-
+	CJiggleBones		*m_pJiggleBones;
 // FIXME: necessary so that cyclers can hack m_bSequenceFinished
 friend class CFlexCycler;
 friend class CCycler;

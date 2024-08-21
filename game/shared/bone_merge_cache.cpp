@@ -154,7 +154,7 @@ void CBoneMergeCache::MergeMatchingBones( int boneMask , matrix3x4_t mergedbones
 #ifdef CLIENT_DLL
     m_pFollow->SetupBones(bones, MAXSTUDIOBONES, m_nFollowBoneSetupMask, gpGlobals->curtime);
 #else
-    m_pFollow->SetupBones(m_pFollow->GetModelPtr(), bones, m_nFollowBoneSetupMask);
+    m_pFollow->SetupBones(m_pFollowHdr, bones, m_nFollowBoneSetupMask);
 #endif
 
 	// Now copy the bone matrices.
@@ -166,7 +166,22 @@ void CBoneMergeCache::MergeMatchingBones( int boneMask , matrix3x4_t mergedbones
 		// Only update bones reference by the bone mask.
 		if ( !( m_pOwnerHdr->boneFlags( iOwnerBone ) & boneMask ) )
 			continue;
-		
+// #ifdef CLIENT_DLL
+//         printf("client bone attach: (%i - %i) %i", m_pFollow->entindex(), m_pOwner->entindex(), i);
+//         for (int j = 0; j < 12; j++)
+//         {
+//             printf(" %f ", bones[iParentBone].Base()[i]);
+//         }
+//         printf("\n");
+// #else
+//         printf("server bone attach: (%i - %i) %i", m_pFollow->entindex(), m_pOwner->entindex(), i);
+//         for (int j = 0; j < 12; j++)
+//         {
+//             printf(" %f ", bones[iParentBone].Base()[i]);
+//         }
+//         printf("\n");
+// #endif
+                
 #ifdef CLIENT_DLL
 		MatrixCopy( bones[ iParentBone ], mergedbones[ iOwnerBone ] );
 #else
@@ -253,7 +268,7 @@ bool CBoneMergeCache::GetAimEntOrigin( Vector *pAbsOrigin, QAngle *pAbsAngles )
 #ifdef CLIENT_DLL
     m_pFollow->SetupBones(bones, MAXSTUDIOBONES, m_nFollowBoneSetupMask, gpGlobals->curtime);
 #else
-    m_pFollow->SetupBones(m_pFollow->GetModelPtr(), bones, m_nFollowBoneSetupMask);
+    m_pFollow->SetupBones(m_pFollowHdr, bones, m_nFollowBoneSetupMask);
 #endif
 	const matrix3x4_t &mFollowBone = bones[ m_MergedBones[0].m_iParentBone ];
 
@@ -284,7 +299,7 @@ bool CBoneMergeCache::GetRootBone( matrix3x4_t &rootBone )
 #ifdef CLIENT_DLL
     m_pFollow->SetupBones(bones, MAXSTUDIOBONES, m_nFollowBoneSetupMask, gpGlobals->curtime);
 #else
-    m_pFollow->SetupBones(m_pFollow->GetModelPtr(), bones, m_nFollowBoneSetupMask);
+    m_pFollow->SetupBones(m_pFollowHdr, bones, m_nFollowBoneSetupMask);
 #endif
 	rootBone = bones[ m_MergedBones[0].m_iParentBone ];
 	return true;
