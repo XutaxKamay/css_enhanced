@@ -1100,13 +1100,13 @@ void CNPC_Barnacle::LiftRagdoll( float flBiteZOffset )
 
 			// Get the current bone matrix
 			matrix3x4_t pBoneToWorld[MAXSTUDIOBONES];
-			pAnimating->SetupBones( pBoneToWorld, BONE_USED_BY_ANYTHING );
+			pAnimating->SetupBones( pAnimating->GetModelPtr(), pBoneToWorld, BONE_USED_BY_ANYTHING );
 
 			// Apply the forces to the ragdoll
 			RagdollApplyAnimationAsVelocity( *(m_hRagdoll->GetRagdoll()), m_pRagdollBones, pBoneToWorld, 0.2 );
 
 			// Store off the current bone matrix for next time
-			pAnimating->SetupBones( m_pRagdollBones, BONE_USED_BY_ANYTHING );
+			pAnimating->SetupBones( pAnimating->GetModelPtr(), m_pRagdollBones, BONE_USED_BY_ANYTHING );
 		}
 	}
 }
@@ -1540,7 +1540,7 @@ You can use this stanza to try to counterplace the constraint on the player's he
 	UpdateTongue();
 
 	// Store off the current bone matrix so we have it next frame
-	pAnimating->SetupBones( m_pRagdollBones, BONE_USED_BY_ANYTHING );
+	pAnimating->SetupBones( pAnimating->GetModelPtr(), m_pRagdollBones, BONE_USED_BY_ANYTHING );
 }
 
 

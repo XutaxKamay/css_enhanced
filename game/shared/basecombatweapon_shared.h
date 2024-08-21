@@ -6,6 +6,7 @@
 
 #ifndef COMBATWEAPON_SHARED_H
 #define COMBATWEAPON_SHARED_H
+#include "studio.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -162,7 +163,11 @@ public:
 
 							CBaseCombatWeapon();
 	virtual 				~CBaseCombatWeapon();
-
+#ifndef CLIENT_DLL
+	virtual void LockStudioHdr();
+	virtual void UnlockStudioHdr();
+	virtual void SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWorld, int boneMask );
+#endif
 	virtual bool			IsBaseCombatWeapon( void ) const { return true; }
 	virtual CBaseCombatWeapon *MyCombatWeaponPointer( void ) { return this; }
 
@@ -612,9 +617,9 @@ private:
 	bool					m_bReloadHudHintDisplayed;	// Have we displayed a reload HUD hint since this weapon was deployed?
 	float					m_flHudHintPollTime;	// When to poll the weapon again for whether it should display a hud hint.
 	float					m_flHudHintMinDisplayTime; // if the hint is squelched before this, reset my counter so we'll display it again.
-	
 	// Server only
 #if !defined( CLIENT_DLL )
+	CStudioHdr             *m_pStudioWorldHdr;
 
 	// Outputs
 protected:

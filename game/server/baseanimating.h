@@ -18,6 +18,7 @@
 #include "studio.h"
 #include "datacache/idatacache.h"
 #include "tier0/threadtools.h"
+#include "bone_merge_cache.h"
 
 class CBasePlayer;
 struct animevent_t;
@@ -136,7 +137,7 @@ public:
 	virtual	void GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask );
 
 	virtual void GetBoneTransform( int iBone, matrix3x4_t &pBoneToWorld );
-	virtual void SetupBones( matrix3x4_t *pBoneToWorld, int boneMask );
+	virtual void SetupBones( CStudioHdr *pStudioHdr, matrix3x4_t *pBoneToWorld, int boneMask );
 	virtual void CalculateIKLocks( float currentTime );
 	virtual void Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 
@@ -160,7 +161,8 @@ public:
 	bool	HasPoseParameter( int iSequence, const char *szName );
 	bool	HasPoseParameter( int iSequence, int iParameter );
 	float	EdgeLimitPoseParameter( int iParameter, float flValue, float flBase = 0.0f );
-
+    virtual void GetPoseParameters(CStudioHdr* pStudioHdr, float poseParameter[MAXSTUDIOPOSEPARAM]);
+    virtual void GetEncodedControllers(CStudioHdr* pStudioHdr, float encodedControllers[MAXSTUDIOBONECTRLS]);
 protected:
 	// The modus operandi for pose parameters is that you should not use the const char * version of the functions
 	// in general code -- it causes many many string comparisons, which is slower than you think. Better is to 
@@ -326,8 +328,7 @@ public:
 
 	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
 		const Vector& origin, const Vector pos[MAXSTUDIOBONES],
-		const Quaternion q[MAXSTUDIOBONES], matrix3x4_t bonetoworld[MAXSTUDIOBONES],
-		CBaseAnimating *pParent, CBoneCache *pParentCache );
+		const Quaternion q[MAXSTUDIOBONES], matrix3x4_t bonetoworld[MAXSTUDIOBONES], int boneMask );
 
 	void	SetFadeDistance( float minFadeDist, float maxFadeDist );
 
@@ -336,10 +337,10 @@ public:
 	inline void	ClearBoneCacheFlags( unsigned short fFlag ) { m_fBoneCacheFlags &= ~fFlag; }
 
 	bool PrefetchSequence( int iSequence );
+	virtual void LockStudioHdr();
+	virtual void UnlockStudioHdr();
 
 private:
-	void LockStudioHdr();
-	void UnlockStudioHdr();
 
 	void StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flInterval );
 	void InputSetLightingOriginRelative( inputdata_t &inputdata );
@@ -422,10 +423,12 @@ protected:
 public:
 	COutputEvent m_OnIgnite;
 
-private:
+public:
 	CStudioHdr			*m_pStudioHdr;
 	CThreadFastMutex	m_StudioHdrInitLock;
 	CThreadFastMutex	m_BoneSetupMutex;
+	CBoneCache          *m_pBoneCache;
+	CBoneMergeCache     *m_pBoneMergeCache;
 
 // FIXME: necessary so that cyclers can hack m_bSequenceFinished
 friend class CFlexCycler;

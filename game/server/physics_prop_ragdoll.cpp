@@ -174,7 +174,7 @@ void CRagdollProp::Spawn( void )
 	}
 
 	matrix3x4_t pBoneToWorld[MAXSTUDIOBONES];
-	BaseClass::SetupBones( pBoneToWorld, BONE_USED_BY_ANYTHING ); // FIXME: shouldn't this be a subset of the bones
+	BaseClass::SetupBones( GetModelPtr(), pBoneToWorld, BONE_USED_BY_ANYTHING ); // FIXME: shouldn't this be a subset of the bones
 	// this is useless info after the initial conditions are set
 	SetAbsAngles( vec3_angle );
 	int collisionGroup = (m_spawnflags & SF_RAGDOLLPROP_DEBRIS) ? COLLISION_GROUP_DEBRIS : COLLISION_GROUP_NONE;
@@ -827,7 +827,7 @@ void CRagdollProp::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	// no ragdoll, fall through to base class 
 	if ( !m_ragdoll.listCount )
 	{
-		BaseClass::SetupBones( pBoneToWorld, boneMask );
+		BaseClass::SetupBones( GetModelPtr(), pBoneToWorld, boneMask );
 		return;
 	}
 
@@ -1338,10 +1338,10 @@ CBaseEntity *CreateServerRagdoll( CBaseAnimating *pAnimating, int forceBone, con
 	float fPreviousCycle = clamp(pAnimating->GetCycle()-( dt * ( 1 / fSequenceDuration ) ),0.f,1.f);
 	float fCurCycle = pAnimating->GetCycle();
 	// Get current bones positions
-	pAnimating->SetupBones( pBoneToWorldNext, BONE_USED_BY_ANYTHING );
+	pAnimating->SetupBones( pAnimating->GetModelPtr(), pBoneToWorldNext, BONE_USED_BY_ANYTHING );
 	// Get previous bones positions
 	pAnimating->SetCycle( fPreviousCycle );
-	pAnimating->SetupBones( pBoneToWorld, BONE_USED_BY_ANYTHING );		
+	pAnimating->SetupBones( pAnimating->GetModelPtr(), pBoneToWorld, BONE_USED_BY_ANYTHING );		
 	// Restore current cycle
 	pAnimating->SetCycle( fCurCycle );
 
@@ -1579,7 +1579,7 @@ CRagdollProp *CreateServerRagdollAttached( CBaseAnimating *pAnimating, const Vec
 
 	pRagdoll->InitRagdollAnimation();
 	matrix3x4_t pBoneToWorld[MAXSTUDIOBONES];
-	pAnimating->SetupBones( pBoneToWorld, BONE_USED_BY_ANYTHING );
+	pAnimating->SetupBones( pAnimating->GetModelPtr(), pBoneToWorld, BONE_USED_BY_ANYTHING );
 	pRagdoll->InitRagdollAttached( pAttached, vecForce, forceBone, pBoneToWorld, pBoneToWorld, 0.1, collisionGroup, pParentEntity, boneAttach, boneOrigin, parentBoneAttach, originAttached );
 	
 	return pRagdoll;

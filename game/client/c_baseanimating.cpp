@@ -12,6 +12,7 @@
 #include "convar.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
+#include "mathlib/mathlib.h"
 #include "model_types.h"
 #include "bone_setup.h"
 #include "ivrenderview.h"
@@ -1498,7 +1499,7 @@ void C_BaseAnimating::BuildTransformations( CStudioHdr *hdr, Vector *pos, Quater
 				m_pBoneMergeCache = new CBoneMergeCache;
 				m_pBoneMergeCache->Init( this );
 			}
-			m_pBoneMergeCache->MergeMatchingBones( boneMask );
+			m_pBoneMergeCache->MergeMatchingBones( boneMask, m_BoneAccessor.GetBoneArrayForWrite() );
 		}
 		else
 		{
@@ -1890,7 +1891,7 @@ void C_BaseAnimating::AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Qua
 
 void C_BaseAnimating::ChildLayerBlend( Vector pos[], Quaternion q[], float currentTime, int boneMask )
 {
-	return;
+    return;
 
 	Vector		childPos[MAXSTUDIOBONES];
 	Quaternion	childQ[MAXSTUDIOBONES];
@@ -2741,82 +2742,6 @@ void C_BaseAnimating::ThreadedBoneSetup()
 	}
 	g_iPreviousBoneCounter++;
 	g_PreviousBoneSetups.RemoveAll();
-}
-
-void C_BaseAnimating::BuildMatricesWithBoneMerge( 
-	const CStudioHdr *pStudioHdr,
-	const QAngle& angles, 
-	const Vector& origin, 
-	const Vector pos[MAXSTUDIOBONES],
-	const Quaternion q[MAXSTUDIOBONES],
-	matrix3x4_t bonetoworld[MAXSTUDIOBONES],
-	C_BaseAnimating *pParent,
-	CBoneCache *pParentCache
-	)
-{
-	CStudioHdr *fhdr = pParent->GetModelPtr();
-	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
-
-	matrix3x4_t rotationmatrix; // model to world transformation
-	AngleMatrix( angles, origin, rotationmatrix);
-
-	for ( int i=0; i < pStudioHdr->numbones(); i++ )
-	{
-		// Now find the bone in the parent entity.
-		bool merged = false;
-		int parentBoneIndex = Studio_BoneIndexByName( fhdr, pbones[i].pszName() );
-		if ( parentBoneIndex >= 0 )
-		{
-			matrix3x4_t *pMat = pParentCache->GetCachedBone( parentBoneIndex );
-			if ( pMat )
-			{
-				MatrixCopy( *pMat, bonetoworld[ i ] );
-				merged = true;
-			}
-		}
-
-		if ( !merged )
-		{
-			// If we get down here, then the bone wasn't merged.
-			matrix3x4_t bonematrix;
-			QuaternionMatrix( q[i], pos[i], bonematrix );
-
-			if (pbones[i].parent == -1) 
-			{
-				ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
-			} 
-			else 
-			{
-				ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
-			}
-		}
-	}
-}
-
-void C_BaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask, float currentTime )
-{
-	if(!pStudioHdr)
-	{
-		Assert(!"C_BaseAnimating::GetSkeleton() without a model");
-		return;
-	}
-
-	IBoneSetup boneSetup( pStudioHdr, boneMask, m_flPoseParameter );
-	boneSetup.InitPose( pos, q );
-
-	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, currentTime, m_pIk );
-
-	if ( m_pIk )
-	{
-		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetRenderOrigin(), currentTime, 0, boneMask );
-		boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
-	}
-	else
-	{
-		boneSetup.CalcAutoplaySequences( pos, q, currentTime, NULL );
-	}
-	boneSetup.CalcBoneAdj( pos, q, m_flEncodedController );
 }
 
 bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
