@@ -11,8 +11,11 @@
 #ifdef CLIENT_DLL
 #include "engine/ivdebugoverlay.h"
 #include "cdll_client_int.h"
-#endif // CLIENT_DLL
-
+#else // CLIENT_DLL
+#include "shareddefs.h"
+#include "mathlib/vmatrix.h"
+#include "util.h"
+#endif
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 

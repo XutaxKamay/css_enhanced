@@ -5,6 +5,8 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "bone_accessor.h"
+#include "jigglebones.h"
 #include "baseanimating.h"
 #include "animation.h"
 #include "activitylist.h"
@@ -293,6 +295,7 @@ CBaseAnimating::CBaseAnimating()
 	m_fBoneCacheFlags = 0;
     m_pBoneMergeCache    = NULL;
     m_pBoneCache = NULL;
+	m_pJiggleBones = NULL;
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -300,7 +303,9 @@ CBaseAnimating::~CBaseAnimating()
 	Studio_DestroyBoneCache( m_boneCacheHandle );
 	delete m_pIk;
 	UnlockStudioHdr();
-	delete m_pStudioHdr;
+    delete m_pStudioHdr;
+    delete m_pBoneMergeCache;
+    delete m_pJiggleBones;
 }
 
 void CBaseAnimating::Precache()
@@ -1785,21 +1790,10 @@ void CBaseAnimating::ApplyBoneMatrixTransform( matrix3x4_t& transform )
 }
 
 
-void CBaseAnimating::BuildMatricesWithBoneMerge( 
-	const CStudioHdr *pStudioHdr,
-	const QAngle& angles, 
-	const Vector& origin, 
-	const Vector pos[MAXSTUDIOBONES],
-	const Quaternion q[MAXSTUDIOBONES],
-	matrix3x4_t bonetoworld[MAXSTUDIOBONES],
-	int boneMask
-	)
+void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, matrix3x4_t pBonesOut[] )
 {
 	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
-
     matrix3x4_t bonematrix;
-	matrix3x4_t rotationmatrix; // model to world transformation
-	AngleMatrix( angles, origin, rotationmatrix);
 
     bool boneMerge = IsEffectActive(EF_BONEMERGE);
 	if ( boneMerge || m_pBoneMergeCache )
@@ -1811,7 +1805,7 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 				m_pBoneMergeCache = new CBoneMergeCache;
 				m_pBoneMergeCache->Init( this );
 			}
-			m_pBoneMergeCache->MergeMatchingBones( boneMask, bonetoworld );
+			m_pBoneMergeCache->MergeMatchingBones( boneMask, pBonesOut );
 		}
 		else
 		{
@@ -1831,38 +1825,75 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 		if ( m_pBoneMergeCache && m_pBoneMergeCache->IsBoneMerged( i ) )
 			continue;
 
-		QuaternionMatrix( q[i], pos[i], bonematrix );
+        CBoneAccessor boneAccess(pBonesOut);
+        boneAccess.SetReadableBones(boneMask);
+        boneAccess.SetWritableBones(boneMask);
 
-		if ( (pStudioHdr->boneFlags( i ) & BONE_ALWAYS_PROCEDURAL) && 
-				(pStudioHdr->pBone( i )->proctype & STUDIO_PROC_JIGGLE) )
+		// animate all non-simulated bones
+		if ( CalcProceduralBone( pStudioHdr, i, boneAccess ))
 		{
-			matrix3x4_t goalMX;
+			continue;
+		}
+		// skip bones that the IK has already setup
+		else if (boneComputed.IsBoneMarked( i ))
+		{
+			continue;
+		}
+		else
+		{
+			QuaternionMatrix( q[i], pos[i], bonematrix );
 
-			if (pbones[i].parent == -1) 
+			Assert( fabs( pos[i].x ) < 100000 );
+			Assert( fabs( pos[i].y ) < 100000 );
+			Assert( fabs( pos[i].z ) < 100000 );
+
+			if ( (pStudioHdr->boneFlags( i ) & BONE_ALWAYS_PROCEDURAL) && 
+				 (pStudioHdr->pBone( i )->proctype & STUDIO_PROC_JIGGLE) )
 			{
-				ConcatTransforms( rotationmatrix, bonematrix, goalMX );
+				//
+				// Physics-based "jiggle" bone
+				// Bone is assumed to be along the Z axis
+				// Pitch around X, yaw around Y
+				//
+
+				// compute desired bone orientation
+				matrix3x4_t goalMX;
+
+				if (pbones[i].parent == -1) 
+				{
+					ConcatTransforms( cameraTransform, bonematrix, goalMX );
+				} 
+				else 
+				{
+					ConcatTransforms( pBonesOut[pbones[i].parent], bonematrix, goalMX );
+				}
+
+    			// get jiggle properties from QC data
+				mstudiojigglebone_t *jiggleInfo = (mstudiojigglebone_t *)pbones[i].pProcedure( );
+
+				if (!m_pJiggleBones)
+				{
+					m_pJiggleBones = new CJiggleBones;
+				}
+
+				// do jiggle physics
+				m_pJiggleBones->BuildJiggleTransformations( i, gpGlobals->curtime, jiggleInfo, goalMX, pBonesOut[i] );
+
+			}
+			else if (pStudioHdr->boneParent(i) == -1) 
+			{
+				ConcatTransforms( cameraTransform, bonematrix, pBonesOut[i] );
 			} 
 			else 
 			{
-				ConcatTransforms( bonetoworld[pbones[i].parent], bonematrix, goalMX );
-            }
-
-            // TODO_ENHANCED: jiggles.
-
-		}
-		else if (pStudioHdr->boneParent(i) == -1) 
-		{
-			ConcatTransforms( rotationmatrix, bonematrix, bonetoworld[i] );
-		} 
-		else 
-		{
-			ConcatTransforms( bonetoworld[pStudioHdr->boneParent(i)], bonematrix, bonetoworld[i] );
+				ConcatTransforms( pBonesOut[pStudioHdr->boneParent(i)], bonematrix, pBonesOut[i] );
+			}
 		}
 
 		if (pStudioHdr->boneParent(i) == -1) 
 		{
 			// Apply client-side effects to the transformation matrix
-			ApplyBoneMatrixTransform( bonetoworld[i] );
+			ApplyBoneMatrixTransform( pBonesOut[i] );
 		}
 	}
 }
@@ -1960,6 +1991,8 @@ void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWor
 	// Remove IK to respect more the client hitboxes.
 	Vector adjOrigin = GetAbsOrigin();
 
+    CBoneBitList boneComputed;
+
 	if ( CanSkipAnimation() )
 	{
 		IBoneSetup boneSetup( pStudioHdr, boneMask, GetPoseParameterArray() );
@@ -1971,7 +2004,6 @@ void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWor
 		if ( m_pIk )
 		{
 			// FIXME: pass this into Studio_BuildMatrices to skip transforms
-			CBoneBitList boneComputed;
 			m_iIKCounter++;
 			m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
 			GetSkeleton( pStudioHdr, pos, q, boneMask );
@@ -1987,7 +2019,11 @@ void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWor
 		}
     }
 
-    BuildMatricesWithBoneMerge(pStudioHdr, GetAbsAngles(), adjOrigin, pos, q, pBoneToWorld, boneMask);
+	matrix3x4_t parentTransform;
+	AngleMatrix( GetAbsAngles(), adjOrigin, parentTransform );
+
+    printf("%f %f %f - %f %f %f\n", GetAbsAngles().x, GetAbsAngles().y, GetAbsAngles().z, adjOrigin.x, adjOrigin.y, adjOrigin.z);
+    BuildTransformations(pStudioHdr, pos, q, parentTransform, boneMask, boneComputed, pBoneToWorld);
 
     m_pBoneCache->UpdateBones(pBoneToWorld,  pStudioHdr->numbones(), gpGlobals->curtime);
 
@@ -2712,9 +2748,6 @@ void CBaseAnimating::UnlockStudioHdr()
 //-----------------------------------------------------------------------------
 CBoneCache *CBaseAnimating::GetBoneCache( void )
 {
-	CStudioHdr *pStudioHdr = GetModelPtr( );
-	Assert(pStudioHdr);
-
 	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT | BONE_USED_BY_BONE_MERGE;
 
 	// TF queries these bones to position weapons when players are killed
@@ -3730,6 +3763,12 @@ CStudioHdr *CBaseAnimating::OnNewModel()
 {
 	(void) BaseClass::OnNewModel();
 
+    if (m_pJiggleBones)
+	{
+		delete m_pJiggleBones;
+		m_pJiggleBones = NULL;
+    }
+    
     if ( m_pBoneMergeCache )
 	{
 		delete m_pBoneMergeCache;

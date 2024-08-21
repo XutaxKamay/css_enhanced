@@ -78,6 +78,7 @@ $Project
 	
 	$Folder	"Source Files"
 	{
+		$File	"$SRCDIR\public\jigglebones.cpp"
 		$File	"$SRCDIR\game\shared\bone_merge_cache.cpp"
 		$File	"$SRCDIR\game\shared\achievement_saverestore.cpp"
 		$File	"$SRCDIR\game\shared\achievement_saverestore.h"
