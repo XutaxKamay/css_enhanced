@@ -6,12 +6,21 @@
 
 #ifndef BONE_MERGE_CACHE_H
 #define BONE_MERGE_CACHE_H
+#include "mathlib/mathlib.h"
+#include "studio.h"
 #ifdef _WIN32
 #pragma once
 #endif
 
-
+#ifdef CLIENT_DLL
 class C_BaseAnimating;
+#ifndef CBaseAnimating
+#define CBaseAnimating C_BaseAnimating
+#endif
+#else
+class CBaseAnimating;
+#endif
+
 class CStudioHdr;
 
 
@@ -24,14 +33,14 @@ public:
 
 	CBoneMergeCache();
 	
-	void Init( C_BaseAnimating *pOwner );
+	void Init( CBaseAnimating *pOwner );
 
 	// Updates the lookups that let it merge bones quickly.
 	void UpdateCache();
 	
 	// This copies the transform from all bones in the followed entity that have 
 	// names that match our bones.
-	void MergeMatchingBones( int boneMask );
+	void MergeMatchingBones( int boneMask, matrix3x4_t mergedbones[MAXSTUDIOBONES] );
 
 	// copy bones instead of matrices
 	void CopyParentToChild( const Vector parentPos[], const Quaternion parentQ[], Vector childPos[], Quaternion childQ[], int boneMask );
@@ -48,11 +57,11 @@ public:
 private:
 
 	// This is the entity that we're keeping the cache updated for.
-	C_BaseAnimating *m_pOwner;
+	CBaseAnimating *m_pOwner;
 
 	// All the cache data is based off these. When they change, the cache data is regenerated.
 	// These are either all valid pointers or all NULL.
-	C_BaseAnimating *m_pFollow;
+	CBaseAnimating *m_pFollow;
 	CStudioHdr		*m_pFollowHdr;
 	const studiohdr_t	*m_pFollowRenderHdr;
 	CStudioHdr		*m_pOwnerHdr;

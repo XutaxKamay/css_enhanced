@@ -14,6 +14,8 @@
 #include "enginecallback.h"
 #include "entitylist_base.h"
 #include "mathlib/vector.h"
+#include "mathlib/vmatrix.h"
+#include "player.h"
 #include "shareddefs.h"
 #include "studio.h"
 #include "bone_setup.h"
@@ -289,6 +291,8 @@ CBaseAnimating::CBaseAnimating()
 	m_fadeMaxDist = 0;
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
+    m_pBoneMergeCache    = NULL;
+    m_pBoneCache = NULL;
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -1693,6 +1697,32 @@ void CBaseAnimating::Teleport( const Vector *newPosition, const QAngle *newAngle
 }
 
 
+void CBaseAnimating::GetPoseParameters( CStudioHdr *pStudioHdr, float poseParameter[MAXSTUDIOPOSEPARAM])
+{
+	if ( !pStudioHdr )
+		return;
+
+	// interpolate pose parameters
+	int i;
+	for( i=0; i < pStudioHdr->GetNumPoseParameters(); i++)
+	{
+		poseParameter[i] = m_flPoseParameter[i];
+	}
+}
+
+void CBaseAnimating::GetEncodedControllers(CStudioHdr* pStudioHdr, float encodedControllers[MAXSTUDIOBONECTRLS])
+{
+	if ( !pStudioHdr )
+		return;
+
+  	// interpolate pose parameters
+	int i;
+	for( i=0; i < pStudioHdr->GetNumPoseParameters(); i++)
+	{
+		encodedControllers[i] = m_flEncodedController[i];
+	}  
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: build matrices first from the parent, then from the passed in arrays if the bone doesn't exist on the parent
 //-----------------------------------------------------------------------------
@@ -1704,45 +1734,56 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 	const Vector pos[MAXSTUDIOBONES],
 	const Quaternion q[MAXSTUDIOBONES],
 	matrix3x4_t bonetoworld[MAXSTUDIOBONES],
-	CBaseAnimating *pParent,
-	CBoneCache *pParentCache
+	int boneMask
 	)
 {
-	CStudioHdr *fhdr = pParent->GetModelPtr();
 	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
 
 	matrix3x4_t rotationmatrix; // model to world transformation
 	AngleMatrix( angles, origin, rotationmatrix);
 
-	for ( int i=0; i < pStudioHdr->numbones(); i++ )
+    bool boneMerge = IsEffectActive(EF_BONEMERGE);
+	if ( boneMerge || m_pBoneMergeCache )
 	{
-		// Now find the bone in the parent entity.
-		bool merged = false;
-		int parentBoneIndex = Studio_BoneIndexByName( fhdr, pbones[i].pszName() );
-		if ( parentBoneIndex >= 0 )
+		if ( boneMerge )
 		{
-			matrix3x4_t *pMat = pParentCache->GetCachedBone( parentBoneIndex );
-			if ( pMat )
+			if ( !m_pBoneMergeCache )
 			{
-				MatrixCopy( *pMat, bonetoworld[ i ] );
-				merged = true;
+				m_pBoneMergeCache = new CBoneMergeCache;
+				m_pBoneMergeCache->Init( this );
 			}
+			m_pBoneMergeCache->MergeMatchingBones( boneMask, bonetoworld );
 		}
-
-		if ( !merged )
+		else
 		{
-			// If we get down here, then the bone wasn't merged.
-			matrix3x4_t bonematrix;
-			QuaternionMatrix( q[i], pos[i], bonematrix );
+			delete m_pBoneMergeCache;
+			m_pBoneMergeCache = NULL;
+		}
+	}
+            
+	for ( int i=0; i < pStudioHdr->numbones(); i++ )
+    {
+        if (!(pStudioHdr->boneFlags(i) & boneMask))
+        {
+            continue;
+        }
+        
+        if (m_pBoneMergeCache && m_pBoneMergeCache->IsBoneMerged(i))
+        {
+            continue;
+        }
 
-			if (pbones[i].parent == -1) 
-			{
-				ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
-			} 
-			else 
-			{
-				ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
-			}
+        // If we get down here, then the bone wasn't merged.
+		matrix3x4_t bonematrix;
+		QuaternionMatrix( q[i], pos[i], bonematrix );
+
+		if (pbones[i].parent == -1) 
+		{
+			ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
+		} 
+		else 
+		{
+			ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
 		}
 	}
 }
@@ -1772,24 +1813,56 @@ inline bool CBaseAnimating::CanSkipAnimation( void )
 }
 
 
-void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
+void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWorld, int boneMask )
 {
+    static constexpr auto flDebugDuration = 60.f;
 	AUTO_LOCK( m_BoneSetupMutex );
 	
 	VPROF_BUDGET( "CBaseAnimating::SetupBones", VPROF_BUDGETGROUP_SERVER_ANIM );
 	
 	MDLCACHE_CRITICAL_SECTION();
 
-	Assert( GetModelPtr() );
+    m_pBoneCache = Studio_GetBoneCache(m_boneCacheHandle);
 
-	CStudioHdr *pStudioHdr = GetModelPtr( );
+	if ( m_pBoneCache )
+	{
+		if ( m_pBoneCache->IsValid( gpGlobals->curtime ) && (m_pBoneCache->m_boneMask & boneMask) == boneMask && m_pBoneCache->m_timeValid <= gpGlobals->curtime)
+		{
+			// Msg("%s:%s:%s (%x:%x:%8.4f) cache\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask, pcache->m_boneMask, pcache->m_timeValid );
+			// in memory and still valid, use it!
+            m_pBoneCache->ReadCachedBones(pBoneToWorld);
+            return;
+        }
+
+		// in memory, but missing some of the bone masks
+		if ( (m_pBoneCache->m_boneMask & boneMask) != boneMask )
+		{
+			Studio_DestroyBoneCache( m_boneCacheHandle );
+			m_boneCacheHandle = 0;
+			m_pBoneCache = NULL;
+		}
+    }
+    
+	if ( !m_pBoneCache )
+	{
+		bonecacheparams_t params;
+		params.pStudioHdr   = pStudioHdr;
+		params.pBoneToWorld = pBoneToWorld;
+		params.curtime      = gpGlobals->curtime;
+		params.boneMask     = boneMask;
+
+		m_boneCacheHandle = Studio_CreateBoneCache(params);
+		m_pBoneCache      = Studio_GetBoneCache(m_boneCacheHandle);
+    }
+
+	Assert( pStudioHdr );
 
 	if(!pStudioHdr)
 	{
 		Assert(!"CBaseAnimating::GetSkeleton() without a model");
 		return;
 	}
-
+   
 	Assert( !IsEFlagSet( EFL_SETTING_UP_BONES ) );
 
 	AddEFlags( EFL_SETTING_UP_BONES );
@@ -1797,8 +1870,8 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	Vector pos[MAXSTUDIOBONES];
 	Quaternion q[MAXSTUDIOBONES];
 
-	// adjust hit boxes based on IK driven offset
-	Vector adjOrigin = GetAbsOrigin() + Vector( 0, 0, m_flEstIkOffset );
+	// Remove IK to respect more the client hitboxes.
+	Vector adjOrigin = GetAbsOrigin();
 
 	if ( CanSkipAnimation() )
 	{
@@ -1825,49 +1898,16 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 			// Msg( "%.03f : %s:%s\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
 			GetSkeleton( pStudioHdr, pos, q, boneMask );
 		}
-	}
-	
-	CBaseAnimating *pParent = dynamic_cast< CBaseAnimating* >( GetMoveParent() );
-	if ( pParent )
-	{
-		// We're doing bone merging, so do special stuff here.
-		CBoneCache *pParentCache = pParent->GetBoneCache();
-		if ( pParentCache )
-		{
-			BuildMatricesWithBoneMerge( 
-				pStudioHdr, 
-				GetAbsAngles(), 
-				adjOrigin, 
-				pos, 
-				q, 
-				pBoneToWorld, 
-				pParent, 
-				pParentCache );
-			
-			RemoveEFlags( EFL_SETTING_UP_BONES );
-			if (ai_setupbones_debug.GetBool())
-			{
-				DrawRawSkeleton( pBoneToWorld, boneMask, true, 0.11 );
-			}
-			return;
-		}
-	}
+    }
 
-	Studio_BuildMatrices( 
-		pStudioHdr, 
-		GetAbsAngles(), 
-		adjOrigin, 
-		pos, 
-		q, 
-		-1,
-		GetModelScale(), // Scaling
-		pBoneToWorld,
-		boneMask );
+    BuildMatricesWithBoneMerge(pStudioHdr, GetAbsAngles(), adjOrigin, pos, q, pBoneToWorld, boneMask);
+
+    m_pBoneCache->UpdateBones(pBoneToWorld,  pStudioHdr->numbones(), gpGlobals->curtime);
 
 	if (ai_setupbones_debug.GetBool())
 	{
 		// Msg("%s:%s:%s (%x)\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask );
-		DrawRawSkeleton( pBoneToWorld, boneMask, true, 0.11 );
+		DrawRawSkeleton( pBoneToWorld, boneMask, true, flDebugDuration );
 	}
 	RemoveEFlags( EFL_SETTING_UP_BONES );
 }
@@ -2588,51 +2628,33 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	CStudioHdr *pStudioHdr = GetModelPtr( );
 	Assert(pStudioHdr);
 
-	CBoneCache *pcache = Studio_GetBoneCache( m_boneCacheHandle );
-	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT;
+	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT | BONE_USED_BY_BONE_MERGE;
 
 	// TF queries these bones to position weapons when players are killed
 #if defined( TF_DLL )
 	boneMask |= BONE_USED_BY_BONE_MERGE;
 #endif
-	if ( pcache )
-	{
-		if ( pcache->IsValid( gpGlobals->curtime ) && (pcache->m_boneMask & boneMask) == boneMask && pcache->m_timeValid <= gpGlobals->curtime)
-		{
-			// Msg("%s:%s:%s (%x:%x:%8.4f) cache\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask, pcache->m_boneMask, pcache->m_timeValid );
-			// in memory and still valid, use it!
-			return pcache;
-		}
-		// in memory, but missing some of the bone masks
-		if ( (pcache->m_boneMask & boneMask) != boneMask )
-		{
-			Studio_DestroyBoneCache( m_boneCacheHandle );
-			m_boneCacheHandle = 0;
-			pcache = NULL;
-		}
-	}
 
 	matrix3x4_t bonetoworld[MAXSTUDIOBONES];
-	SetupBones( bonetoworld, boneMask );
+	SetupBones( GetModelPtr(), bonetoworld, boneMask );
 
-	if ( pcache )
-	{
-		// still in memory but out of date, refresh the bones.
-		pcache->UpdateBones( bonetoworld, pStudioHdr->numbones(), gpGlobals->curtime );
-	}
-	else
-	{
-		bonecacheparams_t params;
-		params.pStudioHdr = pStudioHdr;
-		params.pBoneToWorld = bonetoworld;
-		params.curtime = gpGlobals->curtime;
-		params.boneMask = boneMask;
+    for (auto pChild = FirstMoveChild(); pChild; pChild = pChild->NextMovePeer())
+    {
+        auto pChildAnimating = dynamic_cast<CBaseAnimating*>(pChild);
 
-		m_boneCacheHandle = Studio_CreateBoneCache( params );
-		pcache = Studio_GetBoneCache( m_boneCacheHandle );
-	}
-	Assert(pcache);
-	return pcache;
+        if (!pChildAnimating || !pChildAnimating->GetModelPtr())
+        {
+            continue;
+        }
+
+        printf("animating: %i %s %s\n", pChildAnimating->entindex(), pChildAnimating->GetDebugName(), pChildAnimating->GetModelName().ToCStr());
+
+        matrix3x4_t childbones[MAXSTUDIOBONES];
+        pChildAnimating->SetupBones(pChildAnimating->GetModelPtr(), childbones, boneMask);
+    }
+
+	Assert(m_pBoneCache);
+	return m_pBoneCache;
 }
 
 
@@ -2810,7 +2832,12 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 		return;
 	}
 
-	IBoneSetup boneSetup( pStudioHdr, boneMask, GetPoseParameterArray() );
+    float flPoseParams[MAXSTUDIOPOSEPARAM];
+    float flEncodedParams[MAXSTUDIOBONECTRLS];
+
+    GetPoseParameters( pStudioHdr, flPoseParams );
+
+	IBoneSetup boneSetup( pStudioHdr, boneMask, flPoseParams );
 	boneSetup.InitPose( pos, q );
 
 	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
@@ -2825,7 +2852,8 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 	{
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
 	}
-	boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+    GetEncodedControllers( pStudioHdr, flEncodedParams );
+	boneSetup.CalcBoneAdj( pos, q, flEncodedParams );
 }
 
 int CBaseAnimating::DrawDebugTextOverlays(void) 
@@ -3067,8 +3095,14 @@ void CBaseAnimating::DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, b
 	int i;
 	int r = 255;
 	int g = 255;
-	int b = monocolor ? 255 : 0;
-	
+    int b = monocolor ? 255 : 0;
+
+    if (boneMask & 0x00080000)
+    {
+        r = 0;
+        g = 0;
+        b = 255;
+	}
 
 	for (i = 0; i < pStudioHdr->numbones(); i++)
 	{
@@ -3080,6 +3114,14 @@ void CBaseAnimating::DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, b
 			{
 				Vector p2;
 				MatrixPosition( boneToWorld[pStudioHdr->pBone( i )->parent], p2 );
+                if (pStudioHdr->pBone(i)->flags & BONE_USED_BY_BONE_MERGE)
+                {
+                    r = 255;
+                }
+                else
+                {
+                    r = 0;
+                }
                 NDebugOverlay::Line( p1, p2, r, g, b, noDepthTest, duration );
 			}
 		}
@@ -3604,6 +3646,12 @@ bool CBaseAnimating::IsSequenceLooping( CStudioHdr *pStudioHdr, int iSequence )
 CStudioHdr *CBaseAnimating::OnNewModel()
 {
 	(void) BaseClass::OnNewModel();
+
+    if ( m_pBoneMergeCache )
+	{
+		delete m_pBoneMergeCache;
+		m_pBoneMergeCache = NULL;
+    }
 
 	// TODO: if dynamic, validate m_Sequence and apply queued body group settings?
 	if ( IsDynamicModelLoading() )

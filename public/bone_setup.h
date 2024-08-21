@@ -419,7 +419,7 @@ public:
 	float			m_timeValid;
 	int				m_boneMask;
 
-private:
+public:
 	matrix3x4_t		*BoneArray();
 	short			*StudioToCached();
 	short			*CachedToStudio();

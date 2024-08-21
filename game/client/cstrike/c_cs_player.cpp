@@ -2598,103 +2598,12 @@ float C_CSPlayer::GetDeathCamInterpolationTime()
 		return spec_freeze_time.GetFloat();
 	else
 		return CS_DEATH_ANIMATION_TIME;
-
 }
 
-ConVar cl_server_setup_bones("cl_server_setup_bones", "1");
 
 bool C_CSPlayer::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
-	if (cl_server_setup_bones.GetBool())
-	{
-		AUTO_LOCK( m_BoneSetupLock );
-
-		MDLCACHE_CRITICAL_SECTION();
-
-		Assert( GetModelPtr() );
-
-		CStudioHdr *pStudioHdr = GetModelPtr( );
-
-		if(!pStudioHdr)
-		{
-			Assert(!"C_BaseAnimating::GetSkeleton() without a model");
-			return false;
-		}
-
-		Assert( !IsEFlagSet( EFL_SETTING_UP_BONES ) );
-
-		AddEFlags( EFL_SETTING_UP_BONES );
-
-		Vector pos[MAXSTUDIOBONES];
-		Quaternion q[MAXSTUDIOBONES];
-
-		// adjust hit boxes based on IK driven offset
-		Vector adjOrigin = GetRenderOrigin();
-
-		if ( m_pIk )
-		{
-			// FIXME: pass this into Studio_BuildMatrices to skip transforms
-			CBoneBitList boneComputed;
-			m_iIKCounter++;
-			m_pIk->Init( pStudioHdr, GetRenderAngles(), adjOrigin, currentTime, m_iIKCounter, boneMask );
-			GetSkeleton( pStudioHdr, pos, q, boneMask, currentTime );
-
-			m_pIk->UpdateTargets( pos, q, m_BoneAccessor.GetBoneArrayForWrite(), boneComputed );
-			CalculateIKLocks( currentTime );
-			m_pIk->SolveDependencies( pos, q, m_BoneAccessor.GetBoneArrayForWrite(), boneComputed );
-		}
-		else
-		{
-			// Msg( "%.03f : %s:%s\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
-			GetSkeleton( pStudioHdr, pos, q, boneMask, currentTime );
-		}
-		
-		CBaseAnimating *pParent = dynamic_cast< CBaseAnimating* >( GetMoveParent() );
-		if ( pParent )
-		{
-			// We're doing bone merging, so do special stuff here.
-			CBoneCache *pParentCache = pParent->GetBoneCache(pParent->GetModelPtr());
-			if ( pParentCache )
-			{
-				BuildMatricesWithBoneMerge( 
-					pStudioHdr, 
-					GetRenderAngles(), 
-					adjOrigin, 
-					pos, 
-					q, 
-					m_BoneAccessor.GetBoneArrayForWrite(), 
-					pParent, 
-					pParentCache );
-				
-				RemoveEFlags( EFL_SETTING_UP_BONES );
-				return true;
-			}
-		}
-
-		Studio_BuildMatrices( 
-			pStudioHdr, 
-			GetRenderAngles(), 
-			adjOrigin, 
-			pos, 
-			q, 
-			-1,
-			GetModelScale(), // Scaling
-			m_BoneAccessor.GetBoneArrayForWrite(),
-			boneMask );
-
-		RemoveEFlags(EFL_SETTING_UP_BONES);
-
-		if ( pBoneToWorldOut )
-		{
-			memcpy( pBoneToWorldOut, m_BoneAccessor.GetBoneArrayForWrite(), sizeof( matrix3x4_t ) * MAXSTUDIOBONES );
-		}
-
-        return true;
-	}
-	else
-	{
-		return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
-	}
+	return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
 }
 
 //=============================================================================

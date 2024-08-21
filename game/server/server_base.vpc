@@ -78,6 +78,7 @@ $Project
 	
 	$Folder	"Source Files"
 	{
+		$File	"$SRCDIR\game\shared\bone_merge_cache.cpp"
 		$File	"$SRCDIR\game\shared\achievement_saverestore.cpp"
 		$File	"$SRCDIR\game\shared\achievement_saverestore.h"
 		$File	"$SRCDIR\game\shared\achievementmgr.cpp"
@@ -785,6 +786,7 @@ $Project
 
 	$Folder	"Header Files"
 	{
+		$File	"$SRCDIR\game\shared\bone_merge_cache.h"
 		$File	"$SRCDIR\public\mathlib\amd3dx.h"
 		$File	"$SRCDIR\game\shared\ammodef.h"
 		$File	"$SRCDIR\game\shared\base_playeranimstate.h"

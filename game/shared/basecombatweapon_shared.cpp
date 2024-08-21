@@ -15,6 +15,8 @@
 
 // NVNT start extra includes
 #include "haptics/haptic_utils.h"
+#include "studio.h"
+#include "tier3/tier3.h"
 #ifdef CLIENT_DLL
 	#include "prediction.h"
 #endif
@@ -90,6 +92,7 @@ CBaseCombatWeapon::CBaseCombatWeapon() : BASECOMBATWEAPON_DERIVED_FROM()
 #if !defined( CLIENT_DLL )
 	m_pConstraint = NULL;
 	OnBaseCombatWeaponCreated( this );
+    m_pStudioWorldHdr = NULL;
 #endif
 
 	m_hWeaponFileInfo = GetInvalidWeaponInfoHandle();
@@ -117,9 +120,75 @@ CBaseCombatWeapon::~CBaseCombatWeapon( void )
 		physenv->DestroyConstraint( m_pConstraint );
 		m_pConstraint = NULL;
 	}
-	OnBaseCombatWeaponDestroyed( this );
+    OnBaseCombatWeaponDestroyed(this);
+    delete m_pStudioWorldHdr;
 #endif
 }
+
+#ifndef CLIENT_DLL
+void CBaseCombatWeapon::LockStudioHdr()
+{
+    BaseClass::LockStudioHdr();
+
+	AUTO_LOCK( m_StudioHdrInitLock );
+    const auto worldModel = modelinfo->GetModel(m_iWorldModelIndex);
+	if (worldModel)
+	{
+		MDLHandle_t hStudioHdr = modelinfo->GetCacheHandle( worldModel );
+		if ( hStudioHdr != MDLHANDLE_INVALID )
+		{
+			const studiohdr_t *pStudioHdr = mdlcache->LockStudioHdr( hStudioHdr );
+			CStudioHdr *pStudioHdrContainer = NULL;
+			if ( !m_pStudioWorldHdr )
+			{
+				if ( pStudioHdr )
+				{
+					pStudioHdrContainer = new CStudioHdr;
+					pStudioHdrContainer->Init( pStudioHdr, mdlcache );
+				}
+			}
+			else
+			{
+				pStudioHdrContainer = m_pStudioWorldHdr;
+			}
+
+			Assert( ( pStudioHdr == NULL && pStudioHdrContainer == NULL ) || pStudioHdrContainer->GetRenderHdr() == pStudioHdr );
+
+			if ( pStudioHdrContainer && pStudioHdrContainer->GetVirtualModel() )
+			{
+				MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( pStudioHdrContainer->GetRenderHdr()->VirtualModel() );
+				mdlcache->LockStudioHdr( hVirtualModel );
+			}
+			m_pStudioWorldHdr = pStudioHdrContainer; // must be last to ensure virtual model correctly set up
+		}
+	}
+}
+
+void CBaseCombatWeapon::UnlockStudioHdr()
+{
+    BaseClass::UnlockStudioHdr();
+
+	if ( m_pStudioWorldHdr )
+	{
+    	const auto worldModel = modelinfo->GetModel(m_iWorldModelIndex);
+		if (worldModel)
+		{
+			mdlcache->UnlockStudioHdr( modelinfo->GetCacheHandle( worldModel ) );
+			if ( m_pStudioWorldHdr->GetVirtualModel() )
+			{
+				MDLHandle_t hVirtualModel = VoidPtrToMDLHandle( m_pStudioWorldHdr->GetRenderHdr()->VirtualModel() );
+				mdlcache->UnlockStudioHdr( hVirtualModel );
+			}
+        }
+    }
+}
+
+void CBaseCombatWeapon::SetupBones(CStudioHdr* pStudioHdr, matrix3x4_t* pBoneToWorld, int boneMask)
+{
+    // hooked m_pStudioHdr to world model instead (m_pStudioWorldHdr)
+    BaseClass::SetupBones(m_pStudioWorldHdr, pBoneToWorld, boneMask);
+}
+#endif
 
 void CBaseCombatWeapon::Activate( void )
 {

@@ -447,7 +447,12 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 		return;
 	}
 
-	IBoneSetup boneSetup( pStudioHdr, boneMask, GetPoseParameterArray() );
+    float flPoseParams[MAXSTUDIOPOSEPARAM];
+    float flEncodedParams[MAXSTUDIOBONECTRLS];
+
+    GetPoseParameters( pStudioHdr, flPoseParams );
+
+	IBoneSetup boneSetup( pStudioHdr, boneMask, flPoseParams );
 	boneSetup.InitPose( pos, q );
 
 	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
@@ -486,10 +491,10 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 	else
 	{
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
-	}
-	boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+    }
+    GetEncodedControllers( pStudioHdr, flEncodedParams );
+	boneSetup.CalcBoneAdj( pos, q, flEncodedParams );
 }
-
 
 
 //-----------------------------------------------------------------------------
