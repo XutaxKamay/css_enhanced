@@ -1726,6 +1726,64 @@ void CBaseAnimating::GetEncodedControllers(CStudioHdr* pStudioHdr, float encoded
 //-----------------------------------------------------------------------------
 // Purpose: build matrices first from the parent, then from the passed in arrays if the bone doesn't exist on the parent
 //-----------------------------------------------------------------------------
+void CBaseAnimating::ApplyBoneMatrixTransform( matrix3x4_t& transform )
+{
+	switch( m_nRenderFX )
+	{
+	case kRenderFxDistort:
+	case kRenderFxHologram:
+		if ( RandomInt(0,49) == 0 )
+		{
+			int axis = RandomInt(0,1);
+			if ( axis == 1 ) // Choose between x & z
+				axis = 2;
+			VectorScale( transform[axis], RandomFloat(1,1.484), transform[axis] );
+		}
+		else if ( RandomInt(0,49) == 0 )
+		{
+			float offset;
+			int axis = RandomInt(0,1);
+			if ( axis == 1 ) // Choose between x & z
+				axis = 2;
+			offset = RandomFloat(-10,10);
+			transform[RandomInt(0,2)][3] += offset;
+		}
+		break;
+	case kRenderFxExplode:
+		{
+			float scale;
+			
+			scale = 1.0 + (gpGlobals->curtime - m_flAnimTime) * 10.0;
+			if ( scale > 2 )	// Don't blow up more than 200%
+				scale = 2;
+			transform[0][1] *= scale;
+			transform[1][1] *= scale;
+			transform[2][1] *= scale;
+		}
+		break;
+	default:
+		break;
+		
+	}
+
+	if ( ( m_flModelScale > 1.0f+FLT_EPSILON || m_flModelScale < 1.0f-FLT_EPSILON ) )
+	{
+		// The bone transform is in worldspace, so to scale this, we need to translate it back
+		float scale = GetModelScale();
+
+		Vector pos;
+		MatrixGetColumn( transform, 3, pos );
+		pos -= GetAbsOrigin();
+		pos *= scale;
+		pos += GetAbsOrigin();
+		MatrixSetColumn( pos, 3, transform );
+
+		VectorScale( transform[0], scale, transform[0] );
+		VectorScale( transform[1], scale, transform[1] );
+		VectorScale( transform[2], scale, transform[2] );
+	}
+}
+
 
 void CBaseAnimating::BuildMatricesWithBoneMerge( 
 	const CStudioHdr *pStudioHdr,
@@ -1739,6 +1797,7 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 {
 	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
 
+    matrix3x4_t bonematrix;
 	matrix3x4_t rotationmatrix; // model to world transformation
 	AngleMatrix( angles, origin, rotationmatrix);
 
@@ -1761,29 +1820,49 @@ void CBaseAnimating::BuildMatricesWithBoneMerge(
 		}
 	}
             
-	for ( int i=0; i < pStudioHdr->numbones(); i++ )
-    {
-        if (!(pStudioHdr->boneFlags(i) & boneMask))
-        {
-            continue;
-        }
-        
-        if (m_pBoneMergeCache && m_pBoneMergeCache->IsBoneMerged(i))
-        {
-            continue;
-        }
+	for (int i = 0; i < pStudioHdr->numbones(); i++) 
+	{
+		// Only update bones reference by the bone mask.
+		if ( !( pStudioHdr->boneFlags( i ) & boneMask ) )
+		{
+			continue;
+		}
 
-        // If we get down here, then the bone wasn't merged.
-		matrix3x4_t bonematrix;
+		if ( m_pBoneMergeCache && m_pBoneMergeCache->IsBoneMerged( i ) )
+			continue;
+
 		QuaternionMatrix( q[i], pos[i], bonematrix );
 
-		if (pbones[i].parent == -1) 
+		if ( (pStudioHdr->boneFlags( i ) & BONE_ALWAYS_PROCEDURAL) && 
+				(pStudioHdr->pBone( i )->proctype & STUDIO_PROC_JIGGLE) )
 		{
-			ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
+			matrix3x4_t goalMX;
+
+			if (pbones[i].parent == -1) 
+			{
+				ConcatTransforms( rotationmatrix, bonematrix, goalMX );
+			} 
+			else 
+			{
+				ConcatTransforms( bonetoworld[pbones[i].parent], bonematrix, goalMX );
+            }
+
+            // TODO_ENHANCED: jiggles.
+
+		}
+		else if (pStudioHdr->boneParent(i) == -1) 
+		{
+			ConcatTransforms( rotationmatrix, bonematrix, bonetoworld[i] );
 		} 
 		else 
 		{
-			ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
+			ConcatTransforms( bonetoworld[pStudioHdr->boneParent(i)], bonematrix, bonetoworld[i] );
+		}
+
+		if (pStudioHdr->boneParent(i) == -1) 
+		{
+			// Apply client-side effects to the transformation matrix
+			ApplyBoneMatrixTransform( bonetoworld[i] );
 		}
 	}
 }
@@ -1822,6 +1901,14 @@ void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWor
 	
 	MDLCACHE_CRITICAL_SECTION();
 
+    matrix3x4_t bones[MAXSTUDIOBONES];
+
+    // This is fine now.
+    if (!pBoneToWorld)
+    {
+        pBoneToWorld = bones;
+    }
+    
     m_pBoneCache = Studio_GetBoneCache(m_boneCacheHandle);
 
 	if ( m_pBoneCache )
@@ -2635,8 +2722,7 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	boneMask |= BONE_USED_BY_BONE_MERGE;
 #endif
 
-	matrix3x4_t bonetoworld[MAXSTUDIOBONES];
-	SetupBones( GetModelPtr(), bonetoworld, boneMask );
+	SetupBones( GetModelPtr(), NULL, boneMask );
 
     for (auto pChild = FirstMoveChild(); pChild; pChild = pChild->NextMovePeer())
     {
@@ -2647,10 +2733,7 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
             continue;
         }
 
-        printf("animating: %i %s %s\n", pChildAnimating->entindex(), pChildAnimating->GetDebugName(), pChildAnimating->GetModelName().ToCStr());
-
-        matrix3x4_t childbones[MAXSTUDIOBONES];
-        pChildAnimating->SetupBones(pChildAnimating->GetModelPtr(), childbones, boneMask);
+        pChildAnimating->SetupBones(pChildAnimating->GetModelPtr(), NULL, boneMask);
     }
 
 	Assert(m_pBoneCache);
