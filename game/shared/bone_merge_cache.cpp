@@ -63,7 +63,16 @@ void CBoneMergeCache::UpdateCache()
 #else
     CBaseAnimating* pTestFollow = dynamic_cast<CBaseAnimating*>(m_pOwner->GetFollowedEntity());
 #endif
-	CStudioHdr *pTestHdr = (pTestFollow ? pTestFollow->GetModelPtr() : NULL);
+    CStudioHdr* pTestHdr = (pTestFollow ? pTestFollow->GetModelPtr() : NULL);
+
+    // TODO_ENHANCED: We really need a better way to do this ...
+#ifndef CLIENT_DLL
+    CBaseCombatWeapon* pWeapon = dynamic_cast<CBaseCombatWeapon*>(pTestFollow);
+    pTestHdr                   = pWeapon ? pWeapon->m_pStudioWorldHdr : pTestHdr;
+    pWeapon = dynamic_cast<CBaseCombatWeapon*>(m_pOwner);
+    pOwnerHdr = pWeapon ? pWeapon->m_pStudioWorldHdr : pOwnerHdr;
+#endif
+
 	const studiohdr_t *pTestStudioHDR = (pTestHdr ? pTestHdr->GetRenderHdr() : NULL);
 	if ( pTestFollow != m_pFollow || pTestHdr != m_pFollowHdr || pTestStudioHDR != m_pFollowRenderHdr || pOwnerHdr != m_pOwnerHdr )
 	{
@@ -90,7 +99,9 @@ void CBoneMergeCache::UpdateCache()
 				if ( parentBoneIndex < 0 )
 					continue;
 #ifdef CLIENT_DLL
-                printf("bone attach: (%i - %i) (%s - %s) (%s - %s)\n", m_pFollow->entindex(), m_pOwner->entindex(), m_pFollow->GetDebugName(), m_pOwner->GetDebugName(), m_pFollow->GetModelName(), m_pOwner->GetModelName());
+                printf("client bone attach: (%i - %i) %s %s %i %s\n", m_pFollow->entindex(), m_pOwner->entindex(), m_pFollowHdr->pszName(), m_pOwnerHdr->pszName(), i, m_pFollowHdr->pBone(i)->pszName());
+#else
+                printf("server bone attach: (%i - %i) %s %s %i %s\n", m_pFollow->entindex(), m_pOwner->entindex(), m_pFollowHdr->pszName(), m_pOwnerHdr->pszName(), i, m_pFollowHdr->pBone(i)->pszName());
 #endif
 				// Add a merged bone here.
 				CMergedBone mergedBone;

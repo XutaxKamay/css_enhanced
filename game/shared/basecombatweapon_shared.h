@@ -619,6 +619,7 @@ private:
 	float					m_flHudHintMinDisplayTime; // if the hint is squelched before this, reset my counter so we'll display it again.
 	// Server only
 #if !defined( CLIENT_DLL )
+public:
 	CStudioHdr             *m_pStudioWorldHdr;
 
 	// Outputs

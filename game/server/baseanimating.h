@@ -329,6 +329,7 @@ public:
 	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
 		const Vector& origin, const Vector pos[MAXSTUDIOBONES],
 		const Quaternion q[MAXSTUDIOBONES], matrix3x4_t bonetoworld[MAXSTUDIOBONES], int boneMask );
+    virtual void ApplyBoneMatrixTransform(matrix3x4_t& transform);
 
 	void	SetFadeDistance( float minFadeDist, float maxFadeDist );
 
