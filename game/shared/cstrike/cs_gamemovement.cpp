@@ -28,7 +28,8 @@ extern bool g_bMovementOptimizations;
 
 ConVar sv_timebetweenducks( "sv_timebetweenducks", "0", FCVAR_REPLICATED, "Minimum time before recognizing consecutive duck key", true, 0.0, true, 2.0 );
 ConVar sv_enableboost( "sv_enableboost", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Allow boost exploits");
-ConVar cs_autojump( "cs_autojump", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
+
+ConVar sv_autobunnyhopping( "sv_autobunnyhopping", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
 class CCSGameMovement : public CGameMovement
 {
@@ -692,7 +693,7 @@ bool CCSGameMovement::CheckJumpButton( void )
 	}
 
 	if ( (mv->m_nOldButtons & IN_JUMP) &&
-		(!cs_autojump.GetBool() && m_pCSPlayer->GetGroundEntity()) )
+		(!sv_autobunnyhopping.GetBool() && m_pCSPlayer->GetGroundEntity()) )
 	{
 		return false;		// don't pogo stick
 	}

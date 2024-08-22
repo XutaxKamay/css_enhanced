@@ -366,7 +366,7 @@ void CAI_OperatorGoal::EnableGoal( CAI_BaseNPC *pAI )
 		return;
 	}
 
-	CBaseEntity *pPosition = gEntList.FindEntityByName(NULL, m_target);
+	CBaseEntity *pPosition = gEntList.FindEntityByName(NULL, m_target.Get());
 
 	if( !pPosition )
 	{

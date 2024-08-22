@@ -127,9 +127,9 @@ void CEnvMicrophone::Activate(void)
 		m_hListenFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iszListenFilter ));
 	}
 
-	if (m_target != NULL_STRING)
+	if (m_target.Get() != NULL_STRING)
 	{
-		m_hMeasureTarget = gEntList.FindEntityByName(NULL, STRING(m_target) );
+		m_hMeasureTarget = gEntList.FindEntityByName(NULL, STRING(m_target.Get()) );
 
 		//
 		// If we were given a bad measure target, just measure sound where we are.

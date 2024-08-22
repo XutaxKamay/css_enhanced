@@ -50,6 +50,7 @@ public:
 
 	// services the queue, firing off any events who's time hath come
 	void ServiceEvents( void );
+	void ServiceEvent( CBaseEntity* pActivator );
 
 	// debugging
 	void ValidateQueue( void );

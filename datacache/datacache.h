@@ -175,6 +175,28 @@ private:
 
 	struct FrameLock_t
 	{
+		static void * operator new(size_t size)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, __FILE__, __LINE__ );
+			return pHead;
+		}
+
+		static void * operator new(size_t size, int nBlockUse, const char *pFileName, int nLine)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, pFileName, nLine );
+			return pHead;
+		}
+
+		static void operator delete(void *p)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
+		static void operator delete(void *p, int nBlockUse, const char *pFileName, int nLine)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
 		//$ WARNING: This needs a TSLNodeBase_t as the first item in here.
 		TSLNodeBase_t	base;
 		int				m_iLock;

@@ -138,6 +138,9 @@ union TSLIST_HEAD_ALIGN TSLHead_t
 	{
 		TSLNodeBase_t *Next_do_not_use_me;
 		uint32   DepthAndSequence;
+#ifdef PLATFORM_64BITS
+		uint32   Padding;
+#endif
 	} value32;
 
 #ifdef PLATFORM_64BITS
@@ -145,12 +148,34 @@ union TSLIST_HEAD_ALIGN TSLHead_t
 #else
 	int64 value64x128;
 #endif
+	static void * operator new(size_t size)
+	{
+		TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, __FILE__, __LINE__ );
+		return pHead;
+	}
+
+	static void * operator new(size_t size, int nBlockUse, const char *pFileName, int nLine)
+	{
+		TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, pFileName, nLine );
+		return pHead;
+	}
+
+	static void operator delete(void *p)
+	{
+		MemAlloc_FreeAligned( p );
+	}
+
+	static void operator delete(void *p, int nBlockUse, const char *pFileName, int nLine)
+	{
+		MemAlloc_FreeAligned( p );
+	}
+
 } TSLIST_HEAD_ALIGN_POST;
 
 #endif
 
 //-------------------------------------
-class CTSListBase
+class TSLIST_HEAD_ALIGN CTSListBase
 {
 public:
 
@@ -186,24 +211,28 @@ public:
 
 	CTSListBase()
 	{
-		if ( ((size_t)&m_Head) % TSLIST_HEAD_ALIGNMENT != 0 )
+		m_Head = new TSLHead_t();
+
+		if ( ((size_t)m_Head) % TSLIST_HEAD_ALIGNMENT != 0 )
 		{
 			Error( "CTSListBase: Misaligned list\n" );
 			DebuggerBreak();
 		}
 
 #ifdef USE_NATIVE_SLIST
-		InitializeSListHead( &m_Head );
+		InitializeSListHead( m_Head );
 #elif defined(PLATFORM_64BITS)
-		m_Head.value64x128 = int128_zero();
+		m_Head->value64x128 = int128_zero();
 #else
-		m_Head.value64x128 = (int64)0;
+		m_Head->value64x128 = (int64)0;
 #endif
 	}
 
 	~CTSListBase()
 	{
 		Detach();
+
+		delete m_Head;
 	}
 
 	TSLNodeBase_t *Push( TSLNodeBase_t *pNode )
@@ -219,9 +248,9 @@ public:
 #ifdef USE_NATIVE_SLIST
 #ifdef _X360
 		// integrated write-release barrier
-		return (TSLNodeBase_t *)InterlockedPushEntrySListRelease( &m_Head, pNode );
+		return (TSLNodeBase_t *)InterlockedPushEntrySListRelease( m_Head, pNode );
 #else
-		return (TSLNodeBase_t *)InterlockedPushEntrySList( &m_Head, pNode );
+		return (TSLNodeBase_t *)InterlockedPushEntrySList( m_Head, pNode );
 #endif
 #else
 		TSLHead_t oldHead;
@@ -236,14 +265,14 @@ public:
 #endif
 		for ( ;; )
 		{
-			oldHead.value64x128 = m_Head.value64x128;
+			oldHead.value64x128 = m_Head->value64x128;
 			pNode->Next = oldHead.value.Next;
 			newHead.value.Next = pNode;
 
 			newHead.value32.DepthAndSequence = oldHead.value32.DepthAndSequence + 0x10001;
 
 
-			if ( ThreadInterlockedAssignIf64x128( &m_Head.value64x128, newHead.value64x128, oldHead.value64x128 ) )
+			if ( ThreadInterlockedAssignIf64x128( &m_Head->value64x128, newHead.value64x128, oldHead.value64x128 ) )
 			{
 				break;
 			}
@@ -260,9 +289,9 @@ public:
 #ifdef USE_NATIVE_SLIST
 #ifdef _X360
 		// integrated read-acquire barrier
-		TSLNodeBase_t *pNode = (TSLNodeBase_t *)InterlockedPopEntrySListAcquire( &m_Head );
+		TSLNodeBase_t *pNode = (TSLNodeBase_t *)InterlockedPopEntrySListAcquire( m_Head );
 #else
-		TSLNodeBase_t *pNode = (TSLNodeBase_t *)InterlockedPopEntrySList( &m_Head );
+		TSLNodeBase_t *pNode = (TSLNodeBase_t *)InterlockedPopEntrySList( m_Head );
 #endif
 		return pNode;
 #else
@@ -274,7 +303,7 @@ public:
 #endif
 		for ( ;; )
 		{
-			oldHead.value64x128 = m_Head.value64x128;
+			oldHead.value64x128 = m_Head->value64x128;
 			if ( !oldHead.value.Next )
 				return NULL;
 
@@ -282,7 +311,7 @@ public:
 			newHead.value32.DepthAndSequence = oldHead.value32.DepthAndSequence - 1;
 
 
-			if ( ThreadInterlockedAssignIf64x128( &m_Head.value64x128, newHead.value64x128, oldHead.value64x128 ) )
+			if ( ThreadInterlockedAssignIf64x128( &m_Head->value64x128, newHead.value64x128, oldHead.value64x128 ) )
 			{
 #if defined( PLATFORM_PS3 ) || defined( PLATFORM_X360 )
 				__lwsync(); // read-acquire barrier
@@ -299,7 +328,7 @@ public:
 	TSLNodeBase_t *Detach()
 	{
 #ifdef USE_NATIVE_SLIST
-		TSLNodeBase_t *pBase = (TSLNodeBase_t *)InterlockedFlushSList( &m_Head );
+		TSLNodeBase_t *pBase = (TSLNodeBase_t *)InterlockedFlushSList( m_Head );
 #if defined( _X360 ) || defined( _PS3 )
 		__lwsync(); // read-acquire barrier
 #endif
@@ -315,7 +344,7 @@ public:
 		{
 			ThreadPause();
 
-			oldHead.value64x128 = m_Head.value64x128;
+			oldHead.value64x128 = m_Head->value64x128;
 			if ( !oldHead.value.Next )
 				return NULL;
 
@@ -325,7 +354,7 @@ public:
 			//          I didn't construct this code. In any case, leaving it as is on big-endian
 			newHead.value32.DepthAndSequence = oldHead.value32.DepthAndSequence & 0xffff0000;
 
-		} while ( !ThreadInterlockedAssignIf64x128( &m_Head.value64x128, newHead.value64x128, oldHead.value64x128 ) );
+		} while ( !ThreadInterlockedAssignIf64x128( &m_Head->value64x128, newHead.value64x128, oldHead.value64x128 ) );
 
 		return (TSLNodeBase_t *)oldHead.value.Next;
 #endif
@@ -333,20 +362,20 @@ public:
 
 	TSLHead_t *AccessUnprotected()
 	{
-		return &m_Head;
+		return m_Head;
 	}
 
 	int Count() const
 	{
 #ifdef USE_NATIVE_SLIST
-		return QueryDepthSList( const_cast<TSLHead_t*>(&m_Head) );
+		return QueryDepthSList( const_cast<TSLHead_t*>(m_Head) );
 #else
-		return m_Head.value.Depth;
+		return m_Head->value.Depth;
 #endif
 	}
 
 private:
-	TSLHead_t m_Head;
+	TSLHead_t* m_Head;
 } TSLIST_HEAD_ALIGN_POST;
 
 //-------------------------------------
@@ -379,6 +408,28 @@ class TSLIST_HEAD_ALIGN CTSPool : public CTSListBase
 	// packs the node and the item (T) into a single struct and pools those
 	struct TSLIST_NODE_ALIGN simpleTSPoolStruct_t : public TSLNodeBase_t
 	{
+		static void * operator new(size_t size)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, __FILE__, __LINE__ );
+			return pHead;
+		}
+
+		static void * operator new(size_t size, int nBlockUse, const char *pFileName, int nLine)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, pFileName, nLine );
+			return pHead;
+		}
+
+		static void operator delete(void *p)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
+		static void operator delete(void *p, int nBlockUse, const char *pFileName, int nLine)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
 		T elem;
 	} TSLIST_NODE_ALIGN_POST;
 
@@ -525,6 +576,28 @@ class TSLIST_HEAD_ALIGN CTSListWithFreeList : public CTSListBase
 public:
 	struct TSLIST_NODE_ALIGN Node_t : public TSLNodeBase_t
 	{
+		static void * operator new(size_t size)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, __FILE__, __LINE__ );
+			return pHead;
+		}
+
+		static void * operator new(size_t size, int nBlockUse, const char *pFileName, int nLine)
+		{
+			TSLHead_t *pHead = (TSLHead_t *)MemAlloc_AllocAlignedFileLine( size, TSLIST_HEAD_ALIGNMENT, pFileName, nLine );
+			return pHead;
+		}
+
+		static void operator delete(void *p)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
+		static void operator delete(void *p, int nBlockUse, const char *pFileName, int nLine)
+		{
+			MemAlloc_FreeAligned( p );
+		}
+
 		Node_t() = default;
 		Node_t( const T &init ) : elem( init ) {}
 
@@ -729,30 +802,35 @@ public:
 
 	CTSQueue()
 	{
+		m_Head = new NodeLink_t();
+		m_Tail = new NodeLink_t();
+
 		COMPILE_TIME_ASSERT( sizeof(Node_t) >= sizeof(TSLNodeBase_t) );
-		if ( ((size_t)&m_Head) % TSLIST_HEAD_ALIGNMENT != 0 )
+		if ( ((size_t)m_Head) % TSLIST_HEAD_ALIGNMENT != 0 )
 		{
-			Error( "CTSQueue: Misaligned queue\n" );
+			Error( "CTSQueue: Misaligned m_Head queue\n" );
 			DebuggerBreak();
 		}
-		if ( ((size_t)&m_Tail) % TSLIST_HEAD_ALIGNMENT != 0 )
+		if ( ((size_t)m_Tail) % TSLIST_HEAD_ALIGNMENT != 0 )
 		{
-			Error( "CTSQueue: Misaligned queue\n" );
+			Error( "CTSQueue: Misaligned m_Tail queue\n" );
 			DebuggerBreak();
 		}
 		m_Count = 0;
-		m_Head.value.sequence = m_Tail.value.sequence = 0;
-		m_Head.value.pNode = m_Tail.value.pNode = new Node_t; // list always contains a dummy node
-		m_Head.value.pNode->pNext = End();
+		m_Head->value.sequence = m_Tail->value.sequence = 0;
+		m_Head->value.pNode = m_Tail->value.pNode = new Node_t; // list always contains a dummy node
+		m_Head->value.pNode->pNext = End();
 	}
 
 	~CTSQueue()
 	{
 		Purge();
 		Assert( m_Count == 0 );
-		Assert( m_Head.value.pNode == m_Tail.value.pNode );
-		Assert( m_Head.value.pNode->pNext == End() );
-		delete m_Head.value.pNode;
+		Assert( m_Head->value.pNode == m_Tail->value.pNode );
+		Assert( m_Head->value.pNode->pNext == End() );
+		delete m_Head->value.pNode;
+		delete m_Head;
+		delete m_Tail;
 	}
 
 	// Note: Purge, RemoveAll, and Validate are *not* threadsafe
@@ -775,10 +853,10 @@ public:
 		}
 
 		Assert( m_Count == 0 );
-		Assert( m_Head.value.pNode == m_Tail.value.pNode );
-		Assert( m_Head.value.pNode->pNext == End() );
+		Assert( m_Head->value.pNode == m_Tail->value.pNode );
+		Assert( m_Head->value.pNode->pNext == End() );
 
-		m_Head.value.sequence = m_Tail.value.sequence = 0;
+		m_Head->value.sequence = m_Tail->value.sequence = 0;
 	}
 
 	void RemoveAll()
@@ -801,7 +879,7 @@ public:
 		{
 			bool bResult = true;
 			int nNodes = 0;
-			if ( m_Tail.value.pNode->pNext != End() )
+			if ( m_Tail->value.pNode->pNext != End() )
 			{
 				DebuggerBreakIfDebugging();
 				bResult = false;
@@ -809,14 +887,14 @@ public:
 
 			if ( m_Count == 0 )
 			{
-				if ( m_Head.value.pNode != m_Tail.value.pNode )
+				if ( m_Head->value.pNode != m_Tail->value.pNode )
 				{
 					DebuggerBreakIfDebugging();
 					bResult = false;
 				}
 			}
 
-			Node_t *pNode = m_Head.value.pNode;
+			Node_t *pNode = m_Head->value.pNode;
 			while ( pNode != End() )
 			{
 				nNodes++;
@@ -853,7 +931,7 @@ public:
 
 		ThreadMemoryBarrier();
 
-		InterlockedCompareExchangeNodeLink( &m_Tail, newTail, oldTail );
+		InterlockedCompareExchangeNodeLink( m_Tail, newTail, oldTail );
 	}
 
 	Node_t *Push( Node_t *pNode )
@@ -872,8 +950,8 @@ public:
 
 		for ( ;; )
 		{
-			oldTail.value.sequence = m_Tail.value.sequence;
-			oldTail.value.pNode = m_Tail.value.pNode;
+			oldTail.value.sequence = m_Tail->value.sequence;
+			oldTail.value.pNode = m_Tail->value.pNode;
 			if ( InterlockedCompareExchangeNode( &(oldTail.value.pNode->pNext), pNode, End() ) == End() )
 			{
 				break;
@@ -895,10 +973,10 @@ public:
 	Node_t *Pop()
 	{
 #define TSQUEUE_BAD_NODE_LINK ( (Node_t *)INT_TO_POINTER( 0xdeadbeef ) )
-		NodeLink_t * volatile		pHead = &m_Head;
-		NodeLink_t * volatile		pTail = &m_Tail;
-		Node_t * volatile *			pHeadNode = &m_Head.value.pNode;
-		volatile intp * volatile	pHeadSequence = &m_Head.value.sequence;
+		NodeLink_t * volatile		pHead = m_Head;
+		NodeLink_t * volatile		pTail = m_Tail;
+		Node_t * volatile *			pHeadNode = &m_Head->value.pNode;
+		volatile intp * volatile	pHeadSequence = &m_Head->value.sequence;
 		Node_t * volatile * 		pTailNode = &pTail->value.pNode;
 
 		NodeLink_t head;
@@ -1011,8 +1089,8 @@ private:
 		return ThreadInterlockedAssignIf64x128( &pLink->value64x128, value.value64x128, comperand.value64x128 );
 	}
 
-	NodeLink_t m_Head;
-	NodeLink_t m_Tail;
+	NodeLink_t *m_Head;
+	NodeLink_t *m_Tail;
 
 	CInterlockedInt m_Count;
 

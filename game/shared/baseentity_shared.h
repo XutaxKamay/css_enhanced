@@ -11,7 +11,6 @@
 #pragma once
 #endif
 
-
 extern ConVar hl2_episodic;
 
 // Simple shared header file for common base entities

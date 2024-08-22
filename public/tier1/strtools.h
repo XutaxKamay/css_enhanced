@@ -80,6 +80,7 @@ template <size_t maxLenInChars> inline const char *nexttoken( OUT_Z_ARRAY char (
 	return nexttoken( pToken, maxLenInChars, str, sep );
 }
 
+const char *nexttoken(char *token, const char *str, char sep, size_t tokenLen);
 
 #ifdef POSIX
 

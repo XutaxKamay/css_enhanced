@@ -725,6 +725,8 @@ public:
 	
 	// Returns true if the disconnect command has been handled by the client
 	virtual bool DisconnectAttempt( void );
+
+	virtual void			MarkEntitiesAsTouching( IClientEntity *e1, IClientEntity *e2 );
 public:
 	void PrecacheMaterial( const char *pMaterialName );
 
@@ -1908,6 +1910,24 @@ void CHLClient::InstallStringTableCallback( const char *tableName )
 #endif
 
 	InstallStringTableCallback_GameRules();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Marks entities as touching
+// Input  : *e1 -
+//			*e2 -
+//-----------------------------------------------------------------------------
+void CHLClient::MarkEntitiesAsTouching( IClientEntity *e1, IClientEntity *e2 )
+{
+	CBaseEntity *entity = e1->GetBaseEntity();
+	CBaseEntity *entityTouched = e2->GetBaseEntity();
+	if ( entity && entityTouched )
+	{
+		trace_t tr;
+		UTIL_ClearTrace( tr );
+		tr.endpos = (entity->GetAbsOrigin() + entityTouched->GetAbsOrigin()) * 0.5;
+		entity->PhysicsMarkEntitiesAsTouching( entityTouched, tr );
+	}
 }
 
 

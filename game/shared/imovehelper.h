@@ -63,7 +63,7 @@ public:
 
 	// Adds the trace result to touch list, if contact is not already in list.
 	virtual void	ResetTouchList( void ) = 0;
-	virtual bool	AddToTouched( const CGameTrace& tr, const Vector& impactvelocity ) = 0;
+	virtual bool	AddToTouched( int entindex, const CGameTrace& tr, const Vector& impactvelocity ) = 0;
 	virtual void	ProcessImpacts( void ) = 0;
 	
 	// Numbered line printf
