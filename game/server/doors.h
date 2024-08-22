@@ -7,6 +7,7 @@
 
 #ifndef DOORS_H
 #define DOORS_H
+#include "predictable_entity.h"
 #pragma once
 
 
@@ -50,7 +51,8 @@ class CBaseDoor : public CBaseToggle
 public:
 	DECLARE_CLASS( CBaseDoor, CBaseToggle );
 
-	DECLARE_SERVERCLASS();
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
 
 	void Spawn( void );
 	void Precache( void );

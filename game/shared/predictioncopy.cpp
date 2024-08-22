@@ -1103,7 +1103,9 @@ void CPredictionCopy::CopyFields( int chain_count, datamap_t *pRootMap, typedesc
 		case FIELD_STRING:
 			{
 				difftype = CompareString( (char *)pOutputData, (char const*)pInputData );
-				CopyString( difftype, (char *)pOutputData, (char const*)pInputData );
+				// TODO_ENHANCED: figure out why this!
+				if (fieldSize >= Q_strlen((char *)pInputData) + 1)
+					CopyString( difftype, (char *)pOutputData, (char const*)pInputData );
 				if ( m_bErrorCheck && m_bShouldDescribe ) DescribeString( difftype,(char *)pOutputData, (char const*)pInputData );
 				if ( bShouldWatch ) WatchString( difftype,(char *)pOutputData, (char const*)pInputData );
 			}

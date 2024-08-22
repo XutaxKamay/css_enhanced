@@ -100,7 +100,7 @@ RecvProp RecvPropEHandle(
 	int sizeofVar,
 	RecvVarProxyFn proxyFn )
 {
-	return RecvPropInt( pVarName, offset, sizeofVar, 0, proxyFn );
+	return RecvPropInt( pVarName, offset, sizeofVar, SPROP_UNSIGNED, proxyFn );
 }
 
 

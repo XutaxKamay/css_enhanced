@@ -1319,3 +1319,11 @@ bool UTIL_HasLoadedAnyMap()
 
 	return g_pFullFileSystem->FileExists( szFilename, "MOD" );
 }
+
+void UTIL_ClearTrace( trace_t &trace )
+{
+	memset( &trace, 0, sizeof(trace));
+	trace.fraction = 1.f;
+	trace.fractionleftsolid = 0;
+	trace.surface = g_NullSurface;
+}

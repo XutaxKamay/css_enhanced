@@ -122,7 +122,7 @@ void CSun::Activate()
 	}
 	else
 	{
-		CBaseEntity *pEnt = gEntList.FindEntityByName( 0, m_target );
+		CBaseEntity *pEnt = gEntList.FindEntityByName( 0, m_target.Get() );
 		if( pEnt )
 		{
 			Vector vDirection = GetAbsOrigin() - pEnt->GetAbsOrigin();

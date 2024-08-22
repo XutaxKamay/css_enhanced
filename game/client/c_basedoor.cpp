@@ -18,6 +18,10 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseDoor, DT_BaseDoor, CBaseDoor)
 	RecvPropFloat(RECVINFO(m_flWaveHeight)),
 END_RECV_TABLE()
 
+BEGIN_PREDICTION_DATA( C_BaseDoor )
+	DEFINE_FIELD( m_flWaveHeight, FIELD_FLOAT ),
+END_PREDICTION_DATA()
+
 C_BaseDoor::C_BaseDoor( void )
 {
 	m_flWaveHeight = 0.0f;

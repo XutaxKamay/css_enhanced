@@ -22,10 +22,15 @@
 #include "string_t.h"
 #include "enginetrace.h"
 #include "sys_dll.h"
+#include "cdll_engine_int.h"
+#include "icliententitylist.h"
+#include "client_class.h"
+#include "icliententity.h"
 
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
 
 
 //============================================================================
@@ -318,3 +323,243 @@ void SV_SolidMoved( edict_t *pSolidEnt, ICollideable *pSolidCollide, const Vecto
 	}
 }
 
+CON_COMMAND(cl_numtriggers, "Number of triggers in map")
+{
+	class CTestTriggerMask : public IPartitionEnumerator
+	{
+	public:
+		IterationRetval_t EnumElement( IHandleEntity *pHandleEntity )
+		{
+			IClientUnknown *pUnk = static_cast< IClientUnknown* >( pHandleEntity );
+
+			m_nCount++;
+
+			return ITERATION_CONTINUE;
+		}
+
+		int m_nCount = 0;
+	};
+
+	static CTestTriggerMask s_Enumerator;
+	s_Enumerator.m_nCount = 0;
+
+	SpatialPartition()->EnumerateElementsInBox( PARTITION_CLIENT_TRIGGER_ENTITIES,
+			Vector(vec_t( SHRT_MAX ) * -0.5), Vector(vec_t( SHRT_MAX ) * 0.5), false, &s_Enumerator );
+
+	ConMsg("Triggers in map: %i\n", s_Enumerator.m_nCount);
+}
+
+//-----------------------------------------------------------------------------
+// Little enumeration class used to try touching all triggers
+//-----------------------------------------------------------------------------
+class CTouchLinks_ClientSide : public IPartitionEnumerator
+{
+public:
+	CTouchLinks_ClientSide( IClientEntity *pEnt, const Vector* pPrevAbsOrigin, bool accurateBboxTriggerChecks ) : m_TouchedEntities( 8, 8 )
+	{
+		m_pEnt = pEnt;
+		m_pCollide = pEnt->GetCollideable();
+
+		Assert( m_pCollide );
+
+		Vector vecMins, vecMaxs;
+		CM_GetCollideableTriggerTestBox( m_pCollide, &vecMins, &vecMaxs, accurateBboxTriggerChecks );
+		const Vector &vecStart = m_pCollide->GetCollisionOrigin();
+
+		if (pPrevAbsOrigin)
+		{
+			m_Ray.Init( *pPrevAbsOrigin, vecStart, vecMins, vecMaxs );
+		}
+		else
+		{
+			m_Ray.Init( vecStart, vecStart, vecMins, vecMaxs );
+		}
+	}
+
+	IterationRetval_t EnumElement( IHandleEntity *pHandleEntity )
+	{
+		// Static props should never be in the trigger list
+		Assert( !StaticPropMgr()->IsStaticProp( pHandleEntity ) );
+
+		IClientUnknown *pUnk = static_cast<IClientUnknown*>( pHandleEntity );
+		Assert( pUnk );
+
+		// Convert the IHandleEntity to an edict_t*...
+		// Context is the thing we're testing everything against
+		IClientEntity *pTriggerEntity = pUnk->GetIClientEntity();
+
+		// Can't bump against itself
+		if ( pTriggerEntity == m_pEnt )
+			return ITERATION_CONTINUE;
+
+		// Hmmm.. everything in this list should be a trigger....
+		ICollideable *pTriggerCollideable = pTriggerEntity->GetCollideable();
+		int nTriggerSolidFlags = pTriggerCollideable->GetSolidFlags();
+
+		if ( !m_pCollide->ShouldTouchTrigger(pTriggerCollideable->GetSolidFlags()) )
+			return ITERATION_CONTINUE;
+
+		if ( pTriggerCollideable->GetSolidFlags() & FSOLID_USE_TRIGGER_BOUNDS )
+		{
+			Vector vecTriggerMins, vecTriggerMaxs;
+			pTriggerCollideable->WorldSpaceTriggerBounds( &vecTriggerMins, &vecTriggerMaxs );
+			if ( !IsBoxIntersectingRay( vecTriggerMins, vecTriggerMaxs, m_Ray ) )
+			{
+				return ITERATION_CONTINUE;
+			}
+		}
+		else
+		{
+			trace_t tr;
+			g_pEngineTraceClient->ClipRayToCollideable( m_Ray, MASK_SOLID, pTriggerCollideable, &tr );
+			if ( !(tr.contents & MASK_SOLID) )
+				return ITERATION_CONTINUE;
+		}
+
+		m_TouchedEntities.AddToTail( pTriggerEntity );
+
+		return ITERATION_CONTINUE;
+	}
+
+	void HandleTouchedEntities()
+	{
+		for ( int i = 0; i < m_TouchedEntities.Count(); ++i )
+		{
+			g_ClientDLL->MarkEntitiesAsTouching( m_TouchedEntities[i], m_pEnt );
+		}
+	}
+
+	Ray_t m_Ray;
+
+private:
+	IClientEntity *m_pEnt;
+	ICollideable *m_pCollide;
+	CUtlVector< IClientEntity* > m_TouchedEntities;
+};
+
+// enumerator class that's used to update touch links for a trigger when
+// it moves or changes solid type
+class CTriggerMoved_ClientSide : public IPartitionEnumerator
+{
+public:
+	CTriggerMoved_ClientSide( bool accurateBboxTriggerChecks ) : m_TouchedEntities( 8, 8 )
+	{
+		m_bAccurateBBoxCheck = accurateBboxTriggerChecks;
+	}
+
+	void TriggerMoved( IClientEntity *pTriggerEntity )
+	{
+		m_pTriggerEntity = pTriggerEntity;
+		m_pTrigger = pTriggerEntity->GetCollideable();
+		m_triggerSolidFlags = m_pTrigger->GetSolidFlags();
+		Vector vecAbsMins, vecAbsMaxs;
+		CM_TriggerWorldSpaceBounds( m_pTrigger, &vecAbsMins, &vecAbsMaxs );
+		SpatialPartition()->EnumerateElementsInBox( PARTITION_CLIENT_SOLID_EDICTS,
+			vecAbsMins, vecAbsMaxs, false, this );
+	}
+
+	IterationRetval_t EnumElement( IHandleEntity *pHandleEntity )
+	{
+		// skip static props, the game DLL doesn't care about them
+		if ( StaticPropMgr()->IsStaticProp( pHandleEntity ) )
+			return ITERATION_CONTINUE;
+
+		IClientUnknown *pUnk = static_cast< IClientUnknown* >( pHandleEntity );
+		Assert( pUnk );
+
+		// Convert the user ID to and edict_t*...
+		IClientEntity* pTouch = pUnk->GetIClientEntity();
+		Assert( pTouch );
+		ICollideable *pTouchCollide = pUnk->GetCollideable();
+
+		// Can't ever touch itself because it's in the other list
+		if ( pTouchCollide == m_pTrigger )
+			return ITERATION_CONTINUE;
+
+		if ( !pTouchCollide->ShouldTouchTrigger(m_triggerSolidFlags) )
+			return ITERATION_CONTINUE;
+
+		// FIXME: Should we be using the surrounding bounds here?
+		Vector vecMins, vecMaxs;
+		CM_GetCollideableTriggerTestBox( pTouchCollide, &vecMins, &vecMaxs, m_bAccurateBBoxCheck );
+
+		const Vector &vecStart = pTouchCollide->GetCollisionOrigin();
+		Ray_t ray;
+		ray.Init( vecStart, vecStart, vecMins, vecMaxs );
+
+		if ( m_pTrigger->GetSolidFlags() & FSOLID_USE_TRIGGER_BOUNDS )
+		{
+			Vector vecTriggerMins, vecTriggerMaxs;
+			m_pTrigger->WorldSpaceTriggerBounds( &vecTriggerMins, &vecTriggerMaxs );
+			if ( !IsBoxIntersectingRay( vecTriggerMins, vecTriggerMaxs, ray ) )
+			{
+				return ITERATION_CONTINUE;
+			}
+		}
+		else
+		{
+			trace_t tr;
+			g_pEngineTraceClient->ClipRayToCollideable( ray, MASK_SOLID, m_pTrigger, &tr );
+			if ( !(tr.contents & MASK_SOLID) )
+				return ITERATION_CONTINUE;
+		}
+
+		m_TouchedEntities.AddToTail( pTouch );
+
+		return ITERATION_CONTINUE;
+	}
+
+	void HandleTouchedEntities( )
+	{
+		for ( int i = 0; i < m_TouchedEntities.Count(); ++i )
+		{
+			g_ClientDLL->MarkEntitiesAsTouching( m_TouchedEntities[i], m_pTriggerEntity );
+		}
+	}
+
+private:
+	IClientEntity* m_pTriggerEntity;
+	ICollideable* m_pTrigger;
+	int m_triggerSolidFlags;
+	Vector m_vecDelta;
+	CUtlVector< IClientEntity* > m_TouchedEntities;
+	bool m_bAccurateBBoxCheck;
+};
+
+
+#include "debugoverlay.h"
+
+// XYZ_TODO: Remove these on listen servers
+
+void CL_TriggerMoved( IClientEntity *pTriggerEnt, bool accurateBboxTriggerChecks )
+{
+	CTriggerMoved_ClientSide triggerEnum( accurateBboxTriggerChecks );
+	triggerEnum.TriggerMoved( pTriggerEnt );
+	triggerEnum.HandleTouchedEntities();
+}
+
+void CL_SolidMoved( IClientEntity *pTriggerEnt, ICollideable *pSolidCollide, const Vector* pPrevAbsOrigin, bool accurateBboxTriggerChecks )
+{
+	if (!pPrevAbsOrigin)
+	{
+		CTouchLinks_ClientSide touchEnumerator(pTriggerEnt, NULL, accurateBboxTriggerChecks);
+
+		Vector vecWorldMins, vecWorldMaxs;
+		pSolidCollide->WorldSpaceSurroundingBounds( &vecWorldMins, &vecWorldMaxs );
+
+		SpatialPartition()->EnumerateElementsInBox( PARTITION_CLIENT_TRIGGER_ENTITIES,
+			vecWorldMins, vecWorldMaxs, false, &touchEnumerator );
+
+		touchEnumerator.HandleTouchedEntities();
+	}
+	else
+	{
+		CTouchLinks_ClientSide touchEnumerator(pTriggerEnt, pPrevAbsOrigin, accurateBboxTriggerChecks);
+
+		// A version that checks against an extruded ray indicating the motion
+		SpatialPartition()->EnumerateElementsAlongRay( PARTITION_CLIENT_TRIGGER_ENTITIES,
+			touchEnumerator.m_Ray, false, &touchEnumerator );
+
+		touchEnumerator.HandleTouchedEntities();
+	}
+}

@@ -6,6 +6,12 @@
 // $Date:         $
 // $NoKeywords: $
 //=============================================================================//
+#include "baseentity_shared.h"
+#include "c_baseentity.h"
+#include "const.h"
+#include "datamodel/dmelementhandle.h"
+#include "touchlink.h"
+#include "utlvector.h"
 #if !defined( PREDICTION_H )
 #define PREDICTION_H
 #ifdef _WIN32
@@ -116,6 +122,8 @@ private:
 	void			RemoveStalePredictedEntities( int last_command_packet );
 	void			RestoreOriginalEntityState( void );
 	void			RunSimulation( int current_command, float curtime, CUserCmd *cmd, C_BasePlayer *localPlayer );
+	void            RestorePredictedTouched( int current_command );
+	void            StorePredictedTouched( int current_command );
 	void			Untouch( void );
 	void			StorePredictionResults( int predicted_frame );
 	bool			ShouldDumpEntity( C_BaseEntity *ent );
@@ -144,6 +152,20 @@ private:
 #endif
 	float			m_flIdealPitch;
 
+    struct SavedTouch_t
+	{
+		int					entityTouched;
+		int					touchStamp;
+		int					flags;
+    };
+
+    struct TouchedHistory
+    {
+        CUtlVector<SavedTouch_t> savedTouches;
+        CUtlVector<EHANDLE> touchedTriggerEntities;
+    };
+
+	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
 };
  
 extern CPrediction *prediction;
