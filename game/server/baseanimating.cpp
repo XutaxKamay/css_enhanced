@@ -1800,31 +1800,46 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	// adjust hit boxes based on IK driven offset
 	Vector adjOrigin = GetAbsOrigin() + Vector( 0, 0, m_flEstIkOffset );
 
-	if ( CanSkipAnimation() )
+	// NOTE: For model scaling, we need to opt out of IK because it will mark the bones as already being calculated
+	if ( !IsModelScaled() )
 	{
-		IBoneSetup boneSetup( pStudioHdr, boneMask, GetPoseParameterArray() );
-		boneSetup.InitPose( pos, q );
-		// Msg( "%.03f : %s:%s not in pvs\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
+		// only allocate an ik block if the npc can use it
+		if ( !m_pIk && pStudioHdr->numikchains() > 0 )
+		{
+			m_pIk = new CIKContext;
+		}
 	}
-	else 
+	else
 	{
+		// Reset the IK
 		if ( m_pIk )
 		{
-			// FIXME: pass this into Studio_BuildMatrices to skip transforms
-			CBoneBitList boneComputed;
-			m_iIKCounter++;
-			m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
-			GetSkeleton( pStudioHdr, pos, q, boneMask );
+			delete m_pIk;
+			m_pIk = NULL;
+		}
+	}
 
-			m_pIk->UpdateTargets( pos, q, pBoneToWorld, boneComputed );
-			CalculateIKLocks( gpGlobals->curtime );
-			m_pIk->SolveDependencies( pos, q, pBoneToWorld, boneComputed );
-		}
-		else
-		{
-			// Msg( "%.03f : %s:%s\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
-			GetSkeleton( pStudioHdr, pos, q, boneMask );
-		}
+	if ( m_pIk )
+	{
+		m_pIk->Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
+	}
+
+	if ( m_pIk )
+	{
+		// FIXME: pass this into Studio_BuildMatrices to skip transforms
+		CBoneBitList boneComputed;
+		m_iIKCounter++;
+		m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
+		GetSkeleton( pStudioHdr, pos, q, boneMask );
+
+		m_pIk->UpdateTargets( pos, q, pBoneToWorld, boneComputed );
+		CalculateIKLocks( gpGlobals->curtime );
+		m_pIk->SolveDependencies( pos, q, pBoneToWorld, boneComputed );
+	}
+	else
+	{
+		// Msg( "%.03f : %s:%s\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
+		GetSkeleton( pStudioHdr, pos, q, boneMask );
 	}
 	
 	CBaseAnimating *pParent = dynamic_cast< CBaseAnimating* >( GetMoveParent() );

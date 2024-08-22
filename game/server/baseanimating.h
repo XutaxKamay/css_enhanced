@@ -41,8 +41,8 @@ public:
 
 	enum
 	{
-		NUM_POSEPAREMETERS = 24,
-		NUM_BONECTRLS = 4
+		NUM_POSEPAREMETERS = MAXSTUDIOPOSEPARAM,
+		NUM_BONECTRLS = MAXSTUDIOBONECTRLS
 	};
 
 	DECLARE_DATADESC();
@@ -160,6 +160,8 @@ public:
 	bool	HasPoseParameter( int iSequence, const char *szName );
 	bool	HasPoseParameter( int iSequence, int iParameter );
 	float	EdgeLimitPoseParameter( int iParameter, float flValue, float flBase = 0.0f );
+
+    inline bool IsModelScaled() const;
 
 protected:
 	// The modus operandi for pose parameters is that you should not use the const char * version of the functions
@@ -518,6 +520,10 @@ inline void CBaseAnimating::SetCycle( float flCycle )
 	m_flCycle = flCycle;
 }
 
+inline bool CBaseAnimating::IsModelScaled() const
+{
+	return ( m_flModelScale > 1.0f+FLT_EPSILON || m_flModelScale < 1.0f-FLT_EPSILON );
+}
 
 EXTERN_SEND_TABLE(DT_BaseAnimating);
 

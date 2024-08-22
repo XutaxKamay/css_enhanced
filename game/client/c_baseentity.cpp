@@ -4293,12 +4293,13 @@ void C_BaseEntity::CalcAbsolutePosition( )
 		NormalizeAngles( m_angAbsRotation );
 		return;
 	}
-	
-	if ( IsEffectActive(EF_BONEMERGE) )
-	{
-		MoveToAimEnt();
-		return;
-	}
+
+    // TODO_ENHANCED: this should be safe to remove.
+	// if ( IsEffectActive(EF_BONEMERGE) )
+	// {
+	// 	MoveToAimEnt();
+	// 	return;
+	// }
 
 	// Construct the entity-to-world matrix
 	// Start with making an entity-to-parent matrix
