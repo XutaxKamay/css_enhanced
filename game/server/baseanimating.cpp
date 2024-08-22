@@ -1599,6 +1599,34 @@ QAngle CBaseAnimating::GetStepAngles( void ) const
 	return GetLocalAngles();
 }
 
+void CBaseAnimating::UpdateIKLocks( float currentTime )
+{
+	if (!m_pIk) 
+		return;
+
+	int targetCount = m_pIk->m_target.Count();
+	if ( targetCount == 0 )
+		return;
+
+	for (int i = 0; i < targetCount; i++)
+	{
+		CIKTarget *pTarget = &m_pIk->m_target[i];
+
+		if (!pTarget->IsActive())
+			continue;
+
+		if (pTarget->GetOwner() != -1)
+		{
+			CBaseEntity *pOwner = UTIL_EntityByIndex(pTarget->GetOwner());
+			if (pOwner != NULL)
+			{
+				pTarget->UpdateOwner( pOwner->entindex(), pOwner->GetAbsOrigin(), pOwner->GetAbsAngles() );
+			}				
+		}
+	}
+}
+
+
 //-----------------------------------------------------------------------------
 // Purpose: Find IK collisions with world
 // Input  : 
@@ -1678,7 +1706,39 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 				break;
 			case IK_ATTACHMENT:
 				{
-					// anything on the server?
+					CBaseEntity *pEntity = NULL;
+					float flDist = pTarget->est.radius;
+
+					// FIXME: make entity finding sticky!
+					// FIXME: what should the radius check be?
+					for ( CEntitySphereQuery sphere( pTarget->est.pos, 64 ); ( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
+					{
+						CBaseAnimating *pAnim = pEntity->GetBaseAnimating( );
+						if (!pAnim)
+							continue;
+
+						int iAttachment = pAnim->LookupAttachment( pTarget->offset.pAttachmentName );
+						if (iAttachment <= 0)
+							continue;
+
+						Vector origin;
+						QAngle angles;
+						pAnim->GetAttachment( iAttachment, origin, angles );
+
+						float d = (pTarget->est.pos - origin).Length();
+
+						if ( d >= flDist)
+							continue;
+
+						flDist = d;
+						pTarget->SetPos( origin );
+						pTarget->SetAngles( angles );
+					}
+
+					if (flDist >= pTarget->est.radius)
+					{
+						pTarget->IKFailed( );
+					}
 				}
 				break;
 			}
@@ -1792,10 +1852,19 @@ void CBaseAnimating::ApplyBoneMatrixTransform( matrix3x4_t& transform )
 
 void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, Quaternion q[], const matrix3x4_t& cameraTransform, int boneMask, CBoneBitList &boneComputed, matrix3x4_t pBonesOut[] )
 {
-	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
-    matrix3x4_t bonematrix;
+	if ( !pStudioHdr )
+		return;
 
-    bool boneMerge = IsEffectActive(EF_BONEMERGE);
+    CBoneAccessor boneAccessor(pBonesOut);
+
+    boneAccessor.SetReadableBones(BONE_USED_BY_ANYTHING);
+    boneAccessor.SetWritableBones(BONE_USED_BY_ANYTHING);
+    
+	matrix3x4_t bonematrix;
+	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
+
+	// For EF_BONEMERGE entities, copy the bone matrices for any bones that have matching names.
+	bool boneMerge = IsEffectActive(EF_BONEMERGE);
 	if ( boneMerge || m_pBoneMergeCache )
 	{
 		if ( boneMerge )
@@ -1813,7 +1882,7 @@ void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, 
 			m_pBoneMergeCache = NULL;
 		}
 	}
-            
+
 	for (int i = 0; i < pStudioHdr->numbones(); i++) 
 	{
 		// Only update bones reference by the bone mask.
@@ -1825,19 +1894,15 @@ void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, 
 		if ( m_pBoneMergeCache && m_pBoneMergeCache->IsBoneMerged( i ) )
 			continue;
 
-        CBoneAccessor boneAccess(pBonesOut);
-        boneAccess.SetReadableBones(boneMask);
-        boneAccess.SetWritableBones(boneMask);
-
 		// animate all non-simulated bones
-		if ( CalcProceduralBone( pStudioHdr, i, boneAccess ))
+		if ( CalcProceduralBone( pStudioHdr, i, boneAccessor ))
 		{
 			continue;
 		}
 		// skip bones that the IK has already setup
 		else if (boneComputed.IsBoneMarked( i ))
-		{
-			continue;
+        {
+            continue;
 		}
 		else
 		{
@@ -1868,7 +1933,7 @@ void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, 
 					ConcatTransforms( pBonesOut[pbones[i].parent], bonematrix, goalMX );
 				}
 
-    			// get jiggle properties from QC data
+				// get jiggle properties from QC data
 				mstudiojigglebone_t *jiggleInfo = (mstudiojigglebone_t *)pbones[i].pProcedure( );
 
 				if (!m_pJiggleBones)
@@ -1894,8 +1959,8 @@ void CBaseAnimating::BuildTransformations( CStudioHdr *pStudioHdr, Vector *pos, 
 		{
 			// Apply client-side effects to the transformation matrix
 			ApplyBoneMatrixTransform( pBonesOut[i] );
-		}
-	}
+        }
+    }
 }
 
 ConVar sv_pvsskipanimation( "sv_pvsskipanimation", "0", FCVAR_ARCHIVE, "Skips SetupBones when npc's are outside the PVS" );
@@ -1985,52 +2050,68 @@ void CBaseAnimating::SetupBones( CStudioHdr* pStudioHdr, matrix3x4_t *pBoneToWor
 
 	AddEFlags( EFL_SETTING_UP_BONES );
 
+	// NOTE: For model scaling, we need to opt out of IK because it will mark the bones as already being calculated
+	if ( !(( m_flModelScale > 1.0f+FLT_EPSILON || m_flModelScale < 1.0f-FLT_EPSILON )) )
+	{
+		// only allocate an ik block if the npc can use it
+		if ( !m_pIk && pStudioHdr->numikchains() > 0 )
+		{
+			m_pIk = new CIKContext;
+		}
+	}
+	else
+	{
+		// Reset the IK
+		if ( m_pIk )
+		{
+			delete m_pIk;
+			m_pIk = NULL;
+		}
+    }
+
+	if ( m_pIk )
+	{
+		m_pIk->Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
+	}
+            
 	Vector pos[MAXSTUDIOBONES];
 	Quaternion q[MAXSTUDIOBONES];
 
-	// Remove IK to respect more the client hitboxes.
-	Vector adjOrigin = GetAbsOrigin();
+	Vector adjOrigin = GetAbsOrigin() + Vector( 0, 0, m_flEstIkOffset );
 
     CBoneBitList boneComputed;
+            
+	StandardBlendingRules( pStudioHdr, pos, q, boneMask );
 
-	if ( CanSkipAnimation() )
-	{
-		IBoneSetup boneSetup( pStudioHdr, boneMask, GetPoseParameterArray() );
-		boneSetup.InitPose( pos, q );
-		// Msg( "%.03f : %s:%s not in pvs\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
-	}
-	else 
-	{
-		if ( m_pIk )
-		{
-			// FIXME: pass this into Studio_BuildMatrices to skip transforms
-			m_iIKCounter++;
-			m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
-			GetSkeleton( pStudioHdr, pos, q, boneMask );
+	if ( m_pIk )
+    {
+        UpdateIKLocks( gpGlobals->curtime );
+		m_pIk->UpdateTargets( pos, q, pBoneToWorld, boneComputed );
 
-			m_pIk->UpdateTargets( pos, q, pBoneToWorld, boneComputed );
-			CalculateIKLocks( gpGlobals->curtime );
-			m_pIk->SolveDependencies( pos, q, pBoneToWorld, boneComputed );
-		}
-		else
-		{
-			// Msg( "%.03f : %s:%s\n", gpGlobals->curtime, GetClassname(), GetEntityName().ToCStr() );
-			GetSkeleton( pStudioHdr, pos, q, boneMask );
-		}
+		CalculateIKLocks( gpGlobals->curtime );
+    if (entindex() == 2){
+    printf("server:\n");
+    for (int i = 0; i < pStudioHdr->numbones(); i++)
+    {
+        printf("%s: %f %f %f - %f %f %f %f\n", pStudioHdr->pBone(i)->pszName(), pos[i].x, pos[i].y, pos[i].z, q[i].x, q[i].y,q[i].z, q[i].w);
     }
+    printf("\n");
+    }
+
+		m_pIk->SolveDependencies( pos, q, pBoneToWorld, boneComputed );
+	}
 
 	matrix3x4_t parentTransform;
 	AngleMatrix( GetAbsAngles(), adjOrigin, parentTransform );
 
-    printf("%f %f %f - %f %f %f\n", GetAbsAngles().x, GetAbsAngles().y, GetAbsAngles().z, adjOrigin.x, adjOrigin.y, adjOrigin.z);
     BuildTransformations(pStudioHdr, pos, q, parentTransform, boneMask, boneComputed, pBoneToWorld);
 
-    m_pBoneCache->UpdateBones(pBoneToWorld,  pStudioHdr->numbones(), gpGlobals->curtime);
+    m_pBoneCache->UpdateBones(pBoneToWorld, pStudioHdr->numbones(), gpGlobals->curtime);
 
 	if (ai_setupbones_debug.GetBool())
 	{
 		// Msg("%s:%s:%s (%x)\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask );
-		DrawRawSkeleton( pBoneToWorld, boneMask, true, flDebugDuration );
+		DrawRawSkeleton( pStudioHdr, pBoneToWorld, boneMask, true, flDebugDuration );
 	}
 	RemoveEFlags( EFL_SETTING_UP_BONES );
 }
@@ -2742,13 +2823,42 @@ void CBaseAnimating::UnlockStudioHdr()
 	}
 }
 
+CBaseAnimating* CBaseAnimating::FindFollowedEntity()
+{
+	CBaseEntity *follow = GetFollowedEntity();
+
+	if ( !follow )
+		return NULL;
+
+	if ( follow->IsDormant() )
+		return NULL;
+
+	if ( !follow->GetModel() )
+	{
+		Warning( "mod_studio: MOVETYPE_FOLLOW with no model.\n" );
+		return NULL;
+	}
+
+	if ( modelinfo->GetModelType( follow->GetModel() ) != mod_studio )
+	{
+		Warning( "Attached %s (mod_studio) to %s (%d)\n", 
+			modelinfo->GetModelName( GetModel() ), 
+			modelinfo->GetModelName( follow->GetModel() ), 
+			modelinfo->GetModelType( follow->GetModel() ) );
+		return NULL;
+	}
+
+	return dynamic_cast< CBaseAnimating* >( follow );
+}
+
+
 //-----------------------------------------------------------------------------
 // Purpose: return the index to the shared bone cache
 // Output :
 //-----------------------------------------------------------------------------
 CBoneCache *CBaseAnimating::GetBoneCache( void )
 {
-	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT | BONE_USED_BY_BONE_MERGE;
+	int boneMask = BONE_USED_BY_ANYTHING;
 
 	// TF queries these bones to position weapons when players are killed
 #if defined( TF_DLL )
@@ -2936,40 +3046,62 @@ void CBaseAnimating::GetVelocity(Vector *vVelocity, AngularImpulse *vAngVelocity
 	}
 }
 
+void CBaseAnimating::AccumulateLayers(CStudioHdr *pStudioHdr, IBoneSetup& boneSetup, Vector pos[], Quaternion q[], float currentTime)
+{
+}
 
-//=========================================================
-//=========================================================
-
-void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask )
+void CBaseAnimating::StandardBlendingRules( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask )
 {
 	if(!pStudioHdr)
 	{
-		Assert(!"CBaseAnimating::GetSkeleton() without a model");
+		Assert(!"CBaseAnimating::StandardBlendingRules() without a model");
 		return;
 	}
 
-    float flPoseParams[MAXSTUDIOPOSEPARAM];
-    float flEncodedParams[MAXSTUDIOBONECTRLS];
+ 	if ( !pStudioHdr )
+		return;
 
-    GetPoseParameters( pStudioHdr, flPoseParams );
+	if ( !pStudioHdr->SequencesAvailable() )
+	{
+		return;
+	}
 
-	IBoneSetup boneSetup( pStudioHdr, boneMask, flPoseParams );
-	boneSetup.InitPose( pos, q );
+	if (GetSequence() >= pStudioHdr->GetNumSeq() || GetSequence() == -1 ) 
+	{
+		SetSequence( 0 );
+	}
 
-	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
+    float poseparam[MAXSTUDIOPOSEPARAM];
+	GetPoseParameters( pStudioHdr, poseparam );
+
+    // build root animation
+    float fCycle = GetCycle();
+
+	IBoneSetup boneSetup( pStudioHdr, boneMask, poseparam );
+    boneSetup.InitPose(pos, q);
+    
+	boneSetup.AccumulatePose( pos, q, GetSequence(), fCycle, 1.0, gpGlobals->curtime, m_pIk );
+
+	AccumulateLayers( pStudioHdr, boneSetup, pos, q, gpGlobals->curtime );
 
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, 0, boneMask );
+        auto_ik.Init(pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask);
+        m_iIKCounter++;
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else
 	{
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
+    }
+
+	if ( pStudioHdr->numbonecontrollers() )
+    {
+		float controllers[MAXSTUDIOBONECTRLS];
+		GetEncodedControllers( pStudioHdr, controllers);
+		boneSetup.CalcBoneAdj( pos, q, controllers );
 	}
-    GetEncodedControllers( pStudioHdr, flEncodedParams );
-	boneSetup.CalcBoneAdj( pos, q, flEncodedParams );
 }
 
 int CBaseAnimating::DrawDebugTextOverlays(void) 
@@ -3202,9 +3334,8 @@ void CBaseAnimating::DrawServerHitboxes( float duration /*= 0.0f*/, bool monocol
 }
 
 
-void CBaseAnimating::DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest, float duration, bool monocolor )
+void CBaseAnimating::DrawRawSkeleton( CStudioHdr* pStudioHdr, matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest, float duration, bool monocolor )
 {
-	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
 		return;
 

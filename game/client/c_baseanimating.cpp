@@ -1973,8 +1973,10 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 	// debugoverlay->AddTextOverlay( GetAbsOrigin() + Vector( 0, 0, 64 ), 0, 0, "%30s %6.2f : %6.2f", hdr->pSeqdesc( GetSequence() )->pszLabel( ), fCycle, 1.0 );
 
     // TODO_ENHANCED: Do that only for client side animations
-    // if (m_bClientSideAnimation)
-		MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
+    if (m_bClientSideAnimation)
+    {
+        MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
+    }
 
 	AccumulateLayers( boneSetup, pos, q, currentTime );
 
@@ -2946,6 +2948,14 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 				m_pIk->UpdateTargets( pos, q, m_BoneAccessor.GetBoneArrayForWrite(), boneComputed );
 
 				CalculateIKLocks( currentTime );
+	    if (entindex() == 2){
+    printf("client:\n");
+    for (int i = 0; i < hdr->numbones(); i++)
+    {
+        printf("%s: %f %f %f - %f %f %f %f\n", hdr->pBone(i)->pszName(), pos[i].x, pos[i].y, pos[i].z, q[i].x, q[i].y,q[i].z, q[i].w);
+    }
+    printf("\n");
+    }
 				m_pIk->SolveDependencies( pos, q, m_BoneAccessor.GetBoneArrayForWrite(), boneComputed );
 			}
 
@@ -2960,7 +2970,37 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 			SetupBones_AttachmentHelper( hdr );
 		}
 	}
-	
+
+	int i;
+	int r = 255;
+	int g = 255;
+    int b = 255;
+
+    MDLCACHE_CRITICAL_SECTION();
+
+    for (i = 0; i < m_pStudioHdr->numbones(); i++)
+	{
+		if (m_pStudioHdr->pBone( i )->flags & boneMask)
+		{
+			Vector p1;
+			MatrixPosition( m_CachedBoneData[i], p1 );
+			if ( m_pStudioHdr->pBone( i )->parent != -1 )
+			{
+				Vector p2;
+				MatrixPosition( m_CachedBoneData[m_pStudioHdr->pBone( i )->parent], p2 );
+                if (m_pStudioHdr->pBone(i)->flags & BONE_USED_BY_BONE_MERGE)
+                {
+                    r = 255;
+                }
+                else
+                {
+                    r = 0;
+                }
+                debugoverlay->AddLineOverlay( p1, p2, r, g, b, true, gpGlobals->frametime );
+			}
+		}
+    }
+
 	// Do they want to get at the bone transforms? If it's just making sure an aiment has 
 	// its bones setup, it doesn't need the transforms yet.
 	if ( pBoneToWorldOut )

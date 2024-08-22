@@ -58,6 +58,40 @@
 #include "holiday_gift.h"
 #include "../../shared/cstrike/cs_achievement_constants.h"
 #include "ilagcompensationmanager.h"
+#include "bone_accessor.h"
+#include "jigglebones.h"
+#include "baseanimating.h"
+#include "animation.h"
+#include "activitylist.h"
+#include "dt_common.h"
+#include "dt_send.h"
+#include "edict.h"
+#include "enginecallback.h"
+#include "entitylist_base.h"
+#include "mathlib/vector.h"
+#include "mathlib/vmatrix.h"
+#include "player.h"
+#include "shareddefs.h"
+#include "studio.h"
+#include "bone_setup.h"
+#include "mathlib/mathlib.h"
+#include "model_types.h"
+#include "datacache/imdlcache.h"
+#include "physics.h"
+#include "ndebugoverlay.h"
+#include "tier1/strtools.h"
+#include "npcevent.h"
+#include "isaverestore.h"
+#include "KeyValues.h"
+#include "tier0/vprof.h"
+#include "EntityFlame.h"
+#include "EntityDissolve.h"
+#include "ai_basenpc.h"
+#include "physics_prop_ragdoll.h"
+#include "datacache/idatacache.h"
+#include "smoke_trail.h"
+#include "props.h"
+#include "util.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -6657,7 +6691,6 @@ CBaseEntity	*CCSPlayer::GiveNamedItem( const char *pszName, int iSubType )
 	StockPlayerAmmo( pWeapon );
 	return pent;
 }
-
 
 void CCSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 {

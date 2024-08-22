@@ -185,7 +185,6 @@ void CBaseCombatWeapon::UnlockStudioHdr()
 
 void CBaseCombatWeapon::SetupBones(CStudioHdr* pStudioHdr, matrix3x4_t* pBoneToWorld, int boneMask)
 {
-    // hooked m_pStudioHdr to world model instead (m_pStudioWorldHdr)
     BaseClass::SetupBones(m_pStudioWorldHdr, pBoneToWorld, boneMask);
 }
 #endif

@@ -732,7 +732,7 @@ public:
 	void	NetworkStateChanged( void *pVar );
 
 public:
- 	void CalcAbsolutePosition();
+ 	virtual void CalcAbsolutePosition();
 
 	// returns the edict index the entity requires when used in save/restore (eg players, world)
 	// -1 means it doesn't require any special index
