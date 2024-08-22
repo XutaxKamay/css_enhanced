@@ -58,11 +58,7 @@ void CBoneMergeCache::UpdateCache()
 		return;
 	}
 
-#ifdef CLIENT_DLL
-    C_BaseAnimating* pTestFollow = m_pOwner->FindFollowedEntity();
-#else
-    CBaseAnimating* pTestFollow = dynamic_cast<CBaseAnimating*>(m_pOwner->GetFollowedEntity());
-#endif
+    CBaseAnimating* pTestFollow = m_pOwner->FindFollowedEntity();
     CStudioHdr* pTestHdr = (pTestFollow ? pTestFollow->GetModelPtr() : NULL);
 
     // TODO_ENHANCED: We really need a better way to do this ...
@@ -152,7 +148,7 @@ void CBoneMergeCache::MergeMatchingBones( int boneMask , matrix3x4_t mergedbones
     matrix3x4_t bones[MAXSTUDIOBONES];
     // Have the entity we're following setup its bones.
 #ifdef CLIENT_DLL
-    m_pFollow->SetupBones(bones, MAXSTUDIOBONES, m_nFollowBoneSetupMask, gpGlobals->curtime);
+    m_pFollow->SetupBones(bones, m_pFollowHdr->numbones(), m_nFollowBoneSetupMask, gpGlobals->curtime);
 #else
     m_pFollow->SetupBones(m_pFollowHdr, bones, m_nFollowBoneSetupMask);
 #endif

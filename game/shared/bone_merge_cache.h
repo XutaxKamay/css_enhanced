@@ -65,9 +65,7 @@ private:
 	CStudioHdr		*m_pFollowHdr;
 	const studiohdr_t	*m_pFollowRenderHdr;
 	CStudioHdr		*m_pOwnerHdr;
-#ifndef CLIENT_DLL
-	CStudioHdr		*m_pFollowWorldHdr;
-#endif
+
 	// This is the mask we need to use to set up bones on the followed entity to do the bone merge
 	int				m_nFollowBoneSetupMask;
 

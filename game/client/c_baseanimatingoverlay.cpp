@@ -226,11 +226,11 @@ void C_BaseAnimatingOverlay::AccumulateLayers( IBoneSetup &boneSetup, Vector pos
 	{
 		if (layer[i] >= 0 && layer[i] < m_AnimOverlay.Count())
 		{
-			CAnimationLayer &pLayer = m_AnimOverlay[layer[i]];
+            CAnimationLayer& pLayer = m_AnimOverlay[layer[i]];
 			// UNDONE: Is it correct to use overlay weight for IK too?
-			boneSetup.AccumulatePose( pos, q, pLayer.m_nSequence, pLayer.m_flCycle, pLayer.m_flWeight, currentTime, m_pIk );
+			boneSetup.AccumulatePose( pos, q, pLayer.m_nSequence.GetRaw(), pLayer.m_flCycle.GetRaw(), pLayer.m_flWeight.GetRaw(), currentTime, m_pIk );
 		}
-	}
+    }
 }
 
 void C_BaseAnimatingOverlay::DoAnimationEvents( CStudioHdr *pStudioHdr )

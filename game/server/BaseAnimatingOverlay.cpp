@@ -7,6 +7,7 @@
 //===========================================================================//
 
 #include "cbase.h"
+#include "BaseAnimatingOverlay.h"
 #include "animation.h"
 #include "studio.h"
 #include "bone_setup.h"
@@ -432,36 +433,15 @@ void CAnimationLayer::DispatchAnimEvents( CBaseAnimating *eventHandler, CBaseAni
 	}
 }
 
-
-
-void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask )
+void CBaseAnimatingOverlay::AccumulateLayers(CStudioHdr *pStudioHdr, IBoneSetup& boneSetup, Vector pos[], Quaternion q[], float currentTime)
 {
-	if(!pStudioHdr)
-	{
-		Assert(!"CBaseAnimating::GetSkeleton() without a model");
-		return;
-	}
-
-	if (!pStudioHdr->SequencesAvailable())
-	{
-		return;
-	}
-
-    float flPoseParams[MAXSTUDIOPOSEPARAM];
-    float flEncodedParams[MAXSTUDIOBONECTRLS];
-
-    GetPoseParameters( pStudioHdr, flPoseParams );
-
-	IBoneSetup boneSetup( pStudioHdr, boneMask, flPoseParams );
-	boneSetup.InitPose( pos, q );
-
-	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
-
+    BaseClass::AccumulateLayers(pStudioHdr, boneSetup, pos, q, currentTime);
+    
 	// sort the layers
 	int layer[MAX_OVERLAYS] = {};
 	int i;
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
-	{
+    {
 		layer[i] = MAX_OVERLAYS;
 	}
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
@@ -471,31 +451,17 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 		{
 			layer[pLayer.m_nOrder] = i;
 		}
-	}
+    }
 	for (i = 0; i < m_AnimOverlay.Count(); i++)
 	{
 		if (layer[i] >= 0 && layer[i] < m_AnimOverlay.Count())
 		{
-			CAnimationLayer &pLayer = m_AnimOverlay[layer[i]];
+            CAnimationLayer& pLayer = m_AnimOverlay[layer[i]];
 			// UNDONE: Is it correct to use overlay weight for IK too?
-			boneSetup.AccumulatePose( pos, q, pLayer.m_nSequence, pLayer.m_flCycle, pLayer.m_flWeight, gpGlobals->curtime, m_pIk );
+			boneSetup.AccumulatePose( pos, q, pLayer.m_nSequence.Get(), pLayer.m_flCycle.Get(), pLayer.m_flWeight.Get(), currentTime, m_pIk );
 		}
-	}
-
-	if ( m_pIk )
-	{
-		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, 0, boneMask );
-		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
-	}
-	else
-	{
-		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
     }
-    GetEncodedControllers( pStudioHdr, flEncodedParams );
-	boneSetup.CalcBoneAdj( pos, q, flEncodedParams );
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: zero's out all non-restore safe fields

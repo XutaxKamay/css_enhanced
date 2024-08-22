@@ -4294,11 +4294,11 @@ void C_BaseEntity::CalcAbsolutePosition( )
 		return;
 	}
 	
-	if ( IsEffectActive(EF_BONEMERGE) )
-	{
-		MoveToAimEnt();
-		return;
-	}
+	// if ( IsEffectActive(EF_BONEMERGE) )
+	// {
+	// 	MoveToAimEnt();
+	// 	return;
+	// }
 
 	// Construct the entity-to-world matrix
 	// Start with making an entity-to-parent matrix

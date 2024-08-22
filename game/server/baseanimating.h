@@ -28,6 +28,7 @@ struct animevent_t;
 struct matrix3x4_t;
 class CIKContext;
 class KeyValues;
+class IBoneSetup;
 FORWARD_DECLARE_HANDLE( memhandle_t );
 
 #define	BCF_NO_ANIMATION_SKIP	( 1 << 0 )	// Do not allow PVS animation skipping (mostly for attachments being critical to an entity)
@@ -45,8 +46,8 @@ public:
 
 	enum
 	{
-		NUM_POSEPAREMETERS = 24,
-		NUM_BONECTRLS = 4
+		NUM_POSEPAREMETERS = MAXSTUDIOPOSEPARAM,
+		NUM_BONECTRLS = MAXSTUDIOBONECTRLS
 	};
 
 	DECLARE_DATADESC();
@@ -137,10 +138,12 @@ public:
 	virtual bool IsRagdoll();
 	virtual bool CanBecomeRagdoll( void ); //Check if this entity will ragdoll when dead.
 
-	virtual	void GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask );
+    virtual void AccumulateLayers( CStudioHdr *pStudioHdr, IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
+	virtual	void StandardBlendingRules( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask );
 
 	virtual void GetBoneTransform( int iBone, matrix3x4_t &pBoneToWorld );
-	virtual void SetupBones( CStudioHdr *pStudioHdr, matrix3x4_t *pBoneToWorld, int boneMask );
+    virtual void SetupBones(CStudioHdr* pStudioHdr, matrix3x4_t* pBoneToWorld, int boneMask);
+    virtual void UpdateIKLocks( float currentTime );
 	virtual void CalculateIKLocks( float currentTime );
 	virtual void Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 
@@ -273,7 +276,7 @@ public:
 	// See note in code re: bandwidth usage!!!
 	int					GetServerHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], int indexes[MAXSTUDIOBONES] );
 	void				DrawServerHitboxes( float duration = 0.0f, bool monocolor = false );		
-	void				DrawRawSkeleton( matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest = true, float duration = 0.0f, bool monocolor = false );
+	void				DrawRawSkeleton( CStudioHdr* pStudioHdr, matrix3x4_t boneToWorld[], int boneMask, bool noDepthTest = true, float duration = 0.0f, bool monocolor = false );
 
 	void				SetModelScale( float scale, float change_duration = 0.0f );
 	float				GetModelScale() const { return m_flModelScale; }
@@ -342,6 +345,8 @@ public:
 	virtual void LockStudioHdr();
 	virtual void UnlockStudioHdr();
 
+    CBaseAnimating* FindFollowedEntity();
+
 private:
 
 	void StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float flInterval );
@@ -385,7 +390,7 @@ public:
 	Vector	GetStepOrigin( void ) const;
 	QAngle	GetStepAngles( void ) const;
 
-private:
+protected:
 	bool				m_bSequenceFinished;// flag set when StudioAdvanceFrame moves across a frame boundry
 	bool				m_bSequenceLoops;	// true if the sequence loops
 	bool				m_bResetSequenceInfoOnLoad; // true if a ResetSequenceInfo was queued up during dynamic load
