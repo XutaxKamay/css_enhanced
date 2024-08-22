@@ -54,7 +54,7 @@ END_SEND_TABLE()
 void CFuncMonitor::Activate()
 {
  	BaseClass::Activate();
-	SetCameraByName(STRING(m_target));
+	SetCameraByName(STRING(m_target.Get()));
 }
 
 void CFuncMonitor::UpdateOnRemove()
@@ -75,7 +75,7 @@ void CFuncMonitor::ReleaseCameraLink()
 		m_hInfoCameraLink = NULL;
 
 		// Keep the target up-to-date for save/load
-		m_target = NULL_STRING;
+		m_target.GetForModify() = NULL_STRING;
 	}
 }
 
@@ -93,7 +93,7 @@ void CFuncMonitor::SetCameraByName(const char *szName)
 		if( pCamera )
 		{
 			// Keep the target up-to-date for save/load
-			m_target = MAKE_STRING( szName );
+			m_target.GetForModify() = MAKE_STRING( szName );
 			m_hInfoCameraLink = CreateInfoCameraLink( this, pCamera ); 
 		}
 	}

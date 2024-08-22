@@ -229,6 +229,11 @@ void CBasePlayer::ItemPostFrame()
 {
 	VPROF( "CBasePlayer::ItemPostFrame" );
 
+    if ( GetCheckUntouch() )
+    {
+        PhysicsCheckForEntityUntouch();
+    }
+
 	// Put viewmodels into basically correct place based on new player origin
 	CalcViewModelView( EyePosition(), EyeAngles() );
 
@@ -2059,6 +2064,7 @@ const Vector &CBasePlayer::GetPreviouslyPredictedOrigin() const
 {
 	return m_vecPreviouslyPredictedOrigin;
 }
+
 
 bool fogparams_t::operator !=( const fogparams_t& other ) const
 {

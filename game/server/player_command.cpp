@@ -27,6 +27,7 @@
 extern IGameMovement *g_pGameMovement;
 extern CMoveData *g_pMoveData;	// This is a global because it is subclassed by each game.
 extern ConVar sv_noclipduringpause;
+extern void ServiceEventQueue(CBaseEntity* pActivator);
 
 ConVar sv_maxusrcmdprocessticks_warning( "sv_maxusrcmdprocessticks_warning", "-1", FCVAR_NONE, "Print a warning when user commands get dropped due to insufficient usrcmd ticks allocated, number of seconds to throttle, negative disabled" );
 
@@ -346,13 +347,20 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
     g_pGameMovement->StartTrackPredictionErrors( player );
 
-    RunPostThink( player );
-
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable(ucmd->viewangles) )
 	{
 		ucmd->viewangles = vec3_angle;
 	}
+
+    // Let server invoke any needed impact functions
+	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
+	moveHelper->ProcessImpacts();
+    VPROF_SCOPE_END();
+
+    RunPostThink( player );
+
+    ServiceEventQueue( player );
 
 	// Add and subtract buttons we're forcing on the player
 	ucmd->buttons |= player->m_afButtonForced;
@@ -448,11 +456,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 			
 	// Copy output
 	FinishMove( player, ucmd, g_pMoveData );
-
-    // Let server invoke any needed impact functions
-	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
-	moveHelper->ProcessImpacts();
-	VPROF_SCOPE_END();
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 

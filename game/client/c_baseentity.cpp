@@ -328,12 +328,12 @@ void RecvProxy_ToolRecording( const CRecvProxyData *pData, void *pStruct, void *
 // Expose it to the engine.
 IMPLEMENT_CLIENTCLASS(C_BaseEntity, DT_BaseEntity, CBaseEntity);
 
-static void RecvProxy_MoveType( const CRecvProxyData *pData, void *pStruct, void *pOut )
+void RecvProxy_MoveType( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
 	((C_BaseEntity*)pStruct)->SetMoveType( (MoveType_t)(pData->m_Value.m_Int) );
 }
 
-static void RecvProxy_MoveCollide( const CRecvProxyData *pData, void *pStruct, void *pOut )
+void RecvProxy_MoveCollide( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
 	((C_BaseEntity*)pStruct)->SetMoveCollide( (MoveCollide_t)(pData->m_Value.m_Int) );
 }
@@ -357,7 +357,6 @@ void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, void *pO
 BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_AnimTimeMustBeFirst )
 	RecvPropFloat( RECVINFO(m_flAnimTime) ),
 END_RECV_TABLE()
-
 
 #ifndef NO_ENTITY_PREDICTION
 BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_PredictableId )
@@ -398,6 +397,9 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO_NAME(m_hNetworkMoveParent, moveparent), 0, RecvProxy_IntToMoveParent ),
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
+	// Receive the name
+	RecvPropString(RECVINFO(m_iName)),
+
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
 	RecvPropDataTable( RECVINFO_DT( m_Collision ), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty) ),
@@ -423,6 +425,8 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 
 	// These have a special proxy to handle send/receive
 	DEFINE_PRED_TYPEDESCRIPTION( m_Collision, CCollisionProperty ),
+
+	DEFINE_PRED_FIELD( m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
 
 	DEFINE_PRED_FIELD( m_MoveType, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_MoveCollide, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
@@ -2725,6 +2729,11 @@ void C_BaseEntity::OnLatchInterpolatedVariables( int flags )
 	{
 		VarMapEntry_t *e = &m_VarMap.m_Entries[ i ];
 		IInterpolatedVar *watcher = e->watcher;
+
+        if (!watcher)
+        {
+            continue;
+        }
 
 		int type = watcher->GetType();
 
@@ -5683,9 +5692,12 @@ int C_BaseEntity::RestoreData( const char *context, int slot, int type )
 	const void *src = ( slot == SLOT_ORIGINALDATA ) ? GetOriginalNetworkDataObject() : GetPredictedFrame( slot );
 	Assert( src );
 
-	// This assert will fire if the server ack'd a CUserCmd which we hadn't predicted yet...
-	// In that case, we'd be comparing "old" data from this "unused" slot with the networked data and reporting all kinds of prediction errors possibly.
-	Assert( slot == SLOT_ORIGINALDATA || slot <= m_nIntermediateDataCount );
+    if (Q_strcmp(context, "RestoreTouchEntitiesForTriggers"))
+    {
+		// This assert will fire if the server ack'd a CUserCmd which we hadn't predicted yet...
+		// In that case, we'd be comparing "old" data from this "unused" slot with the networked data and reporting all kinds of prediction errors possibly.
+		Assert( slot == SLOT_ORIGINALDATA || slot <= m_nIntermediateDataCount );
+    }
 
 	char sz[ 64 ];
 	sz[0] = 0;
@@ -5932,6 +5944,50 @@ BEGIN_DATADESC_NO_BASE( C_BaseEntity )
 	DEFINE_FIELD( m_angAbsRotation, FIELD_VECTOR ),
 	DEFINE_ARRAY( m_rgflCoordinateFrame, FIELD_FLOAT, 12 ), // NOTE: MUST BE IN LOCAL SPACE, NOT POSITION_VECTOR!!! (see CBaseEntity::Restore)
 	DEFINE_FIELD( m_fFlags, FIELD_INTEGER ),
+
+	// NOTE: This is tricky. TeamNum must be saved, but we can't directly
+	// read it in, because we can only set it after the team entity has been read in,
+	// which may or may not actually occur before the entity is parsed.
+	// Therefore, we set the TeamNum from the InitialTeamNum in Activate
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetTeam", InputSetTeam ),
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "Kill", InputKill ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "KillHierarchy", InputKillHierarchy ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Use", InputUse ),
+	DEFINE_INPUTFUNC( FIELD_INTEGER, "Alpha", InputAlpha ),
+	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "AlternativeSorting", InputAlternativeSorting ),
+	DEFINE_INPUTFUNC( FIELD_COLOR32, "Color", InputColor ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetParent", InputSetParent ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetParentAttachment", InputSetParentAttachment ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetParentAttachmentMaintainOffset", InputSetParentAttachmentMaintainOffset ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "ClearParent", InputClearParent ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "SetDamageFilter", InputSetDamageFilter ),
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "EnableDamageForces", InputEnableDamageForces ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableDamageForces", InputDisableDamageForces ),
+
+	DEFINE_INPUTFUNC( FIELD_STRING, "DispatchEffect", InputDispatchEffect ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "DispatchResponse", InputDispatchResponse ),
+
+	// Entity I/O methods to alter context
+	DEFINE_INPUTFUNC( FIELD_STRING, "AddContext", InputAddContext ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "RemoveContext", InputRemoveContext ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "ClearContext", InputClearContext ),
+
+	DEFINE_INPUTFUNC( FIELD_VOID, "DisableShadow", InputDisableShadow ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "EnableShadow", InputEnableShadow ),
+
+	DEFINE_INPUTFUNC( FIELD_STRING, "AddOutput", InputAddOutput ),
+
+	DEFINE_INPUTFUNC( FIELD_STRING, "FireUser1", InputFireUser1 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "FireUser2", InputFireUser2 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "FireUser3", InputFireUser3 ),
+	DEFINE_INPUTFUNC( FIELD_STRING, "FireUser4", InputFireUser4 ),
+
+	DEFINE_OUTPUT( m_OnUser1, "OnUser1" ),
+	DEFINE_OUTPUT( m_OnUser2, "OnUser2" ),
+	DEFINE_OUTPUT( m_OnUser3, "OnUser3" ),
+	DEFINE_OUTPUT( m_OnUser4, "OnUser4" ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -6225,6 +6281,7 @@ void C_BaseEntity::RemoveFromTeleportList()
 		m_TeleportListEntry = 0xFFFF;
 	}
 }
+
 
 #ifdef TF_CLIENT_DLL
 bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )

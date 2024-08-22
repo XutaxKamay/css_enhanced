@@ -2675,7 +2675,7 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 		// Save entity that blocked us (since fraction was < 1.0)
 		//  for contact
 		// Add it if it's not already in the list!!!
-		MoveHelper( )->AddToTouched( pm, mv->m_vecVelocity );
+		MoveHelper( )->AddToTouched( pm.GetEntityIndex(), pm, mv->m_vecVelocity );
 
 		// If the plane we hit has a high z component in the normal, then
 		//  it's probably a floor
@@ -3129,7 +3129,7 @@ void CGameMovement::PushEntity( Vector& push, trace_t *pTrace )
 	// If
 	if ( pTrace->fraction < 1.0 && !pTrace->allsolid )
 	{
-		MoveHelper( )->AddToTouched( *pTrace, mv->m_vecVelocity );
+		MoveHelper( )->AddToTouched( pTrace->GetEntityIndex(), *pTrace, mv->m_vecVelocity );
 	}
 }	
 
@@ -3443,7 +3443,7 @@ int CGameMovement::CheckStuck( void )
 	}
 	m_flStuckCheckTime[ player->entindex() ][ idx ] = fTime;
 
-	MoveHelper( )->AddToTouched( traceresult, mv->m_vecVelocity );
+	MoveHelper( )->AddToTouched( traceresult.GetEntityIndex(), traceresult, mv->m_vecVelocity );
 	GetRandomStuckOffsets( player, offset );
 	VectorAdd( base, offset, test );
 
@@ -3623,7 +3623,7 @@ void CGameMovement::SetGroundEntity( trace_t *pm )
 		// Standing on an entity other than the world, so signal that we are touching something.
 		if ( !pm->DidHitWorld() )
 		{
-			MoveHelper()->AddToTouched( *pm, mv->m_vecVelocity );
+			MoveHelper()->AddToTouched( pm->GetEntityIndex(), *pm, mv->m_vecVelocity );
 		}
 
 		mv->m_vecVelocity.z = 0.0f;

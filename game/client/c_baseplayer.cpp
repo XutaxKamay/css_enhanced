@@ -252,7 +252,8 @@ END_RECV_TABLE()
 		RecvPropFloat		( RECVINFO( m_flDeathTime )),
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
-		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue ))
+		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
+		RecvPropVector(RECVINFO(m_vecPreviouslyPredictedOrigin)),
 END_RECV_TABLE()
 
 	
@@ -372,7 +373,7 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	DEFINE_PRED_FIELD( m_nWaterLevel, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	
 	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, 0.05 ),
-
+	DEFINE_PRED_FIELD(m_vecPreviouslyPredictedOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
 	DEFINE_FIELD( m_nButtons, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_nImpulse, FIELD_INTEGER ),
@@ -914,6 +915,11 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		ResetLatched();
     }
+
+
+	m_fLastUpdateServerTime = engine->GetLastTimeStamp();
+	m_nLastUpdateTickBase = m_nTickBase;
+	m_nLastUpdateServerTickCount = engine->GetServerTick();
 }
 
 //-----------------------------------------------------------------------------
@@ -2970,6 +2976,10 @@ void C_BasePlayer::BuildFirstPersonMeathookTransformations( CStudioHdr *hdr, Vec
 	}
 }
 
+float C_BasePlayer::PredictedServerTime() const
+{
+	return m_fLastUpdateServerTime + ((m_nTickBase - m_nLastUpdateTickBase) * TICK_INTERVAL);
+}
 
 
 void CC_DumpClientSoundscapeData( const CCommand& args )

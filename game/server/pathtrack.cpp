@@ -95,9 +95,9 @@ void CPathTrack::Link( void  )
 {
 	CBaseEntity *pTarget;
 
-	if ( m_target != NULL_STRING )
+	if ( m_target.Get() != NULL_STRING )
 	{
-		pTarget = gEntList.FindEntityByName( NULL, m_target );
+		pTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
 
 		if ( pTarget == this)
 		{
@@ -120,7 +120,7 @@ void CPathTrack::Link( void  )
 		}
 		else
 		{
-			Warning("Dead end link: %s\n", STRING( m_target ) );
+			Warning("Dead end link: %s\n", STRING( m_target.Get() ) );
 		}
 	}
 

@@ -280,9 +280,9 @@ private:
 	char m_Memory[ SIZE*sizeof(T) + nAlignment ];
 };
 
-#ifdef _LINUX
+// #ifdef _LINUX
 #define REMEMBER_ALLOC_SIZE_FOR_VALGRIND 1
-#endif
+// #endif
 
 //-----------------------------------------------------------------------------
 // The CUtlMemoryConservative class:

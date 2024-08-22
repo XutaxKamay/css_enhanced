@@ -200,17 +200,6 @@ enum Class_T
 
 #endif
 
-//
-// Structure passed to input handlers.
-//
-struct inputdata_t
-{
-	CBaseEntity *pActivator;		// The entity that initially caused this chain of output events.
-	CBaseEntity *pCaller;			// The entity that fired this particular output.
-	variant_t value;				// The data parameter for this output.
-	int nOutputID;					// The unique ID of the output that was fired.
-};
-
 // Serializable list of context as set by entity i/o and used for deducing proper
 //  speech state, et al.
 struct ResponseContext_t
@@ -233,6 +222,18 @@ enum EntityEvent_t
 	ENTITY_EVENT_WATER_UNTOUCH,			// No data needed
 	ENTITY_EVENT_PARENT_CHANGED,		// No data needed
 };
+
+//
+// Structure passed to input handlers.
+//
+struct inputdata_t
+{
+	CBaseEntity *pActivator;		// The entity that initially caused this chain of output events.
+	CBaseEntity *pCaller;			// The entity that fired this particular output.
+	variant_t value;				// The data parameter for this output.
+	int nOutputID;					// The unique ID of the output that was fired.
+};
+
 
 
 //-----------------------------------------------------------------------------
@@ -775,6 +776,7 @@ private:
 	CServerNetworkProperty m_Network;
 
 public:
+//XYZ_TODO: network classname
 	// members
 	string_t m_iClassname;  // identifier for entity creation and save/restore
 	string_t m_iGlobalname; // identifier for carrying entity across level transitions
@@ -1181,7 +1183,7 @@ private:
 
 public:
 	// variables promoted from edict_t
-	string_t	m_target;
+	CNetworkVar(string_t, m_target);
 	CNetworkVarForDerived( int, m_iMaxHealth ); // CBaseEntity doesn't care about changes to this variable, but there are derived classes that do.
 	CNetworkVarForDerived( int, m_iHealth );
 
@@ -1189,7 +1191,7 @@ public:
 	CNetworkVarForDerived( char , m_takedamage );
 
 	// Damage filtering
-	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.
+	CNetworkVar(string_t,	m_iszDamageFilterName);	// The name of the entity to use as our damage filter.
 	EHANDLE		m_hDamageFilter;		// The entity that controls who can damage us.
 
 	// Debugging / devolopment fields
@@ -1637,7 +1639,7 @@ private:
 	// was pev->flags
 	CNetworkVarForDerived( int, m_fFlags );
 
-	string_t m_iName;	// name used to identify this entity
+	CNetworkVar( string_t, m_iName ); // name used to identify this entity
 
 	// Damage modifiers
 	friend class CDamageModifier;

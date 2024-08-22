@@ -9,6 +9,7 @@
 #include "engine/IEngineSound.h"
 #include "mempool.h"
 #include "movevars_shared.h"
+#include "protocol.h"
 #include "utlrbtree.h"
 #include "tier0/vprof.h"
 #include "entitydatainstantiator.h"
@@ -27,8 +28,9 @@
 #include "tier0/memdbgon.h"
 
 // memory pool for storing links between entities
-static CUtlMemoryPool g_EdictTouchLinks( sizeof(touchlink_t), MAX_EDICTS, CUtlMemoryPool::GROW_NONE, "g_EdictTouchLinks");
-static CUtlMemoryPool g_EntityGroundLinks( sizeof( groundlink_t ), MAX_EDICTS, CUtlMemoryPool::GROW_NONE, "g_EntityGroundLinks");
+// Those are predicted !!!
+static CUtlMemoryPool g_EdictTouchLinks( sizeof(touchlink_t), MAX_EDICTS * (MAX_BACKUP_COMMANDS + 1), CUtlMemoryPool::GROW_NONE, "g_EdictTouchLinks");
+static CUtlMemoryPool g_EntityGroundLinks( sizeof( groundlink_t ), MAX_EDICTS * (MAX_BACKUP_COMMANDS + 1), CUtlMemoryPool::GROW_NONE, "g_EntityGroundLinks");
 
 struct watcher_t
 {
@@ -74,7 +76,6 @@ ConVar debug_touchlinks( "debug_touchlinks", "0", 0, "Spew touch link activity" 
 #else
 #define DebugTouchlinks() false
 #endif
-
 
 
 //-----------------------------------------------------------------------------
@@ -720,7 +721,7 @@ void CBaseEntity::PhysicsRemoveToucher( CBaseEntity *otherEntity, touchlink_t *l
 	// Every start Touch gets a corresponding end touch
 	if ( (link->flags & FTOUCHLINK_START_TOUCH) && 
 		link->entityTouched != NULL &&
-		otherEntity != NULL )
+		otherEntity != NULL && !sm_bDisableTouchFuncs )
 	{
 		otherEntity->EndTouch( link->entityTouched );
 	}
@@ -928,7 +929,7 @@ void CBaseEntity::PhysicsRemoveGroundList( CBaseEntity *ent )
 //-----------------------------------------------------------------------------
 void CBaseEntity::PhysicsTouch( CBaseEntity *pentOther )
 {
-	if ( pentOther )
+	if ( pentOther && !sm_bDisableTouchFuncs )
 	{
 		if ( !(IsMarkedForDeletion() || pentOther->IsMarkedForDeletion()) )
 		{
@@ -943,7 +944,7 @@ void CBaseEntity::PhysicsTouch( CBaseEntity *pentOther )
 //-----------------------------------------------------------------------------
 void CBaseEntity::PhysicsStartTouch( CBaseEntity *pentOther )
 {
-	if ( pentOther )
+	if ( pentOther && !sm_bDisableTouchFuncs )
 	{
 		if ( !(IsMarkedForDeletion() || pentOther->IsMarkedForDeletion()) )
 		{
@@ -1010,10 +1011,7 @@ touchlink_t *CBaseEntity::PhysicsMarkEntityAsTouched( CBaseEntity *other )
 				// update stamp
 				link->touchStamp = touchStamp;
 				
-				if ( !CBaseEntity::sm_bDisableTouchFuncs )
-				{
-					PhysicsTouch( other );
-				}
+				PhysicsTouch( other );
 
 				// no more to do
 				return link;
@@ -1051,10 +1049,7 @@ touchlink_t *CBaseEntity::PhysicsMarkEntityAsTouched( CBaseEntity *other )
 	if ( bShouldTouch && !other->IsSolidFlagSet(FSOLID_TRIGGER) )
 	{
 		link->flags |= FTOUCHLINK_START_TOUCH;
-		if ( !CBaseEntity::sm_bDisableTouchFuncs )
-		{
-			PhysicsStartTouch( other );
-		}
+		PhysicsStartTouch( other );
 	}
 
 	return link;
@@ -1756,7 +1751,6 @@ void CBaseEntity::PhysicsRigidChild( void )
 //-----------------------------------------------------------------------------
 void CBaseEntity::UpdateBaseVelocity( void )
 {
-#if !defined( CLIENT_DLL )
 	if ( GetFlags() & FL_ONGROUND )
 	{
 		CBaseEntity	*groundentity = GetGroundEntity();
@@ -1776,7 +1770,6 @@ void CBaseEntity::UpdateBaseVelocity( void )
 			}
 		}
 	}
-#endif
 }
 
 

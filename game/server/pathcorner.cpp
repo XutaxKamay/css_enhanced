@@ -75,7 +75,7 @@ void CPathCorner::Spawn( void )
 //-----------------------------------------------------------------------------
 void CPathCorner::InputSetNextPathCorner( inputdata_t &inputdata )
 {
-	m_target = inputdata.value.StringID();
+	m_target.GetForModify() = inputdata.value.StringID();
 }
 
 
@@ -102,9 +102,9 @@ int CPathCorner::DrawDebugTextOverlays(void)
 		// Print Target
 		// --------------
 		char tempstr[255];
-		if (m_target!=NULL_STRING) 
+		if (m_target.Get()!=NULL_STRING)
 		{
-			Q_snprintf(tempstr,sizeof(tempstr),"Target: %s",STRING(m_target));
+			Q_snprintf(tempstr,sizeof(tempstr),"Target: %s",STRING(m_target.Get()));
 		}
 		else
 		{
@@ -129,9 +129,9 @@ void CPathCorner::DrawDebugGeometryOverlays(void)
 	{
 		NDebugOverlay::Box(GetAbsOrigin(), Vector(-10,-10,-10), Vector(10,10,10), 255, 100, 100, 0 ,0);
 
-		if (m_target != NULL_STRING)
+		if (m_target.Get() != NULL_STRING)
 		{
-			CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target );
+			CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
 			if (pTarget)
 			{
 				NDebugOverlay::Line(GetAbsOrigin(),pTarget->GetAbsOrigin(),255,100,100,true,0.0);
