@@ -1972,8 +1972,10 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 	// debugoverlay->AddTextOverlay( GetAbsOrigin() + Vector( 0, 0, 64 ), 0, 0, "%30s %6.2f : %6.2f", hdr->pSeqdesc( GetSequence() )->pszLabel( ), fCycle, 1.0 );
 
     // TODO_ENHANCED: Do that only for client side animations
-    // if (m_bClientSideAnimation)
+    if (m_bClientSideAnimation)
+    {
 		MaintainSequenceTransitions( boneSetup, fCycle, currentTime, pos, q );
+    }
 
 	AccumulateLayers( boneSetup, pos, q, currentTime );
 
@@ -2743,82 +2745,6 @@ void C_BaseAnimating::ThreadedBoneSetup()
 	g_PreviousBoneSetups.RemoveAll();
 }
 
-void C_BaseAnimating::BuildMatricesWithBoneMerge( 
-	const CStudioHdr *pStudioHdr,
-	const QAngle& angles, 
-	const Vector& origin, 
-	const Vector pos[MAXSTUDIOBONES],
-	const Quaternion q[MAXSTUDIOBONES],
-	matrix3x4_t bonetoworld[MAXSTUDIOBONES],
-	C_BaseAnimating *pParent,
-	CBoneCache *pParentCache
-	)
-{
-	CStudioHdr *fhdr = pParent->GetModelPtr();
-	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
-
-	matrix3x4_t rotationmatrix; // model to world transformation
-	AngleMatrix( angles, origin, rotationmatrix);
-
-	for ( int i=0; i < pStudioHdr->numbones(); i++ )
-	{
-		// Now find the bone in the parent entity.
-		bool merged = false;
-		int parentBoneIndex = Studio_BoneIndexByName( fhdr, pbones[i].pszName() );
-		if ( parentBoneIndex >= 0 )
-		{
-			matrix3x4_t *pMat = pParentCache->GetCachedBone( parentBoneIndex );
-			if ( pMat )
-			{
-				MatrixCopy( *pMat, bonetoworld[ i ] );
-				merged = true;
-			}
-		}
-
-		if ( !merged )
-		{
-			// If we get down here, then the bone wasn't merged.
-			matrix3x4_t bonematrix;
-			QuaternionMatrix( q[i], pos[i], bonematrix );
-
-			if (pbones[i].parent == -1) 
-			{
-				ConcatTransforms (rotationmatrix, bonematrix, bonetoworld[i]);
-			} 
-			else 
-			{
-				ConcatTransforms (bonetoworld[pbones[i].parent], bonematrix, bonetoworld[i]);
-			}
-		}
-	}
-}
-
-void C_BaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask, float currentTime )
-{
-	if(!pStudioHdr)
-	{
-		Assert(!"C_BaseAnimating::GetSkeleton() without a model");
-		return;
-	}
-
-	IBoneSetup boneSetup( pStudioHdr, boneMask, m_flPoseParameter );
-	boneSetup.InitPose( pos, q );
-
-	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, currentTime, m_pIk );
-
-	if ( m_pIk )
-	{
-		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetRenderOrigin(), currentTime, 0, boneMask );
-		boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
-	}
-	else
-	{
-		boneSetup.CalcAutoplaySequences( pos, q, currentTime, NULL );
-	}
-	boneSetup.CalcBoneAdj( pos, q, m_flEncodedController );
-}
-
 bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
 	VPROF_BUDGET( "C_BaseAnimating::SetupBones", VPROF_BUDGETGROUP_CLIENT_ANIMATION );
@@ -2972,8 +2898,10 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 			// NOTE: For model scaling, we need to opt out of IK because it will mark the bones as already being calculated
 			if ( !IsModelScaled() )
 			{
-				// only allocate an ik block if the npc can use it
-				if ( !m_pIk && hdr->numikchains() > 0 && !(m_EntClientFlags & ENTCLIENTFLAG_DONTUSEIK) )
+                // only allocate an ik block if the npc can use it
+                // The flag is now completely ignored to match server bones!
+                // If it doesn't work well, blame models.
+				if ( !m_pIk && hdr->numikchains() > 0 /* && !(m_EntClientFlags & ENTCLIENTFLAG_DONTUSEIK) */ )
 				{
 					m_pIk = new CIKContext;
 				}

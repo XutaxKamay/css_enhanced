@@ -202,9 +202,10 @@ C_CHostage::C_CHostage()
 	m_flDeadOrRescuedTime = 0.0;
 	m_flLastBodyYaw = 0;
 	m_createdLowViolenceRagdoll = false;
-	
-	// TODO: Get IK working on the steep slopes CS has, then enable it on characters.
-	m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
+
+    // TODO: Get IK working on the steep slopes CS has, then enable it on characters.
+    // Breaks server side setup bones !
+	// m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
 
 	// set the model so the PlayerAnimState uses the Hostage activities/sequences
 	SetModelName( "models/Characters/Hostage_01.mdl" );
