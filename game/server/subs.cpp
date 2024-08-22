@@ -13,6 +13,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#include "sendproxy.h"
 
 // Landmark class
 void CPointEntity::Spawn( void )
@@ -151,6 +152,21 @@ BEGIN_DATADESC( CBaseToggle )
 
 END_DATADESC()
 
+// send table [[For CSS_ENHANCED]]
+IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
+	SendPropDataTable(SENDINFO_DT(m_Collision), &REFERENCE_SEND_TABLE(DT_CollisionProperty)),
+	SendPropVector(SENDINFO(m_vecOrigin), 0,  SPROP_NOSCALE|SPROP_COORD|SPROP_CHANGES_OFTEN ),
+	SendPropQAngles(SENDINFO(m_angRotation), 0, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
+	SendPropStringT(SENDINFO(m_sMaster)),
+	SendPropStringT(SENDINFO(m_iName)),
+	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
+	SendPropModelIndex(SENDINFO(m_nModelIndex)),
+	SendPropInt(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_spawnflags)),
+	SendPropInt(SENDINFO(m_fEffects),EF_MAX_BITS, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO_NAME(m_MoveCollide, movecollide), MOVECOLLIDE_MAX_BITS, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
+END_SEND_TABLE();
 
 CBaseToggle::CBaseToggle()
 {
@@ -177,7 +193,7 @@ bool CBaseToggle::KeyValue( const char *szKeyName, const char *szValue )
 	}
 	else if (FStrEq(szKeyName, "master"))
 	{
-		m_sMaster = AllocPooledString(szValue);
+		m_sMaster.GetForModify() = AllocPooledString(szValue);
 	}
 	else if (FStrEq(szKeyName, "distance"))
 	{
@@ -252,7 +268,7 @@ void CBaseToggle::LinearMoveDone( void )
 // DVS TODO: obselete, remove?
 bool CBaseToggle::IsLockedByMaster( void )
 {
-	if (m_sMaster != NULL_STRING && !UTIL_IsMasterTriggered(m_sMaster, m_hActivator))
+	if (m_sMaster.Get() != NULL_STRING && !UTIL_IsMasterTriggered(m_sMaster.Get(), m_hActivator))
 		return true;
 	else
 		return false;

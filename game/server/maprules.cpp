@@ -720,7 +720,7 @@ void CGamePlayerTeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 
 	if ( pActivator->IsPlayer() )
 	{
-		const char *pszTargetTeam = TargetTeamName( STRING(m_target), pActivator );
+		const char *pszTargetTeam = TargetTeamName( STRING(m_target.Get()), pActivator );
 		if ( pszTargetTeam )
 		{
 			CBasePlayer *pPlayer = (CBasePlayer *)pActivator;

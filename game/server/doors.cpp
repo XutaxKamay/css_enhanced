@@ -639,7 +639,7 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 	
 	// If door has master, and it's not ready to trigger, 
 	// play 'locked' sound.
-	if (m_sMaster != NULL_STRING && !UTIL_IsMasterTriggered(m_sMaster, pOther))
+	if (m_sMaster.Get() != NULL_STRING && !UTIL_IsMasterTriggered(m_sMaster.Get(), pOther))
 	{
 		PlayLockSounds(this, &m_ls, TRUE, FALSE);
 	}

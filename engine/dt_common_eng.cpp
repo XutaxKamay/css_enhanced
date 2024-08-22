@@ -107,8 +107,20 @@ bool DataTable_SetupReceiveTableFromSendTable( SendTable *sendTable, bool bNeeds
 		SendProp *pProp = &pTable->m_pProps[iProp];
 		const SendProp *pSendTableProp = &sendTable->m_pProps[ iProp ];
 
-		pProp->m_Type = (SendPropType)pSendTableProp->m_Type;
-		pProp->m_pVarName = COM_StringCopy( pSendTableProp->GetName() );
+        pProp->m_Type = (SendPropType)pSendTableProp->m_Type;
+
+        /* If no name (EHANDLE) hack it */
+        if (pSendTableProp->GetName())
+        {
+            pProp->m_pVarName = COM_StringCopy( pSendTableProp->GetName() );
+		}
+        else
+        {
+            char buffer[256];
+            V_sprintf_safe(buffer, "%s[%i]", pTable->m_pNetTableName, iProp );
+            pProp->m_pVarName = COM_StringCopy(buffer);
+        }
+
 		pProp->SetFlags( pSendTableProp->GetFlags() );
 
 		if ( CommandLine()->FindParm("-dti" ) && pSendTableProp->GetParentArrayPropName() )

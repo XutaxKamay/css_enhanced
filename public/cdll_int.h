@@ -575,6 +575,11 @@ public:
 	virtual void DisconnectInternal() = 0;
 
 	virtual int GetInstancesRunningCount( ) = 0;
+
+	virtual int GetServerTick( void ) = 0;
+
+	virtual void SolidMoved( class IClientEntity *pSolidEnt, class ICollideable *pSolidCollide, const Vector* pPrevAbsOrigin, bool accurateBboxTriggerChecks ) = 0;
+	virtual void TriggerMoved( class IClientEntity *pTriggerEnt, bool accurateBboxTriggerChecks ) = 0;
 };
 
 
@@ -791,6 +796,9 @@ public:
 	virtual bool IsConnectedUserInfoChangeAllowed( IConVar *pCvar ) = 0;
 
 	virtual void IN_TouchEvent( int type, int fingerId, int x, int y ) = 0;
+
+	// The engine wants to mark two entities as touching
+	virtual void			MarkEntitiesAsTouching( IClientEntity *e1, IClientEntity *e2 ) = 0;
 };
 
 #define CLIENT_DLL_INTERFACE_VERSION		"VClient017"

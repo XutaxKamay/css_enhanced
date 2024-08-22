@@ -603,4 +603,18 @@ bool				UTIL_IsHolidayActive( /*EHoliday*/ int eHoliday );
 const char		   *UTIL_GetActiveHolidayString();
 
 
+#ifdef CLIENT_DLL
+
+CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller );
+
+CBaseEntity *UTIL_FindEntityByName( const char* szName );
+CBaseEntity *UTIL_FindEntityByName( CBaseEntity *pStartEntity, const char *szName, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL );
+
+CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName );
+
+bool UTIL_IsMasterTriggered(string_t sMaster, CBaseEntity *pActivator);
+
+#endif
+
+
 #endif // UTIL_SHARED_H

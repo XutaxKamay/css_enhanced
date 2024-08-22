@@ -165,6 +165,16 @@ $Project
 		
 	$Folder	"Source Files"
 	{
+		$File	"css_enhanced\c_saverestore.cpp"
+		$File	"css_enhanced\c_basetoggle.cpp"
+		$File	"css_enhanced\c_entityinput.cpp"
+		$File	"css_enhanced\c_entitylistpool.cpp"
+		$File	"css_enhanced\c_entityoutput.cpp"
+		$File	"css_enhanced\c_eventqueue.cpp"
+		$File	"css_enhanced\c_filters.cpp"
+		$File	"css_enhanced\c_triggers_base.cpp"
+		$File	"css_enhanced\c_triggers.cpp"
+		$File	"css_enhanced\variant_t.cpp"
 		$File	"hl2\C_Func_Monitor.cpp"
 		$File	"geiger.cpp"
 		$File	"history_resource.cpp"

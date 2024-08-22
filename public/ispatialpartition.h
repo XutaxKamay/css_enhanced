@@ -37,6 +37,7 @@ enum
 	PARTITION_CLIENT_STATIC_PROPS		= (1 << 5),
 	PARTITION_ENGINE_STATIC_PROPS		= (1 << 6),
 	PARTITION_CLIENT_NON_STATIC_EDICTS	= (1 << 7),		// everything except the static props
+	PARTITION_CLIENT_TRIGGER_ENTITIES	= (1 << 8),		// client side prediction related triggers
 };
 
 // Use this to look for all client edicts.

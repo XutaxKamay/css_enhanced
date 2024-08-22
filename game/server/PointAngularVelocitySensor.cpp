@@ -135,7 +135,7 @@ void CPointAngularVelocitySensor::Activate(void)
 {
 	BaseClass::Activate();
 
-	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
+	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
 
 	if (m_hTargetEntity)
 	{
@@ -445,7 +445,7 @@ void CPointVelocitySensor::Activate( void )
 {
 	BaseClass::Activate();
 
-	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
+	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
 	
 	if ( m_bEnabled && m_hTargetEntity )
 	{
