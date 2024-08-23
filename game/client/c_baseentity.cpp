@@ -365,6 +365,12 @@ BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_PredictableId )
 END_RECV_TABLE()
 #endif
 
+void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
+{
+	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
+
+	Q_strncpy( entity->m_iName, pData->m_Value.m_pString, MAX_PATH );
+}
 
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "AnimTimeMustBeFirst", 0, 0, &REFERENCE_RECV_TABLE(DT_AnimTimeMustBeFirst) ),
@@ -398,7 +404,7 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
 	// Receive the name
-	RecvPropString(RECVINFO(m_iName)),
+	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_Name),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),

@@ -9,6 +9,7 @@
 #include "const.h"
 #include "dt_send.h"
 #include "dt_utlvector_send.h"
+#include "networkvar.h"
 #include "player.h"
 #include "predictable_entity.h"
 #include "saverestore.h"
@@ -2337,14 +2338,19 @@ class CTriggerTeleport : public CBaseTrigger
 {
 public:
 	DECLARE_CLASS( CTriggerTeleport, CBaseTrigger );
+	DECLARE_NETWORKCLASS();
 
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
 
-	string_t m_iLandmark;
+	CNetworkVar(string_t, m_iLandmark);
 
 	DECLARE_DATADESC();
 };
+
+IMPLEMENT_SERVERCLASS_ST(CTriggerTeleport, DT_TriggerTeleport)
+	SendPropStringT(SENDINFO(m_iLandmark))
+END_SEND_TABLE();
 
 LINK_ENTITY_TO_CLASS( trigger_teleport, CTriggerTeleport );
 
@@ -2394,7 +2400,7 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 	//
 	CBaseEntity	*pentLandmark = NULL;
 	Vector vecLandmarkOffset(0, 0, 0);
-	if (m_iLandmark != NULL_STRING)
+	if (m_iLandmark.Get() != NULL_STRING)
 	{
 		// The activator and caller are the same
 		pentLandmark = gEntList.FindEntityByName(pentLandmark, m_iLandmark, NULL, pOther, pOther );
@@ -2435,10 +2441,22 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 #endif
 	}
 
-	tmp += vecLandmarkOffset;
-	pOther->Teleport( &tmp, pAngles, pVelocity );
+    tmp += vecLandmarkOffset;
+
+    auto player = dynamic_cast<CBasePlayer*>(pOther);
+
+    // TODO_ENHANCED: There's better way to do this with fixangle ...
+    // So we can enforce server angles ...
+    if (player)
+    {
+        pAngles = NULL;
+    }
+
+    pOther->Teleport(&tmp, pAngles, pVelocity);
 }
 
+IMPLEMENT_SERVERCLASS_ST(CPointEntity, DT_PointEntity)
+END_SEND_TABLE();
 
 LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
 

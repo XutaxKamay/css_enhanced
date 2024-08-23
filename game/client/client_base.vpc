@@ -175,6 +175,7 @@ $Project
 		$File	"css_enhanced\c_triggers_base.cpp"
 		$File	"css_enhanced\c_triggers.cpp"
 		$File	"css_enhanced\c_trigger_push.cpp"
+		$File	"css_enhanced\c_trigger_teleport.cpp"
 		$File	"css_enhanced\variant_t.cpp"
 		$File	"hl2\C_Func_Monitor.cpp"
 		$File	"geiger.cpp"

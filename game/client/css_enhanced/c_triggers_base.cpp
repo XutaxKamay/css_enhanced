@@ -88,10 +88,11 @@ BEGIN_DATADESC( C_BaseTrigger )
 
 END_DATADESC()
 
+// TODO_ENHANCED: this should be predicted, but since we don't have yet proper spawn, m_target would be an empty string all the time.
 BEGIN_PREDICTION_DATA(C_BaseTrigger)
-	DEFINE_PRED_FIELD(m_bDisabled, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_target, FIELD_STRING, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_iFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_bDisabled, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_target, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_iFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
 	// DEFINE_PRED_ARRAY(m_hPredictedTouchingEntities, FIELD_EHANDLE, MAX_EDICTS, FTYPEDESC_PRIVATE),
 	// DEFINE_PRED_FIELD(m_iCountPredictedTouchingEntities, FIELD_INTEGER, FTYPEDESC_PRIVATE)
 END_PREDICTION_DATA();
@@ -107,6 +108,13 @@ void RecvProxy_FilterName(const CRecvProxyData *pData, void *pStruct, void *pOut
 	entity->m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(entity->m_iFilterName));
 }
 
+void RecvProxy_Target(const CRecvProxyData *pData, void *pStruct, void *pOut)
+{
+	C_BaseTrigger *entity = (C_BaseTrigger *) pStruct;
+
+	Q_strncpy( entity->m_target, pData->m_Value.m_pString, MAX_PATH );
+}
+
 // Incase server decides to change m_bDisabled
 void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 {
@@ -120,7 +128,7 @@ void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseTrigger, DT_BaseTrigger, CBaseTrigger)
 	RecvPropInt(RECVINFO(m_bDisabled), NULL, RecvProxy_Disabled),
-	RecvPropString(RECVINFO(m_target)),
+	RecvPropString(RECVINFO(m_target), NULL, RecvProxy_Target),
 	RecvPropString(RECVINFO(m_iFilterName), NULL, RecvProxy_FilterName),
 END_RECV_TABLE();
 
