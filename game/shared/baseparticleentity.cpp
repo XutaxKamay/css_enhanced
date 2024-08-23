@@ -60,7 +60,7 @@ int CBaseParticleEntity::UpdateTransmitState( void )
 		return SetTransmitState( FL_EDICT_ALWAYS );
 
 	// cull against PVS
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 #endif
 

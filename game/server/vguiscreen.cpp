@@ -312,7 +312,7 @@ int CVGuiScreen::UpdateTransmitState()
 	{
 		// Let the parent object trigger the send. This is more efficient than having it call CBaseEntity::ShouldTransmit
 		// for all the vgui screens in the map.
-		return SetTransmitState( FL_EDICT_PVSCHECK );
+		return SetTransmitState( FL_EDICT_ALWAYS );
 	}
 	else
 	{

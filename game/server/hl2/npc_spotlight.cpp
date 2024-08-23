@@ -267,7 +267,7 @@ Class_T	CNPC_Spotlight::Classify(void)
 //-------------------------------------------------------------------------------------
 int CNPC_Spotlight::UpdateTransmitState(void)
 {
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 

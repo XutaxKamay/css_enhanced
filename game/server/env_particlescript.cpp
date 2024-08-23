@@ -173,7 +173,7 @@ int CEnvParticleScript::UpdateTransmitState()
 		return SetTransmitState( FL_EDICT_ALWAYS );
 	}
 
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 

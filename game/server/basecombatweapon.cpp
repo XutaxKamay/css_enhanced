@@ -98,7 +98,7 @@ int CBaseCombatWeapon::UpdateTransmitState( void)
 	// about whether or not to transmit it.
 	if ( GetOwner() )
 	{	
-		return SetTransmitState( FL_EDICT_PVSCHECK );
+		return SetTransmitState( FL_EDICT_ALWAYS );
 	}
 	else
 	{

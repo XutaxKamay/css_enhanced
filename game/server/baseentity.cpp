@@ -5,6 +5,7 @@
 //===========================================================================//
 
 #include "cbase.h"
+#include "edict.h"
 #include "globalstate.h"
 #include "isaverestore.h"
 #include "client.h"
@@ -3479,7 +3480,7 @@ int CBaseEntity::UpdateTransmitState()
 
     // TODO_ENHANCED: this needs to be always now since teleports are predicted.
 	// by default cull against PVS
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 int CBaseEntity::DispatchUpdateTransmitState()
@@ -3548,9 +3549,8 @@ int CBaseEntity::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 		return TRANSMIT_NO;	// TODO doesn't work with HLTV
 #endif*/
 
-	// by default do a PVS check
-
-	return FL_EDICT_PVSCHECK;
+	// by default send full.
+	return FL_EDICT_ALWAYS;
 }
 
 
