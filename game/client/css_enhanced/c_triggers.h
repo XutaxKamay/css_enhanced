@@ -47,9 +47,9 @@ public:
 
 	void Enable( void );
 	void Disable( void );
-	void Spawn( void );
-	void UpdateOnRemove( void );
-	void UpdatePartitionListEntry();
+	virtual void Spawn( void );
+	virtual void UpdateOnRemove( void );
+	virtual void UpdatePartitionListEntry();
 	void TouchTest(  void );
 
     virtual bool IsTrigger( void ) { return true; };

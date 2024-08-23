@@ -643,7 +643,7 @@ public:
 // C_BaseEntity local functions
 public:
 
-	void UpdatePartitionListEntry();
+	virtual void UpdatePartitionListEntry();
 
 	// This can be used to setup the entity as a client-only entity. 
 	// Override this to perform per-entity clientside setup
