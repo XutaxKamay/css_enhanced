@@ -366,7 +366,6 @@ void CCSGameMovement::PlayerMove()
 			 m_pCSPlayer->m_flVelocityModifier = 1.0;
 	}
 
-#if !defined(CLIENT_DLL)
 	if ( m_pCSPlayer->IsAlive() )
 	{
 		// Check if our eye height is too close to the ceiling and lower it.
@@ -433,8 +432,7 @@ void CCSGameMovement::PlayerMove()
 				player->SetViewOffset( VEC_DUCK_VIEW );
 			}
 		}
-	}
-#endif	
+	}	
 }
 
 
