@@ -2337,6 +2337,8 @@ int NET_SendLong( INetChannel *chan, int sock, SOCKET s, const char FAR * buf, i
 // Output : void NET_SendPacket
 //-----------------------------------------------------------------------------
 
+ConVar net_force_compression("net_force_compression", "1");
+
 int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/ )
 {
 	VPROF_BUDGET( "NET_SendPacket", VPROF_BUDGETGROUP_OTHER_NETWORKING );
@@ -2346,7 +2348,10 @@ int NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const uns
 	struct sockaddr	addr;
 	int		net_socket;
 
-    bUseCompression = true;
+    if (net_force_compression.GetBool())
+    {
+        bUseCompression = true;
+	}
       
 	if ( net_showudp.GetInt() && (*(unsigned int*)data == CONNECTIONLESS_HEADER) )
 	{
