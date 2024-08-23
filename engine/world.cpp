@@ -349,6 +349,7 @@ CON_COMMAND(cl_numtriggers, "Number of triggers in map")
 	ConMsg("Triggers in map: %i\n", s_Enumerator.m_nCount);
 }
 
+#ifndef DEDICATED
 //-----------------------------------------------------------------------------
 // Little enumeration class used to try touching all triggers
 //-----------------------------------------------------------------------------
@@ -526,7 +527,6 @@ private:
 	bool m_bAccurateBBoxCheck;
 };
 
-
 #include "debugoverlay.h"
 
 // XYZ_TODO: Remove these on listen servers
@@ -563,3 +563,4 @@ void CL_SolidMoved( IClientEntity *pTriggerEnt, ICollideable *pSolidCollide, con
 		touchEnumerator.HandleTouchedEntities();
 	}
 }
+#endif
