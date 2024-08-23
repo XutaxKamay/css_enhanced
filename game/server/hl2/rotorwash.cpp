@@ -74,7 +74,7 @@ int CRotorWashEmitter::UpdateTransmitState( void )
 		return SetTransmitState( FL_EDICT_FULLCHECK );
 	}
 
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 //-----------------------------------------------------------------------------

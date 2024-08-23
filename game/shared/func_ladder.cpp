@@ -488,7 +488,7 @@ void CInfoLadderDismount::DrawDebugGeometryOverlays()
 int CFuncLadder::UpdateTransmitState()
 {
 	// transmit if in PVS for clientside prediction
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 #endif
 

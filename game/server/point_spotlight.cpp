@@ -300,7 +300,7 @@ int CPointSpotlight::UpdateTransmitState()
 	if ( m_bEfficientSpotlight )
 		return SetTransmitState( FL_EDICT_DONTSEND );
 
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 //-----------------------------------------------------------------------------
