@@ -1,5 +1,6 @@
 #include "cbase.h"
 #include "datamap.h"
+#include "dt_recv.h"
 #include "util_shared.h"
 #include "c_trigger_push.h"
 
@@ -8,16 +9,14 @@
 
 LINK_ENTITY_TO_CLASS( trigger_push, C_TriggerPush );
 
-BEGIN_PREDICTION_DATA(C_TriggerPush)
-	DEFINE_PRED_FIELD(m_vecPushDir, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-    DEFINE_PRED_FIELD(m_flAlternateTicksFix, FIELD_FLOAT, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_flPushSpeed, FIELD_FLOAT, FTYPEDESC_INSENDTABLE),
-	// DEFINE_PRED_ARRAY(m_hPredictedTouchingEntities, FIELD_EHANDLE, MAX_EDICTS, FTYPEDESC_PRIVATE),
-	// DEFINE_PRED_FIELD(m_iCountPredictedTouchingEntities, FIELD_INTEGER, FTYPEDESC_PRIVATE)
-END_PREDICTION_DATA();
-
 // Since this is called only during creation
 // we allow a small margin for prediction errors here
+BEGIN_PREDICTION_DATA(C_TriggerPush)
+//	DEFINE_PRED_FIELD(m_vecPushDir, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
+//  DEFINE_PRED_FIELD(m_flAlternateTicksFix, FIELD_FLOAT, FTYPEDESC_INSENDTABLE),
+//	DEFINE_PRED_FIELD(m_flPushSpeed, FIELD_FLOAT, FTYPEDESC_INSENDTABLE),
+END_PREDICTION_DATA();
+
 IMPLEMENT_CLIENTCLASS_DT(C_TriggerPush, DT_TriggerPush, CTriggerPush)
 	RecvPropVector(RECVINFO(m_vecPushDir)),
 	RecvPropFloat(RECVINFO(m_flAlternateTicksFix)),

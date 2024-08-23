@@ -250,7 +250,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropInt		(SENDINFO(m_iParentAttachment), NUM_PARENTATTACHMENT_BITS, SPROP_UNSIGNED),
 
 	// Send the name
-	SendPropString	(SENDINFO(m_iName)),
+	SendPropStringT	(SENDINFO(m_iName)),
 
 	SendPropInt		(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO_NAME( m_MoveCollide, movecollide ), MOVECOLLIDE_MAX_BITS, SPROP_UNSIGNED ),
@@ -3477,6 +3477,7 @@ int CBaseEntity::UpdateTransmitState()
 		return SetTransmitState( FL_EDICT_ALWAYS );
 	}
 
+    // TODO_ENHANCED: this needs to be always now since teleports are predicted.
 	// by default cull against PVS
 	return SetTransmitState( FL_EDICT_PVSCHECK );
 }
@@ -4066,7 +4067,8 @@ static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &ent
 	{
 		if ( newAngles )
 		{
-			pTeleport->SetLocalAngles( *newAngles );
+            pTeleport->SetLocalAngles(*newAngles);
+            // TODO_ENHANCED: this isn't needed anymore. Should be set client side now.
 			if ( pTeleport->IsPlayer() )
 			{
 				CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;

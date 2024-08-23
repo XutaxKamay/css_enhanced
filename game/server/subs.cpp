@@ -22,6 +22,10 @@ void CPointEntity::Spawn( void )
 //	UTIL_SetSize(this, vec3_origin, vec3_origin);
 }
 
+int CPointEntity::UpdateTransmitState( void )
+{
+    return SetTransmitState( FL_EDICT_ALWAYS );
+}
 
 class CNullEntity : public CBaseEntity
 {
