@@ -508,7 +508,6 @@ void C_BaseTrigger::InputEndTouch( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 {
-    printf("start touch\n");
 	if (PassesTriggerFilters(pOther))
 	{
 		EHANDLE hOther;
@@ -525,7 +524,6 @@ void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 
 		if ( bAdded && ( m_hTouchingEntities.Count() == 1 ) )
         {
-            printf("really start touch\n");
 			// First entity to touch us that passes our filters
 			m_OnStartTouchAll.FireOutput( pOther, this );
 		}
@@ -539,10 +537,8 @@ void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::EndTouch(CBaseEntity *pOther)
 {
-    printf("end touch\n");
 	if ( IsTouching( pOther ) )
     {
-        printf("really end touch\n");
 		EHANDLE hOther;
 		hOther = pOther;
 		m_hTouchingEntities.FindAndRemove( hOther );

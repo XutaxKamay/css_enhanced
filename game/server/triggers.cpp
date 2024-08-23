@@ -10,6 +10,7 @@
 #include "dt_send.h"
 #include "dt_utlvector_send.h"
 #include "player.h"
+#include "predictable_entity.h"
 #include "saverestore.h"
 #include "gamerules.h"
 #include "entityapi.h"
@@ -2155,24 +2156,31 @@ class CTriggerPush : public CBaseTrigger
 {
 public:
 	DECLARE_CLASS( CTriggerPush, CBaseTrigger );
+    DECLARE_NETWORKCLASS();
 
 	void Spawn( void );
 	void Activate( void );
 	void Touch( CBaseEntity *pOther );
 	void Untouch( CBaseEntity *pOther );
 
-	Vector m_vecPushDir;
+	CNetworkVar(Vector, m_vecPushDir);
 
 	DECLARE_DATADESC();
 	
-	float m_flAlternateTicksFix; // Scale factor to apply to the push speed when running with alternate ticks
-	float m_flPushSpeed;
+	CNetworkVar(float, m_flAlternateTicksFix); // Scale factor to apply to the push speed when running with alternate ticks
+	CNetworkVar(float, m_flPushSpeed);
 };
+
+IMPLEMENT_SERVERCLASS_ST(CTriggerPush, DT_TriggerPush)
+	SendPropVector(SENDINFO(m_vecPushDir)),
+	SendPropFloat(SENDINFO(m_flAlternateTicksFix)),
+	SendPropFloat(SENDINFO(m_flPushSpeed)),
+END_SEND_TABLE();
 
 BEGIN_DATADESC( CTriggerPush )
 	DEFINE_KEYFIELD( m_vecPushDir, FIELD_VECTOR, "pushdir" ),
 	DEFINE_KEYFIELD( m_flAlternateTicksFix, FIELD_FLOAT, "alternateticksfix" ),
-	//DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( trigger_push, CTriggerPush );
@@ -2185,11 +2193,11 @@ void CTriggerPush::Spawn()
 {
 	// Convert pushdir from angles to a vector
 	Vector vecAbsDir;
-	QAngle angPushDir = QAngle(m_vecPushDir.x, m_vecPushDir.y, m_vecPushDir.z);
+	QAngle angPushDir = QAngle(m_vecPushDir->x, m_vecPushDir->y, m_vecPushDir->z);
 	AngleVectors(angPushDir, &vecAbsDir);
 
 	// Transform the vector into entity space
-	VectorIRotate( vecAbsDir, EntityToWorldTransform(), m_vecPushDir );
+	VectorIRotate( vecAbsDir, EntityToWorldTransform(), m_vecPushDir.GetForModify() );
 
 	BaseClass::Spawn();
 
@@ -2198,7 +2206,7 @@ void CTriggerPush::Spawn()
 	if (m_flSpeed == 0)
 	{
 		m_flSpeed = 100;
-	}
+    }
 }
 
 
