@@ -54,8 +54,8 @@ public:
 
 	bool BSecure() { return SteamGameServer() && SteamGameServer()->BSecure(); }
 	bool BIsActive() { return SteamGameServer() && ( m_eServerMode >= eServerModeNoAuthentication ); }
-	bool BLanOnly() const { return m_eServerMode == eServerModeNoAuthentication; }
-	bool BWantsSecure() { return m_eServerMode == eServerModeAuthenticationAndSecure; }
+	bool BLanOnly() const { return false; }
+	bool BWantsSecure() { return false; }
 	bool BLoggedOn() { return SteamGameServer() && SteamGameServer()->BLoggedOn(); }
 	bool CompareUserID( const USERID_t & id1, const USERID_t & id2 );
 	const CSteamID& GetGSSteamID();

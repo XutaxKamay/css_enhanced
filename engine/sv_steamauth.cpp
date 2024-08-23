@@ -250,7 +250,7 @@ steam_no_good:
 		WarningAndLog( "*********************************************************\n" );
 #endif
 		m_eServerMode = eServerModeNoAuthentication;
-		sv_lan.SetValue( true );
+		sv_lan.SetValue( false );
 		return;
 	}
 	Init(); // Steam API context init
