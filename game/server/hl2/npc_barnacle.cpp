@@ -8,6 +8,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "edict.h"
 #include "physics_prop_ragdoll.h"
 #include "npc_barnacle.h"
 #include "npcevent.h"
@@ -2587,7 +2588,7 @@ void CBarnacleTongueTip::Spawn( void )
 
 int CBarnacleTongueTip::UpdateTransmitState( void )
 {
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 //-----------------------------------------------------------------------------

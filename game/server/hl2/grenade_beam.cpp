@@ -438,6 +438,6 @@ void CGrenadeBeam::Precache( void )
 //------------------------------------------------------------------------------
 int CGrenadeBeam::UpdateTransmitState(void)
 {
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
