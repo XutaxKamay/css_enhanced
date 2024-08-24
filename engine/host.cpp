@@ -3175,9 +3175,10 @@ void _Host_RunFrame (float time)
 
 		if (!cl_interpolation_amount_fix.GetBool())
 		{
-			g_ClientGlobalVariables.interpolation_amount = flInterpAmount;
+            g_ClientGlobalVariables.interpolation_amount = flInterpAmount;
+            flLastInterpolationAmountOnTick = 0.0f;
 			return;
-		}
+        }
 
 		if (numticks > 0 || host_frametime >= host_state.interval_per_tick)
 		{
@@ -3263,6 +3264,9 @@ void _Host_RunFrame (float time)
 			cl.m_tickRemainder = host_remainder;
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
             cl.SetFrameTime(host_frametime);
+#ifndef SWDS
+			CalcInterpolationAmount();
+#endif
 			for ( int tick = 0; tick < numticks; tick++ )
             {
                 g_ServerGlobalVariables.currenttick = tick;
@@ -3388,8 +3392,6 @@ void _Host_RunFrame (float time)
 				// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
                 Host_SetClientInSimulation(false);
 
-                CalcInterpolationAmount();
-
     #if defined(REPLAY_ENABLED)
                 // Update client-side replay history manager - called here
                 // since interpolation_amount is set
@@ -3449,6 +3451,8 @@ void _Host_RunFrame (float time)
 			g_ServerGlobalVariables.simTicksThisFrame = serverticks;
 			g_ServerGlobalVariables.tickcount = sv.m_nTickCount;
 
+            CalcInterpolationAmount();
+
 			// THREADED: Run Client
 			// -------------------
 			for ( int tick = 0; tick < clientticks; tick++ )
@@ -3494,8 +3498,6 @@ void _Host_RunFrame (float time)
 			// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
 			Host_SetClientInSimulation( false );
 
-            CalcInterpolationAmount();
-            
 			//-------------------
 			// Run prediction if it hasn't been run yet
 			//-------------------

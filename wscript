@@ -266,8 +266,8 @@ def define_platform(conf):
 			'_DLL_EXT=.so'
 		])
 
-	conf.define('NO_MEMOVERRIDE_NEW_DELETE', 1)
-	conf.define('NO_MALLOC_OVERRIDE', 1)
+	#conf.define('NO_MEMOVERRIDE_NEW_DELETE', 1)
+	#conf.define('NO_MALLOC_OVERRIDE', 1)
 
 	conf.define('MEMALLOC_SUPPORTS_ALIGNED_ALLOCATIONS', 1)
 
