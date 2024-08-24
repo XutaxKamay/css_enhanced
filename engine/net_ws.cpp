@@ -28,7 +28,7 @@ static ConVar net_udp_rcvbuf( "net_udp_rcvbuf", NETSTRING( UDP_SO_RCVBUF_SIZE ),
 
 static ConVar net_showsplits( "net_showsplits", "0", 0, "Show info about packet splits" );
 
-static ConVar net_splitrate( "net_splitrate", "1", 0, "Number of fragments for a splitpacket that can be sent per frame" );
+static ConVar net_splitrate( "net_splitrate", "2", 0, "Number of fragments for a splitpacket that can be sent per frame" );
 
 static ConVar ipname        ( "ip", "localhost", FCVAR_ALLOWED_IN_COMPETITIVE, "Overrides IP for multihomed hosts" );
 static ConVar hostport      ( "hostport", NETSTRING( PORT_SERVER ) , FCVAR_ALLOWED_IN_COMPETITIVE, "Host game server port" );
