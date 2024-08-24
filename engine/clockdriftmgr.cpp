@@ -11,7 +11,7 @@
 #include "enginethreads.h"
 
 
-ConVar cl_clock_correction( "cl_clock_correction", "1", FCVAR_CHEAT, "Enable/disable clock correction on the client." );
+ConVar cl_clock_correction( "cl_clock_correction", "0", FCVAR_CHEAT, "Enable/disable clock correction on the client." );
 
 ConVar cl_clockdrift_max_ms( "cl_clockdrift_max_ms", "150", FCVAR_CHEAT, "Maximum number of milliseconds the clock is allowed to drift before the client snaps its clock to the server's." );
 ConVar cl_clockdrift_max_ms_threadmode( "cl_clockdrift_max_ms_threadmode", "0", FCVAR_CHEAT, "Maximum number of milliseconds the clock is allowed to drift before the client snaps its clock to the server's." );

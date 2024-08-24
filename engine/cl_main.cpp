@@ -515,10 +515,31 @@ void CL_ReadPackets ( bool bFinalTick )
 
 	if ( !Host_ShouldRun() )
 		return;
-	
-	// update client times/tick
 
-	cl.oldtickcount = cl.GetServerTickCount();
+	// update client times/tick
+	if (!CClockDriftMgr::IsClockCorrectionEnabled())
+	{
+		cl.oldtickcount = cl.GetServerTickCount();
+	}
+
+	// Moved after process socket so we can receive the lastest updates.
+	if ( !cl.IsPaused() )
+	{
+		// While clock correction is off, we have the old behavior of matching the client and server clocks.
+		if (!CClockDriftMgr::IsClockCorrectionEnabled())
+		{
+			cl.SetClientTickCount(cl.GetClientTickCount() + 1);
+			cl.SetServerTickCount(cl.GetClientTickCount());
+			g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+			g_ClientGlobalVariables.curtime = cl.GetTime();
+		}
+	}
+
+	if (!CClockDriftMgr::IsClockCorrectionEnabled())
+	{
+		// 0 or tick_rate if simulating
+		g_ClientGlobalVariables.frametime = cl.GetFrameTime();
+	}
 
 	// read packets, if any in queue
 	if ( demoplayer->IsPlayingBack() && cl.m_NetChannel )
@@ -562,25 +583,28 @@ void CL_ReadPackets ( bool bFinalTick )
 	}
 #endif
 
+	if (CClockDriftMgr::IsClockCorrectionEnabled())
+	{
+		cl.oldtickcount = cl.GetServerTickCount();
+	}
+
     // Moved after process socket so we can receive the lastest updates.
 	if ( !cl.IsPaused() )
-    {
+	{
 		// While clock correction is off, we have the old behavior of matching the client and server clocks.
-        if (!CClockDriftMgr::IsClockCorrectionEnabled())
-        {
-            cl.SetClientTickCount(cl.GetClientTickCount() + 1);
-            cl.SetServerTickCount(cl.GetClientTickCount());
-        }
-        else
-        {
-            cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
-        }
-
-        g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
-		g_ClientGlobalVariables.curtime = cl.GetTime();
+		if (CClockDriftMgr::IsClockCorrectionEnabled())
+		{
+			cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
+			g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+			g_ClientGlobalVariables.curtime = cl.GetTime();
+		}
 	}
-	// 0 or tick_rate if simulating
-	g_ClientGlobalVariables.frametime = cl.GetFrameTime();
+
+	if (CClockDriftMgr::IsClockCorrectionEnabled())
+	{
+		// 0 or tick_rate if simulating
+		g_ClientGlobalVariables.frametime = cl.GetFrameTime();
+	}
 
 }
 
