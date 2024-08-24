@@ -44,7 +44,7 @@ static ConVar net_chokeloopback( "net_chokeloop", "0", 0, "Apply bandwidth choke
 static ConVar net_maxfilesize( "net_maxfilesize", "16", 0, "Maximum allowed file size for uploading in MB", true, 0, true, 64 );
 static ConVar net_compresspackets( "net_compresspackets", "1", 0, "Use compression on game packets." );
 static ConVar net_compresspackets_minsize( "net_compresspackets_minsize", "1024", 0, "Don't bother compressing packets below this size." );
-static ConVar net_maxcleartime( "net_maxcleartime", "4.0", 0, "Max # of seconds we can wait for next packets to be sent based on rate setting (0 == no limit)." );
+static ConVar net_maxcleartime( "net_maxcleartime", "0.0", 0, "Max # of seconds we can wait for next packets to be sent based on rate setting (0 == no limit)." );
 static ConVar net_maxpacketdrop( "net_maxpacketdrop", "5000", 0, "Ignore any packets with the sequence number more than this ahead (0 == no limit)" );
 
 extern ConVar net_maxroutable;
@@ -1822,6 +1822,10 @@ int CNetChan::SendDatagram(bf_write *datagram)
 		{
 			m_fClearTime = m_flLatestClearTime;
 		}
+	}
+	else if (net_maxcleartime.GetFloat() == 0.0f)
+	{
+		m_fClearTime = 0.0f;
 	}
 	
 	m_nChokedPackets = 0;
