@@ -54,35 +54,35 @@ CFLAGS = {
 		'owcc':	   ['-fno-short-enum', '-ffloat-store', '-g0']
 	},
 	'fast': {
-		'msvc':	   ['/O2', '/Oy', '/MD'],
+		'msvc':	   ['/O2', '/Oy', '/MT'],
 		'gcc':	   ['-Ofast'],
 		'clang':   ['-Ofast'],
 		'default': ['-O3']
 	},
 	'fastnative': {
-		'msvc':    ['/O2', '/Oy', '/MD'],
+		'msvc':    ['/O2', '/Oy', '/MT'],
 		'gcc':     ['-O2', '-march=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
 		'clang':   ['-O2', '-march=native'],
 		'default': ['-O3']
 	},
 	'release': {
-		'msvc':    ['/O2', '/MD'],
+		'msvc':    ['/O2', '/MT'],
 		'owcc':    ['-O3', '-fomit-leaf-frame-pointer', '-fomit-frame-pointer', '-finline-functions', '-finline-limit=512'],
 		'default': ['-O2', '-funsafe-math-optimizations', '-ftree-vectorize', '-ffast-math']
 	},
 	'debug': {
-		'msvc':    ['/Od', '/MDd'],
+		'msvc':    ['/Od', '/MTd'],
 		'owcc':    ['-g', '-O0', '-fno-omit-frame-pointer', '-funwind-tables', '-fno-omit-leaf-frame-pointer'],
 		'default': ['-g', '-O0'] #, '-ftree-vectorize', '-ffast-math']
 	},
 	'sanitize': {
-		'msvc':    ['/Od', '/RTC1', '/MDd'],
+		'msvc':    ['/Od', '/RTC1', '/MTd'],
 		'gcc':     ['-Og', '-fsanitize=undefined', '-fsanitize=address'],
 		'clang':   ['-O0', '-fsanitize=undefined', '-fsanitize=address'],
 		'default': ['-O0']
 	},
 	'nooptimize': {
-		'msvc':    ['/Od', '/MDd'],
+		'msvc':    ['/Od', '/MTd'],
 		'default': ['-O0']
 	}
 }
