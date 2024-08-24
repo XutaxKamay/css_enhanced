@@ -4,6 +4,7 @@
 //
 //===========================================================================//
 
+#include "datamap.h"
 #include "dbg.h"
 #include "tier0/fasttimer.h"
 
@@ -3167,10 +3168,18 @@ void _Host_RunFrame (float time)
         //
         // Now includes smoothing.
 
-        static float flLastInterpolationAmountOnTick = 0.0f;
-        float flInterpAmount                   = cl.m_tickRemainder / host_state.interval_per_tick;
+		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "1");
 
-        if (numticks > 0)
+        static float flLastInterpolationAmountOnTick = 0.0f;
+        float flInterpAmount = cl.m_tickRemainder / host_state.interval_per_tick;
+
+		if (!cl_interpolation_amount_fix.GetBool())
+		{
+			g_ClientGlobalVariables.interpolation_amount = flInterpAmount;
+			return;
+		}
+
+        if (numticks > 0 || host_frametime >= host_state.interval_per_tick)
         {
 #ifdef false
             printf("interpolation amount was %f, corrected to "
@@ -3182,11 +3191,16 @@ void _Host_RunFrame (float time)
         }
         else
         {
-            // Just subtract the amount, so we can get a smooth interpolation being on a correct amount.
-            g_ClientGlobalVariables.interpolation_amount = flInterpAmount - flLastInterpolationAmountOnTick;
+			float flEstimatedAmountToAdd = host_frametime / host_state.interval_per_tick;
+
+            g_ClientGlobalVariables.interpolation_amount += flEstimatedAmountToAdd;
+			// Accumulate also the one we diddn't account for.
+			g_ClientGlobalVariables.interpolation_amount += flLastInterpolationAmountOnTick * flEstimatedAmountToAdd;
 
             ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
                        ("Interpolation amount was lower than 0 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
+            ErrorIfNot(g_ClientGlobalVariables.interpolation_amount < 1.0f,
+                       ("Interpolation amount was higher than or equal to 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
 #ifdef false
             printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
                    g_ClientGlobalVariables.interpolation_amount,
@@ -3217,7 +3231,7 @@ void _Host_RunFrame (float time)
 		// Msg( "Running %i ticks (%f remainder) for frametime %f total %f tick %f delta %f\n", numticks, remainder, host_frametime, host_time );
 		g_ServerGlobalVariables.interpolation_amount = 0.0f;
 #ifndef SWDS
-		g_ClientGlobalVariables.interpolation_amount = 0.0f;
+		// g_ClientGlobalVariables.interpolation_amount = 0.0f;
 
 		cl.insimulation = true;
 #endif
