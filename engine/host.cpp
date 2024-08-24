@@ -3140,38 +3140,38 @@ void _Host_RunFrame (float time)
 #ifndef SWDS
     const auto CalcInterpolationAmount = [&]()
     {
-        // TODO_ENHANCED:
-        // Notice_Enhanced:
-        // This check permits to fix interpolation problems on the
-        // local player that valve has been (fucking finally)
-        // caring about on counter-strike 2.
-        //
-        // To recall the original issue, the
-        // problem that Valve cared about is that interpolation
-        // had some problems with interpolating the local
-        // player because the screen would never in the first
-        // place match the tick "screen", because interpolation
-        // amount could never reach 0.0 or 1.0
-        //
-        // Valve solution was to introduce bugs with lag
-        // compensating the local player and made the game worse,
-        // introducing a new way for cheaters to cheat even more
-        // on their games.
-        // I'm joking, but you can clearly see the outcome anyway.
-        //
-        // My solution is to simply set interpolation amount
-        // to 0.0 when a tick arrives.
-        //
-        // So when we shoot, we get the frame we shot with an
-        // interpolation amount at 0.0, perfectly aligned to user
-        // commands which is ideal for us.
-        //
-        // Now includes smoothing.
+		// TODO_ENHANCED:
+		// Notice_Enhanced:
+		// This check permits to fix interpolation problems on the
+		// local player that valve has been (fucking finally)
+		// caring about on counter-strike 2.
+		//
+		// To recall the original issue, the
+		// problem that Valve cared about is that interpolation
+		// had some problems with interpolating the local
+		// player because the screen would never in the first
+		// place match the tick "screen", because interpolation
+		// amount could never reach 0.0 or 1.0
+		//
+		// Valve solution was to introduce bugs with lag
+		// compensating the local player and made the game worse,
+		// introducing a new way for cheaters to cheat even more
+		// on their games.
+		// I'm joking, but you can clearly see the outcome anyway.
+		//
+		// My solution is to simply set interpolation amount
+		// to 0.0 when a tick arrives.
+		//
+		// So when we shoot, we get the frame we shot with an
+		// interpolation amount at 0.0, perfectly aligned to user
+		// commands which is ideal for us.
+		//
+		// Now includes smoothing.
 
 		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "1");
 
-        static float flLastInterpolationAmountOnTick = 0.0f;
-        float flInterpAmount = cl.m_tickRemainder / host_state.interval_per_tick;
+		static float flLastInterpolationAmountOnTick = 0.0f;
+		float flInterpAmount = cl.m_tickRemainder / host_state.interval_per_tick;
 
 		if (!cl_interpolation_amount_fix.GetBool())
 		{
@@ -3179,37 +3179,37 @@ void _Host_RunFrame (float time)
 			return;
 		}
 
-        if (numticks > 0 || host_frametime >= host_state.interval_per_tick)
-        {
+		if (numticks > 0 || host_frametime >= host_state.interval_per_tick)
+		{
 #ifdef false
-            printf("interpolation amount was %f, corrected to "
-                   "fix interpolation issues.\n",
-                   flInterpAmount);
+			printf("interpolation amount was %f, corrected to "
+					"fix interpolation issues.\n",
+					flInterpAmount);
 #endif
-            g_ClientGlobalVariables.interpolation_amount = 0.0f;
-            flLastInterpolationAmountOnTick = flInterpAmount;
-        }
-        else
-        {
+			g_ClientGlobalVariables.interpolation_amount = 0.0f;
+			flLastInterpolationAmountOnTick = flInterpAmount;
+		}
+		else
+		{
 			float flEstimatedAmountToAdd = host_frametime / host_state.interval_per_tick;
 
-            g_ClientGlobalVariables.interpolation_amount += flEstimatedAmountToAdd;
-			// Accumulate also the one we diddn't account for.
+			g_ClientGlobalVariables.interpolation_amount += flEstimatedAmountToAdd;
+			// Accumulate also the one we didn't account for.
 			g_ClientGlobalVariables.interpolation_amount += flLastInterpolationAmountOnTick * flEstimatedAmountToAdd;
 
-            ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
-                       ("Interpolation amount was lower than 0 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
-            ErrorIfNot(g_ClientGlobalVariables.interpolation_amount < 1.0f,
-                       ("Interpolation amount was higher than or equal to 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
+			ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
+						("Interpolation amount was lower than 0 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
+			ErrorIfNot(g_ClientGlobalVariables.interpolation_amount < 1.0f,
+						("Interpolation amount was higher than or equal to 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
 #ifdef false
-            printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
-                   g_ClientGlobalVariables.interpolation_amount,
-                   flInterpAmount,
-                   time,
-                   host_frametime,
-                   flLastInterpolationAmountOnTick);
+			printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
+					g_ClientGlobalVariables.interpolation_amount,
+					flInterpAmount,
+					time,
+					host_frametime,
+					flLastInterpolationAmountOnTick);
 #endif
-        }
+		}
     };
 #endif
     {

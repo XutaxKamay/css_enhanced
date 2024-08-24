@@ -275,7 +275,7 @@ bool CBoneFollower::Init( CBaseEntity *pOwner, const char *pModelName, solid_t &
 int CBoneFollower::UpdateTransmitState()
 {
 	// Send to the client for client-side collisions and visualization
-	return SetTransmitState( FL_EDICT_PVSCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 void CBoneFollower::VPhysicsUpdate( IPhysicsObject *pPhysics )
