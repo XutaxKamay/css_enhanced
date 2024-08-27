@@ -106,7 +106,7 @@ public:
 		entitygroundcontact.RemoveAll();
 #endif
 
-        interpolated_shoot_position.Init();
+        interpolated_amount = 0.0f;
 	}
 
 	CUserCmd& operator =( const CUserCmd& src )
@@ -139,7 +139,7 @@ public:
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
 
-        interpolated_shoot_position = src.interpolated_shoot_position;
+        interpolated_amount = src.interpolated_amount;
 		return *this;
 	}
 
@@ -168,7 +168,7 @@ public:
         CRC32_ProcessBuffer(&crc, &mousedy, sizeof(mousedy));
         CRC32_ProcessBuffer(&crc, simulationdata, sizeof(simulationdata));
         CRC32_ProcessBuffer(&crc, &debug_hitboxes, sizeof(debug_hitboxes));
-        CRC32_ProcessBuffer( &crc, &interpolated_shoot_position, sizeof(interpolated_shoot_position));
+        CRC32_ProcessBuffer(&crc, &interpolated_amount, sizeof(interpolated_amount));
 		CRC32_Final( &crc );
 
 		return crc;
@@ -184,7 +184,7 @@ public:
 		buttons = 0;
 		impulse = 0;
         debug_hitboxes = DEBUG_HITBOXES_OFF;
-        interpolated_shoot_position.Init();
+        interpolated_amount = 0.0f;
 	}
 
 	// For matching server and client commands for debugging
@@ -232,7 +232,7 @@ public:
 	uint8 debug_hitboxes;
 
     // TODO_ENHANCED: check README_ENHANCED in host.cpp!
-    Vector interpolated_shoot_position;
+    float interpolated_amount;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

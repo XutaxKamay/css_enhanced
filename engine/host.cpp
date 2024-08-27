@@ -2655,8 +2655,17 @@ void _Host_RunFrame_Input( float accumulated_extra_samples, bool bFinalTick )
 
 	g_HostTimes.EndFrameSegment( FRAME_SEGMENT_CMD_EXECUTE );
 
+	// TODO_ENHANCED: HACKHACK:
+	// the player is one frame in late because interpolation amount is calculated after CreateMove
+	// Just in case, we set it there too to interpolate with correct data!
+
+	float old_interpolation_amount = g_ClientGlobalVariables.interpolation_amount;
+	g_ClientGlobalVariables.interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
+
 	// Send any current movement commands to server and flush reliable buffer even if not moving yet.
 	CL_Move( accumulated_extra_samples, bFinalTick );
+
+	g_ClientGlobalVariables.interpolation_amount = old_interpolation_amount;
 
 #endif
 

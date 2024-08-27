@@ -15,6 +15,8 @@
 #include <cstdio>
 #include "bone_setup.h"
 #include "convar.h"
+#include "imovehelper.h"
+#include "ipredictionsystem.h"
 #include "studio.h"
 #include "util_shared.h"
 #include "c_baseplayer.h"
@@ -1330,16 +1332,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 #endif
 
-    C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
-
-    if (pPlayer)
-    {
-        cmd->interpolated_shoot_position = pPlayer->Weapon_ShootPosition();
-	}
-    else
-    {
-        cmd->interpolated_shoot_position.Init();
-    }
+    cmd->interpolated_amount = gpGlobals->interpolation_amount;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

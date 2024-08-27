@@ -7,6 +7,8 @@
 #include "cbase.h"
 #include "fx_cs_shared.h"
 #include "convar.h"
+#include "mathlib/vector.h"
+#include "usercmd.h"
 #include "weapon_csbase.h"
 
 #ifndef CLIENT_DLL
@@ -135,19 +137,26 @@ void FX_FireBullets(
 	CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( iPlayerIndex) );
 #endif
 
-    // TODO_ENHANCED:
-    // Check if interpolated_shoot_position is within interpolation bounds! (between old shoot pos and new)
-    // This is to check for cheaters abusing the shooting position.
+	// DevMsg("original shoot pos: %f %f %f\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z );
+
+	CUserCmd* playerCmd = NULL;
 
     if (pPlayer)
     {
 #ifdef CLIENT_DLL
-    if (pPlayer->m_pCurrentCommand) { vHookedOrigin = pPlayer->m_pCurrentCommand->interpolated_shoot_position; }
+		playerCmd = pPlayer->m_pCurrentCommand;
 #else
-    if (pPlayer->GetCurrentCommand()) { vHookedOrigin = pPlayer->GetCurrentCommand()->interpolated_shoot_position; }
+		playerCmd = pPlayer->GetCurrentCommand();
 #endif
 	}
-    
+
+	if (playerCmd)
+	{
+		vHookedOrigin = VectorLerp(pPlayer->m_vecPreviousShootPosition, vOrigin, playerCmd->interpolated_amount);
+	}
+
+	// DevMsg("new shoot pos: %f %f %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd ? "true" : "false" );
+
 	const char * weaponAlias =	WeaponIDToAlias( iWeaponID );
 
 	if ( !weaponAlias )
