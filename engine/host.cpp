@@ -3056,7 +3056,6 @@ void _Host_RunFrame (float time)
 	static double host_remainder = 0.0f;
 	double prevremainder;
     bool shouldrender;
-    float angleframetime = 0.0f;
 
 #if defined( RAD_TELEMETRY_ENABLED )
 	if( g_Telemetry.DemoTickEnd == ( uint32 )-1 )
@@ -3270,9 +3269,6 @@ void _Host_RunFrame (float time)
 			cl.m_tickRemainder = host_remainder;
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
             cl.SetFrameTime(host_frametime);
-#ifndef SWDS
-			CalcInterpolationAmount();
-#endif
 			for ( int tick = 0; tick < numticks; tick++ )
             {
                 g_ServerGlobalVariables.currenttick = tick;
@@ -3398,6 +3394,8 @@ void _Host_RunFrame (float time)
 				// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
                 Host_SetClientInSimulation(false);
 
+				CalcInterpolationAmount();
+
     #if defined(REPLAY_ENABLED)
                 // Update client-side replay history manager - called here
                 // since interpolation_amount is set
@@ -3406,7 +3404,6 @@ void _Host_RunFrame (float time)
 					g_pClientReplayContext->Think();
 				}
     #endif
-
                 //-------------------
                 // Run prediction if it hasn't been run yet
                 //-------------------
@@ -3418,8 +3415,14 @@ void _Host_RunFrame (float time)
 
 				CL_ApplyAddAngle();
 
-				// Ensure we get the right frametime
-				angleframetime = g_ClientGlobalVariables.frametime;
+				// TODO_ENHANCED:
+				// Update the mouse as last so we can get the right viewangles while taking screenshot.
+				// The mouse is always simulated for the current frame's time
+				// This makes updates smooth in every case
+				// continuous controllers affecting the view are also simulated this way
+				// but they have a cap applied by IN_SetSampleTime() so they are not also
+				// simulated during input gathering
+				CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
 			}
 #endif
 #if defined( REPLAY_ENABLED )
@@ -3459,8 +3462,6 @@ void _Host_RunFrame (float time)
 			g_ClientGlobalVariables.simTicksThisFrame = clientticks;
 			g_ServerGlobalVariables.simTicksThisFrame = serverticks;
 			g_ServerGlobalVariables.tickcount = sv.m_nTickCount;
-
-            CalcInterpolationAmount();
 
 			// THREADED: Run Client
 			// -------------------
@@ -3507,8 +3508,7 @@ void _Host_RunFrame (float time)
 			// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
 			Host_SetClientInSimulation( false );
 
-			// Ensure we get the right frametime
-			angleframetime = g_ClientGlobalVariables.frametime;
+			CalcInterpolationAmount();
 
 			//-------------------
 			// Run prediction if it hasn't been run yet
@@ -3543,6 +3543,15 @@ void _Host_RunFrame (float time)
 			}
 
 			Host_SetClientInSimulation( false );
+
+			// TODO_ENHANCED:
+			// Update the mouse as last so we can get the right viewangles while taking screenshot.
+			// The mouse is always simulated for the current frame's time
+			// This makes updates smooth in every case
+			// continuous controllers affecting the view are also simulated this way
+			// but they have a cap applied by IN_SetSampleTime() so they are not also
+			// simulated during input gathering
+			CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
 
 			g_ClientGlobalVariables.tickcount = saveTick;
 			numticks_last_frame = numticks;
@@ -3678,17 +3687,6 @@ void _Host_RunFrame (float time)
 	} // Profile scope, protect from setjmp() problems
 
     Host_ShowIPCCallCount();
-
-#ifndef SWDS
-    // TODO_ENHANCED:
-    // Update the mouse as last so we can get the right viewangles while taking screenshot.
-	// The mouse is always simulated for the current frame's time
-	// This makes updates smooth in every case
-	// continuous controllers affecting the view are also simulated this way
-	// but they have a cap applied by IN_SetSampleTime() so they are not also
-	// simulated during input gathering
-	CL_ExtraMouseUpdate( angleframetime );
-#endif
 }
 /*
 ==============================
