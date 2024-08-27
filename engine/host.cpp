@@ -1944,6 +1944,11 @@ void Host_AccumulateTime( float dt )
 	}
 #endif
 
+	// Adjust the client clock very slightly to keep it in line with the server clock.
+	float adj = cl.GetClockDriftMgr().AdjustFrameTime( host_frametime ) - host_frametime;
+	host_frametime += adj;
+	host_frametime_unbounded += adj;
+
 	if ( g_pSoundServices )									// not present on linux server
 		g_pSoundServices->SetSoundFrametime(dt, host_frametime);
 
@@ -3050,7 +3055,8 @@ void _Host_RunFrame (float time)
 	MDLCACHE_COARSE_LOCK_(g_pMDLCache);
 	static double host_remainder = 0.0f;
 	double prevremainder;
-	bool shouldrender;
+    bool shouldrender;
+    float angleframetime = 0.0f;
 
 #if defined( RAD_TELEMETRY_ENABLED )
 	if( g_Telemetry.DemoTickEnd == ( uint32 )-1 )
@@ -3411,6 +3417,9 @@ void _Host_RunFrame (float time)
                 CL_RunPrediction( PREDICTION_NORMAL );
 
 				CL_ApplyAddAngle();
+
+				// Ensure we get the right frametime
+				angleframetime = g_ClientGlobalVariables.frametime;
 			}
 #endif
 #if defined( REPLAY_ENABLED )
@@ -3497,6 +3506,9 @@ void _Host_RunFrame (float time)
 
 			// This causes cl.gettime() to return the true clock being used for rendering (tickcount * rate + remainder)
 			Host_SetClientInSimulation( false );
+
+			// Ensure we get the right frametime
+			angleframetime = g_ClientGlobalVariables.frametime;
 
 			//-------------------
 			// Run prediction if it hasn't been run yet
@@ -3666,15 +3678,16 @@ void _Host_RunFrame (float time)
 	} // Profile scope, protect from setjmp() problems
 
     Host_ShowIPCCallCount();
+
 #ifndef SWDS
     // TODO_ENHANCED:
-    // Update the mouse as last so we can get the right prediction viewangles on a frame
+    // Update the mouse as last so we can get the right viewangles while taking screenshot.
 	// The mouse is always simulated for the current frame's time
 	// This makes updates smooth in every case
 	// continuous controllers affecting the view are also simulated this way
 	// but they have a cap applied by IN_SetSampleTime() so they are not also
 	// simulated during input gathering
-	CL_ExtraMouseUpdate( g_ClientGlobalVariables.frametime );
+	CL_ExtraMouseUpdate( angleframetime );
 #endif
 }
 /*

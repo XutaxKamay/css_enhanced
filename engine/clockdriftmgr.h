@@ -29,10 +29,32 @@ public:
 	void SetServerTick( int iServerTick, int nLaggedTick, float flServerHostFrametime, float flServerHostFrametimeStdDeviation);
 	void IncrementCachedTickCount(bool bFinalTick);
 
+	// Pass in the frametime you would use, and it will drift it towards the server clock.
+	float AdjustFrameTime( float inputFrameTime );
+
+	// Returns how many ticks ahead of the server the client is.
+    float GetCurrentClockDifference() const;
+
 private:
 
 	void ShowDebugInfo();
 
+	// This scales the offsets so the average produced is equal to the
+	// current average + flAmount. This way, as we add corrections,
+	// we lower the average accordingly so we don't keep responding
+	// as much as we need to after we'd adjusted it a couple times.
+	void AdjustAverageDifferenceBy( float flAmountInSeconds );
+
+	enum
+	{
+		// This controls how much it smoothes out the samples from the server.
+		NUM_CLOCKDRIFT_SAMPLES=16
+	};
+
+	// This holds how many ticks the client is ahead each time we get a server tick.
+	// We average these together to get our estimate of how far ahead we are.
+	float m_ClockOffsets[NUM_CLOCKDRIFT_SAMPLES];
+	int m_iCurClockOffset;
 
 public:
     int m_nLagDiff;
