@@ -48,6 +48,8 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 {
 	VPROF( "CPlayerMove::StartCommand" );
 
+	player->m_vecPreviousShootPosition = player->Weapon_ShootPosition();
+
 #if !defined( NO_ENTITY_PREDICTION )
 	CPredictableId::ResetInstanceCounters();
 #endif
@@ -353,15 +355,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		ucmd->viewangles = vec3_angle;
 	}
 
-    // Let server invoke any needed impact functions
-	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
-	moveHelper->ProcessImpacts();
-    VPROF_SCOPE_END();
-
-    RunPostThink( player );
-
-    ServiceEventQueue( player );
-
 	// Add and subtract buttons we're forcing on the player
 	ucmd->buttons |= player->m_afButtonForced;
 	ucmd->buttons &= ~player->m_afButtonDisabled;
@@ -456,6 +449,15 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 			
 	// Copy output
 	FinishMove( player, ucmd, g_pMoveData );
+
+    // Let server invoke any needed impact functions
+	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
+	moveHelper->ProcessImpacts();
+    VPROF_SCOPE_END();
+
+    RunPostThink( player );
+
+    ServiceEventQueue( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 

@@ -769,6 +769,8 @@ void CPrediction::StartCommand( C_BasePlayer *player, CUserCmd *cmd )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StartCommand" );
 
+	player->m_vecPreviousShootPosition = player->Weapon_ShootPosition();
+
 	CPredictableId::ResetInstanceCounters();
 
 	player->m_pCurrentCommand = cmd;
@@ -919,12 +921,6 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		player->SetLocalViewAngles( ucmd->viewangles );
     }
 
-    moveHelper->ProcessImpacts();
-
-	RunPostThink( player );
-
-    ServiceEventQueue( player );
-
 // TODO
 // TODO:  Check for impulse predicted?
 
@@ -993,6 +989,12 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	}
 
 	FinishMove( player, ucmd, g_pMoveData );
+
+    moveHelper->ProcessImpacts();
+
+	RunPostThink( player );
+
+    ServiceEventQueue( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 

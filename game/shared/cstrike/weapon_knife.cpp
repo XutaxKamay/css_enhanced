@@ -339,7 +339,24 @@ bool CKnife::SwingOrStab( bool bStab )
 	float fRange = bStab ? 32 : 48; // knife range
 	
 	Vector vForward; AngleVectors( pPlayer->EyeAngles(), &vForward );
+
 	Vector vecSrc	= pPlayer->Weapon_ShootPosition();
+	CUserCmd* playerCmd = NULL;
+
+    if (pPlayer)
+    {
+#ifdef CLIENT_DLL
+		playerCmd = pPlayer->m_pCurrentCommand;
+#else
+		playerCmd = pPlayer->GetCurrentCommand();
+#endif
+	}
+
+	if (playerCmd)
+	{
+		vecSrc = VectorLerp(pPlayer->m_vecPreviousShootPosition, vecSrc, playerCmd->interpolated_amount);
+	}
+
 	Vector vecEnd	= vecSrc + vForward * fRange;
 
 	trace_t tr;
