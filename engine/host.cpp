@@ -3145,33 +3145,42 @@ void _Host_RunFrame (float time)
 #ifndef SWDS
     const auto CalcInterpolationAmount = [&]()
     {
-		// TODO_ENHANCED:
-		// Notice_Enhanced:
-		// This check permits to fix interpolation problems on the
-		// local player that valve has been (fucking finally)
-		// caring about on counter-strike 2.
-		//
-		// To recall the original issue, the
-		// problem that Valve cared about is that interpolation
-		// had some problems with interpolating the local
-		// player because the screen would never in the first
-		// place match the tick "screen", because interpolation
-		// amount could never reach 0.0 or 1.0
-		//
-		// Valve solution was to introduce bugs with lag
-		// compensating the local player and made the game worse,
-		// introducing a new way for cheaters to cheat even more
-		// on their games.
-		// I'm joking, but you can clearly see the outcome anyway.
-		//
-		// My solution is to simply set interpolation amount
-		// to 0.0 when a tick arrives.
-		//
-		// So when we shoot, we get the frame we shot with an
-		// interpolation amount at 0.0, perfectly aligned to user
-		// commands which is ideal for us.
-		//
-		// Now includes smoothing.
+        // TODO_ENHANCED:
+        // This check permits to fix interpolation problems on the
+        // local player that valve has been (fucking finally)
+        // caring about on counter-strike 2.
+        //
+        // To recall the original issue, the
+        // problem that Valve cared about is that interpolation
+        // had some problems with interpolating the local
+        // player because the screen would never in the first
+        // place match the tick "screen", because interpolation
+        // amount could never reach 0.0 or 1.0
+        //
+        // Valve solution was to introduce bugs with lag
+        // compensating the local player and made the game worse,
+        // introducing a new way for cheaters to cheat even more
+        // on their games.
+        // I'm joking, but you can clearly see the outcome anyway.
+        //
+        // My solution is to simply set interpolation amount
+        // to 0.0 when a tick arrives.
+        //
+        // So when we shoot, we get the frame we shot with an
+        // interpolation amount at 0.0, perfectly aligned to user
+        // commands which is ideal for us.
+        //
+        // README_ENHANCED:
+        // Unfortunately, some players still notice it with low enough fps.
+        // This is a problem; we return then to lag compensating the local player.
+        // Two choices here:
+        //
+        // 1) For precision we might need to send camera position, that is proven to work.
+        // 2) Send interpolation_amount so we calculate it server and in runcommand.
+        //
+		// Both works, but the first one requires validation,
+		// the second doesn't at the expense of some unprecisions due to floats.
+		// The first one is the easier route to avoid issues.
 
 		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "0", FCVAR_HIDDEN);
 

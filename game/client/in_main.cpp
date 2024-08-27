@@ -1330,6 +1330,17 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 #endif
 
+    C_BasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer();
+
+    if (pPlayer)
+    {
+        cmd->interpolated_shoot_position = pPlayer->Weapon_ShootPosition();
+	}
+    else
+    {
+        cmd->interpolated_shoot_position.Init();
+    }
+
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();
 }
