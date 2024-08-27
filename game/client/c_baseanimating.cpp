@@ -2901,7 +2901,7 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
                 // only allocate an ik block if the npc can use it
                 // The flag is now completely ignored to match server bones!
                 // If it doesn't work well, blame models.
-				if ( !m_pIk && hdr->numikchains() > 0 /* && !(m_EntClientFlags & ENTCLIENTFLAG_DONTUSEIK) */ )
+				if ( !m_pIk && hdr->numikchains() > 0 && !(m_EntClientFlags & ENTCLIENTFLAG_DONTUSEIK) )
 				{
 					m_pIk = new CIKContext;
 				}
