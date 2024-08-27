@@ -137,6 +137,7 @@ public:
 
 	virtual void GetBoneTransform( int iBone, matrix3x4_t &pBoneToWorld );
 	virtual void SetupBones( matrix3x4_t *pBoneToWorld, int boneMask );
+	virtual void UpdateIKLocks( float currentTime );
 	virtual void CalculateIKLocks( float currentTime );
 	virtual void Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 

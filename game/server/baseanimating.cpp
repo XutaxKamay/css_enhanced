@@ -1590,6 +1590,58 @@ QAngle CBaseAnimating::GetStepAngles( void ) const
 	return GetLocalAngles();
 }
 
+class CTraceFilterSkipNPCsAndPlayers : public CTraceFilterSimple
+{
+public:
+	CTraceFilterSkipNPCsAndPlayers( const IHandleEntity *passentity, int collisionGroup )
+		: CTraceFilterSimple( passentity, collisionGroup )
+	{
+	}
+
+	virtual bool ShouldHitEntity( IHandleEntity *pServerEntity, int contentsMask )
+	{
+		if ( CTraceFilterSimple::ShouldHitEntity(pServerEntity, contentsMask) )
+		{
+			CBaseEntity *pEntity = EntityFromEntityHandle( pServerEntity );
+			if ( !pEntity )
+				return true;
+
+			if ( pEntity->IsNPC() || pEntity->IsPlayer() )
+				return false;
+
+			return true;
+		}
+		return false;
+	}
+};
+
+void CBaseAnimating::UpdateIKLocks( float currentTime )
+{
+	if (!m_pIk) 
+		return;
+
+	int targetCount = m_pIk->m_target.Count();
+	if ( targetCount == 0 )
+		return;
+
+	for (int i = 0; i < targetCount; i++)
+	{
+		CIKTarget *pTarget = &m_pIk->m_target[i];
+
+		if (!pTarget->IsActive())
+			continue;
+
+		if (pTarget->GetOwner() != -1)
+		{
+			CBaseEntity *pOwner = UTIL_EntityByIndex( pTarget->GetOwner() );
+			if (pOwner != NULL)
+			{
+				pTarget->UpdateOwner( pOwner->entindex(), pOwner->GetAbsOrigin(), pOwner->GetAbsAngles() );
+			}				
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Find IK collisions with world
 // Input  : 
@@ -1598,52 +1650,81 @@ QAngle CBaseAnimating::GetStepAngles( void ) const
 
 void CBaseAnimating::CalculateIKLocks( float currentTime )
 {
-	if ( m_pIk )
+	if (!m_pIk) 
+		return;
+
+	int targetCount = m_pIk->m_target.Count();
+	if ( targetCount == 0 )
+		return;
+
+	// In TF, we might be attaching a player's view to a walking model that's using IK. If we are, it can
+	// get in here during the view setup code, and it's not normally supposed to be able to access the spatial
+	// partition that early in the rendering loop. So we allow access right here for that special case.
+	SpatialPartitionListMask_t curSuppressed = partition->GetSuppressedLists();
+	partition->SuppressLists( PARTITION_ALL_CLIENT_EDICTS, false );
+
+	Ray_t ray;
+	CTraceFilterSkipNPCsAndPlayers traceFilter( this, GetCollisionGroup() );
+
+	// FIXME: trace based on gravity or trace based on angles?
+	Vector up;
+	AngleVectors( GetAbsAngles(), NULL, NULL, &up );
+
+	// FIXME: check number of slots?
+	float minHeight = FLT_MAX;
+	float maxHeight = -FLT_MAX;
+
+	for (int i = 0; i < targetCount; i++)
 	{
-		Ray_t ray;
-		CTraceFilterSkipNPCs traceFilter( this, GetCollisionGroup() );
-		Vector up;
-		GetVectors( NULL, NULL, &up );
-		// FIXME: check number of slots?
-		for (int i = 0; i < m_pIk->m_target.Count(); i++)
+		trace_t trace;
+		CIKTarget *pTarget = &m_pIk->m_target[i];
+
+		if (!pTarget->IsActive())
+			continue;
+
+		switch( pTarget->type)
 		{
-			trace_t trace;
-			CIKTarget *pTarget = &m_pIk->m_target[i];
-
-			if (!pTarget->IsActive())
-				continue;
-
-			switch( pTarget->type )
+		case IK_GROUND:
 			{
-			case IK_GROUND:
+				Vector estGround;
+				Vector p1, p2;
+
+				// adjust ground to original ground position
+				estGround = (pTarget->est.pos - GetAbsOrigin());
+				estGround = estGround - (estGround * up) * up;
+				estGround = GetAbsOrigin() + estGround + pTarget->est.floor * up;
+
+				VectorMA( estGround, pTarget->est.height, up, p1 );
+				VectorMA( estGround, -pTarget->est.height, up, p2 );
+
+				float r = MAX( pTarget->est.radius, 1);
+
+				// don't IK to other characters
+				ray.Init( p1, p2, Vector(-r,-r,0), Vector(r,r,r*2) );
+				enginetrace->TraceRay( ray, PhysicsSolidMaskForEntity(), &traceFilter, &trace );
+
+				if ( trace.m_pEnt != NULL && trace.m_pEnt->GetMoveType() == MOVETYPE_PUSH )
 				{
-					Vector estGround;
-					estGround = (pTarget->est.pos - GetAbsOrigin());
-					estGround = estGround - (estGround * up) * up;
-					estGround = GetAbsOrigin() + estGround + pTarget->est.floor * up;
+					pTarget->SetOwner( trace.m_pEnt->entindex(), trace.m_pEnt->GetAbsOrigin(), trace.m_pEnt->GetAbsAngles() );
+				}
+				else
+				{
+					pTarget->ClearOwner( );
+				}
 
-					Vector p1, p2;
-					VectorMA( estGround, pTarget->est.height, up, p1 );
-					VectorMA( estGround, -pTarget->est.height, up, p2 );
+				if (trace.startsolid)
+				{
+					// trace from back towards hip
+					Vector tmp = estGround - pTarget->trace.closest;
+					tmp.NormalizeInPlace();
+					ray.Init( estGround - tmp * pTarget->est.height, estGround, Vector(-r,-r,0), Vector(r,r,1) );
 
-					float r = MAX(pTarget->est.radius,1);
+					// debugoverlay->AddLineOverlay( ray.m_Start, ray.m_Start + ray.m_Delta, 255, 0, 0, 0, 0 );
 
-					// don't IK to other characters
-					ray.Init( p1, p2, Vector(-r,-r,0), Vector(r,r,1) );
 					enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
 
-					/*
-					debugoverlay->AddBoxOverlay( p1, Vector(-r,-r,0), Vector(r,r,1), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 1.0f );
-					debugoverlay->AddBoxOverlay( trace.endpos, Vector(-r,-r,0), Vector(r,r,1), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 1.0f );
-					debugoverlay->AddLineOverlay( p1, trace.endpos, 255, 0, 0, 0, 1.0f );
-					*/
-
-					if (trace.startsolid)
+					if (!trace.startsolid)
 					{
-						ray.Init( pTarget->trace.hip, pTarget->est.pos, Vector(-r,-r,0), Vector(r,r,1) );
-
-						enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
-
 						p1 = trace.endpos;
 						VectorMA( p1, - pTarget->est.height, up, p2 );
 						ray.Init( p1, p2, Vector(-r,-r,0), Vector(r,r,1) );
@@ -1651,30 +1732,154 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 						enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
 					}
 
-					if (!trace.startsolid)
-					{
-						if (trace.DidHitWorld())
-						{
-							pTarget->SetPosWithNormalOffset( trace.endpos, trace.plane.normal );
-							pTarget->SetNormal( trace.plane.normal );
-						}
-						else
-						{
-							pTarget->SetPos( trace.endpos );
-							pTarget->SetAngles( GetAbsAngles() );
-						}
+					// debugoverlay->AddLineOverlay( ray.m_Start, ray.m_Start + ray.m_Delta, 0, 255, 0, 0, 0 );
+				}
 
+
+				if (!trace.startsolid)
+				{
+					if (trace.DidHitWorld())
+					{
+						// clamp normal to 33 degrees
+						const float limit = 0.832;
+						float dot = DotProduct(trace.plane.normal, up);
+						if (dot < limit)
+						{
+							Assert( dot >= 0 );
+							// subtract out up component
+							Vector diff = trace.plane.normal - up * dot;
+							// scale remainder such that it and the up vector are a unit vector
+							float d = sqrt( (1 - limit * limit) / DotProduct( diff, diff ) );
+							trace.plane.normal = up * limit + d * diff;
+						}
+						// FIXME: this is wrong with respect to contact position and actual ankle offset
+						pTarget->SetPosWithNormalOffset( trace.endpos, trace.plane.normal );
+						pTarget->SetNormal( trace.plane.normal );
+						pTarget->SetOnWorld( true );
+
+						// only do this on forward tracking or commited IK ground rules
+						if (pTarget->est.release < 0.1)
+						{
+							// keep track of ground height
+							float offset = DotProduct( pTarget->est.pos, up );
+							if (minHeight > offset )
+								minHeight = offset;
+
+							if (maxHeight < offset )
+								maxHeight = offset;
+						}
+						// FIXME: if we don't drop legs, running down hills looks horrible
+						/*
+						if (DotProduct( pTarget->est.pos, up ) < DotProduct( estGround, up ))
+						{
+							pTarget->est.pos = estGround;
+						}
+						*/
+					}
+					else if (trace.DidHitNonWorldEntity())
+					{
+						pTarget->SetPos( trace.endpos );
+						pTarget->SetAngles( GetAbsAngles() );
+
+						// only do this on forward tracking or commited IK ground rules
+						if (pTarget->est.release < 0.1)
+						{
+							float offset = DotProduct( pTarget->est.pos, up );
+							if (minHeight > offset )
+								minHeight = offset;
+
+							if (maxHeight < offset )
+								maxHeight = offset;
+						}
+						// FIXME: if we don't drop legs, running down hills looks horrible
+						/*
+						if (DotProduct( pTarget->est.pos, up ) < DotProduct( estGround, up ))
+						{
+							pTarget->est.pos = estGround;
+						}
+						*/
+					}
+					else
+					{
+						pTarget->IKFailed( );
 					}
 				}
-				break;
-			case IK_ATTACHMENT:
+				else
 				{
-					// anything on the server?
+					if (!trace.DidHitWorld())
+					{
+						pTarget->IKFailed( );
+					}
+					else
+					{
+						pTarget->SetPos( trace.endpos );
+						pTarget->SetAngles( GetAbsAngles() );
+						pTarget->SetOnWorld( true );
+					}
 				}
-				break;
+
+				/*
+				debugoverlay->AddTextOverlay( p1, i, 0, "%d %.1f %.1f %.1f ", i, 
+					pTarget->latched.deltaPos.x, pTarget->latched.deltaPos.y, pTarget->latched.deltaPos.z );
+				debugoverlay->AddBoxOverlay( pTarget->est.pos, Vector( -r, -r, -1 ), Vector( r, r, 1), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 0 );
+				*/
+				// debugoverlay->AddBoxOverlay( pTarget->latched.pos, Vector( -2, -2, 2 ), Vector( 2, 2, 6), QAngle( 0, 0, 0 ), 0, 255, 0, 0, 0 );
 			}
+			break;
+
+		case IK_ATTACHMENT:
+			{
+				CBaseEntity *pEntity = NULL;
+				float flDist = pTarget->est.radius;
+
+				// FIXME: make entity finding sticky!
+				// FIXME: what should the radius check be?
+				for ( CEntitySphereQuery sphere( pTarget->est.pos, 64 ); ( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
+				{
+					CBaseAnimating *pAnim = pEntity->GetBaseAnimating( );
+					if (!pAnim)
+						continue;
+
+					int iAttachment = pAnim->LookupAttachment( pTarget->offset.pAttachmentName );
+					if (iAttachment <= 0)
+						continue;
+
+					Vector origin;
+					QAngle angles;
+					pAnim->GetAttachment( iAttachment, origin, angles );
+
+					// debugoverlay->AddBoxOverlay( origin, Vector( -1, -1, -1 ), Vector( 1, 1, 1 ), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 0 );
+
+					float d = (pTarget->est.pos - origin).Length();
+
+					if ( d >= flDist)
+						continue;
+
+					flDist = d;
+					pTarget->SetPos( origin );
+					pTarget->SetAngles( angles );
+					// debugoverlay->AddBoxOverlay( pTarget->est.pos, Vector( -pTarget->est.radius, -pTarget->est.radius, -pTarget->est.radius ), Vector( pTarget->est.radius, pTarget->est.radius, pTarget->est.radius), QAngle( 0, 0, 0 ), 0, 255, 0, 0, 0 );
+				}
+
+				if (flDist >= pTarget->est.radius)
+				{
+					// debugoverlay->AddBoxOverlay( pTarget->est.pos, Vector( -pTarget->est.radius, -pTarget->est.radius, -pTarget->est.radius ), Vector( pTarget->est.radius, pTarget->est.radius, pTarget->est.radius), QAngle( 0, 0, 0 ), 0, 0, 255, 0, 0 );
+					// no solution, disable ik rule
+					pTarget->IKFailed( );
+				}
+			}
+			break;
 		}
 	}
+
+#if defined( HL2_DLL )
+	if (minHeight < FLT_MAX)
+	{
+		input->AddIKGroundContactInfo( entindex(), minHeight, maxHeight );
+	}
+#endif
+
+	partition->SuppressLists( curSuppressed, true );
 }
 
 
@@ -1826,6 +2031,8 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 		m_iIKCounter++;
 		m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
 		GetSkeleton( pStudioHdr, pos, q, boneMask );
+
+        UpdateIKLocks( gpGlobals->curtime );
 
 		m_pIk->UpdateTargets( pos, q, pBoneToWorld, boneComputed );
 		CalculateIKLocks( gpGlobals->curtime );
