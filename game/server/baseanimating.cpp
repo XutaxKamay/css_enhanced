@@ -1821,11 +1821,6 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 
 	if ( m_pIk )
 	{
-		m_pIk->Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
-	}
-
-	if ( m_pIk )
-	{
 		// FIXME: pass this into Studio_BuildMatrices to skip transforms
 		CBoneBitList boneComputed;
 		m_iIKCounter++;
@@ -2840,7 +2835,11 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 	{
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
 	}
-	boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+
+	if ( pStudioHdr->numbonecontrollers() )
+	{
+		boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+	}
 }
 
 int CBaseAnimating::DrawDebugTextOverlays(void) 
