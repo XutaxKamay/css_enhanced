@@ -279,6 +279,21 @@ bool CEngine::FilterTime( float dt )
 			return false;		
 		}
 	}
+	else if ( fps == 0 )
+	{
+		m_flMinFrameTime = 0.0f;
+
+		if (
+	#if !defined(SWDS)
+			!demoplayer->IsPlayingTimeDemo() && 
+	#endif
+			!g_bDedicatedServerBenchmarkMode && 
+			dt < 0.0f )
+		{
+			// framerate is too high
+			return false;		
+		}      
+	}
 
 	return true;
 }

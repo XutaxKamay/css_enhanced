@@ -9,6 +9,7 @@
 
 #include "client.h"
 #include "client_pch.h"
+#include "clockdriftmgr.h"
 #include "sound.h"
 #include <inetchannel.h>
 #include "checksum_engine.h"
@@ -508,6 +509,8 @@ Updates the local time and reads/handles messages on client net connection.
 =================
 */
 
+extern ConVar cl_clock_correction;
+
 void CL_ReadPackets ( bool bFinalTick )
 {
 	VPROF_BUDGET( "CL_ReadPackets", VPROF_BUDGETGROUP_OTHER_NETWORKING );
@@ -517,26 +520,20 @@ void CL_ReadPackets ( bool bFinalTick )
 		return;
 
 	// update client times/tick
-	if (!CClockDriftMgr::IsClockCorrectionEnabled())
+	if (cl_clock_correction.GetInt() <= 1)
 	{
 		cl.oldtickcount = cl.GetServerTickCount();
-	}
-
-	// Moved after process socket so we can receive the lastest updates.
-	if ( !cl.IsPaused() )
-	{
-		// While clock correction is off, we have the old behavior of matching the client and server clocks.
-		if (!CClockDriftMgr::IsClockCorrectionEnabled())
+		if ( !cl.IsPaused() )
 		{
-			cl.SetClientTickCount(cl.GetClientTickCount() + 1);
-			cl.SetServerTickCount(cl.GetClientTickCount());
+			cl.SetClientTickCount( cl.GetClientTickCount() + 1 );
+			
+			// While clock correction is off, we have the old behavior of matching the client and server clocks.
+			if ( !CClockDriftMgr::IsClockCorrectionEnabled() )
+				cl.SetServerTickCount( cl.GetClientTickCount() );
+
 			g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
 			g_ClientGlobalVariables.curtime = cl.GetTime();
 		}
-	}
-
-	if (!CClockDriftMgr::IsClockCorrectionEnabled())
-	{
 		// 0 or tick_rate if simulating
 		g_ClientGlobalVariables.frametime = cl.GetFrameTime();
 	}
@@ -583,29 +580,31 @@ void CL_ReadPackets ( bool bFinalTick )
 	}
 #endif
 
-	if (CClockDriftMgr::IsClockCorrectionEnabled())
-	{
-		cl.oldtickcount = cl.GetServerTickCount();
-	}
-
-    // Moved after process socket so we can receive the lastest updates.
-	if ( !cl.IsPaused() )
-	{
-		// While clock correction is off, we have the old behavior of matching the client and server clocks.
+    if (cl_clock_correction.GetInt() >= 2)
+    {
 		if (CClockDriftMgr::IsClockCorrectionEnabled())
 		{
-			cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
-			g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
-			g_ClientGlobalVariables.curtime = cl.GetTime();
+			cl.oldtickcount = cl.GetServerTickCount();
 		}
-	}
 
-	if (CClockDriftMgr::IsClockCorrectionEnabled())
-	{
-		// 0 or tick_rate if simulating
-		g_ClientGlobalVariables.frametime = cl.GetFrameTime();
-	}
+		// Moved after process socket so we can receive the lastest updates.
+		if ( !cl.IsPaused() )
+		{
+			// While clock correction is off, we have the old behavior of matching the client and server clocks.
+			if (CClockDriftMgr::IsClockCorrectionEnabled())
+			{
+				cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
+				g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
+				g_ClientGlobalVariables.curtime = cl.GetTime();
+			}
+		}
 
+		if (CClockDriftMgr::IsClockCorrectionEnabled())
+		{
+			// 0 or tick_rate if simulating
+			g_ClientGlobalVariables.frametime = cl.GetFrameTime();
+		}
+    }
 }
 
 //-----------------------------------------------------------------------------

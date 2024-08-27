@@ -767,7 +767,7 @@ C_CSPlayer::C_CSPlayer() :
 {
 	m_angEyeAngles.Init();
 
-	// AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_ANIMATION_VAR );
+	// AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR  );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
