@@ -3173,7 +3173,7 @@ void _Host_RunFrame (float time)
 		//
 		// Now includes smoothing.
 
-		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "1");
+		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "0", FCVAR_HIDDEN);
 
 		static float flLastInterpolationAmountOnTick = 0.0f;
 		float flInterpAmount = cl.m_tickRemainder / host_state.interval_per_tick;
