@@ -486,8 +486,12 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 	else
 	{
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, NULL );
+    }
+
+	if ( pStudioHdr->numbonecontrollers() )
+	{
+		boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
 	}
-	boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
 }
 
 
