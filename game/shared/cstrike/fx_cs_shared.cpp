@@ -119,6 +119,9 @@ void FX_FireBullets(
 	float flSoundTime
 	)
 {
+    // Fallback if failed to find the interpolated shoot position.
+    Vector vHookedOrigin = vOrigin;
+
     if (weapon_accuracy_noinaccuracy.GetBool())
     {
         fInaccuracy = 0.0f;
@@ -132,6 +135,19 @@ void FX_FireBullets(
 	CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( iPlayerIndex) );
 #endif
 
+    // TODO_ENHANCED:
+    // Check if interpolated_shoot_position is within interpolation bounds! (between old shoot pos and new)
+    // This is to check for cheaters abusing the shooting position.
+
+    if (pPlayer)
+    {
+#ifdef CLIENT_DLL
+    if (pPlayer->m_pCurrentCommand) { vHookedOrigin = pPlayer->m_pCurrentCommand->interpolated_shoot_position; }
+#else
+    if (pPlayer->GetCurrentCommand()) { vHookedOrigin = pPlayer->GetCurrentCommand()->interpolated_shoot_position; }
+#endif
+	}
+    
 	const char * weaponAlias =	WeaponIDToAlias( iWeaponID );
 
 	if ( !weaponAlias )
@@ -195,7 +211,7 @@ void FX_FireBullets(
 	// Dispatch one message for all the bullet impacts and sounds.
 	TE_FireBullets( 
 		iPlayerIndex,
-		vOrigin, 
+		vHookedOrigin, 
 		vAngles, 
 		iWeaponID,
 		iMode,
@@ -250,7 +266,7 @@ void FX_FireBullets(
 
 	if ( bDoEffects)
 	{
-		FX_WeaponSound( iPlayerIndex, sound_type, vOrigin, pWeaponInfo, flSoundTime );
+		FX_WeaponSound( iPlayerIndex, sound_type, vHookedOrigin, pWeaponInfo, flSoundTime );
 	}
 
 
@@ -301,7 +317,7 @@ void FX_FireBullets(
 #endif
         pPlayer->FireBullet(
 			iBullet,
-			vOrigin,
+			vHookedOrigin,
 			vAngles,
 			flRange,
 			iPenetration,
