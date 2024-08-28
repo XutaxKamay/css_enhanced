@@ -16,7 +16,7 @@
 
 // VProf is enabled by default in all configurations -except- X360 Retail.
 #if !( defined( _GAMECONSOLE ) && defined( _CERT ) )
-#define VPROF_ENABLED
+// #define VPROF_ENABLED
 #endif
 
 #if defined(_X360) && defined(VPROF_ENABLED)
