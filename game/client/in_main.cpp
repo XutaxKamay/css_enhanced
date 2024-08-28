@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstdio>
 #include "bone_setup.h"
+#include "const.h"
 #include "convar.h"
 #include "imovehelper.h"
 #include "ipredictionsystem.h"
@@ -1300,6 +1301,11 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
+    for (int i = 0; i < MAX_EDICTS; i++)
+    {
+		cmd->simulationdata[i].m_bEntityExists = false;
+    }
+
 	// Send interpolated simulation time for lag compensation
 	for (int i = 0; i <= ClientEntityList().GetHighestEntityIndex(); i++)
     {
@@ -1311,7 +1317,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
         }
 
         cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flInterpolatedSimulationTime;
-        cmd->simulationdata[pEntity->index].m_flAnimTime = pEntity->m_flSimulationTime;
+        cmd->simulationdata[pEntity->index].m_flAnimTime       = pEntity->m_flSimulationTime;
+        cmd->simulationdata[pEntity->index].m_bEntityExists    = true;
     }
 
 #ifdef CSTRIKE_DLL
