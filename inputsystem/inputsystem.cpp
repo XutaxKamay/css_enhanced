@@ -1461,7 +1461,7 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		{
 			if ( m_bRawInputSupported )
 			{
-				static RAWINPUT raw;
+				RAWINPUT raw;
 				UINT dwSize = sizeof(raw);
 
 				pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &dwSize, sizeof(RAWINPUTHEADER));

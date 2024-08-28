@@ -61,8 +61,8 @@ CFLAGS = {
 	},
 	'fastnative': {
 		'msvc':    ['/O2', '/Oy', '/MD'],
-		'gcc':     ['-O2', '-march=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
-		'clang':   ['-O2', '-march=native'],
+		'gcc':     ['-Ofast', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
+		'clang':   ['-Ofast', '-march=native', '-mtune=native'],
 		'default': ['-O3']
 	},
 	'release': {
