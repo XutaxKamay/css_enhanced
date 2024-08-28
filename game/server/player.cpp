@@ -452,7 +452,7 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_flForwardMove, FIELD_FLOAT ),
 	DEFINE_FIELD( m_flSideMove, FIELD_FLOAT ),
 	DEFINE_FIELD( m_vecPreviouslyPredictedOrigin, FIELD_POSITION_VECTOR ), 
-
+	DEFINE_FIELD( m_vecPreviousShootPosition, FIELD_POSITION_VECTOR ), 
 	DEFINE_FIELD( m_nNumCrateHudHints, FIELD_INTEGER ),
 
 
@@ -7974,6 +7974,7 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		SendPropInt			( SENDINFO( m_nWaterLevel ), 2, SPROP_UNSIGNED ),
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
 		SendPropVector      ( SENDINFO( m_vecPreviouslyPredictedOrigin ), 0, SPROP_NOSCALE),
+		SendPropVector      ( SENDINFO( m_vecPreviousShootPosition ), 0, SPROP_NOSCALE),
 END_SEND_TABLE()
 
 
