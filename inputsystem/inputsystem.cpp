@@ -11,7 +11,6 @@
 #include "tier0/etwprof.h"
 #include "tier1/convar.h"
 #include "tier0/icommandline.h"
-#include <winuser.h>
 
 #if defined( USE_SDL )
 #undef M_PI
