@@ -6,6 +6,7 @@
 
 #include "pch_materialsystem.h"
 
+#include "platform.h"
 #include "tier1/functors.h"
 #include "itextureinternal.h"
 
@@ -23,80 +24,6 @@ ConVar mat_report_queue_status( "mat_report_queue_status", "0", FCVAR_MATERIAL_S
 //-----------------------------------------------------------------------------
 // 
 //-----------------------------------------------------------------------------
-
-#if defined( _WIN32 )
-void FastCopy( byte *pDest, const byte *pSrc, size_t nBytes )
-{
-	if ( !nBytes )
-	{
-		return;
-	}
-
-#if !defined( _X360 )
-	if ( (size_t)pDest % 16 == 0 && (size_t)pSrc % 16 == 0 )
-	{
-		const int BYTES_PER_FULL = 128;
-		int nBytesFull = nBytes - ( nBytes % BYTES_PER_FULL );
-		for ( byte *pLimit = pDest + nBytesFull; pDest < pLimit; pDest += BYTES_PER_FULL, pSrc += BYTES_PER_FULL )
-		{
-			#ifdef __i386__
-			__asm
-			{
-				mov esi, pSrc
-				mov edi, pDest
-
-				movaps xmm0, [esi + 0]
-				movaps xmm1, [esi + 16]
-				movaps xmm2, [esi + 32]
-				movaps xmm3, [esi + 48]
-				movaps xmm4, [esi + 64]
-				movaps xmm5, [esi + 80]
-				movaps xmm6, [esi + 96]
-				movaps xmm7, [esi + 112]
-
-				movntps [edi + 0], xmm0
-				movntps [edi + 16], xmm1
-				movntps [edi + 32], xmm2
-				movntps [edi + 48], xmm3
-				movntps [edi + 64], xmm4
-				movntps [edi + 80], xmm5
-				movntps [edi + 96], xmm6
-				movntps [edi + 112], xmm7
-			}
-			#else
-			memcpy( pDest, pSrc, BYTES_PER_FULL);
-			#endif
-		}
-		nBytes -= nBytesFull;
-	}
-
-	if ( nBytes )
-	{
-		memcpy( pDest, pSrc, nBytes );
-	}
-#else
-	if ( (size_t)pDest % 4 == 0 && nBytes % 4 == 0 )
-	{
-		XMemCpyStreaming_WriteCombined( pDest, pSrc, nBytes );
-	}
-	else
-	{
-		// work around a bug in memcpy
-		if ((size_t)pDest % 2 == 0 && nBytes == 4)
-		{
-			*(reinterpret_cast<short *>(pDest)) = *(reinterpret_cast<const short *>(pSrc));
-			*(reinterpret_cast<short *>(pDest)+1) = *(reinterpret_cast<const short *>(pSrc)+1);
-		}
-		else
-		{
-			memcpy( pDest, pSrc, nBytes );
-		}
-	}
-#endif
-}
-#else
-#define FastCopy memcpy
-#endif
 
 //-----------------------------------------------------------------------------
 // 
@@ -440,10 +367,7 @@ public:
 			}
 
 			Assert( pDest );
-			if ( pDest )
-			{
-				FastCopy( (byte *)pDest, pVertexData, nBytesVerts );
-			}
+			memcpy( (byte *)pDest, pVertexData, nBytesVerts );
 		}
 
 		if ( pIndexData && pIndexData != &gm_ScratchIndexBuffer[0] && desc.m_nIndexSize )
@@ -451,24 +375,55 @@ public:
 			if ( !desc.m_nFirstVertex )
 			{
 				// AssertMsg(desc.m_pIndices & 0x03 == 0,"desc.m_pIndices is misaligned in CMatQueuedMesh::ExecuteDefferedBuild\n");
-				FastCopy( (byte *)desc.m_pIndices, (byte *)pIndexData, nIndices * sizeof(*pIndexData) );
+				// memcpy( (byte *)desc.m_pIndices, (byte *)pIndexData, nIndices * sizeof(*pIndexData) );
+
+				// Let it autovectorize.
+				for (int i = 0; i < nIndices; i++)
+				{
+					desc.m_pIndices[i] = pIndexData[i];
+				}
 			}
 			else
 			{
-				static ALIGN16 uint16 tempIndices[256];
+				static constexpr auto INDICES_TO_AUTOVECTORIZE = 256;
 
 				// original method
 				int i = 0;
 
+				int firstVertex = desc.m_nFirstVertex;
+				
+				uint16 DECL_ALIGN(512) firstVertexMatrix[INDICES_TO_AUTOVECTORIZE];
+
+				for (int i = 0; i < INDICES_TO_AUTOVECTORIZE; i++)
+				{
+					firstVertexMatrix[i] = firstVertex;
+				}
+
 				while ( i < nIndices )
 				{
-					int nToCopy = min( (int)ARRAYSIZE(tempIndices), nIndices - i );
-					for ( int j = 0; j < nToCopy; j++ )
+					int nToCopy = nIndices - i;
+
+					auto pSrc = pIndexData + i;
+					auto pDst = desc.m_pIndices + i;
+
+					if (nToCopy < INDICES_TO_AUTOVECTORIZE)
 					{
-						tempIndices[j] = pIndexData[i+j] + desc.m_nFirstVertex;
+						for (int j = 0; j < nToCopy; j++)
+						{
+							pDst[j] = pSrc[j] + firstVertexMatrix[j];
+						}
+
+						i += nToCopy;
 					}
-					FastCopy( (byte *)(desc.m_pIndices + i), (byte *)tempIndices, nToCopy * sizeof(uint16)  );
-					i += nToCopy;
+					else
+					{
+						for (int j = 0; j < INDICES_TO_AUTOVECTORIZE; j++)
+						{
+							pDst[j] = pSrc[j] + firstVertexMatrix[j];
+						}
+
+						i += INDICES_TO_AUTOVECTORIZE;
+					}
 				}
 			}
 		}
