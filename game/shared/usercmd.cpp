@@ -226,6 +226,16 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
         buf->WriteOneBit(0);
     }
 
+	if (from->interpolated_amount != to->interpolated_amount)
+	{
+		buf->WriteOneBit(1);
+		buf->WriteBitFloat(to->interpolated_amount);
+	}
+	else
+	{
+		buf->WriteOneBit(0);
+	}
+
 #if defined( HL2_CLIENT_DLL )
 	if ( to->entitygroundcontact.Count() != 0 )
 	{
@@ -364,6 +374,11 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 	{
 		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadUBitLong(2);
     }
+
+    if ( buf->ReadOneBit() )
+    {
+        move->interpolated_amount = buf->ReadBitFloat();
+	}
 
 #if defined( HL2_DLL )
 	if ( buf->ReadOneBit() )

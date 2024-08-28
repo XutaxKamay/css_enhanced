@@ -137,8 +137,11 @@ void FX_FireBullets(
 	CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( iPlayerIndex) );
 #endif
 
-	// DevMsg("original shoot pos: %f %f %f\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z );
-
+// #ifndef CLIENT_DLL
+// 	DevMsg("server original shoot pos: %f %f %f\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z );
+// #else
+// 	DevMsg("client original shoot pos: %f %f %f\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z );
+// #endif
 	CUserCmd* playerCmd = NULL;
 
     if (pPlayer)
@@ -155,8 +158,11 @@ void FX_FireBullets(
 		vHookedOrigin = VectorLerp(pPlayer->m_vecPreviousShootPosition, vOrigin, playerCmd->interpolated_amount);
 	}
 
-	// DevMsg("new shoot pos: %f %f %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd ? "true" : "false" );
-
+// #ifndef CLIENT_DLL
+// 	DevMsg("server new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount, playerCmd ? "true" : "false" );
+// #else
+// 	DevMsg("client new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount, playerCmd ? "true" : "false" );
+// #endif
 	const char * weaponAlias =	WeaponIDToAlias( iWeaponID );
 
 	if ( !weaponAlias )
