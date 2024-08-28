@@ -69,6 +69,7 @@ public:
 
 	// interpolation amount ( client-only ) based on fraction of next tick which has elapsed
 	float			interpolation_amount;
+	float           next_interpolation_amount;
 	int				simTicksThisFrame;
 
 	int				network_protocol;

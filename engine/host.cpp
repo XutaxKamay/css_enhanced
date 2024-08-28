@@ -2655,17 +2655,8 @@ void _Host_RunFrame_Input( float accumulated_extra_samples, bool bFinalTick )
 
 	g_HostTimes.EndFrameSegment( FRAME_SEGMENT_CMD_EXECUTE );
 
-	// TODO_ENHANCED: HACKHACK:
-	// the player is one frame in late because interpolation amount is calculated after CreateMove
-	// Just in case, we set it there too to interpolate with correct data!
-
-	float old_interpolation_amount = g_ClientGlobalVariables.interpolation_amount;
-	g_ClientGlobalVariables.interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
-
 	// Send any current movement commands to server and flush reliable buffer even if not moving yet.
 	CL_Move( accumulated_extra_samples, bFinalTick );
-
-	g_ClientGlobalVariables.interpolation_amount = old_interpolation_amount;
 
 #endif
 
@@ -3191,49 +3182,7 @@ void _Host_RunFrame (float time)
 		// the second doesn't at the expense of some unprecisions due to floats.
 		// The first one is the easier route to avoid issues.
 
-		static ConVar cl_interpolation_amount_fix("cl_interpolation_amount_fix", "0", FCVAR_HIDDEN);
-
-		static float flLastInterpolationAmountOnTick = 0.0f;
-		float flInterpAmount = cl.m_tickRemainder / host_state.interval_per_tick;
-
-		if (!cl_interpolation_amount_fix.GetBool())
-		{
-            g_ClientGlobalVariables.interpolation_amount = flInterpAmount;
-            flLastInterpolationAmountOnTick = 0.0f;
-			return;
-        }
-
-		if (numticks > 0 || host_frametime >= host_state.interval_per_tick)
-		{
-#ifdef false
-			printf("interpolation amount was %f, corrected to "
-					"fix interpolation issues.\n",
-					flInterpAmount);
-#endif
-			g_ClientGlobalVariables.interpolation_amount = 0.0f;
-			flLastInterpolationAmountOnTick = flInterpAmount;
-		}
-		else
-		{
-			float flEstimatedAmountToAdd = host_frametime / host_state.interval_per_tick;
-
-			g_ClientGlobalVariables.interpolation_amount += flEstimatedAmountToAdd;
-			// Accumulate also the one we didn't account for.
-			g_ClientGlobalVariables.interpolation_amount += flLastInterpolationAmountOnTick * flEstimatedAmountToAdd;
-
-			ErrorIfNot(g_ClientGlobalVariables.interpolation_amount >= 0.0f,
-						("Interpolation amount was lower than 0 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
-			ErrorIfNot(g_ClientGlobalVariables.interpolation_amount < 1.0f,
-						("Interpolation amount was higher than or equal to 1 (%f)\n", g_ClientGlobalVariables.interpolation_amount));
-#ifdef false
-			printf("current interp: %f, old amount: %f, time: %f, frametime: %f, last remainder not interpolated: %f\n",
-					g_ClientGlobalVariables.interpolation_amount,
-					flInterpAmount,
-					time,
-					host_frametime,
-					flLastInterpolationAmountOnTick);
-#endif
-		}
+        g_ClientGlobalVariables.interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
     };
 #endif
     {
@@ -3287,6 +3236,9 @@ void _Host_RunFrame (float time)
 			cl.m_tickRemainder = host_remainder;
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
             cl.SetFrameTime(host_frametime);
+#ifndef SWDS
+            g_ClientGlobalVariables.next_interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
+#endif
 			for ( int tick = 0; tick < numticks; tick++ )
             {
                 g_ServerGlobalVariables.currenttick = tick;
@@ -3468,6 +3420,7 @@ void _Host_RunFrame (float time)
 
 			clientticks = numticks_last_frame;
 			cl.m_tickRemainder = host_remainder_last_frame;
+            g_ClientGlobalVariables.next_interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
 			cl.SetFrameTime( last_frame_time );
 			if ( g_ClientDLL )
 			{

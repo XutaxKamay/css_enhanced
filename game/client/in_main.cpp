@@ -1332,7 +1332,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
     }
 #endif
 
-    cmd->interpolated_amount = gpGlobals->interpolation_amount;
+    cmd->interpolated_amount = gpGlobals->next_interpolation_amount;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

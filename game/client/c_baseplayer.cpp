@@ -254,6 +254,7 @@ END_RECV_TABLE()
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
 		RecvPropVector(RECVINFO(m_vecPreviouslyPredictedOrigin)),
+		RecvPropVector(RECVINFO(m_vecPreviousShootPosition)),
 END_RECV_TABLE()
 
 	
