@@ -327,7 +327,7 @@ void CInputSystem::AttachToWindow( void* hWnd )
 		RAWINPUTDEVICE Rid[1];
 		Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC; 
 		Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE; 
-		Rid[0].dwFlags = RIDEV_INPUTSINK;   
+		Rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_CAPTUREMOUSE | RIDEV_NOLEGACY;   
 		Rid[0].hwndTarget = g_InputSystem.m_hAttachedHWnd; // GetHhWnd;
 		pfnRegisterRawInputDevices(Rid, ARRAYSIZE(Rid), sizeof(Rid[0]));
 	}
@@ -1290,111 +1290,6 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		}
 		break;
 
-	case WM_LBUTTONDOWN:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, true );
-			ETWMouseDown( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case WM_LBUTTONUP:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, false );
-			ETWMouseUp( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case WM_RBUTTONDOWN:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, true );
-			ETWMouseDown( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case WM_RBUTTONUP:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, false );
-			ETWMouseUp( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case WM_MBUTTONDOWN:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, true );
-			ETWMouseDown( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case WM_MBUTTONUP:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, false );
-			ETWMouseUp( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask );
-		}
-		break;
-
-	case MS_WM_XBUTTONDOWN:
-		{
-			ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, true );
-			UpdateMouseButtonState( nButtonMask );
-
-			// Windows docs say the XBUTTON messages we should return true from
-			return TRUE;
-		}
-		break;
-
-	case MS_WM_XBUTTONUP:
-		{
-			ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, false );
-			UpdateMouseButtonState( nButtonMask );
-
-			// Windows docs say the XBUTTON messages we should return true from
-			return TRUE;
-		}
-		break;
-
-	case WM_LBUTTONDBLCLK:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, true );
-			ETWMouseDown( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask, MOUSE_LEFT );
-		}
-		break;
-
-	case WM_RBUTTONDBLCLK:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, true );
-			ETWMouseDown( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask, MOUSE_RIGHT );
-		}
-		break;
-
-	case WM_MBUTTONDBLCLK:
-		{
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, true );
-			ETWMouseDown( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-			UpdateMouseButtonState( nButtonMask, MOUSE_MIDDLE );
-		}
-		break;
-
-	case MS_WM_XBUTTONDBLCLK:
-		{
-			ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, true );
-			UpdateMouseButtonState( nButtonMask, code );
-
-			// Windows docs say the XBUTTON messages we should return true from
-			return TRUE;
-		}
-		break;
-
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 		{
@@ -1443,33 +1338,84 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		}
 		break;
 
-	case WM_MOUSEWHEEL:
-		{
-			ButtonCode_t code = (short)HIWORD( wParam ) > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
-			state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
-			PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
-			PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
-
-			state.m_pAnalogDelta[ MOUSE_WHEEL ] = ( (short)HIWORD(wParam) ) / WHEEL_DELTA;
-			state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
-			PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
-		}
-		break;
-
 #if defined( PLATFORM_WINDOWS_PC )
 	case WM_INPUT:
 		{
 			if ( m_bRawInputSupported )
 			{
-				RAWINPUT raw;
-				UINT dwSize = sizeof(raw);
+				UINT dwSize = sizeof(RAWINPUT);
+				static BYTE lpb[sizeof(RAWINPUT)];
 
-				pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &dwSize, sizeof(RAWINPUTHEADER));
+				pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, &lpb, &dwSize, sizeof(RAWINPUTHEADER));
 
-				if (raw.header.dwType == RIM_TYPEMOUSE) 
+    			RAWINPUT* raw = (RAWINPUT*)lpb;
+
+				if (raw->header.dwType == RIM_TYPEMOUSE) 
 				{
-					m_mouseRawAccumX += raw.data.mouse.lLastX;
-					m_mouseRawAccumY += raw.data.mouse.lLastY;
+					m_mouseRawAccumX += raw->data.mouse.lLastX;
+					m_mouseRawAccumY += raw->data.mouse.lLastY;
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN )
+					{
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP )
+					{
+						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN )
+					{
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP )
+					{
+						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN )
+					{
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP )
+					{
+						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN )
+					{
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP )
+					{
+						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN )
+					{
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
+					}
+
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP )
+					{
+						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
+					}
+			
+					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL )
+					{
+						ButtonCode_t code = raw->data.mouse.usButtonData < 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+						state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
+						PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
+						PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
+
+						state.m_pAnalogDelta[ MOUSE_WHEEL ] = raw->data.mouse.usButtonData / WHEEL_DELTA;
+						state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
+						PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+					}
 				} 
 			}
 		}
