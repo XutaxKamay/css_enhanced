@@ -5,12 +5,16 @@
 //===========================================================================//
 
 #include "inputsystem.h"
+#include "dbg.h"
 #include "key_translation.h"
 #include "inputsystem/ButtonCode.h"
 #include "inputsystem/AnalogCode.h"
 #include "tier0/etwprof.h"
 #include "tier1/convar.h"
 #include "tier0/icommandline.h"
+#include "tier3/tier3.h"
+#include "vgui/IInput.h"
+#include <winuser.h>
 
 #if defined( USE_SDL )
 #undef M_PI
@@ -288,7 +292,6 @@ static LRESULT CALLBACK InputSystemWindowProc( HWND hwnd, UINT uMsg, WPARAM wPar
 	return g_InputSystem.WindowProc( hwnd, uMsg, wParam, lParam );
 }
 #endif
-
 
 //-----------------------------------------------------------------------------
 // Hooks input listening up to a window
@@ -606,6 +609,12 @@ void CInputSystem::PollInputState_Windows()
 		// dispatching messages can cause the FPU control word to change
 		SetupFPUControlWord();
 	}
+
+	InputState_t &state = m_InputState[ m_bIsPolling ];
+
+	POINT point;
+	GetCursorPos(&point);
+	UpdateMousePositionState(state, point.x, point.y);
 }
 #endif
 
@@ -1423,15 +1432,6 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 #endif
 
 #endif // !USE_SDL
-
-	case WM_MOUSEMOVE:
-		{
-			UpdateMousePositionState( state, (short)LOWORD(lParam), (short)HIWORD(lParam) );
-
-			int nButtonMask = ButtonMaskFromMouseWParam( wParam );
-			UpdateMouseButtonState( nButtonMask );
-		}
- 		break;
 
 	}
 	
