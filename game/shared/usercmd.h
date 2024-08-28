@@ -57,8 +57,9 @@ struct SimulationData
     // TODO_ENHANCED:
     // For now we send the last received update for animations.
     // anim time is unreliable on low fps.
-    float m_flSimulationTime;
-	float m_flAnimTime;   
+	float m_flSimulationTime;
+	float m_flAnimTime;
+	bool m_bEntityExists;
 };
 
 class CEntityGroundContact
