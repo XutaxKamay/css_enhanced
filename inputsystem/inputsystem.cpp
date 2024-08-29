@@ -1429,12 +1429,12 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			
 					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL )
 					{
-						ButtonCode_t code = raw->data.mouse.usButtonData < 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+						ButtonCode_t code = (short)raw->data.mouse.usButtonData > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
 						state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
 						PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
 						PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
 
-						state.m_pAnalogDelta[ MOUSE_WHEEL ] = raw->data.mouse.usButtonData / WHEEL_DELTA;
+						state.m_pAnalogDelta[ MOUSE_WHEEL ] = (short)raw->data.mouse.usButtonData / WHEEL_DELTA;
 						state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
 						PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
 					}
