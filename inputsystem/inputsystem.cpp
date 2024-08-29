@@ -15,8 +15,6 @@
 #include "tier0/icommandline.h"
 #include "tier3/tier3.h"
 #include "vgui/IInput.h"
-#include <sysinfoapi.h>
-#include <winuser.h>
 
 #if defined( USE_SDL )
 #undef M_PI

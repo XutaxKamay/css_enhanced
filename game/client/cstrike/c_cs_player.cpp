@@ -794,9 +794,6 @@ C_CSPlayer::C_CSPlayer() :
 	ListenForGameEvent( "bullet_hit_player" );
 	ListenForGameEvent( "bullet_player_hitboxes" );
 	ListenForGameEvent( "player_lag_hitboxes" );
-
-    /* don't use IKs for now as they're prone to bugs */
-    m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
 }
 
 
