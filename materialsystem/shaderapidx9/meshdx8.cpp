@@ -57,7 +57,7 @@ extern ConVar mat_debugalttab;
 
 //#define DRAW_SELECTION 1
 static bool g_bDrawSelection = true;	// only used in DRAW_SELECTION 
-static unsigned short g_nScratchIndexBuffer[6]; // large enough for a fast quad; used when device is not active
+alignas(16) static unsigned short g_nScratchIndexBuffer[6]; // large enough for a fast quad; used when device is not active
 #ifdef _DEBUG
 int CVertexBuffer::s_BufferCount = 0;
 int CIndexBuffer::s_BufferCount = 0;
@@ -627,7 +627,7 @@ private:
 	CDynamicMeshDX8 *GetDynamicMesh();
 
 	CUtlVector< unsigned char, CUtlMemoryAligned< unsigned char, 32 > > m_VertexData;
-	CUtlVector< unsigned short > m_IndexData;
+	CUtlVector< unsigned short, CUtlMemoryAligned< unsigned short, 16 > > m_IndexData;
 
 	unsigned short m_VertexSize;
 	MaterialPrimitiveType_t m_Type;
