@@ -176,7 +176,7 @@ void CEventQueue::AddEvent( const char *target, const char *targetInput, variant
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay * (1.0f / gpGlobals->frametime);	// priority key in the priority queue
+	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// priority key in the priority queue
 	newEvent->m_iTarget = MAKE_STRING( target );
 	newEvent->m_pEntTarget = NULL;
 	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
@@ -195,7 +195,7 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, varian
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
-	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay * (1.0f / gpGlobals->frametime);	// priority key in the priority queue
+	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// priority key in the priority queue
 	newEvent->m_iTarget = NULL_STRING;
 	newEvent->m_pEntTarget = target;
 	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
