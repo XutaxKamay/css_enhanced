@@ -194,14 +194,6 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
     // Write finally simulation data with entity index
     for (unsigned int i = 0; i <= highestEntityIndex; i++)
     {
-        if (to->simulationdata[i].m_bEntityExists)
-        {
-            buf->WriteOneBit( 0 );
-            continue;
-        }
-
-        buf->WriteOneBit( 1 );
-
         if (from->simulationdata[i].m_flSimulationTime != to->simulationdata[i].m_flSimulationTime)
         {
             buf->WriteOneBit(1);
@@ -366,11 +358,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
     for (unsigned int i = 0; i <= highestEntityIndex; i++)
     {
-        if (!buf->ReadOneBit())
-        {
-            continue;
-        }
-
 		if (buf->ReadOneBit())
 		{
 			move->simulationdata[i].m_flSimulationTime = buf->ReadBitFloat();
