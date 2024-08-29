@@ -27,7 +27,7 @@ CDummyTexture g_DummyTexture;
 // ---------------------------------------------------------------------------------------- //
 // IMaterialSystem and IMesh stub classes.
 // ---------------------------------------------------------------------------------------- //
-static unsigned short g_DummyIndices[6];
+alignas(16) static unsigned short g_DummyIndices[6];
 
 class CDummyMesh : public IMesh
 {

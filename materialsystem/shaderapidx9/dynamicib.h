@@ -7,6 +7,7 @@
 #ifndef DYNAMICIB_H
 #define DYNAMICIB_H
 
+#include "memalloc.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -310,7 +311,7 @@ inline CIndexBuffer::CIndexBuffer( IDirect3DDevice9 *pD3D, int count,
 
 	if ( g_pShaderUtil->GetThreadMode() != MATERIAL_SINGLE_THREADED || !ThreadInMainThread() )
 	{
-		m_pSysmemBuffer = ( byte * )malloc( count * IndexSize() );
+		m_pSysmemBuffer = ( byte * )_aligned_malloc( count * IndexSize(), 16 );
 		m_nSysmemBufferStartBytes = 0;
 	}
 	else
@@ -509,7 +510,7 @@ inline CIndexBuffer::~CIndexBuffer()
 
 	if ( m_pSysmemBuffer )
 	{
-		free( m_pSysmemBuffer );
+		_aligned_free( m_pSysmemBuffer );
 		m_pSysmemBuffer = NULL;
 	}
 
@@ -800,7 +801,7 @@ inline unsigned short* CIndexBuffer::Lock( bool bReadOnly, int numIndices, int& 
 #			endif
 			m_bFlush = false;
 		}
-#endif
+    #endif
 	}
 	else
 	{
@@ -829,12 +830,13 @@ inline unsigned short* CIndexBuffer::Lock( bool bReadOnly, int numIndices, int& 
 
 	HRESULT hr = D3D_OK;
 
+    static ConVar cl_materialsystem_ignore_thread_safe("cl_materialsystem_ignore_thread_safe", "0");
 #if !defined( _X360 )
 	// If the caller isn't in the thread that owns the render lock, need to return a system memory pointer--cannot talk to GL from 
 	// the non-current thread. 
-	if ( !m_pSysmemBuffer && !g_pShaderUtil->IsRenderThreadSafe() )
+	if ( !m_pSysmemBuffer && (!g_pShaderUtil->IsRenderThreadSafe() || cl_materialsystem_ignore_thread_safe.GetBool()) )
 	{
-		m_pSysmemBuffer = ( byte * )malloc( m_IndexCount * IndexSize() );
+		m_pSysmemBuffer = ( byte * )_aligned_malloc( m_IndexCount * IndexSize(), 16 );
 		m_nSysmemBufferStartBytes = position * IndexSize();
 	}
 
@@ -1022,7 +1024,7 @@ inline void CIndexBuffer::HandleLateCreation( )
 	memcpy( pWritePtr, m_pSysmemBuffer + m_nSysmemBufferStartBytes, dataToWriteBytes );
 	ReallyUnlock( dataToWriteBytes );
 
-	free( m_pSysmemBuffer );
+	_aligned_free( m_pSysmemBuffer );
 	m_pSysmemBuffer = NULL;
 }
 

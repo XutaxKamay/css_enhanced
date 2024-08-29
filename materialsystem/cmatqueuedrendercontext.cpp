@@ -367,32 +367,61 @@ public:
 			}
 
 			Assert( pDest );
-			memcpy( (byte *)pDest, pVertexData, nBytesVerts );
+
+            auto pAlignedDest = assume_aligned<16>((byte*)pDest);
+            auto pAlignedVertexData = assume_aligned<16>(pVertexData);
+
+            for (int i = 0; i < nBytesVerts; i++)
+            {
+                pAlignedDest[i] = pAlignedVertexData[i];
+            }
 		}
 
 		if ( pIndexData && pIndexData != &gm_ScratchIndexBuffer[0] && desc.m_nIndexSize )
-		{
+        {
+            static constexpr auto INDICES_TO_AUTOVECTORIZE = 256;
+            int i                                          = 0;
+            auto pAlignedIndexData = assume_aligned<16>(pIndexData);
+            auto pAlignedIndces = (((size_t)desc.m_pIndices) % 16) == 0 ? assume_aligned<16>(desc.m_pIndices) : desc.m_pIndices;
+
 			if ( !desc.m_nFirstVertex )
 			{
 				// AssertMsg(desc.m_pIndices & 0x03 == 0,"desc.m_pIndices is misaligned in CMatQueuedMesh::ExecuteDefferedBuild\n");
 				// memcpy( (byte *)desc.m_pIndices, (byte *)pIndexData, nIndices * sizeof(*pIndexData) );
 
 				// Let it autovectorize.
-				for (int i = 0; i < nIndices; i++)
+				while ( i < nIndices )
 				{
-					desc.m_pIndices[i] = pIndexData[i];
+					int nToCopy = nIndices - i;
+
+					auto pSrc = pAlignedIndexData + i;
+					auto pDst = pAlignedIndces + i;
+
+					if (nToCopy < INDICES_TO_AUTOVECTORIZE)
+					{
+						for (int j = 0; j < nToCopy; j++)
+						{
+							pDst[j] = pSrc[j];
+						}
+
+						i += nToCopy;
+					}
+					else
+					{
+						for (int j = 0; j < INDICES_TO_AUTOVECTORIZE; j++)
+						{
+							pDst[j] = pSrc[j];
+						}
+
+						i += INDICES_TO_AUTOVECTORIZE;
+					}
 				}
 			}
 			else
 			{
-				static constexpr auto INDICES_TO_AUTOVECTORIZE = 256;
-
-				// original method
-				int i = 0;
-
 				int firstVertex = desc.m_nFirstVertex;
 				
-				uint16 DECL_ALIGN(512) firstVertexMatrix[INDICES_TO_AUTOVECTORIZE];
+				uint16 firstVertexMatrix alignas(16) [INDICES_TO_AUTOVECTORIZE];
 
 				for (int i = 0; i < INDICES_TO_AUTOVECTORIZE; i++)
 				{
@@ -402,9 +431,8 @@ public:
 				while ( i < nIndices )
 				{
 					int nToCopy = nIndices - i;
-
-					auto pSrc = pIndexData + i;
-					auto pDst = desc.m_pIndices + i;
+					auto pSrc = pAlignedIndexData + i;
+					auto pDst = pAlignedIndces + i;
 
 					if (nToCopy < INDICES_TO_AUTOVECTORIZE)
 					{
@@ -641,10 +669,10 @@ private:
 	IMesh *m_pVertexOverride;
 	IMesh *m_pIndexOverride;
 
-	static unsigned short gm_ScratchIndexBuffer[6];
+	alignas(16) static unsigned short gm_ScratchIndexBuffer [6];
 };
 
-unsigned short CMatQueuedMesh::gm_ScratchIndexBuffer[6];
+alignas(16) unsigned short CMatQueuedMesh::gm_ScratchIndexBuffer[6];
 
 //-----------------------------------------------------------------------------
 // 
