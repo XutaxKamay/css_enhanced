@@ -6,6 +6,7 @@
 
 #include "inputsystem.h"
 #include "dbg.h"
+#include "inputsystem/InputEnums.h"
 #include "key_translation.h"
 #include "inputsystem/ButtonCode.h"
 #include "inputsystem/AnalogCode.h"
@@ -14,6 +15,7 @@
 #include "tier0/icommandline.h"
 #include "tier3/tier3.h"
 #include "vgui/IInput.h"
+#include <sysinfoapi.h>
 #include <winuser.h>
 
 #if defined( USE_SDL )
@@ -1364,14 +1366,27 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 					m_mouseRawAccumX += raw->data.mouse.lLastX;
 					m_mouseRawAccumY += raw->data.mouse.lLastY;
 
+					static int dblClickTime = 0;
+					static int dblCurrentClickTime = GetDoubleClickTime();
+
 					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN )
 					{
+						if (GetTickCount() < (dblClickTime + dblCurrentClickTime))
+						{
+							PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+						}
+						else
+						{
+							dblClickTime = GetTickCount();
+						}
+
 						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
 					}
 
 					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP )
 					{
 						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+						PostButtonReleasedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
 					}
 
 					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN )
