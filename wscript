@@ -322,7 +322,7 @@ def options(opt):
 
 	grp.add_option('--sanitize', action = 'store_true', dest = 'SANITIZE', default = False,
 		help = 'build with sanitizers [default: %(default)r]')
-	opt.load('xcompile compiler_cxx compiler_c compiler_optimizations sdl2 clang_compilation_database strip_on_install waf_unit_test subproject')
+	opt.load('xcompile compiler_cxx compiler_c compiler_optimizations sdl2 clang_compilation_database waf_unit_test subproject')
 	if sys.platform == 'win32':
 		opt.load('msvc msdev msvs')
 	opt.load('reconfigure')
@@ -445,7 +445,7 @@ def configure(conf):
 
 	if sys.platform == 'win32':
 		conf.load('msvc_pdb_ext msdev msvs msvcdeps')
-	conf.load('subproject xcompile compiler_c compiler_cxx gccdeps gitversion clang_compilation_database strip_on_install waf_unit_test enforce_pic')
+	conf.load('subproject xcompile compiler_c compiler_cxx gccdeps gitversion clang_compilation_database waf_unit_test enforce_pic')
 	if conf.env.DEST_OS == 'win32' and conf.env.DEST_CPU == 'amd64':
 		conf.load('masm')
 	elif conf.env.DEST_OS == 'darwin':
