@@ -490,6 +490,8 @@ def configure(conf):
 		]
 
 	if conf.options.PROFILING > 0:
+		if conf.env.COMPILER_CC != 'msvc':
+			compiler_optional_flags += ['-finstrument-functions', '-g']
 		conf.define('VPROF_LEVEL', conf.options.PROFILING)
 		conf.define('VPROF_ENABLED', 1)
 
