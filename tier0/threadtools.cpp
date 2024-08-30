@@ -490,7 +490,7 @@ ThreadId_t ThreadGetCurrentId()
 	sys_ppu_thread_get_id( &th );
 	return th;
 #elif defined(POSIX)
-	return (ThreadId_t)pthread_self();
+	return (ThreadId_t)gettid();
 #else
 	Assert(0);
 	DebuggerBreak();
