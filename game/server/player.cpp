@@ -3274,7 +3274,6 @@ void CBasePlayer::PhysicsSimulate( void )
 			// run the last known cmd for each dropped cmd we don't have a backup for
 			while ( droppedcmds > numbackup )
 			{
-				m_LastCmd.tick_count++;
 				vecAvailCommands.AddToTail( m_LastCmd );
 				droppedcmds--;
 			}
@@ -3527,13 +3526,7 @@ bool CBasePlayer::IsUserCmdDataValid( CUserCmd *pCmd )
 	if ( IsBot() || IsFakeClient() )
 		return true;
 
-	// Maximum difference between client's and server's tick_count
-	const int nCmdMaxTickDelta = ( 1.f / gpGlobals->interval_per_tick ) * 2.5f;
-	const int nMinDelta = Max( 0, gpGlobals->tickcount - nCmdMaxTickDelta );
-	const int nMaxDelta = gpGlobals->tickcount + nCmdMaxTickDelta;
-
-	bool bValid = ( pCmd->tick_count >= nMinDelta && pCmd->tick_count < nMaxDelta ) &&
-				  // Prevent clients from sending invalid view angles to try to get leaf server code to crash
+	bool bValid = // Prevent clients from sending invalid view angles to try to get leaf server code to crash
 				  ( pCmd->viewangles.IsValid() && IsEntityQAngleReasonable( pCmd->viewangles ) ) &&
 				  // Movement ranges
 				  ( IsFinite( pCmd->forwardmove ) && IsEntityCoordinateReasonable( pCmd->forwardmove ) ) &&
@@ -3547,8 +3540,7 @@ bool CBasePlayer::IsUserCmdDataValid( CUserCmd *pCmd )
 
 		if ( nWarningLevel == 2 )
 		{
-			DevMsg( " tick_count: %i\n viewangles: %5.2f %5.2f %5.2f \n forward: %5.2f \n side: \t%5.2f \n up: \t%5.2f\n",
-					pCmd->tick_count, 
+			DevMsg( "viewangles: %5.2f %5.2f %5.2f \n forward: %5.2f \n side: \t%5.2f \n up: \t%5.2f\n",
 					pCmd->viewangles.x,
 					pCmd->viewangles.y,
 					pCmd->viewangles.x,
@@ -9230,13 +9222,8 @@ void CPlayerInfo::RunPlayerMove( CBotCmd *ucmd )
 		cmd.buttons = ucmd->buttons;
 		cmd.command_number = ucmd->command_number;
 		cmd.forwardmove = ucmd->forwardmove;
-		cmd.hasbeenpredicted = ucmd->hasbeenpredicted;
 		cmd.impulse = ucmd->impulse;
-		cmd.mousedx = ucmd->mousedx;
-		cmd.mousedy = ucmd->mousedy;
-		cmd.random_seed = ucmd->random_seed;
 		cmd.sidemove = ucmd->sidemove;
-		cmd.tick_count = ucmd->tick_count;
 		cmd.upmove = ucmd->upmove;
 		cmd.viewangles = ucmd->viewangles;
 		cmd.weaponselect = ucmd->weaponselect;
@@ -9273,13 +9260,8 @@ void CPlayerInfo::SetLastUserCommand( const CBotCmd &ucmd )
 		cmd.buttons = ucmd.buttons;
 		cmd.command_number = ucmd.command_number;
 		cmd.forwardmove = ucmd.forwardmove;
-		cmd.hasbeenpredicted = ucmd.hasbeenpredicted;
 		cmd.impulse = ucmd.impulse;
-		cmd.mousedx = ucmd.mousedx;
-		cmd.mousedy = ucmd.mousedy;
-		cmd.random_seed = ucmd.random_seed;
 		cmd.sidemove = ucmd.sidemove;
-		cmd.tick_count = ucmd.tick_count;
 		cmd.upmove = ucmd.upmove;
 		cmd.viewangles = ucmd.viewangles;
 		cmd.weaponselect = ucmd.weaponselect;
@@ -9299,13 +9281,9 @@ CBotCmd CPlayerInfo::GetLastUserCommand()
 		cmd.buttons = ucmd->buttons;
 		cmd.command_number = ucmd->command_number;
 		cmd.forwardmove = ucmd->forwardmove;
-		cmd.hasbeenpredicted = ucmd->hasbeenpredicted;
 		cmd.impulse = ucmd->impulse;
-		cmd.mousedx = ucmd->mousedx;
-		cmd.mousedy = ucmd->mousedy;
 		cmd.random_seed = ucmd->random_seed;
 		cmd.sidemove = ucmd->sidemove;
-		cmd.tick_count = ucmd->tick_count;
 		cmd.upmove = ucmd->upmove;
 		cmd.viewangles = ucmd->viewangles;
 		cmd.weaponselect = ucmd->weaponselect;

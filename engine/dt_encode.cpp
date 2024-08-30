@@ -62,105 +62,100 @@ static inline bool EncodeSpecialFloat( const SendProp *pProp, float fVal, bf_wri
 // TODO_ENHANCED:
 // Encoding works by sending a normalized float (from range 0.0 to 1.0)
 // This works because we know the range we encode the float to
-static inline void EncodeFloat(const SendProp* pProp,
-                               float fVal,
-                               bf_write* pOut,
-                               int objectID)
+static inline void EncodeFloat( const SendProp* pProp, float fVal, bf_write* pOut, int objectID )
 {
-    const auto WriteNormalizedFloat = [&](double dblValue)
-    {
-        bool isPerfectOne = dblValue >= 1.0;
+	const auto WriteNormalizedFloat = [&]( double dblValue )
+	{
+		bool isPerfectOne = dblValue >= 1.0;
 
-        if (isPerfectOne)
-        {
-            pOut->WriteOneBit(true);
-        }
-        else
-        {
-            pOut->WriteOneBit(false);
+		if ( isPerfectOne )
+		{
+			pOut->WriteOneBit( true );
+		}
+		else
+		{
+			pOut->WriteOneBit( false );
 
-            char strNumber[16];
-            V_memset(strNumber, 0, sizeof(strNumber));
-            V_sprintf_safe(strNumber, "%f", static_cast<float>(dblValue));
+			char strNumber[16];
+			V_memset( strNumber, 0, sizeof( strNumber ) );
+			V_sprintf_safe( strNumber, "%f", static_cast< float >( dblValue ) );
 
-            auto sixDigitsValue = V_atoi(&strNumber[2]);
+			auto sixDigitsValue = V_atoi( &strNumber[2] );
 
-            if (sixDigitsValue > 999999)
-            {
-                Sys_Error("EncodeFloat: tell to xutaxkamay that he's "
-                          "dumb\n");
-            }
+			if ( sixDigitsValue > 999999 )
+			{
+				Sys_Error( "EncodeFloat: tell to xutaxkamay that he's "
+						   "dumb\n" );
+			}
 
-            pOut->WriteUBitLong(sixDigitsValue, 20);
-        }
-    };
+			pOut->WriteUBitLong( sixDigitsValue, 20 );
+		}
+	};
 
-    // Check for special flags like SPROP_COORD, SPROP_NOSCALE, and
-    // SPROP_NORMAL.
-    if (EncodeSpecialFloat(pProp, fVal, pOut))
-    {
-        return;
-    }
+	// Check for special flags like SPROP_COORD, SPROP_NOSCALE, and
+	// SPROP_NORMAL.
+	if ( EncodeSpecialFloat( pProp, fVal, pOut ) )
+	{
+		return;
+	}
 
-    if ((pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f)
-        || pProp->m_fHighValue == pProp->m_fLowValue)
-    {
-        pOut->WriteBitFloat(fVal);
-        return;
-    }
+	if ( ( pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f ) || pProp->m_fHighValue == pProp->m_fLowValue )
+	{
+		pOut->WriteBitFloat( fVal );
+		return;
+	}
 
-    if (fVal > pProp->m_fHighValue)
-    {
-        Sys_Error("EncodeFloat: %s has value %f which is too big "
-                  "(%f)",
-                  pProp->GetName(),
-                  fVal,
-                  pProp->m_fHighValue);
-    }
+	if ( fVal > pProp->m_fHighValue )
+	{
+		Sys_Error( "EncodeFloat: %s has value %f which is too big "
+				   "(%f)",
+				   pProp->GetName(),
+				   fVal,
+				   pProp->m_fHighValue );
+	}
 
-    if (fVal < pProp->m_fLowValue)
-    {
-        Sys_Error("EncodeFloat: %s has value %f which is too low "
-                  "(%f)",
-                  pProp->GetName(),
-                  fVal,
-                  pProp->m_fLowValue);
-    }
+	if ( fVal < pProp->m_fLowValue )
+	{
+		Sys_Error( "EncodeFloat: %s has value %f which is too low "
+				   "(%f)",
+				   pProp->GetName(),
+				   fVal,
+				   pProp->m_fLowValue );
+	}
 
-    if (pProp->m_fLowValue > pProp->m_fHighValue)
-    {
-        Sys_Error("EncodeFloat: %s(%f) low value %f is higher than "
-                  "%f",
-                  pProp->GetName(),
-                  fVal,
-                  pProp->m_fLowValue,
-                  pProp->m_fHighValue);
-    }
+	if ( pProp->m_fLowValue > pProp->m_fHighValue )
+	{
+		Sys_Error( "EncodeFloat: %s(%f) low value %f is higher than "
+				   "%f",
+				   pProp->GetName(),
+				   fVal,
+				   pProp->m_fLowValue,
+				   pProp->m_fHighValue );
+	}
 
-    double dblVal = static_cast<double>(fVal);
-    
-    // If low value bigger than zero, we need to substract to the
-    // lowest value possible, so we can recover it later.
-    if ((pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f)
-        || (pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f))
-    {
-        dblVal -= pProp->m_fLowValue;
-    }
+	double dblVal = static_cast< double >( fVal );
 
-    double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
+	// If low value bigger than zero, we need to substract to the
+	// lowest value possible, so we can recover it later.
+	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
+		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
+	{
+		dblVal -= pProp->m_fLowValue;
+	}
 
-    bool sign     = false;
+	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
 
-    if (dblVal < 0.0)
-    {
-        sign     = true;
-        dblVal = -dblVal;
-    }
+	bool sign = false;
 
-    pOut->WriteOneBit(sign);
+	if ( dblVal < 0.0 )
+	{
+		sign   = true;
+		dblVal = -dblVal;
+	}
 
-    WriteNormalizedFloat(dblRange > 1.0 ? (dblVal / dblRange) :
-                                          dblVal);
+	pOut->WriteOneBit( sign );
+
+	WriteNormalizedFloat( dblRange > 1.0 ? ( dblVal / dblRange ) : dblVal );
 }
 
 // Look for special flags like SPROP_COORD, SPROP_NOSCALE, and SPROP_NORMAL and
@@ -203,73 +198,73 @@ static inline bool DecodeSpecialFloat( SendProp const *pProp, bf_read *pIn, floa
 	return false;
 }
 
-static inline float DecodeNormalizedFloat(const SendProp* pProp, bf_read* pIn)
+static inline float DecodeNormalizedFloat( const SendProp* pProp, bf_read* pIn )
 {
-    bool sign = pIn->ReadOneBit();
-    double dblVal;
+	bool sign = pIn->ReadOneBit();
+	double dblVal;
 
-    if (!pIn->ReadOneBit())
-    {
-        const auto fractionPart = pIn->ReadUBitLong(20);
+	if ( !pIn->ReadOneBit() )
+	{
+		const auto fractionPart = pIn->ReadUBitLong( 20 );
 
-        char strNumber[8];
-        V_memset(strNumber, 0, sizeof(strNumber));
-        V_sprintf_safe(strNumber, "%i", fractionPart);
+		char strNumber[8];
+		V_memset( strNumber, 0, sizeof( strNumber ) );
+		V_sprintf_safe( strNumber, "%i", fractionPart );
 
-        int countDigits = 0;
-        while (strNumber[countDigits])
-        {
-            countDigits++;
-        }
-
-        int digitLeft = 6 - countDigits;
-
-        if (digitLeft < 0)
-        {
-            Sys_Error("DecodeNormalizedFloat: digitLeft < 0\n");
+		int countDigits = 0;
+		while ( strNumber[countDigits] )
+		{
+			countDigits++;
 		}
 
-        char strFraction[16];
-        strFraction[0] = '0';
-        strFraction[1] = '.';
+		int digitLeft = 6 - countDigits;
 
-        for (int i = 0; i < digitLeft; i++)
-        {
-            strFraction[2 + i] = '0';
-        }
+		if ( digitLeft < 0 )
+		{
+			Sys_Error( "DecodeNormalizedFloat: digitLeft < 0\n" );
+		}
 
-        for (int i = 0; i < countDigits; i++)
-        {
-            strFraction[2 + digitLeft + i] = strNumber[i];
-        }
+		char strFraction[16];
+		strFraction[0] = '0';
+		strFraction[1] = '.';
 
-        dblVal = V_atof(strFraction);
-    }
-    else
-    {
-        dblVal = 1.0;
-    }
+		for ( int i = 0; i < digitLeft; i++ )
+		{
+			strFraction[2 + i] = '0';
+		}
 
-    if (dblVal <= 0.0)
-    {
-        return 0.0f;
-    }
+		for ( int i = 0; i < countDigits; i++ )
+		{
+			strFraction[2 + digitLeft + i] = strNumber[i];
+		}
 
-    double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
+		dblVal = V_atof( strFraction );
+	}
+	else
+	{
+		dblVal = 1.0;
+	}
 
-    if (dblRange > 1.0)
-    {
-        dblVal *= dblRange;
-    }
+	if ( dblVal <= 0.0 )
+	{
+		return 0.0f;
+	}
 
-    if ((pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f)
-        || (pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f))
-    {
-        dblVal += pProp->m_fLowValue;
-    }
+	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
 
-    dblVal = sign ? -dblVal : dblVal;
-    return static_cast<float>(dblVal);
+	if ( dblRange > 1.0 )
+	{
+		dblVal *= dblRange;
+	}
+
+	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
+		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
+	{
+		dblVal += pProp->m_fLowValue;
+	}
+
+	dblVal = sign ? -dblVal : dblVal;
+	return static_cast< float >( dblVal );
 }
 
 static inline float DecodeFloat(const SendProp* pProp, bf_read* pIn)

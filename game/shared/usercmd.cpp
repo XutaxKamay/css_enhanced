@@ -45,17 +45,6 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
-	if ( to->tick_count != ( from->tick_count + 1 ) )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteUBitLong( to->tick_count, 32 );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-	}
-
-
 	if ( to->viewangles[ 0 ] != from->viewangles[ 0 ] )
 	{
 		buf->WriteOneBit( 1 );
@@ -157,82 +146,61 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
-
-	// TODO: Can probably get away with fewer bits.
-	if ( to->mousedx != from->mousedx )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteShort( to->mousedx );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-	}
-
-	if ( to->mousedy != from->mousedy )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteShort( to->mousedy );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-    }
-
-
 #ifdef CLIENT_DLL
-    int highestEntityIndex = 0;
-    if (cl_entitylist)
-    	highestEntityIndex = cl_entitylist->GetHighestEntityIndex();
+	int highestEntityIndex = 0;
+	if ( cl_entitylist )
+	{
+		highestEntityIndex = cl_entitylist->GetHighestEntityIndex();
+	}
 #else
-    static constexpr auto highestEntityIndex = MAX_EDICTS-1;
+	static constexpr auto highestEntityIndex = MAX_EDICTS - 1;
 #endif
 
-    // Write entity count
-    buf->WriteUBitLong(highestEntityIndex, 11);
+	// Write entity count
+	buf->WriteUBitLong( highestEntityIndex, 11 );
 
-    // Write finally simulation data with entity index
-    for (unsigned int i = 0; i <= highestEntityIndex; i++)
-    {
-        if (from->simulationdata[i].m_flSimulationTime != to->simulationdata[i].m_flSimulationTime)
-        {
-            buf->WriteOneBit(1);
-            buf->WriteBitFloat(to->simulationdata[i].m_flSimulationTime);
-        }
-        else
-        {
-            buf->WriteOneBit(0);
-        }
-
-        if (from->simulationdata[i].m_flAnimTime != to->simulationdata[i].m_flAnimTime)
-        {
-            buf->WriteOneBit(1);
-            buf->WriteBitFloat(to->simulationdata[i].m_flAnimTime);
-        }
-        else
-        {
-            buf->WriteOneBit(0);
-        }
-    }
-
-    if (to->debug_hitboxes != from->debug_hitboxes)
-    {
-        buf->WriteOneBit(1);
-        buf->WriteUBitLong(to->debug_hitboxes, 2);
-    }
-    else
-    {
-        buf->WriteOneBit(0);
-    }
-
-	if (from->interpolated_amount != to->interpolated_amount)
+	// Write finally simulation data with entity index
+	for ( unsigned int i = 0; i <= highestEntityIndex; i++ )
 	{
-		buf->WriteOneBit(1);
-		buf->WriteBitFloat(to->interpolated_amount);
+		if ( from->simulationdata[i].m_flSimulationTime != to->simulationdata[i].m_flSimulationTime )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteBitFloat( to->simulationdata[i].m_flSimulationTime );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].m_flAnimTime != to->simulationdata[i].m_flAnimTime )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteBitFloat( to->simulationdata[i].m_flAnimTime );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+	}
+
+	if ( to->debug_hitboxes != from->debug_hitboxes )
+	{
+		buf->WriteOneBit( 1 );
+		buf->WriteUBitLong( to->debug_hitboxes, 2 );
 	}
 	else
 	{
-		buf->WriteOneBit(0);
+		buf->WriteOneBit( 0 );
+	}
+
+	if ( from->interpolated_amount != to->interpolated_amount )
+	{
+		buf->WriteOneBit( 1 );
+		buf->WriteBitFloat( to->interpolated_amount );
+	}
+	else
+	{
+		buf->WriteOneBit( 0 );
 	}
 
 #if defined( HL2_CLIENT_DLL )
@@ -275,16 +243,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 	{
 		// Assume steady increment
 		move->command_number = from->command_number + 1;
-	}
-
-	if ( buf->ReadOneBit() )
-	{
-		move->tick_count = buf->ReadUBitLong( 32 );
-	}
-	else
-	{
-		// Assume steady increment
-		move->tick_count = from->tick_count + 1;
 	}
 
 	// Read direction
@@ -332,7 +290,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		move->impulse = buf->ReadUBitLong( 8 );
 	}
 
-
 	if ( buf->ReadOneBit() )
 	{
 		move->weaponselect = buf->ReadUBitLong( MAX_EDICT_BITS );
@@ -344,17 +301,9 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
 	move->random_seed = MD5_PseudoRandom( move->command_number ) & 0x7fffffff;
 
-	if ( buf->ReadOneBit() )
-	{
-		move->mousedx = buf->ReadShort();
-	}
+	auto highestEntityIndex = buf->ReadUBitLong( 11 );
 
-	if ( buf->ReadOneBit() )
-	{
-		move->mousedy = buf->ReadShort();
-	}
-
-    const auto highestEntityIndex = buf->ReadUBitLong(11);
+	highestEntityIndex = MIN(MAX_EDICTS - 1, highestEntityIndex);
 
     for (unsigned int i = 0; i <= highestEntityIndex; i++)
     {
