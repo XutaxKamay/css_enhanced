@@ -25,7 +25,6 @@ public:
 	void Reset()
 	{
 		command_number = 0;
-		tick_count = 0;
 		viewangles.Init();
 		forwardmove = 0.0f;
 		sidemove = 0.0f;
@@ -35,10 +34,6 @@ public:
 		weaponselect = 0;
 		weaponsubtype = 0;
 		random_seed = 0;
-		mousedx = 0;
-		mousedy = 0;
-
-		hasbeenpredicted = false;
 	}
 
 	CBotCmd& operator =( const CBotCmd& src )
@@ -47,7 +42,6 @@ public:
 			return *this;
 
 		command_number		= src.command_number;
-		tick_count			= src.tick_count;
 		viewangles			= src.viewangles;
 		forwardmove			= src.forwardmove;
 		sidemove			= src.sidemove;
@@ -57,17 +51,11 @@ public:
 		weaponselect		= src.weaponselect;
 		weaponsubtype		= src.weaponsubtype;
 		random_seed			= src.random_seed;
-		mousedx				= src.mousedx;
-		mousedy				= src.mousedy;
-		hasbeenpredicted	= src.hasbeenpredicted;
 		return *this;
 	}
 
 	// For matching server and client commands for debugging
 	int		command_number;
-	
-	// the tick the client created this command
-	int		tick_count;
 	
 	// Player instantaneous view angles.
 	QAngle	viewangles;     
@@ -87,12 +75,6 @@ public:
 	int		weaponsubtype;
 
 	int		random_seed;	// For shared random functions
-
-	short	mousedx;		// mouse accum in x from create move
-	short	mousedy;		// mouse accum in y from create move
-
-	// Client only, tracks whether we've predicted this command at least once
-	bool	hasbeenpredicted;
 };
 
 

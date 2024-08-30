@@ -450,6 +450,8 @@ void CCSPlayer::FireBullet(
 	float xSpread, float ySpread
 	)
 {
+	VPROF( "CCSPlayer::FireBullet" );
+
 	float fCurrentDamage = iDamage;   // damage of the bullet at it's current trajectory
 	float flCurrentDistance = 0.0;  //distance that the bullet has traveled so far
 

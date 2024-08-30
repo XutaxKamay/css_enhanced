@@ -863,10 +863,6 @@ bool UserCmdChanged( const CUserCmd& lhs, const CUserCmd& rhs )
 		return true;
 	if ( lhs.weaponsubtype != rhs.weaponsubtype )
 		return true;
-	if ( lhs.mousedx != rhs.mousedx )
-		return true;
-	if ( lhs.mousedy != rhs.mousedy )
-		return true;
 	return false;
 }
 

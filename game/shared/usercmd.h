@@ -46,17 +46,17 @@ struct LayerRecord
 	LayerRecord()
 	{
 		m_sequence = 0;
-		m_cycle = 0;
-		m_weight = 0;
-		m_order = 0;
+		m_cycle	   = 0;
+		m_weight   = 0;
+		m_order	   = 0;
 	}
 };
 
 struct SimulationData
 {
-    // TODO_ENHANCED:
-    // For now we send the last received update for animations.
-    // anim time is unreliable on low fps.
+	// TODO_ENHANCED:
+	// For now we send the last received update for animations.
+	// anim time is unreliable on low fps.
 	float m_flSimulationTime;
 	float m_flAnimTime;
 	bool m_bEntityExists;
@@ -83,7 +83,6 @@ public:
 	void Reset()
 	{
 		command_number = 0;
-		tick_count = 0;
 		viewangles.Init();
 		forwardmove = 0.0f;
 		sidemove = 0.0f;
@@ -116,7 +115,6 @@ public:
 			return *this;
 
 		command_number		= src.command_number;
-		tick_count			= src.tick_count;
 		viewangles			= src.viewangles;
 		forwardmove			= src.forwardmove;
 		sidemove			= src.sidemove;
@@ -155,7 +153,6 @@ public:
 
 		CRC32_Init( &crc );
 		CRC32_ProcessBuffer( &crc, &command_number, sizeof( command_number ) );
-		CRC32_ProcessBuffer( &crc, &tick_count, sizeof( tick_count ) );
 		CRC32_ProcessBuffer( &crc, &viewangles, sizeof( viewangles ) );    
 		CRC32_ProcessBuffer( &crc, &forwardmove, sizeof( forwardmove ) );   
 		CRC32_ProcessBuffer( &crc, &sidemove, sizeof( sidemove ) );      
@@ -165,11 +162,9 @@ public:
 		CRC32_ProcessBuffer( &crc, &weaponselect, sizeof( weaponselect ) );	
 		CRC32_ProcessBuffer( &crc, &weaponsubtype, sizeof( weaponsubtype ) );
 		CRC32_ProcessBuffer( &crc, &random_seed, sizeof( random_seed ) );
-		CRC32_ProcessBuffer( &crc, &mousedx, sizeof( mousedx ) );
-        CRC32_ProcessBuffer(&crc, &mousedy, sizeof(mousedy));
-        CRC32_ProcessBuffer(&crc, simulationdata, sizeof(simulationdata));
-        CRC32_ProcessBuffer(&crc, &debug_hitboxes, sizeof(debug_hitboxes));
-        CRC32_ProcessBuffer(&crc, &interpolated_amount, sizeof(interpolated_amount));
+		CRC32_ProcessBuffer( &crc, simulationdata, sizeof( simulationdata ) );
+		CRC32_ProcessBuffer( &crc, &debug_hitboxes, sizeof( debug_hitboxes ) );
+		CRC32_ProcessBuffer( &crc, &interpolated_amount, sizeof( interpolated_amount ) );
 		CRC32_Final( &crc );
 
 		return crc;
@@ -178,21 +173,11 @@ public:
 	// Allow command, but negate gameplay-affecting values
 	void MakeInert( void )
 	{
-		viewangles = vec3_angle;
-		forwardmove = 0.f;
-		sidemove = 0.f;
-		upmove = 0.f;
-		buttons = 0;
-		impulse = 0;
-        debug_hitboxes = DEBUG_HITBOXES_OFF;
-        interpolated_amount = 0.0f;
+		Reset();
 	}
 
 	// For matching server and client commands for debugging
 	int		command_number;
-	
-	// the tick the client created this command
-	int		tick_count;
 	
 	// Player instantaneous view angles.
 	QAngle	viewangles;     
@@ -219,21 +204,21 @@ public:
 	// Client only, tracks whether we've predicted this command at least once
 	bool	hasbeenpredicted;
 
-    // TODO_ENHANCED: Lag compensate also other entities when needed.
-    // Send simulation times for each players for lag compensation.
+	// TODO_ENHANCED: Lag compensate also other entities when needed.
+	// Send simulation times for each players for lag compensation.
 	SimulationData simulationdata[MAX_EDICTS];
 
-    enum debug_hitboxes_t : uint8
-    {
+	enum debug_hitboxes_t : uint8
+	{
 		DEBUG_HITBOXES_OFF,
-        DEBUG_HITBOXES_ON_FIRE = 1 << 0,
-       	DEBUG_HITBOXES_ON_HIT = 1 << 1
+		DEBUG_HITBOXES_ON_FIRE = 1 << 0,
+		DEBUG_HITBOXES_ON_HIT  = 1 << 1
 	};
 
 	uint8 debug_hitboxes;
 
-    // TODO_ENHANCED: check README_ENHANCED in host.cpp!
-    float interpolated_amount;
+	// TODO_ENHANCED: check README_ENHANCED in host.cpp!
+	float interpolated_amount;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

@@ -1018,6 +1018,8 @@ if active == 1 then we are 1) not playing back demos ( where our commands are ig
 
 void CInput::ExtraMouseSample( float frametime, bool active )
 {
+	VPROF( "CInput::ExtraMouseSample" );
+
 	CUserCmd dummy;
 	CUserCmd *cmd = &dummy;
 
@@ -1124,14 +1126,15 @@ void CInput::ExtraMouseSample( float frametime, bool active )
 }
 
 void CInput::CreateMove ( int sequence_number, float input_sample_frametime, bool active )
-{	
+{
+	VPROF( "CInput::CreateMove" );
+
 	CUserCmd *cmd = &m_pCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 	CVerifiedUserCmd *pVerified = &m_pVerifiedCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 
 	cmd->Reset();
 
 	cmd->command_number = sequence_number;
-	cmd->tick_count = gpGlobals->tickcount;
 
 	QAngle viewangles;
 	engine->GetViewAngles( viewangles );
@@ -1301,45 +1304,45 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
-    for (int i = 0; i < MAX_EDICTS; i++)
-    {
+	for ( int i = 0; i < MAX_EDICTS; i++ )
+	{
 		cmd->simulationdata[i].m_bEntityExists = false;
-    }
+	}
 
-	// Send interpolated simulation time for lag compensation
-	for (int i = 0; i <= ClientEntityList().GetHighestEntityIndex(); i++)
-    {
-        auto pEntity = ClientEntityList().GetEnt(i);
+	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
+	for ( int i = 0; i < MAX_EDICTS; i++ )
+	{
+		auto pEntity = ClientEntityList().GetEnt( i );
 
-		if (!pEntity)
-        {
-            continue;
-        }
+		if ( !pEntity )
+		{
+			continue;
+		}
 
-        cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flInterpolatedSimulationTime;
-        cmd->simulationdata[pEntity->index].m_flAnimTime       = pEntity->m_flSimulationTime;
-        cmd->simulationdata[pEntity->index].m_bEntityExists    = true;
-    }
+		cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flInterpolatedSimulationTime;
+		cmd->simulationdata[pEntity->index].m_flAnimTime	   = pEntity->m_flSimulationTime;
+		cmd->simulationdata[pEntity->index].m_bEntityExists	   = true;
+	}
 
 #ifdef CSTRIKE_DLL
-    static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-    static ConVarRef cl_showimpacts("cl_showimpacts");
+	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
+	static ConVarRef cl_showfirebullethitboxes( "cl_showfirebullethitboxes" );
+	static ConVarRef cl_showimpacts( "cl_showimpacts" );
 
-    cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
+	cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
 
-    if (cl_showfirebullethitboxes.GetBool())
-    {
-        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_FIRE;
-    }
+	if ( cl_showfirebullethitboxes.GetBool() )
+	{
+		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_FIRE;
+	}
 
-    if (cl_showimpacts.GetBool() || debug_screenshot_bullet_position.GetBool())
-    {
-        cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
-    }
+	if ( cl_showimpacts.GetBool() || debug_screenshot_bullet_position.GetBool() )
+	{
+		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
+	}
 #endif
 
-    cmd->interpolated_amount = gpGlobals->next_interpolation_amount;
+	cmd->interpolated_amount = gpGlobals->next_interpolation_amount;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

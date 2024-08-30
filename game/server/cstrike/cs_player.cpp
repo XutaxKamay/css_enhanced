@@ -606,14 +606,6 @@ void CCSPlayer::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
 	if ( !sv_runcmds.GetInt() )
 		return;
 
-	// don't run commands in the future
-    if (!IsEngineThreaded()
-        && (ucmd->tick_count > (gpGlobals->tickcount + sv_max_usercmd_future_ticks.GetInt())) && !IsBot())
-	{
-		DevMsg( "Client cmd out of sync (delta: %i, client: %i != server: %i).\n", ucmd->tick_count - gpGlobals->tickcount, ucmd->tick_count, gpGlobals->tickcount);
-		return;
-	}
-
 	// If they use a negative bot_mimic value, then don't process their usercmds, but have
 	// bots process them instead (so they can stay still and have the bot move around).
 	CUserCmd tempCmd;
@@ -696,7 +688,6 @@ void CCSPlayer::RunPlayerMove( const QAngle& viewangles, float forwardmove, floa
 	{
 		CUserCmd lastCmd = *GetLastUserCommand();
 		lastCmd.command_number = cmd.command_number;
-		lastCmd.tick_count = cmd.tick_count;
 		SetLastUserCommand( lastCmd );
 	}
 	else
