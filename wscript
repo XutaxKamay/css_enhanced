@@ -281,10 +281,11 @@ def define_platform(conf):
 		])
 
 	conf.define('GIT_COMMIT_HASH', conf.env.GIT_VERSION)
-	conf.define('VPROF_LEVEL', 1)
 
 def options(opt):
 	grp = opt.add_option_group('Common options')
+
+	grp.add_option('-P', '--profiling', dest='PROFILING', type = int, default = 0, action='store', help='Add profiling support (0 to 4)')
 
 	grp.add_option('-4', '--32bits', action = 'store_true', dest = 'TARGET32', default = False,
 		help = 'allow targetting 32-bit engine(Linux/Windows/OSX x86 only) [default: %(default)r]')
@@ -487,6 +488,10 @@ def configure(conf):
 			'-Wno-unused-variable',
 			'-faligned-new',
 		]
+
+	if conf.options.PROFILING > 0:
+		conf.define('VPROF_LEVEL', conf.options.PROFILING)
+		conf.define('VPROF_ENABLED', 1)
 
 	c_compiler_optional_flags = [
 		'-fnonconst-initializers' # owcc
