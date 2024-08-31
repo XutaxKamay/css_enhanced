@@ -4931,7 +4931,7 @@ void C_BaseAnimating::Simulate()
 	}
 
 	// TODO_ENHANCED: check if there's other stuff like this! This can break lag compensation.
-	if ( gpGlobals->frametime != 0.0f && (m_bClientSideAnimation || C_BasePlayer::GetLocalPlayer() == this) )
+	if ( gpGlobals->frametime != 0.0f )
 	{
 		DoAnimationEvents( GetModelPtr() );
 	}
