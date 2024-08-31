@@ -39,7 +39,7 @@
 #include "engine/ivdebugoverlay.h"
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
-#include <iostream>
+// #include <iostream>
 
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
@@ -529,28 +529,28 @@ void CCSPlayer::FireBullet(
             CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
             if (lagPlayer && lagPlayer != this)
 			{
-#ifdef CLIENT_DLL
-				if ( !m_pCurrentCommand->hasbeenpredicted )
-				{
-					std::string text = "client:\n";
+// #ifdef CLIENT_DLL
+// 				if ( !m_pCurrentCommand->hasbeenpredicted )
+// 				{
+// 					std::string text = "client:\n";
 
-					auto angles = lagPlayer->GetRenderAngles();
+// 					auto angles = lagPlayer->GetRenderAngles();
 
-					text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
+// 					text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
 
-					NDebugOverlay::EntityBounds( lagPlayer, 255, 0, 0, 32, 60 );
-					std::cout << text;
-				}
-#else
-				std::string text = "server:\n";
+// 					NDebugOverlay::EntityBounds( lagPlayer, 255, 0, 0, 32, 60 );
+// 					std::cout << text;
+// 				}
+// #else
+// 				std::string text = "server:\n";
 
-				auto angles = lagPlayer->GetAbsAngles();
+// 				auto angles = lagPlayer->GetAbsAngles();
 
-				text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
+// 				text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
 				
-				NDebugOverlay::EntityBounds( lagPlayer, 0, 255, 0, 32, 60 );
-				std::cout << text;
-#endif
+// 				NDebugOverlay::EntityBounds( lagPlayer, 0, 255, 0, 32, 60 );
+// 				std::cout << text;
+// #endif
 #ifdef CLIENT_DLL
                 if (!m_pCurrentCommand->hasbeenpredicted)
                 {
