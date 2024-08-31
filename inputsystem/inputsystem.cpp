@@ -1489,7 +1489,7 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 							{
 								if (GetTickCount() < (dblClickTime[4] + dblCurrentClickTime))
 								{
-									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
 								}
 								else
 								{
