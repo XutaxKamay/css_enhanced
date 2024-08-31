@@ -1306,7 +1306,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		cmd->simulationdata[i].m_bEntityExists = false;
+		cmd->simulationdata[i].entityexists = false;
 	}
 
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
@@ -1319,9 +1319,9 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		cmd->simulationdata[pEntity->index].m_flSimulationTime = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[pEntity->index].m_flAnimTime	   = pEntity->m_flSimulationTime;
-		cmd->simulationdata[pEntity->index].m_bEntityExists	   = true;
+		cmd->simulationdata[pEntity->index].lerp_time		  = pEntity->m_flInterpolatedSimulationTime;
+		cmd->simulationdata[pEntity->index].animated_sim_time = pEntity->m_flSimulationTime;
+		cmd->simulationdata[pEntity->index].entityexists	  = true;
 	}
 
 #ifdef CSTRIKE_DLL

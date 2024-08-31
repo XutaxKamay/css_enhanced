@@ -2805,8 +2805,12 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	CStudioHdr *pStudioHdr = GetModelPtr( );
 	Assert(pStudioHdr);
 
+	// Use this for lag compensation
+	float oldcurtime = gpGlobals->curtime;
+	gpGlobals->curtime = m_flSimulationTime;
+
 	CBoneCache *pcache = Studio_GetBoneCache( m_boneCacheHandle );
-	int boneMask = BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT;
+	int boneMask = BONE_USED_BY_ANYTHING;
 
 	// TF queries these bones to position weapons when players are killed
 #if defined( TF_DLL )
@@ -2814,8 +2818,10 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 #endif
 	if ( pcache )
 	{
-		if ( pcache->IsValid( gpGlobals->curtime ) && (pcache->m_boneMask & boneMask) == boneMask && pcache->m_timeValid <= gpGlobals->curtime)
+		// Only validate for current time.
+		if ( (pcache->m_boneMask & boneMask) == boneMask && pcache->m_timeValid == gpGlobals->curtime)
 		{
+			gpGlobals->curtime = oldcurtime;
 			// Msg("%s:%s:%s (%x:%x:%8.4f) cache\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask, pcache->m_boneMask, pcache->m_timeValid );
 			// in memory and still valid, use it!
 			return pcache;
@@ -2849,6 +2855,8 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 		pcache = Studio_GetBoneCache( m_boneCacheHandle );
 	}
 	Assert(pcache);
+
+	gpGlobals->curtime = oldcurtime;
 	return pcache;
 }
 
@@ -3035,7 +3043,7 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, 0, boneMask );
+		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else
@@ -3045,7 +3053,7 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 
 	if ( pStudioHdr->numbonecontrollers() )
 	{
-		boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+		boneSetup.CalcBoneAdj( pos, q, GetBoneControllerArray() );
 	}
 }
 

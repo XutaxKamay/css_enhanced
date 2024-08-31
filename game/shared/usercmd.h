@@ -30,7 +30,7 @@
 #endif
 
 #define MAX_LAYER_RECORDS (CBaseAnimatingOverlay::MAX_OVERLAYS)
-#define MAX_POSE_PARAMETERS (CBaseAnimating::NUM_POSEPAREMETERS)
+#define MAX_POSE_PARAMETERS (MAXSTUDIOPOSEPARAM)
 #define MAX_ENCODED_CONTROLLERS (MAXSTUDIOBONECTRLS)
 
 class bf_read;
@@ -57,9 +57,9 @@ struct SimulationData
 	// TODO_ENHANCED:
 	// For now we send the last received update for animations.
 	// anim time is unreliable on low fps.
-	float m_flSimulationTime;
-	float m_flAnimTime;
-	bool m_bEntityExists;
+	float lerp_time;
+	float animated_sim_time;
+	bool entityexists;
 };
 
 class CEntityGroundContact

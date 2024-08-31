@@ -124,40 +124,6 @@ CAddonInfo g_AddonInfo[] =
 	{ "eholster",	0,						"models/weapons/w_eq_eholster_elite.mdl", "models/weapons/w_eq_eholster.mdl" },
 };
 
-// -------------------------------------------------------------------------------- //
-// Player animation event. Sent to the client when a player fires, jumps, reloads, etc..
-// -------------------------------------------------------------------------------- //
-
-class C_TEPlayerAnimEvent : public C_BaseTempEntity
-{
-public:
-	DECLARE_CLASS( C_TEPlayerAnimEvent, C_BaseTempEntity );
-	DECLARE_CLIENTCLASS();
-
-	virtual void PostDataUpdate( DataUpdateType_t updateType )
-	{
-		// Create the effect.
-		C_CSPlayer *pPlayer = dynamic_cast< C_CSPlayer* >( m_hPlayer.Get() );
-		if ( pPlayer && !pPlayer->IsDormant() )
-		{
-			pPlayer->DoAnimationEvent( (PlayerAnimEvent_t)m_iEvent.Get(), m_nData );
-		}
-	}
-
-public:
-	CNetworkHandle( CBasePlayer, m_hPlayer );
-	CNetworkVar( int, m_iEvent );
-	CNetworkVar( int, m_nData );
-};
-
-IMPLEMENT_CLIENTCLASS_EVENT( C_TEPlayerAnimEvent, DT_TEPlayerAnimEvent, CTEPlayerAnimEvent );
-
-BEGIN_RECV_TABLE_NOBASE( C_TEPlayerAnimEvent, DT_TEPlayerAnimEvent )
-	RecvPropEHandle( RECVINFO( m_hPlayer ) ),
-	RecvPropInt( RECVINFO( m_iEvent ) ),
-	RecvPropInt( RECVINFO( m_nData ) )
-END_RECV_TABLE()
-
 BEGIN_PREDICTION_DATA( C_CSPlayer )
 #ifdef CS_SHIELD_ENABLED
 	DEFINE_PRED_FIELD( m_bShieldDrawn, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
@@ -767,7 +733,7 @@ C_CSPlayer::C_CSPlayer() :
 {
 	m_angEyeAngles.Init();
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	// AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
@@ -1689,6 +1655,11 @@ bool C_CSPlayer::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 
 void C_CSPlayer::UpdateClientSideAnimation()
 {
+	if ( !m_bClientSideAnimation )
+	{
+		return;
+	}
+
 	// We do this in a different order than the base class.
 	// We need our cycle to be valid for when we call the playeranimstate update code,
 	// or else it'll synchronize the upper body anims with the wrong cycle.
@@ -2074,6 +2045,8 @@ void C_CSPlayer::PlayReloadEffect()
 
 void C_CSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 {
+	// do nothing ... let server doing its animations.
+	return;
 }
 
 void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options )
@@ -2330,11 +2303,11 @@ void C_CSPlayer::Simulate( void )
 		}
 	}
 
-    BaseClass::Simulate();
+	BaseClass::Simulate();
 
-    if ((cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2) && !IsLocalPlayer())
-    {
-        DrawClientHitboxes(gpGlobals->frametime, true);
+	if ( ( cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2 ) && !IsLocalPlayer() )
+	{
+		DrawClientHitboxes( gpGlobals->frametime, true );
 	}
 }
 

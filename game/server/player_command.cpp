@@ -342,15 +342,15 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		return; // Don't process this command
     }
 
-    gpGlobals->frametime	=  playerFrameTime;
-    gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
-    
-    StartCommand( player, ucmd );
+	gpGlobals->frametime = playerFrameTime;
+	gpGlobals->curtime	 = player->m_nTickBase * TICK_INTERVAL;
 
-    g_pGameMovement->StartTrackPredictionErrors( player );
+	StartCommand( player, ucmd );
+
+	g_pGameMovement->StartTrackPredictionErrors( player );
 
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
-	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable(ucmd->viewangles) )
+	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable( ucmd->viewangles ) )
 	{
 		ucmd->viewangles = vec3_angle;
 	}
@@ -363,9 +363,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		// If no clipping and cheats enabled and noclipduring game enabled, then leave
 		//  forwardmove and angles stuff in usercmd
-		if ( player->GetMoveType() == MOVETYPE_NOCLIP &&
-			 sv_cheats->GetBool() && 
-			 sv_noclipduringpause.GetBool() )
+		if ( player->GetMoveType() == MOVETYPE_NOCLIP && sv_cheats->GetBool() && sv_noclipduringpause.GetBool() )
 		{
 			gpGlobals->frametime = TICK_INTERVAL;
 		}
@@ -385,7 +383,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// Do weapon selection
 	if ( ucmd->weaponselect != 0 )
 	{
-		CBaseCombatWeapon *weapon = dynamic_cast< CBaseCombatWeapon * >( CBaseEntity::Instance( ucmd->weaponselect ) );
+		CBaseCombatWeapon* weapon = dynamic_cast< CBaseCombatWeapon* >( CBaseEntity::Instance( ucmd->weaponselect ) );
 		if ( weapon )
 		{
 			VPROF( "player->SelectItem()" );
@@ -393,13 +391,14 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		}
 	}
 
-	IServerVehicle *pVehicle = player->GetVehicle();
+	IServerVehicle* pVehicle = player->GetVehicle();
 
 	// Latch in impulse.
 	if ( ucmd->impulse )
 	{
 		// Discard impulse commands unless the vehicle allows them.
-		// FIXME: UsingStandardWeapons seems like a bad filter for this. The flashlight is an impulse command, for example.
+		// FIXME: UsingStandardWeapons seems like a bad filter for this. The flashlight is an impulse command, for
+		// example.
 		if ( !pVehicle || player->UsingStandardWeaponsInVehicle() )
 		{
 			player->m_nImpulse = ucmd->impulse;
@@ -420,7 +419,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		player->pl.v_angle = ucmd->viewangles;
 	}
-	else if( player->pl.fixangle == FIXANGLE_RELATIVE )
+	else if ( player->pl.fixangle == FIXANGLE_RELATIVE )
 	{
 		player->pl.v_angle = ucmd->viewangles + player->pl.anglechange;
 	}
@@ -446,18 +445,18 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		VPROF( "pVehicle->ProcessMovement()" );
 		pVehicle->ProcessMovement( player, g_pMoveData );
 	}
-			
+
 	// Copy output
 	FinishMove( player, ucmd, g_pMoveData );
 
-    // Let server invoke any needed impact functions
+	// Let server invoke any needed impact functions
 	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
 	moveHelper->ProcessImpacts();
-    VPROF_SCOPE_END();
+	VPROF_SCOPE_END();
 
-    RunPostThink( player );
+	RunPostThink( player );
 
-    ServiceEventQueue( player );
+	ServiceEventQueue( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
@@ -467,5 +466,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	if ( gpGlobals->frametime > 0 )
 	{
 		player->m_nTickBase++;
-    }
+	}
+
+	lagcompensation->TrackPlayerData( player );
 }

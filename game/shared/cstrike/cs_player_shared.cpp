@@ -5,6 +5,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "const.h"
 #include "debugoverlay_shared.h"
 #include "strtools.h"
 #ifndef CLIENT_DLL
@@ -38,7 +39,7 @@
 #include "engine/ivdebugoverlay.h"
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
-
+#include <iostream>
 
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
@@ -193,7 +194,7 @@ void UTIL_ClipTraceToPlayersHull(const Vector& vecAbsStart, const Vector& vecAbs
 	float smallestFraction = tr->fraction;
 	const float maxRange = 60.0f;
 
-	ray.Init( vecAbsStart, vecAbsEnd , mins, maxs );
+	ray.Init( vecAbsStart, vecAbsEnd, mins, maxs );
 
 	for ( int k = 1; k <= gpGlobals->maxClients; ++k )
 	{
@@ -508,7 +509,8 @@ void CCSPlayer::FireBullet(
 	CBasePlayer *lastPlayerHit = NULL;
     MDLCACHE_CRITICAL_SECTION();
 
-    bool shouldDebugHitboxesOnFire = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE;
+	// Only show for one bullet.
+    bool shouldDebugHitboxesOnFire = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE && iBullet == 0;
     bool shouldDebugHitboxesOnHit = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
 
     // TODO_ENHANCED:
@@ -526,7 +528,29 @@ void CCSPlayer::FireBullet(
         {
             CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
             if (lagPlayer && lagPlayer != this)
-            {
+			{
+#ifdef CLIENT_DLL
+				if ( !m_pCurrentCommand->hasbeenpredicted )
+				{
+					std::string text = "client:\n";
+
+					auto angles = lagPlayer->GetRenderAngles();
+
+					text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
+
+					NDebugOverlay::EntityBounds( lagPlayer, 255, 0, 0, 32, 60 );
+					std::cout << text;
+				}
+#else
+				std::string text = "server:\n";
+
+				auto angles = lagPlayer->GetAbsAngles();
+
+				text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
+				
+				NDebugOverlay::EntityBounds( lagPlayer, 0, 255, 0, 32, 60 );
+				std::cout << text;
+#endif
 #ifdef CLIENT_DLL
                 if (!m_pCurrentCommand->hasbeenpredicted)
                 {

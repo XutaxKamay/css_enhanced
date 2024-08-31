@@ -1948,7 +1948,8 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 		return;
 	}
 
-	if (GetSequence() >= hdr->GetNumSeq() || GetSequence() == -1 ) 
+	// CS weapons have this sometimes ...
+	if ( GetSequence() >= hdr->GetNumSeq() || GetSequence() == -1 )
 	{
 		SetSequence( 0 );
 	}
@@ -4928,7 +4929,8 @@ void C_BaseAnimating::Simulate()
 		DelayedInitModelEffects();
 	}
 
-	if ( gpGlobals->frametime != 0.0f  )
+	// TODO_ENHANCED: check if there's other stuff like this! This can break lag compensation.
+	if ( gpGlobals->frametime != 0.0f && m_bClientSideAnimation )
 	{
 		DoAnimationEvents( GetModelPtr() );
 	}
