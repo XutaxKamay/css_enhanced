@@ -9,6 +9,7 @@
 #include "c_baseanimating.h"
 #include "c_sprite.h"
 #include "cdll_client_int.h"
+#include "cdll_util.h"
 #include "convar.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
@@ -4930,7 +4931,7 @@ void C_BaseAnimating::Simulate()
 	}
 
 	// TODO_ENHANCED: check if there's other stuff like this! This can break lag compensation.
-	if ( gpGlobals->frametime != 0.0f && m_bClientSideAnimation )
+	if ( gpGlobals->frametime != 0.0f && (m_bClientSideAnimation || C_BasePlayer::GetLocalPlayer() == this) )
 	{
 		DoAnimationEvents( GetModelPtr() );
 	}
