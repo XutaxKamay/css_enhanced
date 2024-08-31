@@ -6,6 +6,7 @@
 // the agreement/contract under which the contents have been supplied.
 //
 //=============================================================================
+#include "toolutils/basetoolsystem.h"
 #ifdef _WIN32
 
 #if defined( _WIN32 ) && !defined( _X360 )
@@ -150,6 +151,20 @@ bool CVguiMatSysApp::SetupSearchPaths( const char *pStartingDir, bool bOnlyUseSt
 	return true;
 }
 
+bool IsFullscreen(HWND windowHandle)
+{
+    MONITORINFO monitorInfo = { 0 };
+    monitorInfo.cbSize = sizeof(MONITORINFO);
+    GetMonitorInfo(MonitorFromWindow(windowHandle, MONITOR_DEFAULTTOPRIMARY), &monitorInfo);
+
+    RECT windowRect;
+    GetWindowRect(windowHandle, &windowRect);
+
+    return windowRect.left == monitorInfo.rcMonitor.left
+        && windowRect.right == monitorInfo.rcMonitor.right
+        && windowRect.top == monitorInfo.rcMonitor.top
+        && windowRect.bottom == monitorInfo.rcMonitor.bottom;
+}
 
 //-----------------------------------------------------------------------------
 // Init, shutdown
@@ -188,7 +203,7 @@ bool CVguiMatSysApp::PreInit( )
 	if ( !m_HWnd )
 		return false;
 
-	g_pInputSystem->AttachToWindow( m_HWnd );
+	g_pInputSystem->AttachToWindow( m_HWnd, IsFullscreen((HWND)m_HWnd) );
 	g_pMatSystemSurface->AttachToWindow( m_HWnd );
 
 	// NOTE: If we specifically wanted to use a particular shader DLL, we set it here...

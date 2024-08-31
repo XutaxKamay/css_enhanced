@@ -1133,6 +1133,7 @@ void CGame::SetGameWindow( void *hWnd )
 #endif
 }
 
+extern bool IsFullscreen(HWND windowHandle);
 
 //-----------------------------------------------------------------------------
 //
@@ -1152,7 +1153,7 @@ void CGame::AttachToWindow()
 	{
 		// Attach the input system window proc
 #if defined( WIN32 )
-		g_pInputSystem->AttachToWindow( (void *)m_hWindow );
+		g_pInputSystem->AttachToWindow( (void *)m_hWindow, IsFullscreen(m_hWindow) );
 #else
 		g_pInputSystem->AttachToWindow( (void *)m_pSDLWindow );
 #endif
