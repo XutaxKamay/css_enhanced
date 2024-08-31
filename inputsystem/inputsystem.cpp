@@ -15,7 +15,6 @@
 #include "tier0/icommandline.h"
 #include "tier3/tier3.h"
 #include "vgui/IInput.h"
-#include <winuser.h>
 
 #if defined( USE_SDL )
 #undef M_PI
@@ -357,6 +356,7 @@ void CInputSystem::SetFullScreenMode( bool state )
 {
 	g_IsFullScreen = state;
 
+#if defined( PLATFORM_WINDOWS )
 	if ( m_bRawInputSupported )
 	{
 		RAWINPUTDEVICE Rid[1];
@@ -374,6 +374,7 @@ void CInputSystem::SetFullScreenMode( bool state )
 		Rid[0].hwndTarget = m_hAttachedHWnd; // GetHhWnd;
 		pfnRegisterRawInputDevices(Rid, ARRAYSIZE(Rid), sizeof(Rid[0]));
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

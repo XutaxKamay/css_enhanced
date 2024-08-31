@@ -1155,7 +1155,7 @@ void CGame::AttachToWindow()
 #if defined( WIN32 )
 		g_pInputSystem->AttachToWindow( (void *)m_hWindow, IsFullscreen(m_hWindow) );
 #else
-		g_pInputSystem->AttachToWindow( (void *)m_pSDLWindow );
+		g_pInputSystem->AttachToWindow( (void *)m_pSDLWindow, SDL_GetWindowFlags(m_pSDLWindow) & SDL_WINDOW_FULLSCREEN );
 #endif
 		g_pInputSystem->EnableInput( true );
 		g_pInputSystem->EnableMessagePump( false );
