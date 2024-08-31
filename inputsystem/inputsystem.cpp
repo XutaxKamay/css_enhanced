@@ -15,6 +15,7 @@
 #include "tier0/icommandline.h"
 #include "tier3/tier3.h"
 #include "vgui/IInput.h"
+#include <winuser.h>
 
 #if defined( USE_SDL )
 #undef M_PI
@@ -26,6 +27,8 @@ static void initKeymap(void);
 #include "xbox/xbox_win32stubs.h"
 #endif
 ConVar joy_xcontroller_found( "joy_xcontroller_found", "1", FCVAR_HIDDEN, "Automatically set to 1 if an xcontroller has been detected." );
+
+bool g_IsFullScreen = false;
 
 //-----------------------------------------------------------------------------
 // Singleton instance
@@ -296,7 +299,7 @@ static LRESULT CALLBACK InputSystemWindowProc( HWND hwnd, UINT uMsg, WPARAM wPar
 //-----------------------------------------------------------------------------
 // Hooks input listening up to a window
 //-----------------------------------------------------------------------------
-void CInputSystem::AttachToWindow( void* hWnd )
+void CInputSystem::AttachToWindow( void* hWnd, bool bIsFullScreen )
 {
 	Assert( m_hAttachedHWnd == 0 );
 	if ( m_hAttachedHWnd )
@@ -325,13 +328,23 @@ void CInputSystem::AttachToWindow( void* hWnd )
 #define HID_USAGE_GENERIC_MOUSE        ((USHORT) 0x02)
 #endif
 
+	g_IsFullScreen = bIsFullScreen;
+
 	if ( m_bRawInputSupported )
 	{
 		RAWINPUTDEVICE Rid[1];
 		Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC; 
-		Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE; 
-		Rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_CAPTUREMOUSE | RIDEV_NOLEGACY;   
-		Rid[0].hwndTarget = g_InputSystem.m_hAttachedHWnd; // GetHhWnd;
+		Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+		// Fullscreen optimizations
+		if ( g_IsFullScreen )
+		{
+			Rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_CAPTUREMOUSE | RIDEV_NOLEGACY;
+		}
+		else
+		{
+			Rid[0].dwFlags = RIDEV_INPUTSINK;
+		}
+		Rid[0].hwndTarget = m_hAttachedHWnd; // GetHhWnd;
 		pfnRegisterRawInputDevices(Rid, ARRAYSIZE(Rid), sizeof(Rid[0]));
 	}
 #endif
@@ -340,6 +353,28 @@ void CInputSystem::AttachToWindow( void* hWnd )
 	ClearInputState();
 }
 
+void CInputSystem::SetFullScreenMode( bool state )
+{
+	g_IsFullScreen = state;
+
+	if ( m_bRawInputSupported )
+	{
+		RAWINPUTDEVICE Rid[1];
+		Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC; 
+		Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+		// Fullscreen optimizations
+		if ( g_IsFullScreen )
+		{
+			Rid[0].dwFlags = RIDEV_INPUTSINK | RIDEV_CAPTUREMOUSE | RIDEV_NOLEGACY;
+		}
+		else
+		{
+			Rid[0].dwFlags = RIDEV_INPUTSINK;
+		}
+		Rid[0].hwndTarget = m_hAttachedHWnd; // GetHhWnd;
+		pfnRegisterRawInputDevices(Rid, ARRAYSIZE(Rid), sizeof(Rid[0]));
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Unhooks input listening from a window
@@ -612,9 +647,13 @@ void CInputSystem::PollInputState_Windows()
 
 	InputState_t &state = m_InputState[ m_bIsPolling ];
 
-	POINT point;
-	GetCursorPos(&point);
-	UpdateMousePositionState(state, point.x, point.y);
+	if ( g_IsFullScreen )
+	{
+		POINT point;
+		GetCursorPos( &point );
+
+		UpdateMousePositionState( state, point.x, point.y );
+	}
 }
 #endif
 
@@ -1276,195 +1315,476 @@ void CInputSystem::UpdateMousePositionState( InputState_t &state, short x, short
 //-----------------------------------------------------------------------------
 LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
-#if defined( PLATFORM_WINDOWS ) // We use this even for SDL to handle mouse move.
-	if ( !m_bEnabled )
-		return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
-
-	if ( hwnd != m_hAttachedHWnd )
-		return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
-
-	InputState_t &state = m_InputState[ m_bIsPolling ];
-	switch( uMsg )
+	if ( g_IsFullScreen )
 	{
-	
-#if !defined( USE_SDL )
-	case WM_ACTIVATEAPP:
-		if ( hwnd == m_hAttachedHWnd )
-		{
-			bool bActivated = ( wParam == 1 );
-			if ( !bActivated )
+		#if defined( PLATFORM_WINDOWS ) // We use this even for SDL to handle mouse move.
+			if ( !m_bEnabled )
+				return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
+
+			if ( hwnd != m_hAttachedHWnd )
+				return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
+
+			InputState_t &state = m_InputState[ m_bIsPolling ];
+			switch( uMsg )
 			{
-				ResetInputState();
-			}
-		}
-		break;
-
-	case WM_KEYDOWN:
-	case WM_SYSKEYDOWN:
-		{
-			// Suppress key repeats
-			if ( !( lParam & ( 1<<30 ) ) )
-			{
-				// NOTE: These two can be unequal! For example, keypad enter
-				// which returns KEY_ENTER from virtual keys, and KEY_PAD_ENTER from scan codes
-				// Since things like vgui care about virtual keys; we're going to
-				// put both scan codes in the input message
-				ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
-				ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
-				PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, scanCode, virtualCode );
-
-				// Post ETW events describing key presses to help correlate input events to performance
-				// problems in the game.
-				ETWKeyDown( scanCode, virtualCode, ButtonCodeToString( virtualCode ) );
-
-				// Deal with toggles
-				if ( scanCode == KEY_CAPSLOCK || scanCode == KEY_SCROLLLOCK || scanCode == KEY_NUMLOCK )
-				{
-					int nVirtualKey;
-					ButtonCode_t toggleCode;
-					switch( scanCode )
-					{
-					default: case KEY_CAPSLOCK: nVirtualKey = VK_CAPITAL; toggleCode = KEY_CAPSLOCKTOGGLE; break;
-					case KEY_SCROLLLOCK: nVirtualKey = VK_SCROLL; toggleCode = KEY_SCROLLLOCKTOGGLE; break;
-					case KEY_NUMLOCK: nVirtualKey = VK_NUMLOCK; toggleCode = KEY_NUMLOCKTOGGLE; break;
-					};
-
-					SHORT wState = GetKeyState( nVirtualKey );
-					bool bToggleState = ( wState & 0x1 ) != 0;
-					PostButtonPressedEvent( bToggleState ? IE_ButtonPressed : IE_ButtonReleased, m_nLastSampleTick, toggleCode, toggleCode );
-				}
-			}
-		}
-		break;
-
-	case WM_KEYUP:
-	case WM_SYSKEYUP:
-		{
-			// Don't handle key ups if the key's already up. This can happen when we alt-tab back to the engine.
-			ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
-			ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
-			PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, scanCode, virtualCode );
-		}
-		break;
-
-#if defined( PLATFORM_WINDOWS_PC )
-	case WM_INPUT:
-		{
-			if ( m_bRawInputSupported )
-			{
-				UINT dwSize = sizeof(RAWINPUT);
-				static BYTE lpb[sizeof(RAWINPUT)];
-
-				pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, &lpb, &dwSize, sizeof(RAWINPUTHEADER));
-
-    			RAWINPUT* raw = (RAWINPUT*)lpb;
-
-				if (raw->header.dwType == RIM_TYPEMOUSE) 
-				{
-					m_mouseRawAccumX += raw->data.mouse.lLastX;
-					m_mouseRawAccumY += raw->data.mouse.lLastY;
-
-					static int dblClickTime = 0;
-					static int dblCurrentClickTime = GetDoubleClickTime();
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN )
-					{
-						if (GetTickCount() < (dblClickTime + dblCurrentClickTime))
-						{
-							PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
-						}
-						else
-						{
-							dblClickTime = GetTickCount();
-						}
-
-						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP )
-					{
-						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
-						PostButtonReleasedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN )
-					{
-						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP )
-					{
-						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN )
-					{
-						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP )
-					{
-						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN )
-					{
-						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP )
-					{
-						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN )
-					{
-						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
-					}
-
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP )
-					{
-						PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
-					}
 			
-					if ( raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL )
+		#if !defined( USE_SDL )
+			case WM_ACTIVATEAPP:
+				if ( hwnd == m_hAttachedHWnd )
+				{
+					bool bActivated = ( wParam == 1 );
+					if ( !bActivated )
 					{
-						ButtonCode_t code = (short)raw->data.mouse.usButtonData > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
-						state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
-						PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
-						PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
-
-						state.m_pAnalogDelta[ MOUSE_WHEEL ] = (short)raw->data.mouse.usButtonData / WHEEL_DELTA;
-						state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
-						PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+						ResetInputState();
 					}
-				} 
+				}
+				break;
+
+			case WM_KEYDOWN:
+			case WM_SYSKEYDOWN:
+				{
+					// Suppress key repeats
+					if ( !( lParam & ( 1<<30 ) ) )
+					{
+						// NOTE: These two can be unequal! For example, keypad enter
+						// which returns KEY_ENTER from virtual keys, and KEY_PAD_ENTER from scan codes
+						// Since things like vgui care about virtual keys; we're going to
+						// put both scan codes in the input message
+						ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
+						ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, scanCode, virtualCode );
+
+						// Post ETW events describing key presses to help correlate input events to performance
+						// problems in the game.
+						ETWKeyDown( scanCode, virtualCode, ButtonCodeToString( virtualCode ) );
+
+						// Deal with toggles
+						if ( scanCode == KEY_CAPSLOCK || scanCode == KEY_SCROLLLOCK || scanCode == KEY_NUMLOCK )
+						{
+							int nVirtualKey;
+							ButtonCode_t toggleCode;
+							switch( scanCode )
+							{
+							default: case KEY_CAPSLOCK: nVirtualKey = VK_CAPITAL; toggleCode = KEY_CAPSLOCKTOGGLE; break;
+							case KEY_SCROLLLOCK: nVirtualKey = VK_SCROLL; toggleCode = KEY_SCROLLLOCKTOGGLE; break;
+							case KEY_NUMLOCK: nVirtualKey = VK_NUMLOCK; toggleCode = KEY_NUMLOCKTOGGLE; break;
+							};
+
+							SHORT wState = GetKeyState( nVirtualKey );
+							bool bToggleState = ( wState & 0x1 ) != 0;
+							PostButtonPressedEvent( bToggleState ? IE_ButtonPressed : IE_ButtonReleased, m_nLastSampleTick, toggleCode, toggleCode );
+						}
+					}
+				}
+				break;
+
+			case WM_KEYUP:
+			case WM_SYSKEYUP:
+				{
+					// Don't handle key ups if the key's already up. This can happen when we alt-tab back to the engine.
+					ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
+					ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
+					PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, scanCode, virtualCode );
+				}
+				break;
+
+		#if defined( PLATFORM_WINDOWS_PC )
+			case WM_INPUT:
+				{
+					if ( m_bRawInputSupported )
+					{
+						UINT dwSize = sizeof(RAWINPUT);
+						static BYTE lpb[sizeof(RAWINPUT)];
+
+						pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, &lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+						RAWINPUT* raw = (RAWINPUT*)lpb;
+
+						if (raw->header.dwType == RIM_TYPEMOUSE) 
+						{
+							m_mouseRawAccumX += raw->data.mouse.lLastX;
+							m_mouseRawAccumY += raw->data.mouse.lLastY;
+
+							static int dblClickTime[MOUSE_COUNT];
+							static int dblCurrentClickTime = GetDoubleClickTime();
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN )
+							{
+								if (GetTickCount() < (dblClickTime[0] + dblCurrentClickTime))
+								{
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+								}
+								else
+								{
+									dblClickTime[0] = GetTickCount();
+								}
+
+								PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP )
+							{
+								PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_LEFT, MOUSE_LEFT );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN )
+							{						
+								if (GetTickCount() < (dblClickTime[1] + dblCurrentClickTime))
+								{
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
+								}
+								else
+								{
+									dblClickTime[1] = GetTickCount();
+								}
+
+								PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP )
+							{
+								PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_RIGHT, MOUSE_RIGHT );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN )
+							{
+								if (GetTickCount() < (dblClickTime[2] + dblCurrentClickTime))
+								{
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
+								}
+								else
+								{
+									dblClickTime[2] = GetTickCount();
+								}
+
+								PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP )
+							{
+								PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_MIDDLE, MOUSE_MIDDLE );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN )
+							{
+								if (GetTickCount() < (dblClickTime[3] + dblCurrentClickTime))
+								{
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+								}
+								else
+								{
+									dblClickTime[3] = GetTickCount();
+								}
+
+								PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP )
+							{
+								PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN )
+							{
+								if (GetTickCount() < (dblClickTime[4] + dblCurrentClickTime))
+								{
+									PostButtonPressedEvent( IE_ButtonDoubleClicked, m_nLastSampleTick, MOUSE_4, MOUSE_4 );
+								}
+								else
+								{
+									dblClickTime[4] = GetTickCount();
+								}
+
+								PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
+							}
+
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP )
+							{
+								PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, MOUSE_5, MOUSE_5 );
+							}
+					
+							if ( raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL )
+							{
+								ButtonCode_t code = (short)raw->data.mouse.usButtonData > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+								state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
+								PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
+								PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
+
+								state.m_pAnalogDelta[ MOUSE_WHEEL ] = (short)raw->data.mouse.usButtonData / WHEEL_DELTA;
+								state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
+								PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+							}
+						} 
+					}
+				}
+				break;
+		#endif
+
+		#endif // !USE_SDL
+
 			}
-		}
-		break;
-#endif
+			
+		#if defined( PLATFORM_WINDOWS_PC ) && !defined( USE_SDL )
+			// Can't put this in the case statement, it's not constant
+			if ( uMsg == m_uiMouseWheel )
+			{
+				ButtonCode_t code = ( ( int )wParam ) > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+				state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
+				PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
+				PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
 
-#endif // !USE_SDL
+				state.m_pAnalogDelta[ MOUSE_WHEEL ] = ( ( int )wParam ) / WHEEL_DELTA;
+				state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
+				PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+			}
+		#endif
 
+		#endif // PLATFORM_WINDOWS
+			return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
 	}
-	
-#if defined( PLATFORM_WINDOWS_PC ) && !defined( USE_SDL )
-	// Can't put this in the case statement, it's not constant
-	if ( uMsg == m_uiMouseWheel )
+	else
 	{
-		ButtonCode_t code = ( ( int )wParam ) > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
-		state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
-		PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
-		PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
+		#if defined( PLATFORM_WINDOWS ) // We use this even for SDL to handle mouse move.
+			if ( !m_bEnabled )
+				return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
 
-		state.m_pAnalogDelta[ MOUSE_WHEEL ] = ( ( int )wParam ) / WHEEL_DELTA;
-		state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
-		PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+			if ( hwnd != m_hAttachedHWnd )
+				return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
+
+			InputState_t &state = m_InputState[ m_bIsPolling ];
+			switch( uMsg )
+			{
+			
+		#if !defined( USE_SDL )
+			case WM_ACTIVATEAPP:
+				if ( hwnd == m_hAttachedHWnd )
+				{
+					bool bActivated = ( wParam == 1 );
+					if ( !bActivated )
+					{
+						ResetInputState();
+					}
+				}
+				break;
+
+			case WM_LBUTTONDOWN:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, true );
+					ETWMouseDown( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case WM_LBUTTONUP:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, false );
+					ETWMouseUp( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case WM_RBUTTONDOWN:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, true );
+					ETWMouseDown( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case WM_RBUTTONUP:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, false );
+					ETWMouseUp( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case WM_MBUTTONDOWN:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, true );
+					ETWMouseDown( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case WM_MBUTTONUP:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, false );
+					ETWMouseUp( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			case MS_WM_XBUTTONDOWN:
+				{
+					ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, true );
+					UpdateMouseButtonState( nButtonMask );
+
+					// Windows docs say the XBUTTON messages we should return true from
+					return TRUE;
+				}
+				break;
+
+			case MS_WM_XBUTTONUP:
+				{
+					ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, false );
+					UpdateMouseButtonState( nButtonMask );
+
+					// Windows docs say the XBUTTON messages we should return true from
+					return TRUE;
+				}
+				break;
+
+			case WM_LBUTTONDBLCLK:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_LEFT, true );
+					ETWMouseDown( 0, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask, MOUSE_LEFT );
+				}
+				break;
+
+			case WM_RBUTTONDBLCLK:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_RIGHT, true );
+					ETWMouseDown( 2, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask, MOUSE_RIGHT );
+				}
+				break;
+
+			case WM_MBUTTONDBLCLK:
+				{
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, MOUSE_MIDDLE, true );
+					ETWMouseDown( 1, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+					UpdateMouseButtonState( nButtonMask, MOUSE_MIDDLE );
+				}
+				break;
+
+			case MS_WM_XBUTTONDBLCLK:
+				{
+					ButtonCode_t code = ( HIWORD( wParam ) == 1 ) ? MOUSE_4 : MOUSE_5;
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam, code, true );
+					UpdateMouseButtonState( nButtonMask, code );
+
+					// Windows docs say the XBUTTON messages we should return true from
+					return TRUE;
+				}
+				break;
+
+			case WM_KEYDOWN:
+			case WM_SYSKEYDOWN:
+				{
+					// Suppress key repeats
+					if ( !( lParam & ( 1<<30 ) ) )
+					{
+						// NOTE: These two can be unequal! For example, keypad enter
+						// which returns KEY_ENTER from virtual keys, and KEY_PAD_ENTER from scan codes
+						// Since things like vgui care about virtual keys; we're going to
+						// put both scan codes in the input message
+						ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
+						ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
+						PostButtonPressedEvent( IE_ButtonPressed, m_nLastSampleTick, scanCode, virtualCode );
+
+						// Post ETW events describing key presses to help correlate input events to performance
+						// problems in the game.
+						ETWKeyDown( scanCode, virtualCode, ButtonCodeToString( virtualCode ) );
+
+						// Deal with toggles
+						if ( scanCode == KEY_CAPSLOCK || scanCode == KEY_SCROLLLOCK || scanCode == KEY_NUMLOCK )
+						{
+							int nVirtualKey;
+							ButtonCode_t toggleCode;
+							switch( scanCode )
+							{
+							default: case KEY_CAPSLOCK: nVirtualKey = VK_CAPITAL; toggleCode = KEY_CAPSLOCKTOGGLE; break;
+							case KEY_SCROLLLOCK: nVirtualKey = VK_SCROLL; toggleCode = KEY_SCROLLLOCKTOGGLE; break;
+							case KEY_NUMLOCK: nVirtualKey = VK_NUMLOCK; toggleCode = KEY_NUMLOCKTOGGLE; break;
+							};
+
+							SHORT wState = GetKeyState( nVirtualKey );
+							bool bToggleState = ( wState & 0x1 ) != 0;
+							PostButtonPressedEvent( bToggleState ? IE_ButtonPressed : IE_ButtonReleased, m_nLastSampleTick, toggleCode, toggleCode );
+						}
+					}
+				}
+				break;
+
+			case WM_KEYUP:
+			case WM_SYSKEYUP:
+				{
+					// Don't handle key ups if the key's already up. This can happen when we alt-tab back to the engine.
+					ButtonCode_t virtualCode = ButtonCode_VirtualKeyToButtonCode( wParam );
+					ButtonCode_t scanCode = ButtonCode_ScanCodeToButtonCode( lParam );
+					PostButtonReleasedEvent( IE_ButtonReleased, m_nLastSampleTick, scanCode, virtualCode );
+				}
+				break;
+
+			case WM_MOUSEWHEEL:
+				{
+					ButtonCode_t code = (short)HIWORD( wParam ) > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+					state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
+					PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
+					PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
+
+					state.m_pAnalogDelta[ MOUSE_WHEEL ] = ( (short)HIWORD(wParam) ) / WHEEL_DELTA;
+					state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
+					PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+				}
+				break;
+
+		#if defined( PLATFORM_WINDOWS_PC )
+			case WM_INPUT:
+				{
+					if ( m_bRawInputSupported )
+					{
+						UINT dwSize = sizeof(RAWINPUT);
+						static BYTE lpb[sizeof(RAWINPUT)];
+
+						pfnGetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+						RAWINPUT* raw = (RAWINPUT*)lpb;
+						if (raw->header.dwType == RIM_TYPEMOUSE) 
+						{
+							m_mouseRawAccumX += raw->data.mouse.lLastX;
+							m_mouseRawAccumY += raw->data.mouse.lLastY;
+						} 
+					}
+				}
+				break;
+		#endif
+
+		#endif // !USE_SDL
+
+			case WM_MOUSEMOVE:
+				{
+					UpdateMousePositionState( state, (short)LOWORD(lParam), (short)HIWORD(lParam) );
+
+					int nButtonMask = ButtonMaskFromMouseWParam( wParam );
+					UpdateMouseButtonState( nButtonMask );
+				}
+				break;
+
+			}
+			
+		#if defined( PLATFORM_WINDOWS_PC ) && !defined( USE_SDL )
+			// Can't put this in the case statement, it's not constant
+			if ( uMsg == m_uiMouseWheel )
+			{
+				ButtonCode_t code = ( ( int )wParam ) > 0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+				state.m_ButtonPressedTick[ code ] = state.m_ButtonReleasedTick[ code ] = m_nLastSampleTick;
+				PostEvent( IE_ButtonPressed, m_nLastSampleTick, code, code );
+				PostEvent( IE_ButtonReleased, m_nLastSampleTick, code, code );
+
+				state.m_pAnalogDelta[ MOUSE_WHEEL ] = ( ( int )wParam ) / WHEEL_DELTA;
+				state.m_pAnalogValue[ MOUSE_WHEEL ] += state.m_pAnalogDelta[ MOUSE_WHEEL ];
+				PostEvent( IE_AnalogValueChanged, m_nLastSampleTick, MOUSE_WHEEL, state.m_pAnalogValue[ MOUSE_WHEEL ], state.m_pAnalogDelta[ MOUSE_WHEEL ] );
+			}
+		#endif
+
+		#endif // PLATFORM_WINDOWS
+			return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
 	}
-#endif
-
-#endif // PLATFORM_WINDOWS
-	return ChainWindowMessage( hwnd, uMsg, wParam, lParam );
 }
 
 bool CInputSystem::GetRawMouseAccumulators( int& accumX, int& accumY )

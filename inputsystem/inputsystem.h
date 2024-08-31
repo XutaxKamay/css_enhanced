@@ -65,7 +65,8 @@ public:
 	virtual void Shutdown();
 
 	// Inherited from IInputSystem
-	virtual void AttachToWindow( void* hWnd );
+	virtual void AttachToWindow( void* hWnd, bool bIsFullScreen );
+	virtual void SetFullScreenMode( bool state );
 	virtual void DetachFromWindow();
 	virtual void EnableInput( bool bEnable );
 	virtual void EnableMessagePump( bool bEnable );

@@ -61,6 +61,7 @@ typedef void *HDC;
 #if !defined(NO_STEAM)
 #include "cl_steamauth.h"
 #endif
+#include "inputsystem/iinputsystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1365,6 +1366,8 @@ void CVideoMode_Common::AdjustWindow( int nWidth, int nHeight, int nBPP, bool bW
 {
 	if ( g_bTextMode )
 		return;
+
+	g_pInputSystem->SetFullScreenMode( !bWindowed );
 
 	// Use Change Display Settings to go full screen
 	ChangeDisplaySettingsToFullscreen( nWidth, nHeight, nBPP );
