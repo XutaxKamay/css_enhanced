@@ -62,11 +62,11 @@ END_DATADESC()
 #define WEIGHT_BITS			8
 
 BEGIN_SEND_TABLE_NOBASE(CAnimationLayer, DT_Animationlayer)
-	SendPropInt		(SENDINFO(m_nSequence),		ANIMATION_SEQUENCE_BITS,SPROP_UNSIGNED),
-	SendPropFloat	(SENDINFO(m_flCycle),		ANIMATION_CYCLE_BITS,	SPROP_ROUNDDOWN,	0.0f,   1.0f),
-	SendPropFloat	(SENDINFO(m_flPrevCycle),	ANIMATION_CYCLE_BITS,	SPROP_ROUNDDOWN,	0.0f,   1.0f),
-	SendPropFloat	(SENDINFO(m_flWeight),		WEIGHT_BITS,			0,	0.0f,	1.0f),
-	SendPropInt		(SENDINFO(m_nOrder),		ORDER_BITS,				SPROP_UNSIGNED),
+	SendPropInt		(SENDINFO(m_nSequence)),
+	SendPropFloat	(SENDINFO(m_flCycle)),
+	SendPropFloat	(SENDINFO(m_flPrevCycle)),
+	SendPropFloat	(SENDINFO(m_flWeight)),
+	SendPropInt		(SENDINFO(m_nOrder)),
 END_SEND_TABLE()
 
 
