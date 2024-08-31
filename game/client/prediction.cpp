@@ -1312,6 +1312,8 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 // TODO_ENHANCED: we should get rid of this to prefer SaveData/RestoreData.
 void CPrediction::RestorePredictedTouched( int current_command )
 {
+	VPROF( "CPrediction::RestorePredictedTouched" );
+
 	if (m_nCommandsPredicted == 0)
 	{
 		return;
@@ -1361,6 +1363,8 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 void CPrediction::StorePredictedTouched( int current_command )
 {
+	VPROF( "CPrediction::StorePredictedTouched" );
+
     int pc = predictables->GetPredictableCount();
     int p;
 

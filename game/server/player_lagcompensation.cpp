@@ -359,6 +359,8 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 
 void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* cmd )
 {
+	VPROF_BUDGET( "BacktrackPlayer", "CLagCompensationManager" );
+
 	Vector org;
 	Vector minsPreScaled;
 	Vector maxsPreScaled;
@@ -367,7 +369,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	LagRecord* recordSim;
 	LagRecord* recordAnim;
 
-	VPROF_BUDGET( "BacktrackPlayer", "CLagCompensationManager" );
 	int pl_index = pPlayer->entindex();
 
 	float flTargetLerpSimTime			 = cmd->simulationdata[pl_index].lerp_time;
