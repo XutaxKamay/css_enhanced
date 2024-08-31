@@ -344,7 +344,7 @@ void CCSWeaponInfo::Parse( KeyValues *pKeyValuesData, const char *szWeaponName )
 
 	m_iPenetration		= pKeyValuesData->GetInt( "Penetration", 1 );
 	m_iDamage			= pKeyValuesData->GetInt( "Damage", 42 ); // Douglas Adams 1952 - 2001
-	m_flRange			= pKeyValuesData->GetFloat( "Range", 8192.0f );
+	m_flRange			= pKeyValuesData->GetFloat( "Range", 524934.0f ); // around 10km
 	m_flRangeModifier	= pKeyValuesData->GetFloat( "RangeModifier", 0.98f );
 	m_iBullets			= pKeyValuesData->GetInt( "Bullets", 1 );
 	m_flCycleTime		= pKeyValuesData->GetFloat( "CycleTime", 0.15 );
