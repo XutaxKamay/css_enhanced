@@ -534,6 +534,7 @@ protected:
 	float							m_fadeMinDist;
 	float							m_fadeMaxDist;
 	float							m_flFadeScale;
+	bool							m_bClientSideAnimation;
 
 private:
 
@@ -567,7 +568,6 @@ private:
 	float							m_flOldEncodedController[MAXSTUDIOBONECTRLS];
 
 	// Clientside animation
-	bool							m_bClientSideAnimation;
 	bool							m_bLastClientSideFrameReset;
 
 	int								m_nNewSequenceParity;

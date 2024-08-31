@@ -782,7 +782,7 @@ protected:
 
 	void PushawayThink();
 
-private:
+public:
 
 	ICSPlayerAnimState *m_PlayerAnimState;
 

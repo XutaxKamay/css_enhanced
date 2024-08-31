@@ -480,7 +480,7 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, 0, boneMask );
+		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else
@@ -490,7 +490,7 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 
 	if ( pStudioHdr->numbonecontrollers() )
 	{
-		boneSetup.CalcBoneAdj( pos, q, GetEncodedControllerArray() );
+		boneSetup.CalcBoneAdj( pos, q, GetBoneControllerArray() );
 	}
 }
 

@@ -240,45 +240,6 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CCSRagdoll, DT_CSRagdoll )
 	SendPropInt( SENDINFO( m_bClientSideAnimation ), 1, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
-
-// -------------------------------------------------------------------------------- //
-// Player animation event. Sent to the client when a player fires, jumps, reloads, etc..
-// -------------------------------------------------------------------------------- //
-
-class CTEPlayerAnimEvent : public CBaseTempEntity
-{
-public:
-	DECLARE_CLASS( CTEPlayerAnimEvent, CBaseTempEntity );
-	DECLARE_SERVERCLASS();
-
-					CTEPlayerAnimEvent( const char *name ) : CBaseTempEntity( name )
-					{
-					}
-
-	CNetworkHandle( CBasePlayer, m_hPlayer );
-	CNetworkVar( int, m_iEvent );
-	CNetworkVar( int, m_nData );
-};
-
-IMPLEMENT_SERVERCLASS_ST_NOBASE( CTEPlayerAnimEvent, DT_TEPlayerAnimEvent )
-	SendPropEHandle( SENDINFO( m_hPlayer ) ),
-	SendPropInt( SENDINFO( m_iEvent ), Q_log2( PLAYERANIMEVENT_COUNT ) + 1, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO( m_nData ), 32 )
-END_SEND_TABLE()
-
-static CTEPlayerAnimEvent g_TEPlayerAnimEvent( "PlayerAnimEvent" );
-
-void TE_PlayerAnimEvent( CBasePlayer *pPlayer, PlayerAnimEvent_t event, int nData )
-{
-	CPVSFilter filter( (const Vector&)pPlayer->EyePosition() );
-
-	g_TEPlayerAnimEvent.m_hPlayer = pPlayer;
-	g_TEPlayerAnimEvent.m_iEvent = event;
-	g_TEPlayerAnimEvent.m_nData = nData;
-	g_TEPlayerAnimEvent.Create( filter, 0 );
-}
-
-
 //-----------------------------------------------------------------------------
 // Purpose: Filters updates to a variable so that only non-local players see
 // the changes.  This is so we can send a low-res origin to non-local players
@@ -6664,7 +6625,6 @@ void CCSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 	else
 	{
 		m_PlayerAnimState->DoAnimationEvent( event, nData );
-		TE_PlayerAnimEvent( this, event, nData );	// Send to any clients who can see this guy.
 	}
 }
 

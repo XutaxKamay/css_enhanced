@@ -325,7 +325,7 @@ public:
 	CBaseEntity *GetLightingOrigin();
 
 	const float* GetPoseParameterArray() { return m_flPoseParameter.Base(); }
-    const float *GetEncodedControllerArray() { return m_flEncodedController.Base(); }
+    const float *GetBoneControllerArray() { return m_flEncodedController.Base(); }
 
 	void BuildMatricesWithBoneMerge( const CStudioHdr *pStudioHdr, const QAngle& angles, 
 		const Vector& origin, const Vector pos[MAXSTUDIOBONES],

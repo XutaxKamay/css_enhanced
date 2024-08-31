@@ -1531,5 +1531,106 @@ private:
 	char *m_szBuffer; // a copy of original string, with '\0' instead of separators
 };
 
+template < typename T, size_t N >
+class CUtlCircularBuffer
+{
+  public:
+	using pT = T*;
+
+	enum PushType
+	{
+		Filling,
+		Updating
+	};
+
+  public:
+	inline pT Get( const int wantedSlot = 0 )
+	{
+		const auto real_slot = _Slot( wantedSlot );
+
+		return ( real_slot == -1 ) ? NULL : &_buffer[real_slot];
+	}
+
+  public:
+	inline PushType Push( T&& element )
+	{
+		if ( _filled_history >= N )
+		{
+			if ( _index >= ( N - 1 ) )
+			{
+				_index = 0;
+			}
+			else
+			{
+				_index++;
+			}
+
+			_buffer[_index] = element;
+
+			return Updating;
+		}
+
+		_buffer[_filled_history] = element;
+		_index					 = _filled_history;
+		_filled_history++;
+
+		return Filling;
+	}
+
+	inline PushType Push( const T& element )
+	{
+		if ( _filled_history >= N )
+		{
+			if ( _index >= ( N - 1 ) )
+			{
+				_index = 0;
+			}
+			else
+			{
+				_index++;
+			}
+
+			_buffer[_index] = element;
+
+			return Updating;
+		}
+
+		_buffer[_filled_history] = element;
+		_index					 = _filled_history;
+		_filled_history++;
+
+		return Filling;
+	}
+
+	inline void Clear()
+	{
+		_index			= 0;
+		_filled_history = 0;
+	}
+
+  private:
+	inline int _Slot( const int wantedSlot = 0 ) const
+	{
+		if ( wantedSlot >= _filled_history || wantedSlot < 0 || _filled_history <= 0 )
+		{
+			return -1;
+		}
+
+		if ( _filled_history >= N )
+		{
+			const int calc_slot = ( _index - wantedSlot );
+			return ( calc_slot < 0 ) ? calc_slot + N : calc_slot;
+		}
+		else
+		{
+			return ( _filled_history - 1 ) - wantedSlot;
+		}
+	}
+
+  private:
+	T _buffer[N];
+	int _filled_history {};
+	int _index {};
+};
 
 #endif // CCVECTOR_H

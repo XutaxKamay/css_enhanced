@@ -108,7 +108,7 @@ bool CBaseCSGrenade::Deploy()
 bool CBaseCSGrenade::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	m_bRedraw = false;
-	m_bPinPulled = false; // when this is holstered make sure the pin isn’t pulled.
+	m_bPinPulled = false; // when this is holstered make sure the pin isnï¿½t pulled.
 	m_fThrowTime = 0;
 
 #ifndef CLIENT_DLL
@@ -222,10 +222,11 @@ void CBaseCSGrenade::ItemPostFrame()
 		return;
 
 	// If they let go of the fire button, they want to throw the grenade.
-	if ( m_bPinPulled && !(pPlayer->m_nButtons & IN_ATTACK) ) 
+	if ( m_bPinPulled && !(pPlayer->m_nButtons & IN_ATTACK) )
 	{
+#ifndef CLIENT_DLL
 		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_THROW_GRENADE );
-
+#endif
 		StartGrenadeThrow();
 		
 		MDLCACHE_CRITICAL_SECTION();
