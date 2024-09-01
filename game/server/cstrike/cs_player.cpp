@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "bone_setup.h"
 #include "cs_player.h"
 #include "cs_gamerules.h"
 #include "dt_send.h"
@@ -300,6 +301,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropInt( SENDINFO( m_iClass ), Q_log2( CS_NUM_CLASSES )+1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_ArmorValue ), 8 ),
 	SendPropQAngles(SENDINFO(m_angEyeAngles)),
+	SendPropQAngles(SENDINFO(m_angRenderAngles)),
 	SendPropBool( SENDINFO( m_bHasDefuser ) ),
 	SendPropBool( SENDINFO( m_bNightVisionOn ) ),	//send as int so we can use a RecvProxy on the client
 	SendPropBool( SENDINFO( m_bHasNightVision ) ),
@@ -1161,7 +1163,7 @@ void CCSPlayer::Event_Killed( const CTakeDamageInfo &info )
 	{
 		if ( RandomInt( 0, 100 ) < 20 )
 		{
-			CHolidayGift::Create( WorldSpaceCenter(), GetAbsAngles(), EyeAngles(), GetAbsVelocity(), this );
+			CHolidayGift::Create( WorldSpaceCenter(), GetRenderAngles(), EyeAngles(), GetAbsVelocity(), this );
 		}
 	}
 
@@ -1452,7 +1454,7 @@ void CCSPlayer::UpdateRadar()
 		WRITE_SBITLONG( pPlayer->GetAbsOrigin().x/4, COORD_INTEGER_BITS-1 );
 		WRITE_SBITLONG( pPlayer->GetAbsOrigin().y/4, COORD_INTEGER_BITS-1 );
 		WRITE_SBITLONG( pPlayer->GetAbsOrigin().z/4, COORD_INTEGER_BITS-1 );
-		WRITE_SBITLONG(  AngleNormalize( pPlayer->GetAbsAngles().y ), 9 );
+		WRITE_SBITLONG(  AngleNormalize( pPlayer->GetRenderAngles().y ), 9 );
 	}
 
 	WRITE_BYTE( 0 ); // end marker
@@ -1573,6 +1575,8 @@ void CCSPlayer::PostThink()
 	m_angEyeAngles = EyeAngles();
 
 	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+
+	m_angRenderAngles = m_PlayerAnimState->GetRenderAngles();
 
 	// check if we need to apply a deafness DSP effect.
 	if ((m_applyDeafnessTime != 0.0f) && (m_applyDeafnessTime <= gpGlobals->curtime))
@@ -2768,7 +2772,7 @@ void CCSPlayer::DropShield( void )
 #ifdef CS_SHIELD_ENABLED
 	//Drop an item_defuser
 	Vector vForward, vRight;
-	AngleVectors( GetAbsAngles(), &vForward, &vRight, NULL );
+	AngleVectors( GetRenderAngles(), &vForward, &vRight, NULL );
 
 	RemoveShield();
 
@@ -6707,7 +6711,7 @@ void CCSPlayer::DropWeapons( bool fromDeath, bool friendlyFire )
 	{
 		//Drop an item_defuser
 		Vector vForward, vRight;
-		AngleVectors( GetAbsAngles(), &vForward, &vRight, NULL );
+		AngleVectors( GetRenderAngles(), &vForward, &vRight, NULL );
 
 		CBaseAnimating *pDefuser = (CBaseAnimating *)CBaseEntity::Create( "item_defuser", WorldSpaceCenter(), GetLocalAngles(), this );
 		pDefuser->ApplyAbsVelocityImpulse( vForward * 200 + vRight * random->RandomFloat( -50, 50 ) );

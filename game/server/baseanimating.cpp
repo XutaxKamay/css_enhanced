@@ -2029,7 +2029,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 		// FIXME: pass this into Studio_BuildMatrices to skip transforms
 		CBoneBitList boneComputed;
 		m_iIKCounter++;
-		m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
+		m_pIk->Init( pStudioHdr, GetRenderAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
 		GetSkeleton( pStudioHdr, pos, q, boneMask );
 
         UpdateIKLocks( gpGlobals->curtime );
@@ -2053,7 +2053,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 		{
 			BuildMatricesWithBoneMerge( 
 				pStudioHdr, 
-				GetAbsAngles(), 
+				GetRenderAngles(), 
 				adjOrigin, 
 				pos, 
 				q, 
@@ -2072,7 +2072,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 
 	Studio_BuildMatrices( 
 		pStudioHdr, 
-		GetAbsAngles(), 
+		GetRenderAngles(), 
 		adjOrigin, 
 		pos, 
 		q, 
@@ -3033,7 +3033,7 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
+		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else

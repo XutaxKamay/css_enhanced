@@ -6,6 +6,9 @@
 //=============================================================================//
 
 #include "cbase.h"
+#ifdef CSTRIKE_DLL
+#include "cs_player.h"
+#endif
 #include "icvar.h"
 #include "player.h"
 #include "shareddefs.h"
@@ -88,6 +91,9 @@ struct LagRecord
 		{
 			m_encodedControllers[i] = 0;
 		}
+#ifdef CSTRIKE_DLL
+		m_angRenderAngles.Init();
+#endif
 	}
 
 	LagRecord( const LagRecord& src )
@@ -117,6 +123,10 @@ struct LagRecord
 		{
 			m_encodedControllers[i] = src.m_encodedControllers[i];
 		}
+
+#ifdef CSTRIKE_DLL
+		m_angRenderAngles = src.m_angRenderAngles;
+#endif
 	}
 
 	// Did player die this frame
@@ -137,6 +147,9 @@ struct LagRecord
 	float m_masterCycle;
 	float m_poseParameters[MAXSTUDIOPOSEPARAM];
 	float m_encodedControllers[MAXSTUDIOBONECTRLS];
+#ifdef CSTRIKE_DLL
+	QAngle m_angRenderAngles;
+#endif
 };
 
 //
@@ -323,6 +336,15 @@ void CLagCompensationManager::TrackPlayerData( CBasePlayer* pPlayer )
 		}
 	}
 
+#ifdef CSTRIKE_DLL
+	const auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+
+	if ( csPlayer )
+	{
+		record.m_angRenderAngles = csPlayer->m_angRenderAngles;
+	}
+#endif
+
 	track->Push( record );
 }
 
@@ -384,9 +406,16 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	Vector minsPreScaled;
 	Vector maxsPreScaled;
 	QAngle ang;
+#ifdef CSTRIKE_DLL
+	QAngle renderAngles;
+#endif
 	LagRecord* nextRecordSim;
 	LagRecord* recordSim;
 	LagRecord* recordAnim;
+
+#ifdef CSTRIKE_DLL
+	auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+#endif
 
 	int pl_index = pPlayer->entindex();
 
@@ -470,6 +499,12 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		org			  = Lerp( fracSim, recordSim->m_vecOrigin, nextRecordSim->m_vecOrigin );
 		minsPreScaled = Lerp( fracSim, recordSim->m_vecMinsPreScaled, nextRecordSim->m_vecMinsPreScaled );
 		maxsPreScaled = Lerp( fracSim, recordSim->m_vecMaxsPreScaled, nextRecordSim->m_vecMaxsPreScaled );
+#ifdef CSTRIKE_DLL
+		if ( csPlayer )
+		{
+			renderAngles = Lerp( fracSim, recordSim->m_angRenderAngles, nextRecordSim->m_angRenderAngles );
+		}
+#endif
 	}
 	else
 	{
@@ -479,6 +514,9 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		ang			  = recordSim->m_vecAngles;
 		minsPreScaled = recordSim->m_vecMinsPreScaled;
 		maxsPreScaled = recordSim->m_vecMaxsPreScaled;
+#ifdef CSTRIKE_DLL
+		renderAngles = recordSim->m_angRenderAngles;
+#endif
 	}
 
 	// See if this represents a change for the player
@@ -492,6 +530,14 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	// Always remember the pristine simulation time in case we need to restore it.
 	restore->m_flSimulationTime = pPlayer->GetSimulationTime();
 	restore->m_flAnimTime		= pPlayer->GetAnimTime();
+
+#ifdef CSTRIKE_DLL
+	if ( csPlayer )
+	{
+		restore->m_angRenderAngles = csPlayer->m_angRenderAngles;
+		csPlayer->m_angRenderAngles = renderAngles;
+	}
+#endif
 
 	if ( angdiff.LengthSqr() > 0.0f )
 	{
@@ -633,6 +679,15 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 		LagRecord* restore = &m_RestoreData[i];
 		LagRecord* change  = &m_ChangeData[i];
+
+#ifdef CSTRIKE_DLL
+		auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+
+		if ( csPlayer )
+		{
+			csPlayer->m_angRenderAngles = restore->m_angRenderAngles;
+		}
+#endif
 
 		if ( restore->m_fFlags & LC_SIZE_CHANGED )
 		{

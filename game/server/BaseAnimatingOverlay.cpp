@@ -434,7 +434,6 @@ void CAnimationLayer::DispatchAnimEvents( CBaseAnimating *eventHandler, CBaseAni
 }
 
 
-
 void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask )
 {
 	if(!pStudioHdr)
@@ -481,7 +480,7 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
+		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetRenderOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else
