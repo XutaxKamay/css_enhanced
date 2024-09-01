@@ -44,7 +44,8 @@ BEGIN_RECV_TABLE_NOBASE(CAnimationLayer, DT_Animationlayer)
 	RecvPropFloat(	RECVINFO_NAME(m_flCycle, m_flCycle)),
 	RecvPropFloat(	RECVINFO_NAME(m_flPrevCycle, m_flPrevCycle)),
 	RecvPropFloat(	RECVINFO_NAME(m_flWeight, m_flWeight)),
-	RecvPropInt(	RECVINFO_NAME(m_nOrder, m_nOrder))
+	RecvPropInt(	RECVINFO_NAME(m_nOrder, m_nOrder)),
+	RecvPropInt(	RECVINFO_NAME(m_fFlags, m_fFlags)),
 END_RECV_TABLE()
 
 const char *s_m_iv_AnimOverlayNames[C_BaseAnimatingOverlay::MAX_OVERLAYS] =

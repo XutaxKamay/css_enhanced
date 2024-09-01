@@ -381,7 +381,6 @@ private:
     // HPE_END
     //=============================================================================
 
-    static constexpr auto m_flDebugDuration = 60.f;
     void DrawBullet(const Vector& src,
                     const Vector& endpos,
                     const Vector& mins,

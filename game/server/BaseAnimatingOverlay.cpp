@@ -67,6 +67,7 @@ BEGIN_SEND_TABLE_NOBASE(CAnimationLayer, DT_Animationlayer)
 	SendPropFloat	(SENDINFO(m_flPrevCycle)),
 	SendPropFloat	(SENDINFO(m_flWeight)),
 	SendPropInt		(SENDINFO(m_nOrder)),
+	SendPropInt		(SENDINFO(m_fFlags)),
 END_SEND_TABLE()
 
 

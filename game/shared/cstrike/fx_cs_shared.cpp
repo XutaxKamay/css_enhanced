@@ -144,8 +144,8 @@ void FX_FireBullets(
 // #endif
 	CUserCmd* playerCmd = NULL;
 
-    if (pPlayer)
-    {
+	if ( pPlayer )
+	{
 #ifdef CLIENT_DLL
 		playerCmd = pPlayer->m_pCurrentCommand;
 #else
@@ -153,9 +153,9 @@ void FX_FireBullets(
 #endif
 	}
 
-	if (playerCmd)
+	if ( playerCmd )
 	{
-		vHookedOrigin = VectorLerp(pPlayer->m_vecPreviousShootPosition, vOrigin, playerCmd->interpolated_amount);
+		vHookedOrigin = VectorLerp( pPlayer->m_vecPreviousShootPosition, vOrigin, playerCmd->interpolated_amount );
 	}
 
 // #ifndef CLIENT_DLL

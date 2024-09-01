@@ -2805,23 +2805,14 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	CStudioHdr *pStudioHdr = GetModelPtr( );
 	Assert(pStudioHdr);
 
-	// Use this for lag compensation
-	float oldcurtime = gpGlobals->curtime;
-	gpGlobals->curtime = m_flSimulationTime;
-
 	CBoneCache *pcache = Studio_GetBoneCache( m_boneCacheHandle );
-	int boneMask = BONE_USED_BY_ANYTHING;
+	int boneMask = BONE_USED_BY_BONE_MERGE | BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT;
 
-	// TF queries these bones to position weapons when players are killed
-#if defined( TF_DLL )
-	boneMask |= BONE_USED_BY_BONE_MERGE;
-#endif
 	if ( pcache )
 	{
 		// Only validate for current time.
 		if ( (pcache->m_boneMask & boneMask) == boneMask && pcache->m_timeValid == gpGlobals->curtime)
 		{
-			gpGlobals->curtime = oldcurtime;
 			// Msg("%s:%s:%s (%x:%x:%8.4f) cache\n", GetClassname(), GetDebugName(), STRING(GetModelName()), boneMask, pcache->m_boneMask, pcache->m_timeValid );
 			// in memory and still valid, use it!
 			return pcache;
@@ -2856,7 +2847,6 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 	}
 	Assert(pcache);
 
-	gpGlobals->curtime = oldcurtime;
 	return pcache;
 }
 

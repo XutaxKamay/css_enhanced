@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //=============================================================================//
@@ -40,6 +40,24 @@ ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "0", 0, "Flushes entity bon
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
+
+struct LayerRecord
+{
+	int m_sequence;
+	float m_cycle;
+	float m_weight;
+	int m_order;
+	int m_flags;
+
+	LayerRecord()
+	{
+		m_sequence = 0;
+		m_cycle	   = 0;
+		m_weight   = 0;
+		m_order	   = 0;
+		m_flags	   = 0;
+	}
+};
 
 struct LagRecord
 {
@@ -86,7 +104,7 @@ struct LagRecord
 		{
 			m_layerRecords[layerIndex] = src.m_layerRecords[layerIndex];
 		}
-	
+
 		m_masterSequence = src.m_masterSequence;
 		m_masterCycle	 = src.m_masterCycle;
 
@@ -280,6 +298,7 @@ void CLagCompensationManager::TrackPlayerData( CBasePlayer* pPlayer )
 			record.m_layerRecords[layerIndex].m_order	 = currentLayer->m_nOrder;
 			record.m_layerRecords[layerIndex].m_sequence = currentLayer->m_nSequence;
 			record.m_layerRecords[layerIndex].m_weight	 = currentLayer->m_flWeight;
+			record.m_layerRecords[layerIndex].m_flags	 = currentLayer->m_fFlags;
 		}
 	}
 
@@ -412,7 +431,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 			break;
 		}
 
-		if ( recordAnim->m_flSimulationTime == flTargetAnimatedSimulationTime )
+		if ( recordAnim->m_flAnimTime == flTargetAnimatedSimulationTime )
 		{
 			break;
 		}
@@ -528,11 +547,13 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 			restore->m_layerRecords[layerIndex].m_order	   = currentLayer->m_nOrder;
 			restore->m_layerRecords[layerIndex].m_sequence = currentLayer->m_nSequence;
 			restore->m_layerRecords[layerIndex].m_weight   = currentLayer->m_flWeight;
+			restore->m_layerRecords[layerIndex].m_flags	   = currentLayer->m_fFlags;
 
 			currentLayer->m_flCycle	  = recordAnim->m_layerRecords[layerIndex].m_cycle;
 			currentLayer->m_nOrder	  = recordAnim->m_layerRecords[layerIndex].m_order;
 			currentLayer->m_nSequence = recordAnim->m_layerRecords[layerIndex].m_sequence;
 			currentLayer->m_flWeight  = recordAnim->m_layerRecords[layerIndex].m_weight;
+			currentLayer->m_fFlags	  = recordAnim->m_layerRecords[layerIndex].m_flags;
 		}
 	}
 
@@ -558,7 +579,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		for ( int encIndex = 0; encIndex < hdr->GetNumBoneControllers(); encIndex++ )
 		{
 			restore->m_encodedControllers[encIndex] = pPlayer->GetBoneControllerArray()[encIndex];
-			float encodedController					  = recordAnim->m_encodedControllers[encIndex];
+			float encodedController					= recordAnim->m_encodedControllers[encIndex];
 
 			pPlayer->SetBoneControllerRaw( encIndex, encodedController );
 		}
@@ -662,6 +683,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 					currentLayer->m_nOrder	  = restore->m_layerRecords[layerIndex].m_order;
 					currentLayer->m_nSequence = restore->m_layerRecords[layerIndex].m_sequence;
 					currentLayer->m_flWeight  = restore->m_layerRecords[layerIndex].m_weight;
+					currentLayer->m_fFlags	  = restore->m_layerRecords[layerIndex].m_flags;
 				}
 			}
 		}

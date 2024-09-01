@@ -36,22 +36,6 @@
 class bf_read;
 class bf_write;
 
-struct LayerRecord
-{
-	int m_sequence;
-	float m_cycle;
-	float m_weight;
-	int m_order;
-
-	LayerRecord()
-	{
-		m_sequence = 0;
-		m_cycle	   = 0;
-		m_weight   = 0;
-		m_order	   = 0;
-	}
-};
-
 struct SimulationData
 {
 	// TODO_ENHANCED:

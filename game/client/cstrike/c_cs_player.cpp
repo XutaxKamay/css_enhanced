@@ -2113,93 +2113,218 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 		BaseClass::FireEvent( origin, angles, event, options );
 }
 
-void C_CSPlayer::FireGameEvent(IGameEvent* event)
+ConVar cl_debug_duration( "cl_debug_duration", "60" );
+
+void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
-	static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-	static ConVarRef cl_showimpacts("cl_showimpacts");
-    static ConVarRef debug_screenshot_bullet_position("debug_screenshot_bullet_position");
+	static ConVarRef cl_showfirebullethitboxes( "cl_showfirebullethitboxes" );
+	static ConVarRef cl_showimpacts( "cl_showimpacts" );
+	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
 
-    BaseClass::FireGameEvent(event);
-    
-    bool shouldShowImpacts = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
-    bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 3;
-    
-    const auto showEventHitboxes = [&](float flDuration)
-    {
-        const int index = event->GetInt("userid");
-        if (index == GetUserID() && IsLocalPlayer())
-        {
-            const auto playerIndex = event->GetInt("player_index");
-            const auto player      = UTIL_PlayerByIndex(playerIndex);
+	BaseClass::FireGameEvent( event );
 
-            if (player && !player->IsLocalPlayer())
-            {
-                const auto numhitboxes = event->GetInt("num_hitboxes");
-                QAngle angles[MAXSTUDIOBONES];
-                Vector positions[MAXSTUDIOBONES];
+	bool shouldShowImpacts			  = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
+	bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1
+										|| cl_showfirebullethitboxes.GetInt() == 3;
 
-                for (int i = 0; i < numhitboxes; i++)
-                {
-                    char buffer[256];
-                    V_sprintf_safe(buffer, "hitbox_index_%i", i);
-                    const auto hitboxIndex = event->GetInt(buffer);
-
-                    V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
-                    positions[hitboxIndex].x = event->GetFloat(buffer);
-                    V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
-                    positions[hitboxIndex].y = event->GetFloat(buffer);
-                    V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
-                    positions[hitboxIndex].z = event->GetFloat(buffer);
-
-                    V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
-                    angles[hitboxIndex].x = event->GetFloat(buffer);
-                    V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
-                    angles[hitboxIndex].y = event->GetFloat(buffer);
-                    V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
-                    angles[hitboxIndex].z = event->GetFloat(buffer);
-
-                }
-
-                player->DrawServerHitboxes(positions, angles, flDuration, true);
-            }
-        }
-    };
-
-    if ( FStrEq( event->GetName(), "bullet_impact" ) && shouldShowImpacts )
-    {
+	const auto ShowEventHitboxes = [&]( float flDuration )
+	{
 		const int index = event->GetInt( "userid" );
 		if ( index == GetUserID() && IsLocalPlayer() )
-        {
-            Vector src(event->GetFloat("src_x"), event->GetFloat("src_y"), event->GetFloat("src_z"));
-            Vector dst(event->GetFloat("dst_x"), event->GetFloat("dst_y"), event->GetFloat("dst_z"));
-            float flBulletRadius = event->GetFloat("radius");
+		{
+			const auto playerIndex = event->GetInt( "player_index" );
+			const auto player	   = UTIL_PlayerByIndex( playerIndex );
 
-            Vector mins(-flBulletRadius);
-            Vector maxs(flBulletRadius);
+			if ( player && !player->IsLocalPlayer() )
+			{
+				const auto numhitboxes = event->GetInt( "num_hitboxes" );
+				QAngle angles[MAXSTUDIOBONES];
+				Vector positions[MAXSTUDIOBONES];
 
-            DrawBullet(src, dst, mins, maxs, 0, 0, 255, 127, m_flDebugDuration);
+				for ( int i = 0; i < numhitboxes; i++ )
+				{
+					char buffer[256];
+					V_sprintf_safe( buffer, "hitbox_index_%i", i );
+					const auto hitboxIndex = event->GetInt( buffer );
 
-            // If both happens to be on the same frame, let it be.
-            if (debug_screenshot_bullet_position.GetBool())
-            {
-                gpGlobals->client_taking_screenshot = true;
-            }
-        }
-    }
-    else if (FStrEq(event->GetName(), "bullet_hit_player") && shouldShowImpacts)
-    {
-        showEventHitboxes(m_flDebugDuration);
+					V_sprintf_safe( buffer, "hitbox_position_x_%i", i );
+					positions[hitboxIndex].x = event->GetFloat( buffer );
+					V_sprintf_safe( buffer, "hitbox_position_y_%i", i );
+					positions[hitboxIndex].y = event->GetFloat( buffer );
+					V_sprintf_safe( buffer, "hitbox_position_z_%i", i );
+					positions[hitboxIndex].z = event->GetFloat( buffer );
 
-        // If both happens to be on the same frame, let it be.
-        if (debug_screenshot_bullet_position.GetBool())
-        {
-            gpGlobals->client_taking_screenshot = true;
-        }
-    }
-    else if (FStrEq(event->GetName(), "bullet_player_hitboxes") && shouldShowFireBulletHitboxes)
-    {
-        showEventHitboxes(m_flDebugDuration);
-    }
+					V_sprintf_safe( buffer, "hitbox_angle_x_%i", i );
+					angles[hitboxIndex].x = event->GetFloat( buffer );
+					V_sprintf_safe( buffer, "hitbox_angle_y_%i", i );
+					angles[hitboxIndex].y = event->GetFloat( buffer );
+					V_sprintf_safe( buffer, "hitbox_angle_z_%i", i );
+					angles[hitboxIndex].z = event->GetFloat( buffer );
+				}
+
+				player->DrawServerHitboxes( positions, angles, flDuration, true );
+
+				// Let's see what the client thinks to check if there's any problems with hitboxes
+				float flBackupPoseParams[MAXSTUDIOPOSEPARAM];
+				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
+				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
+				Vector vecBackupPosition = player->GetAbsOrigin();
+				QAngle angBackupAngles	 = player->GetAbsAngles();
+				auto flOldCycle			 = GetCycle();
+				auto iOldSequence		 = GetSequence();
+
+				auto pStudioHdr = GetModelPtr();
+
+				player->GetPoseParameters( pStudioHdr, flBackupPoseParams );
+				player->GetBoneControllers( flBackupBoneControllers );
+
+				for ( int i = 0; i < GetNumAnimOverlays(); i++ )
+				{
+					backupAnimLayers[i] = m_AnimOverlay[i];
+				}
+
+				player->SetSequence( event->GetInt( "sequence" ) );
+				player->SetCycle( event->GetFloat( "cycle" ) );
+
+				// printf("was sequence: %i, cycle: %f\n", player->GetSequence(), player->GetCycle() );
+
+				// Set setup bones modifiers
+				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
+											  event->GetFloat( "position_y" ),
+											  event->GetFloat( "position_z" ) ) );
+				player->SetAbsAngles( QAngle( event->GetFloat( "angle_x" ),
+											  event->GetFloat( "angle_y" ),
+											  event->GetFloat( "angle_z" ) ) );
+
+				const auto numposeparams = event->GetInt( "num_poseparams" );
+				Assert( numposeparams == pStudioHdr->GetNumPoseParameters() );
+
+				for ( int i = 0; i < numposeparams; i++ )
+				{
+					char buffer[256];
+					V_sprintf_safe( buffer, "pose_param_%i", i );
+
+					player->SetPoseParameter( i, event->GetFloat( buffer ) );
+
+					// printf("pose_param_%i: %f\n", i, player->GetPoseParameter(i) );
+				}
+
+				const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
+				Assert( numbonecontrollers == pStudioHdr->GetNumBoneControllers() );
+
+				for ( int i = 0; i < numbonecontrollers; i++ )
+				{
+					char buffer[256];
+					V_sprintf_safe( buffer, "bone_controller_%i", i );
+
+					player->SetBoneController( i, event->GetFloat( buffer ) );
+
+					float tmp[MAXSTUDIOBONECTRLS];
+					player->GetBoneControllers( tmp );
+					// printf( "bone_controller_%i: %f\n", i, tmp[i] );
+				}
+
+				auto numanimoverlays = event->GetInt( "num_anim_overlays" );
+				Assert( num_anim_overlays == player->GetNumAnimOverlays() );
+
+				for ( int i = 0; i < numanimoverlays; i++ )
+				{
+					auto animOverlay = player->GetAnimOverlay( i );
+
+					char buffer[256];
+					V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
+					animOverlay->m_flCycle = event->GetFloat( buffer );
+					// printf( "anim_overlay_cycle_%i: %f\n", i, animOverlay->m_flCycle.GetRaw() );
+
+					V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
+					animOverlay->m_nSequence = event->GetInt( buffer );
+					// printf( "anim_overlay_sequence_%i: %i\n", i, animOverlay->m_nSequence.GetRaw() );
+
+					V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
+					animOverlay->m_flWeight = event->GetFloat( buffer );
+					// printf( "anim_overlay_weight_%i: %f\n", i,animOverlay->m_flWeight.GetRaw() );
+
+					V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
+					animOverlay->m_nOrder = event->GetInt( buffer );
+					// printf( "anim_overlay_order_%i: %i\n", i, animOverlay->m_nOrder );
+				}
+
+				PushAllowBoneAccess( true, false, "Lag compensation context" );
+				// Be sure we setup the bones again.
+				player->InvalidateBoneCache();
+				player->SetupBones( NULL,
+									MAXSTUDIOBONES,
+									BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT | BONE_USED_BY_BONE_MERGE,
+									gpGlobals->curtime );
+				player->DrawClientHitboxes( cl_debug_duration.GetFloat(), false );
+				// Re-invalidate bone cache for the next frame
+				player->InvalidateBoneCache();
+				PopBoneAccess( "Lag compensation context" );
+
+				// Set back original stuff.
+				player->SetSequence( iOldSequence );
+				player->SetCycle( flOldCycle );
+				player->SetAbsOrigin( vecBackupPosition );
+				player->SetAbsAngles( angBackupAngles );
+
+				for ( int i = 0; i < numposeparams; i++ )
+				{
+					player->SetPoseParameter( i, flBackupPoseParams[i] );
+				}
+
+				for ( int i = 0; i < numbonecontrollers; i++ )
+				{
+					player->SetBoneController( i, flBackupBoneControllers[i] );
+				}
+
+				for ( int i = 0; i < numanimoverlays; i++ )
+				{
+					auto animOverlay = player->GetAnimOverlay( i );
+
+					animOverlay->m_flCycle	 = backupAnimLayers[i].m_flCycle;
+					animOverlay->m_nSequence = backupAnimLayers[i].m_nSequence;
+					animOverlay->m_flWeight	 = backupAnimLayers[i].m_flWeight;
+					animOverlay->m_nOrder	 = backupAnimLayers[i].m_nOrder;
+				}
+			}
+		}
+	};
+
+	if ( FStrEq( event->GetName(), "bullet_impact" ) && shouldShowImpacts )
+	{
+		const int index = event->GetInt( "userid" );
+		if ( index == GetUserID() && IsLocalPlayer() )
+		{
+			Vector src( event->GetFloat( "src_x" ), event->GetFloat( "src_y" ), event->GetFloat( "src_z" ) );
+			Vector dst( event->GetFloat( "dst_x" ), event->GetFloat( "dst_y" ), event->GetFloat( "dst_z" ) );
+			float flBulletRadius = event->GetFloat( "radius" );
+
+			Vector mins( -flBulletRadius );
+			Vector maxs( flBulletRadius );
+
+			DrawBullet( src, dst, mins, maxs, 0, 0, 255, 127, cl_debug_duration.GetFloat() );
+
+			// If both happens to be on the same frame, let it be.
+			if ( debug_screenshot_bullet_position.GetBool() )
+			{
+				gpGlobals->client_taking_screenshot = true;
+			}
+		}
+	}
+	else if ( FStrEq( event->GetName(), "bullet_hit_player" ) && shouldShowImpacts )
+	{
+		ShowEventHitboxes( cl_debug_duration.GetFloat() );
+
+		// If both happens to be on the same frame, let it be.
+		if ( debug_screenshot_bullet_position.GetBool() )
+		{
+			gpGlobals->client_taking_screenshot = true;
+		}
+	}
+	else if ( FStrEq( event->GetName(), "bullet_player_hitboxes" ) && shouldShowFireBulletHitboxes )
+	{
+		ShowEventHitboxes( cl_debug_duration.GetFloat() );
+	}
 }
 
 
@@ -2574,9 +2699,17 @@ float C_CSPlayer::GetDeathCamInterpolationTime()
 
 }
 
-bool C_CSPlayer::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
+bool C_CSPlayer::SetupBones( matrix3x4_t* pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
-	return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
+	// Just in case.
+	float oldCurtime   = gpGlobals->curtime;
+	gpGlobals->curtime = currentTime;
+
+	auto ret = BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
+
+	gpGlobals->curtime = oldCurtime;
+
+	return ret;
 }
 
 //=============================================================================
