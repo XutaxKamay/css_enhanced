@@ -132,7 +132,7 @@ public:
 		MAX_OVERLAYS = 15,
 	};
 
-private:
+protected:
 	CUtlVector< CAnimationLayer	> m_AnimOverlay;
 	//int				m_nActiveLayers;
 	//int				m_nActiveBaseLayers;

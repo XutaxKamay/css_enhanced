@@ -329,6 +329,7 @@ private:
 	int		m_iClass;
 	int		m_ArmorValue;
 	QAngle	m_angEyeAngles;
+	QAngle  m_angRenderAngles;
 	bool	m_bHasDefuser;
 	float	m_fNextThinkPushAway;
 
@@ -342,6 +343,7 @@ private:
 	Vector m_vecRagdollVelocity;
 
 	CInterpolatedVar< QAngle >	m_iv_angEyeAngles;
+	CInterpolatedVar< QAngle >	m_iv_angRenderAngles;
 
 	// ID Target
 	int					m_iIDEntIndex;

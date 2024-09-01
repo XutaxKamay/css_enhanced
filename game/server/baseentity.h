@@ -426,6 +426,8 @@ public:
 	bool					IsCurrentlyTouching( void ) const;
 	const Vector&			GetAbsOrigin( void ) const;
 	const QAngle&			GetAbsAngles( void ) const;
+	virtual const Vector&   GetRenderOrigin( void ) const { return GetAbsOrigin(); }
+	virtual const QAngle&	GetRenderAngles( void ) const { return GetAbsAngles(); }
 
 	SolidType_t				GetSolid() const;
 	int			 			GetSolidFlags( void ) const;

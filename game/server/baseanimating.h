@@ -425,7 +425,7 @@ protected:
 public:
 	COutputEvent m_OnIgnite;
 
-private:
+protected:
 	CStudioHdr			*m_pStudioHdr;
 	CThreadFastMutex	m_StudioHdrInitLock;
 	CThreadFastMutex	m_BoneSetupMutex;
