@@ -1320,7 +1320,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		}
 
 		cmd->simulationdata[pEntity->index].lerp_time		  = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[pEntity->index].animated_sim_time = pEntity->m_flSimulationTime;
+		cmd->simulationdata[pEntity->index].animated_sim_time = pEntity->m_flAnimTime;
 		cmd->simulationdata[pEntity->index].entityexists	  = true;
 	}
 

@@ -15,6 +15,13 @@
 #include "lerp_functions.h"
 #include "networkvar.h"
 
+#define ANIM_LAYER_ACTIVE		0x0001
+#define ANIM_LAYER_AUTOKILL		0x0002
+#define ANIM_LAYER_KILLME		0x0004
+#define ANIM_LAYER_DONTRESTORE	0x0008
+#define ANIM_LAYER_CHECKACCESS	0x0010
+#define ANIM_LAYER_DYING		0x0020
+
 class C_AnimationLayer
 {
 public:
@@ -29,12 +36,20 @@ public:
 
 public:
 
-	bool IsActive( void );
+	bool	IsActive( void ) { return ((m_fFlags & ANIM_LAYER_ACTIVE) != 0); }
+	bool	IsAutokill( void ) { return ((m_fFlags & ANIM_LAYER_AUTOKILL) != 0); }
+	bool	IsKillMe( void ) { return ((m_fFlags & ANIM_LAYER_KILLME) != 0); }
+	bool	IsAutoramp( void ) { return (m_flBlendIn != 0.0 || m_flBlendOut != 0.0); }
+	void	KillMe( void ) { m_fFlags |= ANIM_LAYER_KILLME; }
+	void	Dying( void ) { m_fFlags |= ANIM_LAYER_DYING; }
+	bool	IsDying( void ) { return ((m_fFlags & ANIM_LAYER_DYING) != 0); }
+	void	Dead( void ) { m_fFlags &= ~ANIM_LAYER_DYING; }
 
-	CRangeCheckedVar<int, -1, 65535, 0>	m_nSequence;
-	CRangeCheckedVar<float, -2, 2, 0>	m_flPrevCycle;
-	CRangeCheckedVar<float, -5, 5, 0>	m_flWeight;
-	int		m_nOrder;
+	CRangeCheckedVar< int, -1, 65535, 0 > m_nSequence;
+	CRangeCheckedVar< float, -2, 2, 0 > m_flPrevCycle;
+	CRangeCheckedVar< float, -5, 5, 0 > m_flWeight;
+	int m_nOrder;
+	int m_fFlags;
 
 	// used for automatic crossfades between sequence changes
 	CRangeCheckedVar<float, -50, 50, 1>		m_flPlaybackRate;
@@ -75,7 +90,6 @@ inline void C_AnimationLayer::Reset()
 	m_bClientBlend = false;
 }
 
-
 inline void C_AnimationLayer::SetOrder( int order )
 {
 	m_nOrder = order;
@@ -85,15 +99,15 @@ inline float C_AnimationLayer::GetFadeout( float flCurTime )
 {
 	float s;
 
-    if (m_flLayerFadeOuttime <= 0.0f)
+	if ( m_flLayerFadeOuttime <= 0.0f )
 	{
 		s = 0;
 	}
 	else
 	{
 		// blend in over 0.2 seconds
-		s = 1.0 - (flCurTime - m_flLayerAnimtime) / m_flLayerFadeOuttime;
-		if (s > 0 && s <= 1.0)
+		s = 1.0 - ( flCurTime - m_flLayerAnimtime ) / m_flLayerFadeOuttime;
+		if ( s > 0 && s <= 1.0 )
 		{
 			// do a nice spline curve
 			s = 3 * s * s - 2 * s * s * s;
@@ -106,7 +120,6 @@ inline float C_AnimationLayer::GetFadeout( float flCurTime )
 	}
 	return s;
 }
-
 
 inline C_AnimationLayer LoopingLerp( float flPercent, C_AnimationLayer& from, C_AnimationLayer& to )
 {

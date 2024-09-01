@@ -96,11 +96,6 @@ void VCollideWireframe_ChangeCallback( IConVar *pConVar, char const *pOldString,
 
 ConVar vcollide_wireframe( "vcollide_wireframe", "0", FCVAR_CHEAT, "Render physics collision models in wireframe", VCollideWireframe_ChangeCallback );
 
-bool C_AnimationLayer::IsActive( void )
-{
-	return (m_nOrder != C_BaseAnimatingOverlay::MAX_OVERLAYS);
-}
-
 //-----------------------------------------------------------------------------
 // Relative lighting entity
 //-----------------------------------------------------------------------------
@@ -3433,7 +3428,7 @@ void C_BaseAnimating::DoAnimationEvents( CStudioHdr *pStudioHdr )
 	if ( nSeqNum >= nStudioNumSeq )
 	{
 		// This can happen e.g. while reloading Heavy's shotgun, switch to the minigun.
-		Warning( "%s[%d]: Playing sequence %d but there's only %d in total?\n", GetDebugName(), entindex(), nSeqNum, nStudioNumSeq );
+		DevMsg( "%s[%d]: Playing sequence %d but there's only %d in total?\n", GetDebugName(), entindex(), nSeqNum, nStudioNumSeq );
 		return;
 	}
 
@@ -5552,19 +5547,46 @@ void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monoco
 	int g = 255;
 	int b = 0;
 
+	if ( !monocolor )
+	{
+		g = 0;
+		r = 255;
+	}
+
+	// printf( "got sequence: %i, cycle: %f\n", GetSequence(), GetCycle() );
+
+	// for ( int i = 0; i < pStudioHdr->GetNumPoseParameters(); i++ )
+	// {
+	// 	printf( "pose_param_%i: %f\n", i, GetPoseParameter( i ) );
+	// }
+
+	// float bc[MAXSTUDIOBONECTRLS];
+	// GetBoneControllers(bc);
+
+	// for ( int i = 0; i < pStudioHdr->GetNumBoneControllers(); i++ )
+	// {
+	// 	printf( "bone_controller_%i: %f\n", i, bc[i] );
+	// }
+
+	// C_BasePlayer* player = ( C_BasePlayer* )this;
+
+	// if ( player->IsPlayer() )
+	// {
+	// 	for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
+	// 	{
+	// 		auto animOverlay = player->GetAnimOverlay( i );
+	// 		printf( "anim_overlay_cycle_%i: %f\n", i, animOverlay->m_flCycle.GetRaw() );
+	// 		printf( "anim_overlay_sequence_%i: %i\n", i, animOverlay->m_nSequence.GetRaw() );
+	// 		printf( "anim_overlay_weight_%i: %f\n", i, animOverlay->m_flWeight.GetRaw() );
+	// 		printf( "anim_overlay_order_%i: %i\n", i, animOverlay->m_nOrder );
+	// 	}
+	// }
+
 	for ( int i = 0; i < set->numhitboxes; i++ )
 	{
 		mstudiobbox_t *pbox = set->pHitbox( i );
 
 		GetBonePosition( pbox->bone, position, angles );
-
-		if ( !monocolor )
-		{
-			int j = (pbox->group % 8);
-			r = ( int ) ( 255.0f * hullcolor[j][0] );
-			g = ( int ) ( 255.0f * hullcolor[j][1] );
-			b = ( int ) ( 255.0f * hullcolor[j][2] );
-		}
 
 		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 127 ,duration );
 	}

@@ -19,16 +19,16 @@
 #include "proto_version.h"
 
 // Flow control bytes per second limits
-#define MAX_RATE		(16777216)
+#define MAX_RATE		(67108864)
 #define MIN_RATE		1000
-#define DEFAULT_RATE	80000
+#define DEFAULT_RATE	67108864
 
 #define SIGNON_TIME_OUT				300.0f  // signon disconnect timeout
 
 #define FRAGMENT_BITS		8
 #define FRAGMENT_SIZE		(1<<FRAGMENT_BITS)
-#define MAX_FILE_SIZE_BITS	26
-#define MAX_FILE_SIZE		((1<<MAX_FILE_SIZE_BITS)-1)	// maximum transferable size is	64MB
+#define MAX_FILE_SIZE_BITS	30
+#define MAX_FILE_SIZE		((1<<MAX_FILE_SIZE_BITS)-1)	// maximum transferable size is	1GB
 
 // 0 == regular, 1 == file stream
 #define MAX_STREAMS			2    

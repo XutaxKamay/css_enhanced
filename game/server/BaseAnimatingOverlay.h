@@ -44,7 +44,7 @@ public:
 #define ANIM_LAYER_CHECKACCESS	0x0010
 #define ANIM_LAYER_DYING		0x0020
 
-	int		m_fFlags;
+	CNetworkVar( int, m_fFlags );
 
 	bool	m_bSequenceFinished;
 	bool	m_bLooping;

@@ -39,7 +39,6 @@
 #include "engine/ivdebugoverlay.h"
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
-// #include <iostream>
 
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
@@ -422,6 +421,7 @@ inline void UTIL_TraceLineIgnoreTwoEntities(const Vector& vecAbsStart, const Vec
 }
 
 #ifdef CLIENT_DLL
+extern ConVar cl_debug_duration;
 void CCSPlayer::DrawBullet(const Vector& src,
                     const Vector& endpos,
                     const Vector& mins,
@@ -522,79 +522,127 @@ void CCSPlayer::FireBullet(
     shouldDebugHitboxesOnHit = shouldDebugHitboxesOnHit && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2);
     shouldDebugHitboxesOnFire = shouldDebugHitboxesOnFire && (cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 2);
 #endif
-    if ( shouldDebugHitboxesOnFire )
-    {
-        for (int i = 1; i <= gpGlobals->maxClients; i++)
-        {
-            CBasePlayer* lagPlayer = UTIL_PlayerByIndex(i);
-            if (lagPlayer && lagPlayer != this)
+
+#ifndef CLIENT_DLL
+	auto WritePlayerHitboxEvent = [&]( CBasePlayer* lagPlayer )
+	{
+		if ( IsBot() )
+		{
+			return;
+		}
+
+		IGameEvent* event = gameeventmanager->CreateEvent( "bullet_player_hitboxes" );
+		if ( event )
+		{
+			event->SetInt( "userid", GetUserID() );
+			event->SetInt( "player_index", lagPlayer->entindex() );
+
+			Vector positions[MAXSTUDIOBONES];
+			QAngle angles[MAXSTUDIOBONES];
+			int indexes[MAXSTUDIOBONES];
+
+			auto angle	  = lagPlayer->GetAbsAngles();
+			auto position = lagPlayer->GetAbsOrigin();
+
+			event->SetFloat( "position_x", position.x );
+			event->SetFloat( "position_y", position.y );
+			event->SetFloat( "position_z", position.z );
+
+			event->SetFloat( "angle_x", angle.x );
+			event->SetFloat( "angle_y", angle.y );
+			event->SetFloat( "angle_z", angle.z );
+
+			event->SetFloat( "cycle", lagPlayer->GetCycle() );
+			event->SetInt( "sequence", lagPlayer->GetSequence() );
+
+			int numhitboxes = lagPlayer->GetServerHitboxes( positions, angles, indexes );
+			event->SetInt( "num_hitboxes", numhitboxes );
+
+			for ( int i = 0; i < numhitboxes; i++ )
 			{
-// #ifdef CLIENT_DLL
-// 				if ( !m_pCurrentCommand->hasbeenpredicted )
-// 				{
-// 					std::string text = "client:\n";
+				char buffer[256];
+				V_sprintf_safe( buffer, "hitbox_index_%i", i );
+				event->SetInt( buffer, indexes[i] );
+				V_sprintf_safe( buffer, "hitbox_position_x_%i", i );
+				event->SetFloat( buffer, positions[indexes[i]].x );
+				V_sprintf_safe( buffer, "hitbox_position_y_%i", i );
+				event->SetFloat( buffer, positions[indexes[i]].y );
+				V_sprintf_safe( buffer, "hitbox_position_z_%i", i );
+				event->SetFloat( buffer, positions[indexes[i]].z );
+				V_sprintf_safe( buffer, "hitbox_angle_x_%i", i );
+				event->SetFloat( buffer, angles[indexes[i]].x );
+				V_sprintf_safe( buffer, "hitbox_angle_y_%i", i );
+				event->SetFloat( buffer, angles[indexes[i]].y );
+				V_sprintf_safe( buffer, "hitbox_angle_z_%i", i );
+				event->SetFloat( buffer, angles[indexes[i]].z );
+			}
 
-// 					auto angles = lagPlayer->GetRenderAngles();
+			auto model = lagPlayer->GetModelPtr();
 
-// 					text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
+			auto numposeparams = model->GetNumPoseParameters();
+			event->SetInt( "num_poseparams", numposeparams );
 
-// 					NDebugOverlay::EntityBounds( lagPlayer, 255, 0, 0, 32, 60 );
-// 					std::cout << text;
-// 				}
-// #else
-// 				std::string text = "server:\n";
+			for ( int i = 0; i < numposeparams; i++ )
+			{
+				char buffer[256];
+				V_sprintf_safe( buffer, "pose_param_%i", i );
+				event->SetFloat( buffer, lagPlayer->GetPoseParameterArray()[i] );
+			}
 
-// 				auto angles = lagPlayer->GetAbsAngles();
+			auto numbonecontrollers = model->GetNumBoneControllers();
+			event->SetInt( "num_bonecontrollers", numbonecontrollers );
 
-// 				text += "x: " + std::to_string(angles.x) + ", y: " + std::to_string(angles.y) + ", z: " + std::to_string(angles.z) + '\n';
-				
-// 				NDebugOverlay::EntityBounds( lagPlayer, 0, 255, 0, 32, 60 );
-// 				std::cout << text;
-// #endif
-#ifdef CLIENT_DLL
-                if (!m_pCurrentCommand->hasbeenpredicted)
-                {
-                    lagPlayer->DrawClientHitboxes(m_flDebugDuration, true);
-                }
-#else
-                IGameEvent* event = gameeventmanager->CreateEvent("bullet_player_hitboxes");
-                if (event)
-                {
-                    event->SetInt("userid", GetUserID());
-                    event->SetInt("player_index", lagPlayer->entindex());
+			for ( int i = 0; i < numbonecontrollers; i++ )
+			{
+				char buffer[256];
+				V_sprintf_safe( buffer, "bone_controller_%i", i );
+				event->SetFloat( buffer, lagPlayer->GetBoneControllerArray()[i] );
+			}
 
-                    Vector positions[MAXSTUDIOBONES];
-                    QAngle angles[MAXSTUDIOBONES];
-                    int indexes[MAXSTUDIOBONES];
+			auto numanimoverlays = lagPlayer->GetNumAnimOverlays();
+			event->SetInt( "num_anim_overlays", numanimoverlays );
 
-                    int numhitboxes = lagPlayer->GetServerHitboxes(positions, angles, indexes);
-                    event->SetInt("num_hitboxes", numhitboxes);
+			for ( int i = 0; i < numanimoverlays; i++ )
+			{
+				auto animOverlay = lagPlayer->GetAnimOverlay( i );
 
-                    for (int i = 0; i < numhitboxes; i++)
-                    {
-                        char buffer[256];
-                        V_sprintf_safe(buffer, "hitbox_index_%i", i);
-                        event->SetInt(buffer, indexes[i]);
-                        V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
-                        event->SetFloat(buffer, positions[indexes[i]].x);
-                        V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
-                        event->SetFloat(buffer, positions[indexes[i]].y);
-                        V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
-                        event->SetFloat(buffer, positions[indexes[i]].z);
-                        V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
-                        event->SetFloat(buffer, angles[indexes[i]].x);
-                        V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
-                        event->SetFloat(buffer, angles[indexes[i]].y);
-                        V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
-                        event->SetFloat(buffer, angles[indexes[i]].z);
-                    }
+				char buffer[256];
+				V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
+				event->SetFloat( buffer, animOverlay->m_flCycle.Get() );
 
-                    gameeventmanager->FireEvent(event);
-                }
+				V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
+				event->SetInt( buffer, animOverlay->m_nSequence.Get() );
+
+				V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
+				event->SetFloat( buffer, animOverlay->m_flWeight.Get() );
+
+				V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
+				event->SetInt( buffer, animOverlay->m_nOrder.Get() );
+			}
+
+			gameeventmanager->FireEvent( event );
+		}
+	};
 #endif
-            }
-        }
-    }
+
+	if ( shouldDebugHitboxesOnFire )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer* lagPlayer = UTIL_PlayerByIndex( i );
+			if ( lagPlayer && lagPlayer != this )
+			{
+#ifdef CLIENT_DLL
+				if ( !m_pCurrentCommand->hasbeenpredicted )
+				{
+					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
+				}
+#else
+				WritePlayerHitboxEvent( lagPlayer );
+#endif
+			}
+		}
+	}
 
 	while ( fCurrentDamage > 0 )
 	{
@@ -640,84 +688,51 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-        if (shouldDebugHitboxesOnHit)
-        {
+		if ( shouldDebugHitboxesOnHit )
+		{
 #ifdef CLIENT_DLL
-            if (!m_pCurrentCommand->hasbeenpredicted)
-            {
-                DrawBullet(vecSrc,
-                           tr.endpos,
-                           vecBulletRadiusMins,
-                           vecBulletRadiusMaxs,
-                           0,
-                           255,
-                           0,
-                           127,
-                           m_flDebugDuration);
-            }
+			if ( !m_pCurrentCommand->hasbeenpredicted )
+			{
+				DrawBullet( vecSrc,
+							tr.endpos,
+							vecBulletRadiusMins,
+							vecBulletRadiusMaxs,
+							0,
+							255,
+							0,
+							127,
+							cl_debug_duration.GetFloat() );
+			}
 #else
-            IGameEvent* event = gameeventmanager->CreateEvent("bullet_impact");
-            if (event)
-            {
-                event->SetInt("userid", GetUserID());
-                event->SetFloat("src_x", vecSrc.x);
-                event->SetFloat("src_y", vecSrc.y);
-                event->SetFloat("src_z", vecSrc.z);
-                event->SetFloat("dst_x", tr.endpos.x);
-                event->SetFloat("dst_y", tr.endpos.y);
-                event->SetFloat("dst_z", tr.endpos.z);
-                event->SetFloat("radius", flBulletRadius);
-                gameeventmanager->FireEvent(event);
-            }
+			IGameEvent* event = gameeventmanager->CreateEvent( "bullet_impact" );
+			if ( event )
+			{
+				event->SetInt( "userid", GetUserID() );
+				event->SetFloat( "src_x", vecSrc.x );
+				event->SetFloat( "src_y", vecSrc.y );
+				event->SetFloat( "src_z", vecSrc.z );
+				event->SetFloat( "dst_x", tr.endpos.x );
+				event->SetFloat( "dst_y", tr.endpos.y );
+				event->SetFloat( "dst_z", tr.endpos.z );
+				event->SetFloat( "radius", flBulletRadius );
+				gameeventmanager->FireEvent( event );
+			}
 #endif
-            if (tr.m_pEnt && tr.m_pEnt->IsPlayer() && !shouldDebugHitboxesOnFire)
-            {
-                const auto lagPlayer = UTIL_PlayerByIndex(tr.m_pEnt->entindex());
+			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() && !shouldDebugHitboxesOnFire )
+			{
+				const auto lagPlayer = UTIL_PlayerByIndex( tr.m_pEnt->entindex() );
 #ifdef CLIENT_DLL
-                if (!m_pCurrentCommand->hasbeenpredicted)
-                {
-                    lagPlayer->DrawClientHitboxes(m_flDebugDuration, true);
-                }
+				if ( !m_pCurrentCommand->hasbeenpredicted )
+				{
+					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
+				}
 #else
-                IGameEvent* eventHit = gameeventmanager->CreateEvent("bullet_hit_player");
-                if (eventHit)
-                {
-                    eventHit->SetInt("userid", GetUserID());
-                    eventHit->SetInt("player_index", lagPlayer->entindex());
-
-                    Vector positions[MAXSTUDIOBONES];
-                    QAngle angles[MAXSTUDIOBONES];
-                    int indexes[MAXSTUDIOBONES];
-
-                    int numhitboxes = lagPlayer->GetServerHitboxes(positions, angles, indexes);
-                    eventHit->SetInt("num_hitboxes", numhitboxes);
-
-                    for (int i = 0; i < numhitboxes; i++)
-                    {
-                        char buffer[256];
-                        V_sprintf_safe(buffer, "hitbox_index_%i", i);
-                        eventHit->SetInt(buffer, indexes[i]);
-                        V_sprintf_safe(buffer, "hitbox_position_x_%i", i);
-                        eventHit->SetFloat(buffer, positions[indexes[i]].x);
-                        V_sprintf_safe(buffer, "hitbox_position_y_%i", i);
-                        eventHit->SetFloat(buffer, positions[indexes[i]].y);
-                        V_sprintf_safe(buffer, "hitbox_position_z_%i", i);
-                        eventHit->SetFloat(buffer, positions[indexes[i]].z);
-                        V_sprintf_safe(buffer, "hitbox_angle_x_%i", i);
-                        eventHit->SetFloat(buffer, angles[indexes[i]].x);
-                        V_sprintf_safe(buffer, "hitbox_angle_y_%i", i);
-                        eventHit->SetFloat(buffer, angles[indexes[i]].y);
-                        V_sprintf_safe(buffer, "hitbox_angle_z_%i", i);
-                        eventHit->SetFloat(buffer, angles[indexes[i]].z);
-                    }
-
-                    gameeventmanager->FireEvent(eventHit);
-                }
+				WritePlayerHitboxEvent( lagPlayer );
 #endif
-            }
-        }
+			}
+		}
 
-        //calculate the damage based on the distance the bullet travelled.
+		//calculate the damage based on the distance the bullet travelled.
 		flCurrentDistance += tr.fraction * flDistance;
 		fCurrentDamage *= pow (flRangeModifier, (flCurrentDistance / 500));
 
