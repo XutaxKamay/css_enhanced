@@ -1979,8 +1979,7 @@ void C_BaseAnimating::StandardBlendingRules( CStudioHdr *hdr, Vector pos[], Quat
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		m_iIKCounter++;
-		auto_ik.Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, m_iIKCounter, boneMask );
+		auto_ik.Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, gpGlobals->framecount, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, currentTime, &auto_ik );
 	}
 	else
@@ -2930,8 +2929,7 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 				if (Teleported() || IsNoInterpolationFrame())
 					m_pIk->ClearTargets();
 
-				m_iIKCounter++;
-				m_pIk->Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, m_iIKCounter, bonesMaskNeedRecalc );
+				m_pIk->Init( hdr, GetRenderAngles(), GetRenderOrigin(), currentTime, gpGlobals->framecount, bonesMaskNeedRecalc );
 			}
 
 			// Let pose debugger know that we are blending
