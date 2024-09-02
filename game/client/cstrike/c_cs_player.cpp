@@ -10,6 +10,7 @@
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
 #include "convar.h"
+#include "datacache/imdlcache.h"
 #include "dt_recv.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
@@ -737,7 +738,7 @@ C_CSPlayer::C_CSPlayer() :
 	m_angRenderAngles.Init();
 
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
-	AddVar( &m_angRenderAngles, &m_iv_angRenderAngles, LATCH_SIMULATION_VAR );
+	// AddVar( &m_angRenderAngles, &m_iv_angRenderAngles, LATCH_SIMULATION_VAR );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
@@ -2131,8 +2132,11 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 	bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1
 										|| cl_showfirebullethitboxes.GetInt() == 3;
 
+	// TODO_ENHANCED: compare from client's prediction values !
 	const auto ShowEventHitboxes = [&]( float flDuration )
 	{
+		MDLCACHE_CRITICAL_SECTION();
+
 		const int index = event->GetInt( "userid" );
 		if ( index == GetUserID() && IsLocalPlayer() )
 		{
@@ -2173,26 +2177,27 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
 				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
 				Vector vecBackupPosition = player->GetAbsOrigin();
-				QAngle angBackupAngles	 = player->m_angRenderAngles;
+				QAngle angBackupAngles	 = player->GetRenderAngles();
 				auto flOldCycle			 = GetCycle();
 				auto iOldSequence		 = GetSequence();
 
-				auto pStudioHdr = GetModelPtr();
+				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
+				{
+					flBackupPoseParams[i] = player->m_flPoseParameter[i];
+				}
 
-				player->GetPoseParameters( pStudioHdr, flBackupPoseParams );
-				player->GetBoneControllers( flBackupBoneControllers );
+				for ( int i = 0; i < MAXSTUDIOBONECTRLS; i++ )
+				{
+					flBackupBoneControllers[i] = player->m_flEncodedController[i];
+				}
 
 				for ( int i = 0; i < GetNumAnimOverlays(); i++ )
 				{
-					backupAnimLayers[i] = m_AnimOverlay[i];
+					backupAnimLayers[i] = *player->GetAnimOverlay(i);
 				}
 
 				player->SetSequence( event->GetInt( "sequence" ) );
 				player->SetCycle( event->GetFloat( "cycle" ) );
-
-				// printf("was sequence: %i, cycle: %f\n", player->GetSequence(), player->GetCycle() );
-
-				// Set setup bones modifiers
 				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
 											  event->GetFloat( "position_y" ),
 											  event->GetFloat( "position_z" ) ) );
@@ -2209,9 +2214,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					char buffer[256];
 					V_sprintf_safe( buffer, "pose_param_%i", i );
 
-					player->SetPoseParameter( i, event->GetFloat( buffer ) );
-
-					// printf("pose_param_%i: %f\n", i, player->GetPoseParameter(i) );
+					player->m_flPoseParameter[i] = event->GetFloat( buffer );
 				}
 
 				const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
@@ -2222,11 +2225,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					char buffer[256];
 					V_sprintf_safe( buffer, "bone_controller_%i", i );
 
-					player->SetBoneController( i, event->GetFloat( buffer ) );
-
-					float tmp[MAXSTUDIOBONECTRLS];
-					player->GetBoneControllers( tmp );
-					// printf( "bone_controller_%i: %f\n", i, tmp[i] );
+					player->m_flEncodedController[i] = event->GetFloat( buffer );
 				}
 
 				auto numanimoverlays = event->GetInt( "num_anim_overlays" );
@@ -2239,32 +2238,27 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					char buffer[256];
 					V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
 					animOverlay->m_flCycle = event->GetFloat( buffer );
-					// printf( "anim_overlay_cycle_%i: %f\n", i, animOverlay->m_flCycle.GetRaw() );
 
 					V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
 					animOverlay->m_nSequence = event->GetInt( buffer );
-					// printf( "anim_overlay_sequence_%i: %i\n", i, animOverlay->m_nSequence.GetRaw() );
 
 					V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
 					animOverlay->m_flWeight = event->GetFloat( buffer );
-					// printf( "anim_overlay_weight_%i: %f\n", i,animOverlay->m_flWeight.GetRaw() );
 
 					V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
 					animOverlay->m_nOrder = event->GetInt( buffer );
-					// printf( "anim_overlay_order_%i: %i\n", i, animOverlay->m_nOrder );
+
+					V_sprintf_safe( buffer, "anim_overlay_flags_%i", i );
+					animOverlay->m_fFlags = event->GetInt( buffer );
 				}
 
-				PushAllowBoneAccess( true, false, "Lag compensation context" );
+				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
+
 				// Be sure we setup the bones again.
 				player->InvalidateBoneCache();
-				player->SetupBones( NULL,
-									MAXSTUDIOBONES,
-									BONE_USED_BY_HITBOX | BONE_USED_BY_ATTACHMENT | BONE_USED_BY_BONE_MERGE,
-									gpGlobals->curtime );
+				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
 				player->DrawClientHitboxes( cl_debug_duration.GetFloat(), false );
-				// Re-invalidate bone cache for the next frame
-				player->InvalidateBoneCache();
-				PopBoneAccess( "Lag compensation context" );
+				player->PopBoneAccess( "Lag compensation context" );
 
 				// Set back original stuff.
 				player->SetSequence( iOldSequence );
@@ -2272,25 +2266,25 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				player->SetAbsOrigin( vecBackupPosition );
 				player->m_angRenderAngles = angBackupAngles;
 
-				for ( int i = 0; i < numposeparams; i++ )
+				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
 				{
-					player->SetPoseParameter( i, flBackupPoseParams[i] );
+					player->m_flPoseParameter[i] = flBackupPoseParams[i];
 				}
 
-				for ( int i = 0; i < numbonecontrollers; i++ )
+				for ( int i = 0; i < MAXSTUDIOBONECTRLS; i++ )
 				{
-					player->SetBoneController( i, flBackupBoneControllers[i] );
+					player->m_flEncodedController[i] = flBackupBoneControllers[i];
 				}
 
 				for ( int i = 0; i < numanimoverlays; i++ )
 				{
 					auto animOverlay = player->GetAnimOverlay( i );
-
-					animOverlay->m_flCycle	 = backupAnimLayers[i].m_flCycle;
-					animOverlay->m_nSequence = backupAnimLayers[i].m_nSequence;
-					animOverlay->m_flWeight	 = backupAnimLayers[i].m_flWeight;
-					animOverlay->m_nOrder	 = backupAnimLayers[i].m_nOrder;
+					*animOverlay	 = backupAnimLayers[i];
 				}
+
+				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
+				player->InvalidateBoneCache();
+				player->PopBoneAccess( "Lag compensation context" );
 			}
 		}
 	};

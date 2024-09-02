@@ -535,7 +535,7 @@ protected:
 	float							m_flFadeScale;
 	bool							m_bClientSideAnimation;
 
-private:
+protected:
 
 	float							m_flGroundSpeed;	// computed linear movement rate for current sequence
 	float							m_flLastEventCheck;	// cycle index of when events were last checked

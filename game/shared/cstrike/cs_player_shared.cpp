@@ -618,6 +618,9 @@ void CCSPlayer::FireBullet(
 
 				V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
 				event->SetInt( buffer, animOverlay->m_nOrder.Get() );
+
+				V_sprintf_safe( buffer, "anim_overlay_flags_%i", i );
+				event->SetInt( buffer, animOverlay->m_fFlags.Get() );
 			}
 
 			gameeventmanager->FireEvent( event );

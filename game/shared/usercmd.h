@@ -41,8 +41,8 @@ struct SimulationData
 	// TODO_ENHANCED:
 	// For now we send the last received update for animations.
 	// anim time is unreliable on low fps.
-	float lerp_time;
-	float animated_sim_time;
+	float sim_time;
+	float anim_time;
 	bool entityexists;
 };
 

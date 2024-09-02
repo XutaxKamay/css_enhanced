@@ -613,40 +613,48 @@ int CCSPlayerAnimState::CalcReloadLayerSequence( PlayerAnimEvent_t event )
 	return -1;
 }
 
-	void CCSPlayerAnimState::UpdateLayerSequenceGeneric( CStudioHdr *pStudioHdr, int iLayer, bool &bEnabled, float &flCurCycle, int &iSequence, bool bWaitAtEnd )
+void CCSPlayerAnimState::UpdateLayerSequenceGeneric( CStudioHdr* pStudioHdr,
+													 int iLayer,
+													 bool& bEnabled,
+													 float& flCurCycle,
+													 int& iSequence,
+													 bool bWaitAtEnd )
 {
 	if ( !bEnabled || iSequence < 0 )
+	{
 		return;
+	}
 
-		// Increment the fire sequence's cycle.
-		flCurCycle += m_pOuter->GetSequenceCycleRate( pStudioHdr, iSequence ) * gpGlobals->frametime;
-		if ( flCurCycle > 1 )
+	// Increment the fire sequence's cycle.
+	flCurCycle += m_pOuter->GetSequenceCycleRate( pStudioHdr, iSequence ) * gpGlobals->frametime;
+
+	if ( flCurCycle > 1 )
+	{
+		if ( bWaitAtEnd )
 		{
-			if ( bWaitAtEnd )
-			{
-				flCurCycle = 1;
-			}
-			else
-			{
-				// Not firing anymore.
-				bEnabled = false;
-				iSequence = 0;
-				return;
-			}
+			flCurCycle = 1;
 		}
+		else
+		{
+			// Not firing anymore.
+			bEnabled  = false;
+			iSequence = 0;
+
+			CAnimationLayer* pLayer = m_pOuter->GetAnimOverlay( iLayer );
+			pLayer->m_fFlags		= 0;
+			return;
+		}
+	}
 
 	// Now dump the state into its animation layer.
-	CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( iLayer );
+	CAnimationLayer* pLayer = m_pOuter->GetAnimOverlay( iLayer );
 
-	pLayer->m_flCycle = flCurCycle;
-	pLayer->m_nSequence = iSequence;
-
-	pLayer->m_flPlaybackRate = 1.0f;
-	pLayer->m_flWeight = 1.0f;
-	pLayer->m_nOrder = iLayer;
-#ifndef CLIENT_DLL
-	pLayer->m_fFlags |= ANIM_LAYER_ACTIVE; 
-#endif
+	pLayer->m_flCycle		  = flCurCycle;
+	pLayer->m_nSequence		  = iSequence;
+	pLayer->m_flPlaybackRate  = 1.0f;
+	pLayer->m_flWeight		  = 1.0f;
+	pLayer->m_nOrder		  = iLayer;
+	pLayer->m_fFlags		 |= ANIM_LAYER_ACTIVE;
 }
 
 bool CCSPlayerAnimState::IsOuterGrenadePrimed()
