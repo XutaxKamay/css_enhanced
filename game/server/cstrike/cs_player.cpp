@@ -1574,6 +1574,13 @@ void CCSPlayer::PostThink()
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
 
+	for (auto&& event : m_allEvents)
+	{
+		m_PlayerAnimState->DoAnimationEvent( event.m_currentWantedEvent, event.m_currentnData );
+	}
+
+	m_allEvents.RemoveAll();
+
 	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
 
 	m_angRenderAngles = m_PlayerAnimState->GetRenderAngles();
@@ -6628,7 +6635,7 @@ void CCSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 	}
 	else
 	{
-		m_PlayerAnimState->DoAnimationEvent( event, nData );
+		m_allEvents.AddToTail( { event, nData } );
 	}
 }
 

@@ -45,15 +45,15 @@ public:
 	bool	IsDying( void ) { return ((m_fFlags & ANIM_LAYER_DYING) != 0); }
 	void	Dead( void ) { m_fFlags &= ~ANIM_LAYER_DYING; }
 
-	CRangeCheckedVar< int, -1, 65535, 0 > m_nSequence;
-	CRangeCheckedVar< float, -2, 2, 0 > m_flPrevCycle;
-	CRangeCheckedVar< float, -5, 5, 0 > m_flWeight;
+	int m_nSequence;
+	float m_flPrevCycle;
+	float m_flWeight;
 	int m_nOrder;
 	int m_fFlags;
 
 	// used for automatic crossfades between sequence changes
-	CRangeCheckedVar<float, -50, 50, 1>		m_flPlaybackRate;
-	CRangeCheckedVar<float, -2, 2, 0>		m_flCycle;
+	float m_flPlaybackRate;
+	float m_flCycle;
 
 	float GetFadeout( float flCurTime );
 

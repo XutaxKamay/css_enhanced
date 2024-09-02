@@ -339,7 +339,7 @@ void C_BaseAnimatingOverlay::DoAnimationEvents( CStudioHdr *pStudioHdr )
 				{
 					Msg( "%i (seq: %d) FE %i Normal cycle %f, prev %f ev %f (time %.3f)\n",
 						gpGlobals->tickcount,
-						m_AnimOverlay[j].m_nSequence.GetRaw(),
+						m_AnimOverlay[j].m_nSequence,
 						pevent[i].event,
 						pevent[i].cycle,
 						m_flOverlayPrevEventCycle[j],

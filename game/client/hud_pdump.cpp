@@ -13,6 +13,8 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#include "tier3/tier3.h"
+#include "vgui_controls/Controls.h"
 
 static CPDumpPanel *g_pPDumpPanel = NULL;
 
@@ -56,6 +58,10 @@ void CPDumpPanel::ApplySettings( KeyValues *inResourceData )
 	SetProportional( false );
 
 	BaseClass::ApplySettings( inResourceData );
+
+	int x, y;
+	vgui::surface()->GetScreenSize( x, y );
+	SetBounds( 0, 0, x, y );
 }
 
 void CPDumpPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
@@ -64,6 +70,10 @@ void CPDumpPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
 
 	SetProportional( false );
 	SetPaintBackgroundEnabled( false );
+
+	int x, y;
+	vgui::surface()->GetScreenSize( x, y );
+	SetBounds( 0, 0, x, y );
 }
 
 //-----------------------------------------------------------------------------
@@ -259,7 +269,7 @@ void CPDumpPanel::Paint()
 	// Now output the strings
 	int x[5];
 	x[0] = 20;
-	int columnwidth = 375;
+	int columnwidth = 500;
 	int numcols = ScreenWidth() / columnwidth;
 	int i;
 

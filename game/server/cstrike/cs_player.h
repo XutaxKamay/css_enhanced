@@ -1041,9 +1041,19 @@ private:
 	// HPE_END
 	//=============================================================================
 	int m_iDeathFlags; // Flags holding revenge and domination info about a death
-//=============================================================================
-// HPE_END
-//=============================================================================
+
+	// We really need to keep in sync with the server <=> client.
+	struct Events
+	{
+		PlayerAnimEvent_t m_currentWantedEvent;
+		int m_currentnData;
+	};
+
+	CUtlVector< Events > m_allEvents;
+
+	//=============================================================================
+	// HPE_END
+	//=============================================================================
 };
 
 
