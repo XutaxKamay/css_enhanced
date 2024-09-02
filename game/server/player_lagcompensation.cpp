@@ -39,7 +39,8 @@
 #define MAX_TICKS_SAVED		   1000
 
 ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag compensation" );
-ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "0", 0, "Flushes entity bone cache on lag compensation" );
+// Enable by default to avoid some bugs.
+ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", 0, "Flushes entity bone cache on lag compensation" );
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -420,8 +421,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 	int pl_index = pPlayer->entindex();
 
-	float flTargetLerpSimTime			 = cmd->simulationdata[pl_index].lerp_time;
-	float flTargetAnimatedSimulationTime = cmd->simulationdata[pl_index].animated_sim_time;
+	float flTargetSimTime  = cmd->simulationdata[pl_index].sim_time;
+	float flTargetAnimTime = cmd->simulationdata[pl_index].anim_time;
 
 	// get track history of this player
 	auto track = &m_EntityTrack[pl_index];
@@ -440,12 +441,12 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 			break;
 		}
 
-		if ( flTargetLerpSimTime == recordSim->m_flSimulationTime )
+		if ( flTargetSimTime == recordSim->m_flSimulationTime )
 		{
 			break;
 		}
 
-		if ( recordSim->m_flSimulationTime < flTargetLerpSimTime )
+		if ( recordSim->m_flSimulationTime < flTargetSimTime )
 		{
 			prevRecordSim = track->Get( i - 1 );
 			break;
@@ -461,7 +462,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 			break;
 		}
 
-		if ( recordAnim->m_flAnimTime == flTargetAnimatedSimulationTime )
+		if ( recordAnim->m_flAnimTime == flTargetAnimTime )
 		{
 			break;
 		}
@@ -481,7 +482,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	}
 
 	float fracSim = 0.0f;
-	if ( prevRecordSim && ( recordSim->m_flSimulationTime < flTargetLerpSimTime )
+	if ( prevRecordSim && ( recordSim->m_flSimulationTime < flTargetSimTime )
 		 && ( recordSim->m_flSimulationTime < prevRecordSim->m_flSimulationTime ) )
 	{
 		// we didn't find the exact time but have a valid previous record
@@ -491,7 +492,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		Assert( flTargetLerpSimTime < prevRecordSim->m_flSimulationTime );
 
 		// calc fraction between both records
-		fracSim = float( ( double( flTargetLerpSimTime ) - double( recordSim->m_flSimulationTime ) )
+		fracSim = float( ( double( flTargetSimTime ) - double( recordSim->m_flSimulationTime ) )
 						 / ( double( prevRecordSim->m_flSimulationTime ) - double( recordSim->m_flSimulationTime ) ) );
 
 		Assert( fracSim > 0 && fracSim < 1 ); // should never extrapolate
@@ -500,12 +501,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		org			  = Lerp( fracSim, recordSim->m_vecOrigin, prevRecordSim->m_vecOrigin );
 		minsPreScaled = Lerp( fracSim, recordSim->m_vecMinsPreScaled, prevRecordSim->m_vecMinsPreScaled );
 		maxsPreScaled = Lerp( fracSim, recordSim->m_vecMaxsPreScaled, prevRecordSim->m_vecMaxsPreScaled );
-#ifdef CSTRIKE_DLL
-		if ( csPlayer )
-		{
-			renderAngles = Lerp( fracSim, recordSim->m_angRenderAngles, prevRecordSim->m_angRenderAngles );
-		}
-#endif
 	}
 	else
 	{
@@ -515,9 +510,6 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		ang			  = recordSim->m_vecAngles;
 		minsPreScaled = recordSim->m_vecMinsPreScaled;
 		maxsPreScaled = recordSim->m_vecMaxsPreScaled;
-#ifdef CSTRIKE_DLL
-		renderAngles = recordSim->m_angRenderAngles;
-#endif
 	}
 
 	// See if this represents a change for the player
@@ -535,6 +527,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 #ifdef CSTRIKE_DLL
 	if ( csPlayer )
 	{
+		renderAngles = recordAnim->m_angRenderAngles;
 		restore->m_angRenderAngles = csPlayer->m_angRenderAngles;
 		csPlayer->m_angRenderAngles = renderAngles;
 	}
@@ -638,8 +631,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	}
 
 	// Set lag compensated player's times
-	pPlayer->SetSimulationTime( flTargetLerpSimTime );
-	// pPlayer->SetAnimTime(animationData->m_flAnimTime);
+	pPlayer->SetSimulationTime( flTargetSimTime );
+	pPlayer->SetAnimTime( flTargetAnimTime );
 
 	if ( sv_lagflushbonecache.GetBool() )
 	{

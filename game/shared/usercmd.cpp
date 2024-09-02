@@ -162,20 +162,20 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	// Write finally simulation data with entity index
 	for ( unsigned int i = 0; i <= highestEntityIndex; i++ )
 	{
-		if ( from->simulationdata[i].lerp_time != to->simulationdata[i].lerp_time )
+		if ( from->simulationdata[i].sim_time != to->simulationdata[i].sim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteBitFloat( to->simulationdata[i].lerp_time );
+			buf->WriteBitFloat( to->simulationdata[i].sim_time );
 		}
 		else
 		{
 			buf->WriteOneBit( 0 );
 		}
 
-		if ( from->simulationdata[i].animated_sim_time != to->simulationdata[i].animated_sim_time )
+		if ( from->simulationdata[i].anim_time != to->simulationdata[i].anim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteBitFloat( to->simulationdata[i].animated_sim_time );
+			buf->WriteBitFloat( to->simulationdata[i].anim_time );
 		}
 		else
 		{
@@ -309,12 +309,12 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
     {
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].lerp_time = buf->ReadBitFloat();
+			move->simulationdata[i].sim_time = buf->ReadBitFloat();
 		}
 
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].animated_sim_time = buf->ReadBitFloat();
+			move->simulationdata[i].anim_time = buf->ReadBitFloat();
 		}
 	}
 

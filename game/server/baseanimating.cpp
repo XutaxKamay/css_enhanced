@@ -1615,6 +1615,10 @@ public:
 	}
 };
 
+//-----------------------------------------------------------------------------
+// Purpose: update latched IK contacts if they're in a moving reference frame.
+//-----------------------------------------------------------------------------
+
 void CBaseAnimating::UpdateIKLocks( float currentTime )
 {
 	if (!m_pIk) 
@@ -1643,9 +1647,7 @@ void CBaseAnimating::UpdateIKLocks( float currentTime )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Find IK collisions with world
-// Input  : 
-// Output :	fills out m_pIk targets, calcs floor offset for rendering
+// Purpose: Find the ground or external attachment points needed by IK rules
 //-----------------------------------------------------------------------------
 
 void CBaseAnimating::CalculateIKLocks( float currentTime )
@@ -1668,7 +1670,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 
 	// FIXME: trace based on gravity or trace based on angles?
 	Vector up;
-	AngleVectors( GetAbsAngles(), NULL, NULL, &up );
+	AngleVectors( GetRenderAngles(), NULL, NULL, &up );
 
 	// FIXME: check number of slots?
 	float minHeight = FLT_MAX;
@@ -1690,7 +1692,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 				Vector p1, p2;
 
 				// adjust ground to original ground position
-				estGround = (pTarget->est.pos - GetAbsOrigin());
+				estGround = (pTarget->est.pos - GetRenderOrigin());
 				estGround = estGround - (estGround * up) * up;
 				estGround = GetAbsOrigin() + estGround + pTarget->est.floor * up;
 
@@ -1779,7 +1781,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 					else if (trace.DidHitNonWorldEntity())
 					{
 						pTarget->SetPos( trace.endpos );
-						pTarget->SetAngles( GetAbsAngles() );
+						pTarget->SetAngles( GetRenderAngles() );
 
 						// only do this on forward tracking or commited IK ground rules
 						if (pTarget->est.release < 0.1)
@@ -1813,7 +1815,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 					else
 					{
 						pTarget->SetPos( trace.endpos );
-						pTarget->SetAngles( GetAbsAngles() );
+						pTarget->SetAngles( GetRenderAngles() );
 						pTarget->SetOnWorld( true );
 					}
 				}
@@ -1872,7 +1874,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 		}
 	}
 
-#if defined( HL2_DLL )
+#if defined( HL2_CLIENT_DLL )
 	if (minHeight < FLT_MAX)
 	{
 		input->AddIKGroundContactInfo( entindex(), minHeight, maxHeight );
@@ -2854,6 +2856,7 @@ CBoneCache *CBaseAnimating::GetBoneCache( void )
 void CBaseAnimating::InvalidateBoneCache( void )
 {
 	Studio_InvalidateBoneCache( m_boneCacheHandle );
+	m_boneCacheHandle = 0;
 }
 
 bool CBaseAnimating::TestCollision( const Ray_t &ray, unsigned int fContentsMask, trace_t& tr )

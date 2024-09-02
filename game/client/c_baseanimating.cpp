@@ -3012,8 +3012,18 @@ C_BaseAnimating* C_BaseAnimating::FindFollowedEntity()
 
 void C_BaseAnimating::InvalidateBoneCache()
 {
-	m_iMostRecentModelBoneCounter = g_iModelBoneCounter - 1;
-	m_flLastBoneSetupTime = -FLT_MAX; 
+	m_iMostRecentModelBoneCounter = 0xFFFFFFFF;
+	m_flLastBoneSetupTime		  = -FLT_MAX;
+
+	if ( m_pBoneMergeCache )
+	{
+		delete m_pBoneMergeCache;
+		m_pBoneMergeCache = NULL;
+		// recreated in BuildTransformations
+	}
+
+	Studio_DestroyBoneCache( m_hitboxBoneCacheHandle );
+	m_hitboxBoneCacheHandle = 0;
 }
 
 
