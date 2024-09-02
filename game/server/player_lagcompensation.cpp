@@ -330,14 +330,14 @@ void CLagCompensationManager::TrackPlayerData( CBasePlayer* pPlayer )
 
 	if ( hdr )
 	{
-		for ( int paramIndex = 0; paramIndex < hdr->GetNumBoneControllers(); paramIndex++ )
+		for ( int boneIndex = 0; boneIndex < hdr->GetNumBoneControllers(); boneIndex++ )
 		{
-			record.m_encodedControllers[paramIndex] = pPlayer->GetBoneControllerArray()[paramIndex];
+			record.m_encodedControllers[boneIndex] = pPlayer->GetBoneControllerArray()[boneIndex];
 		}
 	}
 
 #ifdef CSTRIKE_DLL
-	const auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+	const auto csPlayer = ToCSPlayer( pPlayer );
 
 	if ( csPlayer )
 	{
@@ -409,12 +409,12 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 #ifdef CSTRIKE_DLL
 	QAngle renderAngles;
 #endif
-	LagRecord* nextRecordSim;
+	LagRecord* prevRecordSim;
 	LagRecord* recordSim;
 	LagRecord* recordAnim;
 
 #ifdef CSTRIKE_DLL
-	auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+	auto csPlayer = ToCSPlayer( pPlayer );
 #endif
 
 	int pl_index = pPlayer->entindex();
@@ -446,7 +446,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 		if ( recordSim->m_flSimulationTime < flTargetLerpSimTime )
 		{
-			nextRecordSim = track->Get( i - 1 );
+			prevRecordSim = track->Get( i - 1 );
 			break;
 		}
 	}
@@ -480,8 +480,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	}
 
 	float fracSim = 0.0f;
-	if ( nextRecordSim && ( recordSim->m_flSimulationTime < flTargetLerpSimTime )
-		 && ( recordSim->m_flSimulationTime < nextRecordSim->m_flSimulationTime ) )
+	if ( prevRecordSim && ( recordSim->m_flSimulationTime < flTargetLerpSimTime )
+		 && ( recordSim->m_flSimulationTime < prevRecordSim->m_flSimulationTime ) )
 	{
 		// we didn't find the exact time but have a valid previous record
 		// so interpolate between these two records;
@@ -491,18 +491,18 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 		// calc fraction between both records
 		fracSim = float( ( double( flTargetLerpSimTime ) - double( recordSim->m_flSimulationTime ) )
-						 / ( double( nextRecordSim->m_flSimulationTime ) - double( recordSim->m_flSimulationTime ) ) );
+						 / ( double( prevRecordSim->m_flSimulationTime ) - double( recordSim->m_flSimulationTime ) ) );
 
 		Assert( fracSim > 0 && fracSim < 1 ); // should never extrapolate
 
-		ang			  = Lerp( fracSim, recordSim->m_vecAngles, nextRecordSim->m_vecAngles );
-		org			  = Lerp( fracSim, recordSim->m_vecOrigin, nextRecordSim->m_vecOrigin );
-		minsPreScaled = Lerp( fracSim, recordSim->m_vecMinsPreScaled, nextRecordSim->m_vecMinsPreScaled );
-		maxsPreScaled = Lerp( fracSim, recordSim->m_vecMaxsPreScaled, nextRecordSim->m_vecMaxsPreScaled );
+		ang			  = Lerp( fracSim, recordSim->m_vecAngles, prevRecordSim->m_vecAngles );
+		org			  = Lerp( fracSim, recordSim->m_vecOrigin, prevRecordSim->m_vecOrigin );
+		minsPreScaled = Lerp( fracSim, recordSim->m_vecMinsPreScaled, prevRecordSim->m_vecMinsPreScaled );
+		maxsPreScaled = Lerp( fracSim, recordSim->m_vecMaxsPreScaled, prevRecordSim->m_vecMaxsPreScaled );
 #ifdef CSTRIKE_DLL
 		if ( csPlayer )
 		{
-			renderAngles = Lerp( fracSim, recordSim->m_angRenderAngles, nextRecordSim->m_angRenderAngles );
+			renderAngles = Lerp( fracSim, recordSim->m_angRenderAngles, prevRecordSim->m_angRenderAngles );
 		}
 #endif
 	}
@@ -681,7 +681,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 		LagRecord* change  = &m_ChangeData[i];
 
 #ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast< CCSPlayer* >( pPlayer );
+		auto csPlayer = ToCSPlayer( pPlayer );
 
 		if ( csPlayer )
 		{
