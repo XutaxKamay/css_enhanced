@@ -35,7 +35,8 @@
 #define LC_POSE_PARAMS_CHANGED ( 1 << 12 )
 #define LC_ENCD_CONS_CHANGED   ( 1 << 13 )
 
-#define MAX_TICKS_SAVED		   2048
+// Default to 1 second max.
+#define MAX_TICKS_SAVED		   1000
 
 ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag compensation" );
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "0", 0, "Flushes entity bone cache on lag compensation" );
