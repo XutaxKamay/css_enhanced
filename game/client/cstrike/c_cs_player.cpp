@@ -2706,15 +2706,7 @@ float C_CSPlayer::GetDeathCamInterpolationTime()
 
 bool C_CSPlayer::SetupBones( matrix3x4_t* pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )
 {
-	// Just in case.
-	float oldCurtime   = gpGlobals->curtime;
-	gpGlobals->curtime = currentTime;
-
-	auto ret = BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
-
-	gpGlobals->curtime = oldCurtime;
-
-	return ret;
+	return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
 }
 
 //=============================================================================
