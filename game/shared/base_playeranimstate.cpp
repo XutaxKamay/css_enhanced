@@ -6,6 +6,7 @@
 
 #include "cbase.h"
 #include "base_playeranimstate.h"
+#include "mathlib/mathlib.h"
 #include "tier0/vprof.h"
 #include "animation.h"
 #include "studio.h"
@@ -862,7 +863,7 @@ void CBasePlayerAnimState::ComputePoseParam_BodyYaw()
 	float flCurrentTorsoYaw = AngleNormalize( m_flEyeYaw - m_flCurrentFeetYaw );
 
 	// Rotate entire body into position
-	m_angRender[YAW] = m_flCurrentFeetYaw;
+	m_angRender[YAW] = AngleNormalize( m_flCurrentFeetYaw );
 	m_angRender[PITCH] = m_angRender[ROLL] = 0;
 		
 	SetOuterBodyYaw( flCurrentTorsoYaw );

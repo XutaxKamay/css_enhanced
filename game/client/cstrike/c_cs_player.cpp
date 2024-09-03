@@ -2199,7 +2199,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
 				{
-					backupAnimLayers[i] = *player->GetAnimOverlay(i);
+					backupAnimLayers[i] = *player->GetAnimOverlay( i );
 				}
 
 				player->m_nSequence = event->GetInt( "sequence" );
@@ -2277,6 +2277,26 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					int pos = 0;
 
 					auto newOrigin = player->GetAbsOrigin();
+					auto simtime   = event->GetFloat( "simtime" );
+					auto animtime  = event->GetFloat( "animtime" );
+
+					if ( pRecord->m_flSimulationTime != simtime )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer, "simtime: %f != %f", simtime, pRecord->m_flSimulationTime );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
+
+					if ( pRecord->m_flAnimTime != animtime )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer, "animtime: %f != %f", animtime, pRecord->m_flAnimTime );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
 
 					if ( pRecord->m_vecAbsOrigin != newOrigin )
 					{
@@ -2293,7 +2313,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
 						pos++;
 					}
- 
+
 					if ( pRecord->m_angRenderAngles != player->m_angRenderAngles )
 					{
 						char buffer[256];
@@ -2482,7 +2502,6 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 		ShowEventHitboxes( cl_debug_duration.GetFloat() );
 	}
 }
-
 
 void C_CSPlayer::SetActivity( Activity eActivity )
 {

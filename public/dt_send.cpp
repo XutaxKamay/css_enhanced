@@ -183,8 +183,9 @@ void SendProxy_AngleToFloat( const SendProp *pProp, const void *pStruct, const v
 {
 	float angle;
 
+	// TODO_ENHANCED: anglemod => This cause the angle to not have perfectly aligned angles and causes lag compensation issues !
 	angle = *((float*)pData);
-	pOut->m_Float = anglemod( angle );
+	pOut->m_Float = angle;
 
 	Assert( IsFinite( pOut->m_Float ) );
 }
@@ -197,10 +198,11 @@ void SendProxy_FloatToFloat( const SendProp *pProp, const void *pStruct, const v
 
 void SendProxy_QAngles( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
 {
+	// TODO_ENHANCED: same as SendProxy_AngleToFloat
 	QAngle *v = (QAngle*)pData;
-	pOut->m_Vector[0] = anglemod( v->x );
-	pOut->m_Vector[1] = anglemod( v->y );
-	pOut->m_Vector[2] = anglemod( v->z );
+	pOut->m_Vector[0] = v->x;
+	pOut->m_Vector[1] = v->y;
+	pOut->m_Vector[2] = v->z;
 }
 
 void SendProxy_VectorToVector( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID)
@@ -586,6 +588,10 @@ SendProp SendPropAngle(
 		Assert(sizeofVar == 4);
 	}
 
+	// TODO_ENHANCED: These variables will get compressed with zstd
+	flags = SPROP_NOSCALE;
+	nBits = 0;
+
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;
 
@@ -618,6 +624,10 @@ SendProp SendPropQAngles(
 	{
 		Assert(sizeofVar == 4);
 	}
+
+	// TODO_ENHANCED: These variables will get compressed with zstd
+	flags = SPROP_NOSCALE;
+	nBits = 0;
 
 	if ( nBits == 32 )
 		flags |= SPROP_NOSCALE;

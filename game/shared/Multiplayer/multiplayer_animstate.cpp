@@ -1700,7 +1700,7 @@ void CMultiPlayerAnimState::ComputePoseParam_AimYaw( CStudioHdr *pStudioHdr )
 	}
 
 	// Rotate the body into position.
-	m_angRender[YAW] = m_flCurrentFeetYaw;
+	m_angRender[YAW] = AngleNormalize( m_flCurrentFeetYaw );
 
 	// Find the aim(torso) yaw base on the eye and feet yaws.
 	float flAimYaw = m_flEyeYaw - m_flCurrentFeetYaw;
