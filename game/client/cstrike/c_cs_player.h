@@ -10,7 +10,6 @@
 #pragma once
 #endif
 
-
 #include "cs_playeranimstate.h"
 #include "c_baseplayer.h"
 #include "cs_shareddefs.h"
@@ -30,8 +29,6 @@ public:
 	int m_iAddon;						// One of the ADDON_ bits telling which model this is.
 	int m_iAttachmentPoint;				// Which attachment point on the player model this guy is on.
 };
-
-
 
 class C_CSPlayer : public C_BasePlayer, public ICSPlayerAnimStateHelpers
 {
@@ -328,8 +325,10 @@ private:
 	bool	m_bHasHelmet;
 	int		m_iClass;
 	int		m_ArmorValue;
+public:
 	QAngle	m_angEyeAngles;
 	QAngle  m_angRenderAngles;
+private:
 	bool	m_bHasDefuser;
 	float	m_fNextThinkPushAway;
 
@@ -393,7 +392,36 @@ private:
                     int a,
                     float duration);
 
-	C_CSPlayer( const C_CSPlayer & );
+	C_CSPlayer( const C_CSPlayer& );
+
+  public:
+	// Around 256 bullets, should be way enough to debug out what happned...
+	static constexpr auto MAX_HISTORY_HITBOX_RECORDS = 256;
+
+	struct AnimLayerRecord
+	{
+		int m_nSequence;
+		float m_flCycle;
+		float m_flWeight;
+		int m_nOrder;
+		int m_fFlags;
+	};
+
+	struct HitboxRecord
+	{
+		int m_nAttackerTickBase;
+		Vector m_vecAbsOrigin;
+		QAngle m_angRenderAngles;
+		float m_flSimulationTime;
+		int m_nSequence;
+		float m_flCycle;
+		float m_flAnimTime;
+		AnimLayerRecord m_AnimationLayer[MAX_LAYER_RECORDS];
+		float m_flPoseParameters[MAXSTUDIOPOSEPARAM];
+		float m_flEncodedControllers[MAXSTUDIOBONECTRLS];
+	};
+
+	CUtlCircularBuffer< HitboxRecord, MAX_HISTORY_HITBOX_RECORDS > m_HitboxTrack[MAX_PLAYERS + 1];
 };
 
 C_CSPlayer* GetLocalOrInEyeCSPlayer( void );

@@ -683,8 +683,9 @@ void CBasePlayer::SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs,
 
 int	CBasePlayer::UpdateTransmitState()
 {
+	// TODO_ENHANCED: this fucks up animations.
 	// always call ShouldTransmit() for players
-	return SetTransmitState( FL_EDICT_FULLCHECK );
+	return SetTransmitState( FL_EDICT_ALWAYS );
 }
 
 int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )

@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
 //=============================================================================//
 
@@ -9,6 +9,7 @@
 #include "convar.h"
 #include "mathlib/vector.h"
 #include "usercmd.h"
+#include "util_shared.h"
 #include "weapon_csbase.h"
 
 #ifndef CLIENT_DLL
@@ -31,15 +32,15 @@ ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0")
 	{
 
 		// If we have some sounds from the weapon classname.txt file, play a random one of them
-		const char *shootsound = pWeaponInfo->aShootSounds[ sound_type ]; 
+		const char *shootsound = pWeaponInfo->aShootSounds[ sound_type ];
 		if ( !shootsound || !shootsound[0] )
 			return;
 
 		CBroadcastRecipientFilter filter; // this is client side only
 		if ( !te->CanPredict() )
 			return;
-				
-		CBaseEntity::EmitSound( filter, iPlayerIndex, shootsound, &vOrigin, flSoundTime ); 
+
+		CBaseEntity::EmitSound( filter, iPlayerIndex, shootsound, &vOrigin, flSoundTime );
 	}
 
 	class CGroupedSound
@@ -51,7 +52,7 @@ ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0")
 
 	CUtlVector<CGroupedSound> g_GroupedSounds;
 
-	
+
 	// Called by the ImpactSound function.
 	void ShotgunImpactSoundGroup( const char *pSoundName, const Vector &vEndPos )
 	{
@@ -109,7 +110,7 @@ ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0")
 // This runs on both the client and the server.
 // On the server, it only does the damage calculations.
 // On the client, it does all the effects.
-void FX_FireBullets( 
+void FX_FireBullets(
 	int	iPlayerIndex,
 	const Vector &vOrigin,
 	const QAngle &vAngles,
@@ -183,7 +184,7 @@ void FX_FireBullets(
 // #else
 // 		V_strcat(szFlags, "SERVER ", sizeof(szFlags));
 // #endif
-// 
+//
 		if ( pPlayer->GetMoveType() == MOVETYPE_LADDER )
 			V_strcat(szFlags, "LADDER ", sizeof(szFlags));
 
@@ -195,7 +196,7 @@ void FX_FireBullets(
 
 		float fVelocity = pPlayer->GetAbsVelocity().Length2D();
 
-		Msg("FireBullets @ %10f [ %s ]: inaccuracy=%f  spread=%f  max dispersion=%f  mode=%2i  vel=%10f  seed=%3i  %s\n", 
+		Msg("FireBullets @ %10f [ %s ]: inaccuracy=%f  spread=%f  max dispersion=%f  mode=%2i  vel=%10f  seed=%3i  %s\n",
 			gpGlobals->curtime, weaponAlias, fInaccuracy, fSpread, fInaccuracy + fSpread, iMode, fVelocity, iSeed, szFlags);
 	}
 #endif
@@ -224,10 +225,10 @@ void FX_FireBullets(
 
 	// if this is server code, send the effect over to client as temp entity
 	// Dispatch one message for all the bullet impacts and sounds.
-	TE_FireBullets( 
+	TE_FireBullets(
 		iPlayerIndex,
-		vHookedOrigin, 
-		vAngles, 
+		vHookedOrigin,
+		vAngles,
 		iWeaponID,
 		iMode,
 		iSeed,
@@ -289,7 +290,7 @@ void FX_FireBullets(
 
 	if ( !pPlayer )
 		return;
-	
+
 	StartGroupingSounds();
 
 #ifdef GAME_DLL
@@ -321,6 +322,54 @@ void FX_FireBullets(
 		x1[iBullet] = fRadius1 * cosf(fTheta1);
 		y1[iBullet] = fRadius1 * sinf(fTheta1);
 	}
+
+#ifdef CLIENT_DLL
+    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
+	static ConVarRef cl_showimpacts( "cl_showimpacts" );
+
+	if ( playerCmd && !playerCmd->hasbeenpredicted && ( cl_showfirebullethitboxes.GetBool() || cl_showimpacts.GetBool() ) )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			auto lagPlayer = ( C_CSPlayer* )UTIL_PlayerByIndex( i );
+
+			if ( !lagPlayer )
+			{
+				continue;
+			}
+
+			C_CSPlayer::HitboxRecord record;
+
+			record.m_vecAbsOrigin	 = lagPlayer->GetRenderOrigin();
+			record.m_angRenderAngles = lagPlayer->m_angRenderAngles;
+
+			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
+			record.m_flSimulationTime  = lagPlayer->GetSimulationTime();
+			record.m_flAnimTime		   = lagPlayer->GetAnimTime();
+			record.m_flCycle		   = lagPlayer->GetCycle();
+			record.m_nSequence		   = lagPlayer->GetSequence();
+
+			lagPlayer->GetPoseParameters( lagPlayer->GetModelPtr(), record.m_flPoseParameters );
+			lagPlayer->GetBoneControllers( record.m_flEncodedControllers );
+
+			for ( int i = 0; i < lagPlayer->GetNumAnimOverlays(); i++ )
+			{
+				CAnimationLayer* layer = lagPlayer->GetAnimOverlay( i );
+
+				if ( layer )
+				{
+					record.m_AnimationLayer[i].m_flCycle   = layer->m_flCycle;
+					record.m_AnimationLayer[i].m_nOrder	   = layer->m_nOrder;
+					record.m_AnimationLayer[i].m_nSequence = layer->m_nSequence;
+					record.m_AnimationLayer[i].m_flWeight  = layer->m_flWeight;
+					record.m_AnimationLayer[i].m_fFlags	   = layer->m_fFlags;
+				}
+			}
+
+			pPlayer->m_HitboxTrack[lagPlayer->index].Push( record );
+		}
+	}
+#endif
 
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {

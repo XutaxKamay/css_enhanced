@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "const.h"
 #include "debugoverlay_shared.h"
+#include "shareddefs.h"
 #include "strtools.h"
 #ifndef CLIENT_DLL
 #include "player.h"
@@ -526,16 +527,16 @@ void CCSPlayer::FireBullet(
 #ifndef CLIENT_DLL
 	auto WritePlayerHitboxEvent = [&]( CBasePlayer* lagPlayer )
 	{
-		if ( IsBot() )
-		{
-			return;
-		}
-
 		IGameEvent* event = gameeventmanager->CreateEvent( "bullet_player_hitboxes" );
 		if ( event )
 		{
 			event->SetInt( "userid", GetUserID() );
 			event->SetInt( "player_index", lagPlayer->entindex() );
+			event->SetInt( "tickbase", TIME_TO_TICKS( GetTimeBase() ) );
+			event->SetInt( "bullet", iBullet );
+
+			event->SetFloat( "simtime", lagPlayer->GetSimulationTime() );
+			event->SetFloat( "animtime", lagPlayer->GetAnimTime() );
 
 			Vector positions[MAXSTUDIOBONES];
 			QAngle angles[MAXSTUDIOBONES];
@@ -718,6 +719,8 @@ void CCSPlayer::FireBullet(
 				event->SetFloat( "dst_y", tr.endpos.y );
 				event->SetFloat( "dst_z", tr.endpos.z );
 				event->SetFloat( "radius", flBulletRadius );
+				event->SetInt( "tickbase", TIME_TO_TICKS( GetTimeBase() ) );
+				event->SetInt( "bullet", iBullet );
 				gameeventmanager->FireEvent( event );
 			}
 #endif

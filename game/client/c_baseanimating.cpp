@@ -149,24 +149,8 @@ const unsigned int FCLIENTANIM_SEQUENCE_CYCLE = 0x00000001;
 
 static CUtlVector< clientanimating_t >	g_ClientSideAnimationList;
 
-void RecvProxy_Sequence( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	// Have the regular proxy store the data.
-	RecvProxy_Int32ToInt32( pData, pStruct, pOut );
-
-	C_BaseAnimating *pAnimating = (C_BaseAnimating *)pStruct;
-
-	if ( !pAnimating )
-		return;
-
-	pAnimating->SetReceivedSequence();
-
-	// render bounds may have changed
-	pAnimating->UpdateVisibility();
-}
-
 IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
-	RecvPropInt(RECVINFO(m_nSequence), 0, RecvProxy_Sequence),
+	RecvPropInt(RECVINFO(m_nSequence)),
 	RecvPropInt(RECVINFO(m_nForceBone)),
 	RecvPropVector(RECVINFO(m_vecForce)),
 	RecvPropInt(RECVINFO(m_nSkin)),

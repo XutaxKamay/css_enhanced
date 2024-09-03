@@ -521,8 +521,11 @@ private:
 	bool			m_bWasFrozen;
 	int				m_flPhysics;
 
+public:
 	int				m_nTickBase;
 	int				m_nFinalPredictedTick;
+
+public:
 
 	EHANDLE			m_pCurrentVguiScreen;
 
