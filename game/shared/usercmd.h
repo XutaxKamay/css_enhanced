@@ -43,7 +43,6 @@ struct SimulationData
 	// anim time is unreliable on low fps.
 	float sim_time;
 	float anim_time;
-	bool entityexists;
 };
 
 class CEntityGroundContact
