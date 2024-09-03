@@ -1325,14 +1325,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		}
 
 		cmd->simulationdata[pEntity->index].sim_time = pEntity->m_flInterpolatedSimulationTime;
-
-		auto pAnim = pEntity->GetBaseAnimating();
-
-		if ( pAnim && !pAnim->IsUsingClientSideAnimation() )
-		{
-			cmd->simulationdata[pEntity->index].anim_time = pEntity->m_flAnimTime;
-		}
-
+		cmd->simulationdata[pEntity->index].anim_time = pEntity->m_flAnimTime;
 		cmd->simulationdata[pEntity->index].entityexists = true;
 	}
 
