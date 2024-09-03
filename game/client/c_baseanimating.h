@@ -111,7 +111,7 @@ public:
 		return this;
 	}
 
-	bool IsUsingClientSideAnimation()
+	inline bool IsUsingClientSideAnimation()
 	{
 		return m_bClientSideAnimation;
 	}
