@@ -6,6 +6,7 @@
 
 #ifndef PLAYER_H
 #define PLAYER_H
+#include "baseentity.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -282,7 +283,7 @@ public:
 	// Returns true if this player wants pPlayer to be moved back in time when this player runs usercmds.
 	// Saves a lot of overhead on the server if we can cull out entities that don't need to lag compensate
 	// (like team members, entities out of our PVS, etc).
-	virtual bool			WantsLagCompensationOnEntity( const CBasePlayer	*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits );
+	virtual bool			WantsLagCompensationOnEntity( const CBaseEntity *pEntity, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits );
 
 	virtual void			Spawn( void );
 	virtual void			Activate( void );

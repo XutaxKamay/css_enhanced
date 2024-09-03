@@ -325,9 +325,7 @@ private:
 	bool	m_bHasHelmet;
 	int		m_iClass;
 	int		m_ArmorValue;
-public:
 	QAngle	m_angEyeAngles;
-	QAngle  m_angRenderAngles;
 private:
 	bool	m_bHasDefuser;
 	float	m_fNextThinkPushAway;
@@ -411,7 +409,7 @@ private:
 	{
 		int m_nAttackerTickBase;
 		Vector m_vecAbsOrigin;
-		QAngle m_angRenderAngles;
+		QAngle m_angAbsRotation;
 		float m_flSimulationTime;
 		int m_nSequence;
 		float m_flCycle;

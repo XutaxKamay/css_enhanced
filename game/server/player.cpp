@@ -746,11 +746,16 @@ static void NormalizeAngles( QAngle& angles )
 	}
 }
 
-bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits )
+bool CBasePlayer::WantsLagCompensationOnEntity( const CBaseEntity *pEntity, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits )
 {
 	// Team members shouldn't be adjusted unless friendly fire is on.
-	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
+	if ( !friendlyfire.GetInt() && pEntity->GetTeamNumber() == GetTeamNumber() )
 		return false;
+
+	if ( pEntity->GetOwnerEntity() == this )
+	{
+		return false;
+	}
 
 	// NOTE: Do not check for this, it is possible to knife from behind in CS:S
 	// Vector vShootPosition = Weapon_ShootPosition();
@@ -7929,12 +7934,12 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		
 // If HL2_DLL is defined, then baseflex.cpp already sends these.
 #ifndef HL2_DLL
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 0), -1, 0, -32.0, 32.0f),
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 1), -1, 0, -32.0, 32.0f),
-		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 2), -1, 0,	0.0f, 256.0f),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 0)),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 1)),
+		SendPropFloat		( SENDINFO_VECTORELEM(m_vecViewOffset, 2)),
 #endif
 
-		SendPropFloat		( SENDINFO(m_flFriction),		8,	SPROP_ROUNDDOWN,	0.0f,	4.0f),
+		SendPropFloat		( SENDINFO(m_flFriction) ),
 
 		SendPropArray3		( SENDINFO_ARRAY3(m_iAmmo), SendPropInt( SENDINFO_ARRAY(m_iAmmo), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 			
@@ -7956,7 +7961,7 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 		SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
 #endif
 
-		SendPropEHandle		( SENDINFO( m_hConstraintEntity)),
+		SendPropEHandle		( SENDINFO( m_hConstraintEntity )),
 		SendPropVector		( SENDINFO( m_vecConstraintCenter), 0, SPROP_NOSCALE ),
 		SendPropFloat		( SENDINFO( m_flConstraintRadius ), 0, SPROP_NOSCALE ),
 		SendPropFloat		( SENDINFO( m_flConstraintWidth ), 0, SPROP_NOSCALE ),

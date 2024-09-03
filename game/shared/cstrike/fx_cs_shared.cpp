@@ -297,11 +297,6 @@ void FX_FireBullets(
 	pPlayer->StartNewBulletGroup();
 #endif
 
-#if !defined (CLIENT_DLL)
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
-
 	RandomSeed( iSeed );	// init random system with this seed
 
 	// Get accuracy displacement
@@ -340,8 +335,8 @@ void FX_FireBullets(
 
 			C_CSPlayer::HitboxRecord record;
 
-			record.m_vecAbsOrigin	 = lagPlayer->GetRenderOrigin();
-			record.m_angRenderAngles = lagPlayer->m_angRenderAngles;
+			record.m_vecAbsOrigin	= lagPlayer->GetAbsOrigin();
+			record.m_angAbsRotation = lagPlayer->GetAbsAngles();
 
 			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
 			record.m_flSimulationTime  = lagPlayer->m_flInterpolatedSimulationTime;
@@ -392,10 +387,6 @@ void FX_FireBullets(
 			bDoEffects,
 			x0 + x1[iBullet], y0 + y1[iBullet] );
     }
-
-#if !defined (CLIENT_DLL)
-	lagcompensation->FinishLagCompensation( pPlayer );
-#endif
 
 	EndGroupingSounds();
 }
