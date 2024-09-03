@@ -6336,6 +6336,13 @@ void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool
 {
 	// Only add it if it hasn't been added yet.
 	bool bAddIt = true;
+
+	// TODO_ENHANCED:
+	// This is needed to get the perfect lag compensation for origin.
+	// It's possible to have hermite interpolation in lag compensation,
+	// but it would require some extra flags being sent to the server.
+	type |= INTERPOLATE_LINEAR_ONLY;
+
 	for ( int i=0; i < m_VarMap.m_Entries.Count(); i++ )
 	{
 		if ( m_VarMap.m_Entries[i].watcher == watcher )

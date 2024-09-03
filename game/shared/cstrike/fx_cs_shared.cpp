@@ -344,7 +344,7 @@ void FX_FireBullets(
 			record.m_angRenderAngles = lagPlayer->m_angRenderAngles;
 
 			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
-			record.m_flSimulationTime  = lagPlayer->GetSimulationTime();
+			record.m_flSimulationTime  = lagPlayer->m_flInterpolatedSimulationTime;
 			record.m_flAnimTime		   = lagPlayer->GetAnimTime();
 			record.m_flCycle		   = lagPlayer->GetCycle();
 			record.m_nSequence		   = lagPlayer->GetSequence();
