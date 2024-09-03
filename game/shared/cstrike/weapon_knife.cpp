@@ -235,14 +235,7 @@ void CKnife::SecondaryAttack()
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( pPlayer && !pPlayer->m_bIsDefusing && !CSGameRules()->IsFreezePeriod() )
 	{
-#if !defined (CLIENT_DLL)
-		// Move other players back to history positions based on local player's lag
-		lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
 		SwingOrStab( true );
-#if !defined (CLIENT_DLL)
-		lagcompensation->FinishLagCompensation( pPlayer );
-#endif
 	}
 }
 

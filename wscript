@@ -547,7 +547,7 @@ def configure(conf):
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
 			'/GF',
 			'/Gy',
-			'/fp:fast',
+			'/fp:precise',
 			'/Zc:forScope',
 			'/Zc:wchar_t',
 			'/GR',

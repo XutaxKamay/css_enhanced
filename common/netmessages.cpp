@@ -78,7 +78,7 @@ bool CLC_Move::WriteToBuffer( bf_write &buffer )
 	buffer.WriteUBitLong( m_nNewCommands, NUM_NEW_COMMAND_BITS );
 	buffer.WriteUBitLong( m_nBackupCommands, NUM_BACKUP_COMMAND_BITS );
 	
-	buffer.WriteWord( m_nLength );	
+	buffer.WriteLong( m_nLength );	
 
 	return buffer.WriteBits( m_DataOut.GetData(), m_nLength );
 }
@@ -89,7 +89,7 @@ bool CLC_Move::ReadFromBuffer( bf_read &buffer )
 
 	m_nNewCommands = buffer.ReadUBitLong( NUM_NEW_COMMAND_BITS );
 	m_nBackupCommands = buffer.ReadUBitLong( NUM_BACKUP_COMMAND_BITS );
-	m_nLength = buffer.ReadWord();
+	m_nLength = buffer.ReadLong();
 	m_DataIn = 	buffer;
 	return buffer.SeekRelative( m_nLength );
 }

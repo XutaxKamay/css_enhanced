@@ -288,8 +288,6 @@ public:
 
 	virtual int 		GetNextObserverSearchStartPoint( bool bReverse );
 
-	virtual const QAngle&	GetRenderAngles( void ) const { return m_angRenderAngles; }
-
 // In shared code.
 public:
 
@@ -816,7 +814,6 @@ public:
 
 	// Copyed from EyeAngles() so we can send it to the client.
 	CNetworkQAngle( m_angEyeAngles );
-	CNetworkQAngle( m_angRenderAngles );
 
 	bool m_bVCollisionInitted;
 

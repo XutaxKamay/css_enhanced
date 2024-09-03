@@ -308,8 +308,12 @@ void CPlayerMove::RunPostThink( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::RunPostThink" );
 
+	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
+
 	// Run post-think
 	player->PostThink();
+
+	lagcompensation->FinishLagCompensation( player );
 }
 
 void CommentarySystem_PePlayerRunCommand( CBasePlayer *player, CUserCmd *ucmd );
@@ -467,6 +471,4 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		player->m_nTickBase++;
 	}
-
-	lagcompensation->TrackPlayerData( player );
 }

@@ -1306,21 +1306,33 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		cmd->simulationdata[i].entityexists = false;
+		cmd->simulationdata[i] = {};
 	}
 
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		auto pEntity = ClientEntityList().GetEnt( i );
+		const auto pEntity = ClientEntityList().GetEnt( i );
 
 		if ( !pEntity )
 		{
 			continue;
 		}
 
-		cmd->simulationdata[pEntity->index].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[pEntity->index].anim_time	 = pEntity->m_flAnimTime;
+		if ( pEntity->ShouldPredict() )
+		{
+			continue;
+		}
+
+		cmd->simulationdata[pEntity->index].sim_time = pEntity->m_flInterpolatedSimulationTime;
+
+		auto pAnim = pEntity->GetBaseAnimating();
+
+		if ( pAnim && !pAnim->IsUsingClientSideAnimation() )
+		{
+			cmd->simulationdata[pEntity->index].anim_time = pEntity->m_flAnimTime;
+		}
+
 		cmd->simulationdata[pEntity->index].entityexists = true;
 	}
 

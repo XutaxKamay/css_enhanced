@@ -106,7 +106,15 @@ public:
 	C_BaseAnimating();
 	~C_BaseAnimating();
 
-	virtual C_BaseAnimating*		GetBaseAnimating() { return this; }
+	virtual C_BaseAnimating* GetBaseAnimating()
+	{
+		return this;
+	}
+
+	bool IsUsingClientSideAnimation()
+	{
+		return m_bClientSideAnimation;
+	}
 
 	bool UsesPowerOfTwoFrameBufferTexture( void );
 
