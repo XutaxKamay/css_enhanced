@@ -63,6 +63,7 @@
 
 // NVNT haptics system interface
 #include "haptics/ihaptics.h"
+#include "coordsize.h"
 
 #include "debugoverlay_shared.h"
 
@@ -137,7 +138,7 @@ void RecvProxy_LocalVelocityZ( const CRecvProxyData *pData, void *pStruct, void 
 
 void RecvProxy_ObserverTarget( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_ObserverMode  ( const CRecvProxyData *pData, void *pStruct, void *pOut );
-
+const float coordTolerance = 2.0f / (float)( 1 << COORD_FRACTIONAL_BITS );
 // -------------------------------------------------------------------------------- //
 // RecvTable for CPlayerState.
 // -------------------------------------------------------------------------------- //
@@ -351,7 +352,7 @@ BEGIN_PREDICTION_DATA_NO_BASE( CPlayerLocalData )
 	DEFINE_PRED_FIELD( m_flStepSize, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_FIELD( m_flFOVRate, FIELD_FLOAT ),
 
-END_PREDICTION_DATA()	
+END_PREDICTION_DATA()
 
 BEGIN_PREDICTION_DATA( C_BasePlayer )
 
@@ -374,8 +375,8 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	DEFINE_PRED_FIELD( m_nWaterLevel, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	
 	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, 0.05 ),
-	DEFINE_PRED_FIELD(m_vecPreviouslyPredictedOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_vecPreviousShootPosition, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
+	DEFINE_PRED_FIELD_TOL(m_vecPreviouslyPredictedOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance),
+	DEFINE_PRED_FIELD_TOL(m_vecPreviousShootPosition, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance),
 	DEFINE_FIELD( m_nButtons, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_nImpulse, FIELD_INTEGER ),
