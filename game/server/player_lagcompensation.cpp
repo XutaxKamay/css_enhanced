@@ -159,7 +159,7 @@ struct LagRecord
 // If it can't get there, leave the player where he is.
 //
 
-ConVar sv_unlag_debug( "sv_unlag_debug", "0", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY );
+ConVar sv_unlag_debug( "sv_unlag_debug", "0" );
 
 float g_flFractionScale = 0.95;
 
@@ -426,6 +426,8 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 	// get track history of this player
 	auto track = &m_EntityTrack[pl_index];
+	bool foundSim = false;
+	bool foundAnim = false;
 
 	for ( int i = 0; i < MAX_TICKS_SAVED; i++ )
 	{
@@ -443,11 +445,13 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 		if ( flTargetSimTime == recordSim->m_flSimulationTime )
 		{
+			foundSim = true;
 			break;
 		}
 
 		if ( recordSim->m_flSimulationTime < flTargetSimTime )
 		{
+			foundSim = true;
 			prevRecordSim = track->Get( i - 1 );
 			break;
 		}
@@ -464,6 +468,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 
 		if ( recordAnim->m_flAnimTime == flTargetAnimTime )
 		{
+			foundAnim = true;
 			break;
 		}
 	}
@@ -471,7 +476,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 	Assert( recordAnim );
 	Assert( recordSim );
 
-	if ( !recordSim || !recordAnim )
+	if ( !foundAnim || !foundSim )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
@@ -489,7 +494,7 @@ void CLagCompensationManager::BacktrackPlayer( CBasePlayer* pPlayer, CUserCmd* c
 		// so interpolate between these two records;
 
 		Assert( prevRecordSim->m_flSimulationTime > recordSim->m_flSimulationTime );
-		Assert( flTargetLerpSimTime < prevRecordSim->m_flSimulationTime );
+		Assert( flTargetSimTime < prevRecordSim->m_flSimulationTime );
 
 		// calc fraction between both records
 		fracSim = float( ( double( flTargetSimTime ) - double( recordSim->m_flSimulationTime ) )

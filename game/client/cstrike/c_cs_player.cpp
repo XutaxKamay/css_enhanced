@@ -16,6 +16,7 @@
 #include "interpolatedvar.h"
 #include "mathlib/vector.h"
 #include "shareddefs.h"
+#include "strtools.h"
 #include "studio.h"
 #include "util_shared.h"
 #include "view.h"
@@ -2145,9 +2146,13 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 			if ( player && !player->IsLocalPlayer() )
 			{
+				const auto nAttackerTickBase = event->GetInt( "tickbase" );
+
 				const auto numhitboxes = event->GetInt( "num_hitboxes" );
 				QAngle angles[MAXSTUDIOBONES];
 				Vector positions[MAXSTUDIOBONES];
+
+				Assert( numhitboxes == player->GetModelPtr()->numbones() );
 
 				for ( int i = 0; i < numhitboxes; i++ )
 				{
@@ -2175,11 +2180,12 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				// Let's see what the client thinks to check if there's any problems with hitboxes
 				float flBackupPoseParams[MAXSTUDIOPOSEPARAM];
 				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
+
 				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
 				Vector vecBackupPosition = player->GetAbsOrigin();
 				QAngle angBackupAngles	 = player->GetRenderAngles();
-				auto flOldCycle			 = GetCycle();
-				auto iOldSequence		 = GetSequence();
+				auto flOldCycle			 = player->GetCycle();
+				auto iOldSequence		 = player->GetSequence();
 
 				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
 				{
@@ -2191,13 +2197,13 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					flBackupBoneControllers[i] = player->m_flEncodedController[i];
 				}
 
-				for ( int i = 0; i < GetNumAnimOverlays(); i++ )
+				for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
 				{
 					backupAnimLayers[i] = *player->GetAnimOverlay(i);
 				}
 
-				player->SetSequence( event->GetInt( "sequence" ) );
-				player->SetCycle( event->GetFloat( "cycle" ) );
+				player->m_nSequence = event->GetInt( "sequence" );
+				player->m_flCycle	= event->GetFloat( "cycle" );
 				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
 											  event->GetFloat( "position_y" ),
 											  event->GetFloat( "position_z" ) ) );
@@ -2207,7 +2213,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 													event->GetFloat( "angle_z" ) );
 
 				const auto numposeparams = event->GetInt( "num_poseparams" );
-				Assert( numposeparams == pStudioHdr->GetNumPoseParameters() );
+				Assert( numposeparams == player->GetModelPtr()->GetNumPoseParameters() );
 
 				for ( int i = 0; i < numposeparams; i++ )
 				{
@@ -2218,7 +2224,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				}
 
 				const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
-				Assert( numbonecontrollers == pStudioHdr->GetNumBoneControllers() );
+				Assert( numbonecontrollers == player->GetModelPtr()->GetNumBoneControllers() );
 
 				for ( int i = 0; i < numbonecontrollers; i++ )
 				{
@@ -2252,17 +2258,168 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					animOverlay->m_fFlags = event->GetInt( buffer );
 				}
 
-				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
+				// Let's see if anything wrong has happened, print some infos.
+				HitboxRecord* pRecord = nullptr;
 
+				for ( int i = 0; i < MAX_HISTORY_HITBOX_RECORDS; i++ )
+				{
+					pRecord = m_HitboxTrack[player->index].Get( i );
+
+					if ( pRecord && ( pRecord->m_nAttackerTickBase == nAttackerTickBase ) )
+					{
+						break;
+					}
+				}
+
+				if ( pRecord )
+				{
+					// Let's check what went wrong.
+					int pos = 0;
+
+					auto newOrigin = player->GetAbsOrigin();
+
+					if ( pRecord->m_vecAbsOrigin != newOrigin )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer,
+										"pos: %f != %f, %f != %f, %f != %f",
+										newOrigin.x,
+										pRecord->m_vecAbsOrigin.x,
+										newOrigin.y,
+										pRecord->m_vecAbsOrigin.y,
+										newOrigin.z,
+										pRecord->m_vecAbsOrigin.z );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
+ 
+					if ( pRecord->m_angRenderAngles != player->m_angRenderAngles )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer,
+										"angles: %f != %f, %f != %f, %f != %f",
+										player->m_angRenderAngles.x,
+										pRecord->m_angRenderAngles.x,
+										player->m_angRenderAngles.y,
+										pRecord->m_angRenderAngles.y,
+										player->m_angRenderAngles.z,
+										pRecord->m_angRenderAngles.z );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
+
+					if ( pRecord->m_flCycle != player->m_flCycle )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer, "cycle: %f != %f", player->m_flCycle, pRecord->m_flCycle );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
+
+					if ( pRecord->m_nSequence != player->m_nSequence )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer,
+										"sequence: %s(%i) != %s(%i)",
+										player->GetSequenceName( player->m_nSequence ),
+										player->m_nSequence,
+										player->GetSequenceName( pRecord->m_nSequence ),
+										pRecord->m_nSequence );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						pos++;
+					}
+
+					auto mdl = player->GetModelPtr();
+
+					for ( int i = 0; i < mdl->GetNumPoseParameters(); i++ )
+					{
+						if ( pRecord->m_flPoseParameters[i] != player->m_flPoseParameter[i] )
+						{
+							char buffer[256];
+							V_sprintf_safe( buffer,
+											"pose parameter %s (%i): %f != %f",
+											mdl->pPoseParameter( i ).pszName(),
+											i,
+											player->m_flPoseParameter[i],
+											pRecord->m_flPoseParameters[i] );
+
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							pos++;
+						}
+					}
+
+					for ( int i = 0; i < mdl->GetNumBoneControllers(); i++ )
+					{
+						if ( pRecord->m_flEncodedControllers[i] != player->m_flEncodedController[i] )
+						{
+							char buffer[256];
+							V_sprintf_safe( buffer,
+											"bone controller %i (%i): %f != %f",
+											mdl->pBonecontroller( i )->bone,
+											i,
+											player->m_flEncodedController[i],
+											pRecord->m_flEncodedControllers[i] );
+
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							pos++;
+						}
+					}
+
+					for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
+					{
+						auto animOverlay = player->GetAnimOverlay( i );
+
+						if ( animOverlay->m_flCycle != pRecord->m_AnimationLayer[i].m_flCycle
+							 || animOverlay->m_flWeight != pRecord->m_AnimationLayer[i].m_flWeight
+							 || animOverlay->m_nSequence != pRecord->m_AnimationLayer[i].m_nSequence
+							 || animOverlay->m_nOrder != pRecord->m_AnimationLayer[i].m_nOrder
+							 || animOverlay->m_fFlags != pRecord->m_AnimationLayer[i].m_fFlags )
+						{
+							char buffer[256];
+							V_sprintf_safe( buffer,
+											"anim overlay %i:  sequence: %s != %s ( %i != %i ), cycle: %f != %f, "
+											"weight: %f != %f, order %i != %i, flags: %i != %i",
+											i,
+											GetSequenceName( animOverlay->m_nSequence ),
+											GetSequenceName( pRecord->m_AnimationLayer[i].m_nSequence ),
+											animOverlay->m_nSequence,
+											pRecord->m_AnimationLayer[i].m_nSequence,
+											animOverlay->m_flCycle,
+											pRecord->m_AnimationLayer[i].m_flCycle,
+											animOverlay->m_flWeight,
+											pRecord->m_AnimationLayer[i].m_flWeight,
+											animOverlay->m_nOrder,
+											pRecord->m_AnimationLayer[i].m_nOrder,
+											animOverlay->m_fFlags,
+											pRecord->m_AnimationLayer[i].m_fFlags );
+
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							pos++;
+						}
+					}
+				}
+				else
+				{
+					DevMsg( "Could not get record info for player %s (%i) with tickbase %i\n",
+							player->GetPlayerName(),
+							player->index,
+							nAttackerTickBase );
+				}
+
+				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
 				// Be sure we setup the bones again.
 				player->InvalidateBoneCache();
 				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
-				player->DrawClientHitboxes( cl_debug_duration.GetFloat(), false );
+				player->DrawClientHitboxes( flDuration, false );
 				player->PopBoneAccess( "Lag compensation context" );
 
 				// Set back original stuff.
-				player->SetSequence( iOldSequence );
-				player->SetCycle( flOldCycle );
+				player->m_nSequence = iOldSequence;
+				player->m_flCycle	= flOldCycle;
 				player->SetAbsOrigin( vecBackupPosition );
 				player->m_angRenderAngles = angBackupAngles;
 
