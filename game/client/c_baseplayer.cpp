@@ -254,8 +254,7 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-		RecvPropVector(RECVINFO(m_vecPreviouslyPredictedOrigin)),
-		RecvPropVector(RECVINFO(m_vecPreviousShootPosition)),
+		RecvPropVector(RECVINFO(m_vecPreviouslyPredictedOrigin))
 END_RECV_TABLE()
 
 	
@@ -376,7 +375,6 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	
 	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, 0.05 ),
 	DEFINE_PRED_FIELD_TOL(m_vecPreviouslyPredictedOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance),
-	DEFINE_PRED_FIELD_TOL(m_vecPreviousShootPosition, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance),
 	DEFINE_FIELD( m_nButtons, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_nImpulse, FIELD_INTEGER ),

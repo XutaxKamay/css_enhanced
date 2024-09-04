@@ -154,10 +154,10 @@ void FX_FireBullets(
 #endif
 	}
 
-	if ( playerCmd )
-	{
-		vHookedOrigin = VectorLerp( pPlayer->m_vecPreviousShootPosition, vOrigin, playerCmd->interpolated_amount );
-	}
+// 	if ( playerCmd )
+// 	{
+// 		vHookedOrigin = VectorLerp( pPlayer->m_vecPreviousEyePosition, vOrigin, playerCmd->interpolated_amount );
+// 	}
 
 // #ifndef CLIENT_DLL
 // 	DevMsg("server new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount, playerCmd ? "true" : "false" );

@@ -48,8 +48,6 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 {
 	VPROF( "CPlayerMove::StartCommand" );
 
-	player->m_vecPreviousShootPosition = player->Weapon_ShootPosition();
-
 #if !defined( NO_ENTITY_PREDICTION )
 	CPredictableId::ResetInstanceCounters();
 #endif
@@ -57,7 +55,10 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 	player->m_pCurrentCommand = cmd;
 	CBaseEntity::SetPredictionRandomSeed( cmd );
 	CBaseEntity::SetPredictionPlayer( player );
-	
+
+	InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset = player->GetViewOffset();
+	InterpolationContexts[BEFORE_MOVEMENT].m_vecAbsOrigin  = player->GetAbsOrigin();
+
 #if defined (HL2_DLL)
 	// pull out backchannel data and move this out
 
@@ -298,6 +299,36 @@ void CPlayerMove::RunThink (CBasePlayer *player, double frametime )
 	player->Think();
 }
 
+void CPlayerMove::StartInterpolatingPlayer( CBasePlayer *player )
+{
+	VPROF( "CPlayerMove::StartInterpolatingPlayer" );
+
+	// Let's interpolate the local player, this is similar to lag compensation,
+	// except it isn't since local player is always predicted. (except if user didn't want to for some reasons)
+	InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset = player->GetViewOffset();
+	InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin  = player->GetAbsOrigin();
+
+	auto pCmd = player->m_pCurrentCommand;
+
+	Vector vecNewAbsOrigin	= VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecAbsOrigin,
+										  InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin,
+										  pCmd->interpolated_amount );
+	Vector vecNewViewOffset = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset,
+										  InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset,
+										  pCmd->interpolated_amount );
+
+	player->SetAbsOrigin( vecNewAbsOrigin );
+	player->SetViewOffset( vecNewViewOffset );
+}
+
+void CPlayerMove::FinishInterpolatingPlayer( CBasePlayer *player )
+{
+	VPROF( "CPlayerMove::FinishInterpolatingPlayer" );
+
+	player->SetAbsOrigin( InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin );
+	player->SetViewOffset( InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Called after player movement
 // Input  : *player - 
@@ -458,7 +489,11 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	moveHelper->ProcessImpacts();
 	VPROF_SCOPE_END();
 
+	StartInterpolatingPlayer( player );
+
 	RunPostThink( player );
+
+	FinishInterpolatingPlayer( player );
 
 	ServiceEventQueue( player );
 
