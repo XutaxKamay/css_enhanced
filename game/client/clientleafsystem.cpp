@@ -1151,6 +1151,8 @@ bool CClientLeafSystem::EnumerateLeaf( int leaf, intp context )
 
 void CClientLeafSystem::InsertIntoTree( ClientRenderHandle_t &handle )
 {
+	VPROF_BUDGET( "CClientLeafSystem::PreRender", "InsertIntoTree" );
+
 	if ( ThreadInMainThread() )
 	{
 		// When we insert into the tree, increase the shadow enumerator
@@ -1181,6 +1183,8 @@ void CClientLeafSystem::InsertIntoTree( ClientRenderHandle_t &handle )
 //-----------------------------------------------------------------------------
 void CClientLeafSystem::RemoveFromTree( ClientRenderHandle_t handle )
 {
+	VPROF_BUDGET( "CClientLeafSystem::PreRender", "RemoveFromTree" );
+
 	m_RenderablesInLeaf.RemoveElement( handle );
 
 	// Remove all shadows cast onto the object
