@@ -1310,10 +1310,12 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i] = {};
 	}
 
+	auto entities = g_pFastEntityLookUp->entities;
+
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		auto pEntity = g_pFastEntityLookUp->entities[i];
+		auto pEntity = entities[i];
 
 		if ( !pEntity )
 		{
