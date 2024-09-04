@@ -57,7 +57,7 @@ data field should not be broadcasted to clients, use the type "local".
 #define MAX_EVENT_NAME_LENGTH	64		// max game event name length
 #define MAX_EVENT_BITS			14		// max bits needed for an event index
 #define MAX_EVENT_NUMBER		(1<<MAX_EVENT_BITS)		// max number of events allowed
-#define MAX_EVENT_BYTES			(1<<26)	// max size in bytes for a serialized event
+#define MAX_EVENT_BYTES			(1<<23)	// max size in bytes for a serialized event
 
 class KeyValues;
 class CGameEvent;
