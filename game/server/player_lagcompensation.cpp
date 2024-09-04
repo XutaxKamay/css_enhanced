@@ -36,7 +36,7 @@
 // Default to 1 second max.
 #define MAX_TICKS_SAVED		   1024
 
-ConVar sv_unlag( "sv_unlag", "1", FCVAR_DEVELOPMENTONLY, "Enables player lag compensation" );
+ConVar sv_unlag( "sv_unlag", "1", 0, "Enables entity lag compensation" );
 // Enable by default to avoid some bugs.
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", 0, "Flushes entity bone cache on lag compensation" );
 
@@ -56,7 +56,7 @@ struct LayerRecord
 struct LagRecord
 {
   public:
-	// Did player die this frame
+	// Did entity die this frame
 	int m_fFlags;
 
 	// Player position, orientation and bbox
@@ -77,66 +77,11 @@ struct LagRecord
 };
 
 //
-// Try to take the player from his current origin to vWantedPos.
-// If it can't get there, leave the player where he is.
+// Try to take the entity from his current origin to vWantedPos.
+// If it can't get there, leave the entity where he is.
 //
 
 ConVar sv_unlag_debug( "sv_unlag_debug", "0" );
-
-float g_flFractionScale = 0.95;
-
-static void RestorePlayerTo( CBaseEntity* pEntity, const Vector& vWantedPos )
-{
-	// Try to move to the wanted position from our current position.
-	trace_t tr;
-	VPROF_BUDGET( "RestorePlayerTo", "CLagCompensationManager" );
-	UTIL_TraceEntity( pEntity, vWantedPos, vWantedPos, MASK_PLAYERSOLID, pEntity->GetRefEHandle().Get(), COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
-	if ( tr.startsolid || tr.allsolid )
-	{
-		if ( sv_unlag_debug.GetBool() )
-		{
-			DevMsg( "RestorePlayerTo() could not restore player position for client \"%i\" ( %.1f %.1f %.1f )\n",
-					pEntity->entindex(),
-					vWantedPos.x,
-					vWantedPos.y,
-					vWantedPos.z );
-		}
-
-		UTIL_TraceEntity( pEntity,
-						  pEntity->GetAbsOrigin(),
-						  vWantedPos,
-						  MASK_PLAYERSOLID,
-						  pEntity->GetRefEHandle().Get(),
-						  COLLISION_GROUP_PLAYER_MOVEMENT,
-						  &tr );
-		if ( tr.startsolid || tr.allsolid )
-		{
-			// In this case, the guy got stuck back wherever we lag compensated him to. Nasty.
-
-			if ( sv_unlag_debug.GetBool() )
-			{
-				DevMsg( " restore failed entirely\n" );
-			}
-		}
-		else
-		{
-			// We can get to a valid place, but not all the way back to where we were.
-			Vector vPos;
-			VectorLerp( pEntity->GetAbsOrigin(), vWantedPos, tr.fraction * g_flFractionScale, vPos );
-			UTIL_SetOrigin( pEntity, vPos, true );
-
-			if ( sv_unlag_debug.GetBool() )
-			{
-				DevMsg( " restore got most of the way\n" );
-			}
-		}
-	}
-	else
-	{
-		// Cool, the player can go back to whence he came.
-		UTIL_SetOrigin( pEntity, tr.endpos, true );
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -199,7 +144,7 @@ ILagCompensationManager* lagcompensation = &g_LagCompensationManager;
 // Purpose: Called once per frame after all entities have had a chance to think
 //-----------------------------------------------------------------------------
 void CLagCompensationManager::TrackEntities()
-{	
+{
 	LagRecord record;
 
 	if ( !sv_unlag.GetBool() )
@@ -222,7 +167,7 @@ void CLagCompensationManager::TrackEntities()
 		// remove all records before that time:
 		auto track = &m_EntityTrack[i];
 
-		// add new record to player track
+		// add new record to entity track
 
 		record.m_fFlags			  = LC_NONE;
 		record.m_flSimulationTime = pEntity->GetSimulationTime();
@@ -282,14 +227,14 @@ void CLagCompensationManager::TrackEntities()
 // Called during player movement to set up/restore after lag compensation
 void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCmd* cmd )
 {
-	// Assume no players need to be restored
+	// Assume no entities need to be restored
 	m_RestoreEntity.ClearAll();
 	m_bNeedToRestore = false;
 
-	if ( !player->m_bLagCompensation	   // Player not wanting lag compensation
-		 || !sv_unlag.GetBool()			   // disabled by server admin
-		 || player->IsBot()				   // not for bots
-		 || player->IsObserver()		   // not for spectators
+	if ( !player->m_bLagCompensation // Player not wanting lag compensation
+		 || !sv_unlag.GetBool()		 // disabled by server admin
+		 || player->IsBot()			 // not for bots
+		 || player->IsObserver()	 // not for spectators
 	)
 	{
 		return;
@@ -300,7 +245,7 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	Q_memset( m_RestoreData, 0, sizeof( m_RestoreData ) );
 	Q_memset( m_ChangeData, 0, sizeof( m_ChangeData ) );
 
-	// Iterate all active players
+	// Iterate all active entities
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
@@ -318,13 +263,13 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 			continue;
 		}
 
-		// Custom checks for if things should lag compensate (based on things like what team the player is on).
+		// Custom checks for if things should lag compensate (based on things like what team the entity is on).
 		if ( !player->WantsLagCompensationOnEntity( pEntity, cmd, pEntityTransmitBits ) )
 		{
 			continue;
 		}
 
-		// Move other player back in time
+		// Move other entity back in time
 		BacktrackEntity( pEntity, i, cmd );
 	}
 }
@@ -348,19 +293,20 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	float flTargetAnimTime = cmd->simulationdata[pl_index].anim_time;
 
 	// Somehow the client didn't care.
-	if (flTargetSimTime == 0)
+	if ( flTargetSimTime == 0 )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Client has refused to lag compensate this entity, probably already predicted ( %i )\n", pEntity->entindex() );
+			DevMsg( "Client has refused to lag compensate this entity, probably already predicted ( %i )\n",
+					pEntity->entindex() );
 		}
 
 		return;
 	}
 
-	// get track history of this player
-	auto track = &m_EntityTrack[pl_index];
-	bool foundSim = false;
+	// get track history of this entity
+	auto track	   = &m_EntityTrack[pl_index];
+	bool foundSim  = false;
 	bool foundAnim = false;
 
 	for ( int i = 0; i < MAX_TICKS_SAVED; i++ )
@@ -380,7 +326,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 		if ( recordSim->m_flSimulationTime < flTargetSimTime )
 		{
-			foundSim = true;
+			foundSim	  = true;
 			prevRecordSim = track->Get( i - 1 );
 			break;
 		}
@@ -427,7 +373,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		maxsPreScaled = recordSim->m_vecMaxsPreScaled;
 	}
 
-	// See if this represents a change for the player
+	// See if this represents a change for the entity
 	int flags		   = 0;
 	LagRecord* restore = &m_RestoreData[pl_index];
 	LagRecord* change  = &m_ChangeData[pl_index];
@@ -437,8 +383,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 	// Always remember the pristine simulation time in case we need to restore it.
 	restore->m_flSimulationTime = pEntity->GetSimulationTime();
-	restore->m_flAnimTime = pEntity->GetAnimTime();
-	
+	restore->m_flAnimTime		= pEntity->GetAnimTime();
+
 	if ( angdiff.LengthSqr() > 0.0f )
 	{
 		flags				 |= LC_ANGLES_CHANGED;
@@ -480,7 +426,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 			return; // we didn't change anything
 		}
 
-		// Set lag compensated player's times
+		// Set lag compensated entity's times
 		pEntity->SetSimulationTime( flTargetSimTime );
 		pEntity->SetAnimTime( flTargetAnimTime );
 
@@ -492,14 +438,14 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 			}
 		}
 
-		m_RestoreEntity.Set( pl_index ); // remember that we changed this player
-		m_bNeedToRestore  = true;		 // we changed at least one player
+		m_RestoreEntity.Set( pl_index ); // remember that we changed this entity
+		m_bNeedToRestore  = true;		 // we changed at least one entity
 		restore->m_fFlags = flags;		 // we need to restore these flags
 		change->m_fFlags  = flags;		 // we have changed these flags
 	};
 
 	// Somehow the client didn't care.
-	if (flTargetAnimTime == 0)
+	if ( flTargetAnimTime == 0 )
 	{
 		if ( sv_unlag_debug.GetBool() && !pAnim )
 		{
@@ -566,7 +512,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 				pAnim->SetPoseParameterRaw( paramIndex, poseParameter );
 			}
-			
+
 			flags |= LC_POSE_PARAMS_CHANGED;
 
 			for ( int encIndex = 0; encIndex < hdr->GetNumBoneControllers(); encIndex++ )
@@ -576,7 +522,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 				pAnim->SetBoneControllerRaw( encIndex, encodedController );
 			}
-					
+
 			flags |= LC_ENCD_CONS_CHANGED;
 		}
 	}
@@ -620,15 +566,15 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 	if ( !m_bNeedToRestore )
 	{
-		return; // no player was changed at all
+		return; // no entities was changed at all
 	}
 
-	// Iterate all active players
-	for ( int i = 0; i <  MAX_EDICTS; i++ )
+	// Iterate all active entities
+	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
 		if ( !m_RestoreEntity.Get( i ) )
 		{
-			// player wasn't changed by lag compensation
+			// entity wasn't changed by lag compensation
 			continue;
 		}
 
