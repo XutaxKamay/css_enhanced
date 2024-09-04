@@ -13,6 +13,7 @@
 #include "cbase.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
+#include "const.h"
 #include "tier0/memdbgon.h"
 
 //-----------------------------------------------------------------------------
@@ -21,7 +22,10 @@
 
 // Create interface
 static CClientEntityList s_EntityList;
-CBaseEntityList *g_pEntityList = &s_EntityList;
+CBaseEntityList* g_pEntityList = &s_EntityList;
+
+static CFastEntityLookUp g_FastEntityLookUp;
+CFastEntityLookUp* g_pFastEntityLookUp = &g_FastEntityLookUp;
 
 // Expose list to engine
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CClientEntityList, IClientEntityList, VCLIENTENTITYLIST_INTERFACE_VERSION, s_EntityList );
@@ -502,4 +506,30 @@ C_BaseEntity* C_BaseEntityIterator::Next()
 	}
 
 	return NULL;
+}
+
+CFastEntityLookUp::CFastEntityLookUp()
+{
+	for ( int i = 0; i < MAX_EDICTS; i++ )
+	{
+		entities[i] = NULL;
+	}
+
+	cl_entitylist->AddListenerEntity( this );
+}
+
+void CFastEntityLookUp::OnEntityCreated( C_BaseEntity* pEntity )
+{
+	if ( pEntity->index > 0 && pEntity->index < MAX_EDICTS )
+	{
+		entities[pEntity->index] = pEntity;
+	}
+}
+
+void CFastEntityLookUp::OnEntityDeleted( C_BaseEntity* pEntity )
+{
+	if ( pEntity->index > 0 && pEntity->index < MAX_EDICTS )
+	{
+		entities[pEntity->index] = NULL;
+	}
 }

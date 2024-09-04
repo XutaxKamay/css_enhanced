@@ -1030,10 +1030,10 @@ float CountdownTimer::Now( void ) const
 
 
 #ifdef CLIENT_DLL
-	CBasePlayer *UTIL_PlayerByIndex( int entindex )
-	{
-		return ToBasePlayer( ClientEntityList().GetEnt( entindex ) );
-	}
+CBasePlayer* UTIL_PlayerByIndex( int entindex )
+{
+	return ToBasePlayer( g_pFastEntityLookUp->entities[entindex] );
+}
 
 //=============================================================================
 // HPE_BEGIN:
@@ -1278,9 +1278,9 @@ CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearch
 */
 CBaseEntity* UTIL_FindEntityByName(const char* szName)
 {
-    for (int i = 0; i < cl_entitylist->GetHighestEntityIndex(); ++i)
+    for (int i = 0; i < MAX_EDICTS; ++i)
     {
-        IClientEntity* pClientEntity = cl_entitylist->GetClientEntity( i );
+        IClientEntity* pClientEntity = g_pFastEntityLookUp->entities[i];
 
         if (!pClientEntity)
 		{

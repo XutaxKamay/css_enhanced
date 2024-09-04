@@ -6,6 +6,7 @@
 // $Date:         $
 // $NoKeywords: $
 //===========================================================================//
+#include "const.h"
 #if !defined( CLIENTENTITYLIST_H )
 #define CLIENTENTITYLIST_H
 #ifdef _WIN32
@@ -303,6 +304,19 @@ public:
 	virtual void OnEntityDeleted( C_BaseEntity *pEntity ) {};
 };
 
+class CFastEntityLookUp : public IClientEntityListener
+{
+  public:
+	CFastEntityLookUp();
+
+	virtual void OnEntityCreated( C_BaseEntity* pEntity );
+	virtual void OnEntityDeleted( C_BaseEntity* pEntity );
+
+	// Let have a chance to let the CPU autovectorize these!
+	CBaseEntity* entities[MAX_EDICTS];
+};
+
+extern CFastEntityLookUp* g_pFastEntityLookUp;
 
 #endif // CLIENTENTITYLIST_H
 

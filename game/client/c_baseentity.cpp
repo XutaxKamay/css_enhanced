@@ -846,7 +846,9 @@ C_BaseEntity::C_BaseEntity() :
 	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
 	// Needed for lag compensation
 	AddVar( &m_flInterpolatedSimulationTime, &m_iv_flSimulationTime, LATCH_SIMULATION_VAR );
-	AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
+	// TODO_ENHANCED: For now, animations aren't interpolated!
+	// AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
+
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
 	// but that re-introduces a third-person hitching bug.  One possible cause is the abrupt change
@@ -2504,14 +2506,21 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	bool anglesChanged = ( m_vecOldAngRotation != GetLocalAngles() ) ? true : false;
 	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime ) ? true : false;
 
-	// Store simulation time for lag compensation.
-	m_flInterpolatedSimulationTime = m_flSimulationTime;
-	m_flInterpolatedAnimTime = m_flAnimTime;
-
 	// Detect simulation changes 
 	bool simulationChanged = originChanged || anglesChanged || simTimeChanged;
 
 	bool bPredictable = GetPredictable();
+
+	if ( !bPredictable )
+	{
+		// Store simulation time for lag compensation.
+		// These should be only set if it's not created by client or isn't a predictable,
+		// Otherwise createmove will send these values without caring and potentially
+		// make the client and server framerate less efficient including prediction errors.
+		// TODO_ENHANCED: apparently IsClientCreated doesn't behave as it should do ...
+		m_flInterpolatedSimulationTime = m_flSimulationTime;
+		m_flInterpolatedAnimTime = m_flAnimTime;
+	}
 
 	// For non-predicted and non-client only ents, we need to latch network values into the interpolation histories
 	if ( !bPredictable && !IsClientCreated() )
