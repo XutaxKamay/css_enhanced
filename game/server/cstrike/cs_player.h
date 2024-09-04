@@ -245,8 +245,6 @@ public:
 	static CCSPlayer *CreatePlayer( const char *className, edict_t *ed );
 	static CCSPlayer* Instance( int iEnt );
 
-	virtual const QAngle& GetRenderAngles( void );
-
 	virtual void		Precache();
 	virtual void		Spawn();
 	virtual void		InitialSpawn( void );
@@ -816,7 +814,6 @@ public:
 
 	// Copyed from EyeAngles() so we can send it to the client.
 	CNetworkQAngle( m_angEyeAngles );
-	CNetworkQAngle( m_angRenderAngles );
 
 	bool m_bVCollisionInitted;
 

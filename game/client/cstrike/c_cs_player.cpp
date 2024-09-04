@@ -690,7 +690,6 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropInt( RECVINFO( m_iClass ) ),
 	RecvPropInt( RECVINFO( m_ArmorValue ) ),
 	RecvPropQAngles( RECVINFO( m_angEyeAngles ) ),
-	RecvPropQAngles( RECVINFO( m_angRenderAngles ) ),
 	RecvPropFloat( RECVINFO( m_flStamina ) ),
 	RecvPropInt( RECVINFO( m_bHasDefuser ), 0, RecvProxy_HasDefuser ),
 	RecvPropInt( RECVINFO( m_bNightVisionOn), 0, RecvProxy_NightVision ),
@@ -738,8 +737,6 @@ C_CSPlayer::C_CSPlayer() :
 	m_angEyeAngles.Init();
 
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
-
-	// interpolation on m_angRenderAngles later
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
@@ -881,6 +878,19 @@ int C_CSPlayer::GetCurrentAssaultSuitPrice()
 		return ASSAULTSUIT_PRICE;
 	}
 }
+
+const QAngle& C_CSPlayer::GetRenderAngles()
+{
+	if ( IsRagdoll() )
+	{
+		return vec3_angle;
+    }
+	else
+	{
+		return BaseClass::GetRenderAngles();
+	}
+}
+
 
 float g_flFattenAmt = 4;
 void C_CSPlayer::GetShadowRenderBounds( Vector &mins, Vector &maxs, ShadowType_t shadowType )
@@ -2170,7 +2180,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
 				Vector vecBackupPosition = player->GetAbsOrigin();
-				QAngle angBackupAngles	 = player->GetRenderAngles();
+				QAngle angBackupAngles	 = player->GetAbsAngles();
 				auto flOldCycle			 = player->GetCycle();
 				auto iOldSequence		 = player->GetSequence();
 
@@ -2195,9 +2205,9 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											  event->GetFloat( "position_y" ),
 											  event->GetFloat( "position_z" ) ) );
 
-				player->m_angRenderAngles = QAngle( event->GetFloat( "angle_x" ),
-													event->GetFloat( "angle_y" ),
-													event->GetFloat( "angle_z" ) );
+				player->SetAbsAngles( QAngle( event->GetFloat( "angle_x" ),
+											  event->GetFloat( "angle_y" ),
+											  event->GetFloat( "angle_z" ) ) );
 
 				const auto numposeparams = event->GetInt( "num_poseparams" );
 				Assert( numposeparams == player->GetModelPtr()->GetNumPoseParameters() );
@@ -2301,7 +2311,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						pos++;
 					}
 
-					auto angles = player->GetRenderAngles();
+					auto angles = player->GetAbsAngles();
 
 					if ( pRecord->m_angAbsRotation != angles )
 					{
@@ -2430,7 +2440,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				player->m_nSequence = iOldSequence;
 				player->m_flCycle	= flOldCycle;
 				player->SetAbsOrigin( vecBackupPosition );
-				player->m_angRenderAngles = angBackupAngles;
+				player->SetAbsAngles( angBackupAngles );
 
 				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
 				{
