@@ -28,7 +28,6 @@ void DrawSpriteModel( IClientEntity *baseentity, CEngineSprite *psprite,
 float StandardGlowBlend( const pixelvis_queryparams_t &params, pixelvis_handle_t *queryHandle,
 						int rendermode, int renderfx, int alpha, float *pscale );
 
-
 // Interface from engine to tools for manipulating entities
 class CClientTools : public IClientTools, public IClientEntityListener
 {

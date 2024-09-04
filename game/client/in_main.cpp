@@ -1304,6 +1304,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
+	// Let the compiler auto-vectorize this.
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
 		cmd->simulationdata[i] = {};
@@ -1312,20 +1313,15 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		const auto pEntity = ClientEntityList().GetEnt( i );
+		auto pEntity = g_pFastEntityLookUp->entities[i];
 
 		if ( !pEntity )
 		{
 			continue;
 		}
 
-		if ( pEntity->ShouldPredict() )
-		{
-			continue;
-		}
-
-		cmd->simulationdata[pEntity->index].sim_time = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[pEntity->index].anim_time = pEntity->m_flAnimTime;
+		cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
+		cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
 	}
 
 #ifdef CSTRIKE_DLL

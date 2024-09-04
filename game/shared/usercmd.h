@@ -40,7 +40,7 @@ struct SimulationData
 {
 	// TODO_ENHANCED:
 	// For now we send the last received update for animations.
-	// anim time is unreliable on low fps.
+	// We might optimize this by sending a base counter and round the other entities values to it.
 	float sim_time;
 	float anim_time;
 };
