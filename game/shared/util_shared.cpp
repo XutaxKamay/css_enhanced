@@ -1278,9 +1278,11 @@ CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearch
 */
 CBaseEntity* UTIL_FindEntityByName(const char* szName)
 {
+	auto entities = g_pFastEntityLookUp->entities;
+
     for (int i = 0; i < MAX_EDICTS; ++i)
     {
-        IClientEntity* pClientEntity = g_pFastEntityLookUp->entities[i];
+        IClientEntity* pClientEntity = entities[i];
 
         if (!pClientEntity)
 		{
