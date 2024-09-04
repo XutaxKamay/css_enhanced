@@ -1321,7 +1321,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		}
 
 		cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
+		cmd->simulationdata[i].anim_time = pEntity->m_flAnimTime;
 	}
 
 #ifdef CSTRIKE_DLL

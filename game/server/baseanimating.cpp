@@ -1670,7 +1670,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 
 	// FIXME: trace based on gravity or trace based on angles?
 	Vector up;
-	AngleVectors( GetAbsAngles(), NULL, NULL, &up );
+	AngleVectors( GetRenderAngles(), NULL, NULL, &up );
 
 	// FIXME: check number of slots?
 	float minHeight = FLT_MAX;
@@ -1781,7 +1781,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 					else if (trace.DidHitNonWorldEntity())
 					{
 						pTarget->SetPos( trace.endpos );
-						pTarget->SetAngles( GetAbsAngles() );
+						pTarget->SetAngles( GetRenderAngles() );
 
 						// only do this on forward tracking or commited IK ground rules
 						if (pTarget->est.release < 0.1)
@@ -1815,7 +1815,7 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 					else
 					{
 						pTarget->SetPos( trace.endpos );
-						pTarget->SetAngles( GetAbsAngles() );
+						pTarget->SetAngles( GetRenderAngles() );
 						pTarget->SetOnWorld( true );
 					}
 				}
@@ -2031,7 +2031,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 		// FIXME: pass this into Studio_BuildMatrices to skip transforms
 		CBoneBitList boneComputed;
 		m_iIKCounter++;
-		m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
+		m_pIk->Init( pStudioHdr, GetRenderAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
 		GetSkeleton( pStudioHdr, pos, q, boneMask );
 
         UpdateIKLocks( gpGlobals->curtime );
@@ -2055,7 +2055,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 		{
 			BuildMatricesWithBoneMerge( 
 				pStudioHdr, 
-				GetAbsAngles(), 
+				GetRenderAngles(), 
 				adjOrigin, 
 				pos, 
 				q, 
@@ -2074,7 +2074,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 
 	Studio_BuildMatrices( 
 		pStudioHdr, 
-		GetAbsAngles(), 
+		GetRenderAngles(), 
 		adjOrigin, 
 		pos, 
 		q, 
@@ -3036,7 +3036,7 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		auto_ik.Init( pStudioHdr, GetAbsAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
+		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}
 	else
