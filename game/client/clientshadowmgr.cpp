@@ -2906,47 +2906,50 @@ void CClientShadowMgr::PreRender()
 		}
 	}
 
-	//
-	// -- Render to Texture Shadows -----------------------
-	//
-
-	bool bRenderToTextureActive = r_shadowrendertotexture.GetBool();
-	if ( bRenderToTextureActive != m_RenderToTextureActive )
 	{
-		if ( m_RenderToTextureActive )
+		VPROF_BUDGET( "CClientShadowMgr::PreRender (after depth texturing)", VPROF_BUDGETGROUP_SHADOW_RENDERING );
+		//
+		// -- Render to Texture Shadows -----------------------
+		//
+
+		bool bRenderToTextureActive = r_shadowrendertotexture.GetBool();
+		if ( bRenderToTextureActive != m_RenderToTextureActive )
 		{
-			ShutdownRenderToTextureShadows();
+			if ( m_RenderToTextureActive )
+			{
+				ShutdownRenderToTextureShadows();
+			}
+			else
+			{
+				InitRenderToTextureShadows();
+			}
+
+			UpdateAllShadows();
+			return;
 		}
-		else
+
+		m_bUpdatingDirtyShadows = true;
+
+		unsigned short i = m_DirtyShadows.FirstInorder();
+		while ( i != m_DirtyShadows.InvalidIndex() )
 		{
-			InitRenderToTextureShadows();
+			ClientShadowHandle_t& handle = m_DirtyShadows[ i ];
+			Assert( m_Shadows.IsValidIndex( handle ) );
+			UpdateProjectedTextureInternal( handle, false );
+			i = m_DirtyShadows.NextInorder(i);
 		}
+		m_DirtyShadows.RemoveAll();
 
-		UpdateAllShadows();
-		return;
+		// Transparent shadows must remain dirty, since they were not re-projected
+		int nCount = m_TransparentShadows.Count();
+		for ( int i = 0; i < nCount; ++i )
+		{
+			m_DirtyShadows.Insert( m_TransparentShadows[i] );
+		}
+		m_TransparentShadows.RemoveAll();
+
+		m_bUpdatingDirtyShadows = false;
 	}
-
-	m_bUpdatingDirtyShadows = true;
-
-	unsigned short i = m_DirtyShadows.FirstInorder();
-	while ( i != m_DirtyShadows.InvalidIndex() )
-	{
-		ClientShadowHandle_t& handle = m_DirtyShadows[ i ];
-		Assert( m_Shadows.IsValidIndex( handle ) );
-		UpdateProjectedTextureInternal( handle, false );
-		i = m_DirtyShadows.NextInorder(i);
-	}
-	m_DirtyShadows.RemoveAll();
-
-	// Transparent shadows must remain dirty, since they were not re-projected
-	int nCount = m_TransparentShadows.Count();
-	for ( int i = 0; i < nCount; ++i )
-	{
-		m_DirtyShadows.Insert( m_TransparentShadows[i] );
-	}
-	m_TransparentShadows.RemoveAll();
-
-	m_bUpdatingDirtyShadows = false;
 }
 
 
