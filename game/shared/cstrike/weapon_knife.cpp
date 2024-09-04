@@ -334,18 +334,18 @@ bool CKnife::SwingOrStab( bool bStab )
 	Vector vForward; AngleVectors( pPlayer->EyeAngles(), &vForward );
 
 	Vector vecSrc	= pPlayer->Weapon_ShootPosition();
-	CUserCmd* playerCmd = NULL;
+// 	CUserCmd* playerCmd = NULL;
 
-#ifdef CLIENT_DLL
-	playerCmd = pPlayer->m_pCurrentCommand;
-#else
-	playerCmd = pPlayer->GetCurrentCommand();
-#endif
+// #ifdef CLIENT_DLL
+// 	playerCmd = pPlayer->m_pCurrentCommand;
+// #else
+// 	playerCmd = pPlayer->GetCurrentCommand();
+// #endif
 
-	if (playerCmd)
-	{
-		vecSrc = VectorLerp(pPlayer->m_vecPreviousShootPosition, vecSrc, playerCmd->interpolated_amount);
-	}
+// 	if (playerCmd)
+// 	{
+// 		vecSrc = VectorLerp(pPlayer->m_vecPreviousEyePosition, vecSrc, playerCmd->interpolated_amount);
+// 	}
 
 	Vector vecEnd	= vecSrc + vForward * fRange;
 

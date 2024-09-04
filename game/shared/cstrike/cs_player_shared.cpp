@@ -46,7 +46,6 @@ ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICAT
 
 void DispatchEffect( const char *pName, const CEffectData &data );
 
-
 #ifdef _DEBUG
 
 	// This is some extra code to collect weapon accuracy stats:

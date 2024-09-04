@@ -652,7 +652,6 @@ public:
 	float					m_fLastUpdateServerTime;
 	int						m_nLastUpdateTickBase;
 	int						m_nLastUpdateServerTickCount;
-	Vector 					m_vecPreviousShootPosition;
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);
