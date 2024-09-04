@@ -302,6 +302,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropInt( SENDINFO( m_iClass ), Q_log2( CS_NUM_CLASSES )+1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_ArmorValue ), 8 ),
 	SendPropQAngles(SENDINFO(m_angEyeAngles)),
+	SendPropQAngles(SENDINFO(m_angRenderAngles)),
 	SendPropBool( SENDINFO( m_bHasDefuser ) ),
 	SendPropBool( SENDINFO( m_bNightVisionOn ) ),	//send as int so we can use a RecvProxy on the client
 	SendPropBool( SENDINFO( m_bHasNightVision ) ),
@@ -1584,7 +1585,7 @@ void CCSPlayer::PostThink()
 	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
 
 	// Use the m_angRotation instead.
-	SetAbsAngles( m_PlayerAnimState->GetRenderAngles() );
+	m_angRenderAngles = m_PlayerAnimState->GetRenderAngles();
 
 	// check if we need to apply a deafness DSP effect.
 	if ((m_applyDeafnessTime != 0.0f) && (m_applyDeafnessTime <= gpGlobals->curtime))

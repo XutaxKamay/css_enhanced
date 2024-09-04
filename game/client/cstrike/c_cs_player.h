@@ -6,6 +6,7 @@
 
 #ifndef C_CS_PLAYER_H
 #define C_CS_PLAYER_H
+#include "mathlib/vector.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -420,6 +421,8 @@ private:
 	};
 
 	CUtlCircularBuffer< HitboxRecord, MAX_HISTORY_HITBOX_RECORDS > m_HitboxTrack[MAX_PLAYERS + 1];
+
+	QAngle m_angRenderAngles;
 };
 
 C_CSPlayer* GetLocalOrInEyeCSPlayer( void );
