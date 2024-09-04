@@ -44,22 +44,6 @@
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
-const QAngle& CCSPlayer::GetRenderAngles()
-{
-#ifdef CLIENT_DLL
-	if ( IsRagdoll() )
-	{
-		return vec3_angle;
-    }
-	else
-	{
-		return m_angRenderAngles;
-	}
-#else
-	return m_angRenderAngles;
-#endif
-}
-
 void DispatchEffect( const char *pName, const CEffectData &data );
 
 #ifdef _DEBUG
@@ -557,7 +541,7 @@ void CCSPlayer::FireBullet(
 			QAngle angles[MAXSTUDIOBONES];
 			int indexes[MAXSTUDIOBONES];
 
-			auto angle	  = lagPlayer->GetRenderAngles();
+			auto angle	  = lagPlayer->GetAbsAngles();
 			auto position = lagPlayer->GetAbsOrigin();
 
 			event->SetFloat( "position_x", position.x );

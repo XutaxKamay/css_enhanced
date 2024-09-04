@@ -17,9 +17,6 @@
 #include "util.h"
 #include "utllinkedlist.h"
 #include "BaseAnimatingOverlay.h"
-#ifdef CSTRIKE_DLL
-#include "cs_player.h"
-#endif
 #include "tier0/vprof.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -77,9 +74,6 @@ struct LagRecord
 	float m_masterCycle;
 	float m_poseParameters[MAXSTUDIOPOSEPARAM];
 	float m_encodedControllers[MAXSTUDIOBONECTRLS];
-#ifdef CSTRIKE_DLL
-	QAngle m_angRenderAngles;
-#endif
 };
 
 //
@@ -225,15 +219,6 @@ void CLagCompensationManager::TrackEntities()
 				}
 			}
 		}
-
-#ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
-
-		if (csPlayer)
-		{
-			record.m_angRenderAngles = csPlayer->GetRenderAngles();
-		}
-#endif
 
 		track->Push( record );
 	}
@@ -570,16 +555,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		flags |= LC_ANIM_OVERS_CHANGED;
 	}
 
-#ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
-
-		if (csPlayer && foundAnim)
-		{
-			restore->m_angRenderAngles = csPlayer->GetRenderAngles();
-			csPlayer->m_angRenderAngles = recordAnim->m_angRenderAngles;
-		}
-#endif
-
 	Finish();
 }
 
@@ -676,13 +651,6 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 					currentLayer->m_fFlags	  = restore->m_layerRecords[layerIndex].m_flags;
 				}
 			}
-		}
-
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
-
-		if (csPlayer)
-		{
-			csPlayer->m_angRenderAngles = restore->m_angRenderAngles;
 		}
 
 		pEntity->SetSimulationTime( restore->m_flSimulationTime );

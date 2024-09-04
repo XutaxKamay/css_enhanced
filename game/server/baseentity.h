@@ -427,11 +427,6 @@ public:
 	const Vector&			GetAbsOrigin( void ) const;
 	const QAngle&			GetAbsAngles( void ) const;
 
-	virtual const QAngle& GetRenderAngles( void )
-	{
-		return GetAbsAngles();
-	}
-
 	SolidType_t				GetSolid() const;
 	int			 			GetSolidFlags( void ) const;
 
