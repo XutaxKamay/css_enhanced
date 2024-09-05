@@ -172,8 +172,8 @@ void CLagCompensationManager::TrackEntities()
 		record.m_fFlags			  = LC_NONE;
 		record.m_flSimulationTime = pEntity->GetSimulationTime();
 		record.m_flAnimTime		  = pEntity->GetAnimTime();
-		record.m_vecAngles		  = pEntity->GetAbsAngles();
-		record.m_vecOrigin		  = pEntity->GetAbsOrigin();
+		record.m_vecAngles		  = pEntity->GetLocalAngles();
+		record.m_vecOrigin		  = pEntity->GetLocalOrigin();
 		record.m_vecMinsPreScaled = pEntity->CollisionProp()->OBBMinsPreScaled();
 		record.m_vecMaxsPreScaled = pEntity->CollisionProp()->OBBMaxsPreScaled();
 
@@ -378,8 +378,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	LagRecord* restore = &m_RestoreData[pl_index];
 	LagRecord* change  = &m_ChangeData[pl_index];
 
-	QAngle angdiff = pEntity->GetAbsAngles() - ang;
-	Vector orgdiff = pEntity->GetAbsOrigin() - org;
+	QAngle angdiff = pEntity->GetLocalAngles() - ang;
+	Vector orgdiff = pEntity->GetLocalOrigin() - org;
 
 	// Always remember the pristine simulation time in case we need to restore it.
 	restore->m_flSimulationTime = pEntity->GetSimulationTime();
@@ -388,8 +388,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	if ( angdiff.LengthSqr() > 0.0f )
 	{
 		flags				 |= LC_ANGLES_CHANGED;
-		restore->m_vecAngles  = pEntity->GetAbsAngles();
-		pEntity->SetAbsAngles( ang );
+		restore->m_vecAngles  = pEntity->GetLocalAngles();
+		pEntity->SetLocalAngles( ang );
 		change->m_vecAngles = ang;
 	}
 
@@ -412,8 +412,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	if ( orgdiff.LengthSqr() > 0.0f )
 	{
 		flags				 |= LC_ORIGIN_CHANGED;
-		restore->m_vecOrigin  = pEntity->GetAbsOrigin();
-		pEntity->SetAbsOrigin( org );
+		restore->m_vecOrigin  = pEntity->GetLocalOrigin();
+		pEntity->SetLocalOrigin( org );
 		change->m_vecOrigin = org;
 	}
 
@@ -594,12 +594,12 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 		if ( restore->m_fFlags & LC_ANGLES_CHANGED )
 		{
-			pEntity->SetAbsAngles( restore->m_vecAngles );
+			pEntity->SetLocalAngles( restore->m_vecAngles );
 		}
 
 		if ( restore->m_fFlags & LC_ORIGIN_CHANGED )
 		{
-			pEntity->SetAbsOrigin( restore->m_vecOrigin );
+			pEntity->SetLocalOrigin( restore->m_vecOrigin );
 		}
 
 		auto pAnim		  = dynamic_cast< CBaseAnimating* >( pEntity );

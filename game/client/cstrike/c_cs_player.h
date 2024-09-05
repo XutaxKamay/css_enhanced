@@ -408,8 +408,8 @@ private:
 	struct HitboxRecord
 	{
 		int m_nAttackerTickBase;
-		Vector m_vecAbsOrigin;
-		QAngle m_angAbsRotation;
+		Vector m_vecLocalOrigin;
+		QAngle m_angLocalAngles;
 		float m_flSimulationTime;
 		int m_nSequence;
 		float m_flCycle;

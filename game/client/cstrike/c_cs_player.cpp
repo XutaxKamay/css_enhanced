@@ -2179,8 +2179,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
 
 				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
-				Vector vecBackupPosition = player->GetAbsOrigin();
-				QAngle angBackupAngles	 = player->GetAbsAngles();
+				Vector vecBackupPosition = player->GetLocalOrigin();
+				QAngle angBackupAngles	 = player->GetLocalAngles();
 				auto flOldCycle			 = player->GetCycle();
 				auto iOldSequence		 = player->GetSequence();
 
@@ -2201,13 +2201,13 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				player->m_nSequence = event->GetInt( "sequence" );
 				player->m_flCycle	= event->GetFloat( "cycle" );
-				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
-											  event->GetFloat( "position_y" ),
-											  event->GetFloat( "position_z" ) ) );
+				player->SetLocalOrigin( Vector( event->GetFloat( "position_x" ),
+												event->GetFloat( "position_y" ),
+												event->GetFloat( "position_z" ) ) );
 
-				player->SetAbsAngles( QAngle( event->GetFloat( "angle_x" ),
-											  event->GetFloat( "angle_y" ),
-											  event->GetFloat( "angle_z" ) ) );
+				player->SetLocalAngles( QAngle( event->GetFloat( "angle_x" ),
+												event->GetFloat( "angle_y" ),
+												event->GetFloat( "angle_z" ) ) );
 
 				const auto numposeparams = event->GetInt( "num_poseparams" );
 				Assert( numposeparams == player->GetModelPtr()->GetNumPoseParameters() );
@@ -2273,7 +2273,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					// Let's check what went wrong.
 					int pos = 0;
 
-					auto newOrigin = player->GetAbsOrigin();
+					auto newOrigin = player->GetLocalOrigin();
 					auto simtime   = event->GetFloat( "simtime" );
 					auto animtime  = event->GetFloat( "animtime" );
 
@@ -2282,7 +2282,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "simtime: %f != %f", simtime, pRecord->m_flSimulationTime );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2291,41 +2291,41 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "animtime: %f != %f", animtime, pRecord->m_flAnimTime );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
-					if ( pRecord->m_vecAbsOrigin != newOrigin )
+					if ( pRecord->m_vecLocalOrigin != newOrigin )
 					{
 						char buffer[256];
 						V_sprintf_safe( buffer,
 										"pos: %f != %f, %f != %f, %f != %f",
 										newOrigin.x,
-										pRecord->m_vecAbsOrigin.x,
+										pRecord->m_vecLocalOrigin.x,
 										newOrigin.y,
-										pRecord->m_vecAbsOrigin.y,
+										pRecord->m_vecLocalOrigin.y,
 										newOrigin.z,
-										pRecord->m_vecAbsOrigin.z );
+										pRecord->m_vecLocalOrigin.z );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
-					auto angles = player->GetAbsAngles();
+					auto angles = player->GetLocalAngles();
 
-					if ( pRecord->m_angAbsRotation != angles )
+					if ( pRecord->m_angLocalAngles != angles )
 					{
 						char buffer[256];
 						V_sprintf_safe( buffer,
 										"angles: %f != %f, %f != %f, %f != %f",
 										angles.x,
-										pRecord->m_angAbsRotation.x,
+										pRecord->m_angLocalAngles.x,
 										angles.y,
-										pRecord->m_angAbsRotation.y,
+										pRecord->m_angLocalAngles.y,
 										angles.z,
-										pRecord->m_angAbsRotation.z );
+										pRecord->m_angLocalAngles.z );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2334,7 +2334,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "cycle: %f != %f", player->m_flCycle, pRecord->m_flCycle );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2348,7 +2348,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										player->GetSequenceName( pRecord->m_nSequence ),
 										pRecord->m_nSequence );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2366,7 +2366,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flPoseParameter[i],
 											pRecord->m_flPoseParameters[i] );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2383,7 +2383,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flEncodedController[i],
 											pRecord->m_flEncodedControllers[i] );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2416,7 +2416,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											animOverlay->m_fFlags,
 											pRecord->m_AnimationLayer[i].m_fFlags );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecAbsOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2439,8 +2439,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				// Set back original stuff.
 				player->m_nSequence = iOldSequence;
 				player->m_flCycle	= flOldCycle;
-				player->SetAbsOrigin( vecBackupPosition );
-				player->SetAbsAngles( angBackupAngles );
+				player->SetLocalOrigin( vecBackupPosition );
+				player->SetLocalAngles( angBackupAngles );
 
 				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
 				{

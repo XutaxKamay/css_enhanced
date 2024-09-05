@@ -541,8 +541,8 @@ void CCSPlayer::FireBullet(
 			QAngle angles[MAXSTUDIOBONES];
 			int indexes[MAXSTUDIOBONES];
 
-			auto angle	  = lagPlayer->GetAbsAngles();
-			auto position = lagPlayer->GetAbsOrigin();
+			auto angle	  = lagPlayer->GetLocalAngles();
+			auto position = lagPlayer->GetLocalOrigin();
 
 			event->SetFloat( "position_x", position.x );
 			event->SetFloat( "position_y", position.y );
