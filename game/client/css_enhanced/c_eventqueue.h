@@ -67,9 +67,15 @@ public:
 
 	void Dump( void );
 
+	inline EventQueuePrioritizedEvent_t* GetFirstPriorityEvent()
+	{
+		return m_Events.m_pNext;
+	}
+
+	void AddEvent( EventQueuePrioritizedEvent_t* event );
+
 private:
 
-	void AddEvent( EventQueuePrioritizedEvent_t *event );
 	void RemoveEvent( EventQueuePrioritizedEvent_t *pe );
 
 	DECLARE_SIMPLE_DATADESC();
