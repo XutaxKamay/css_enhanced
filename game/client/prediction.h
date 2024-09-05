@@ -10,6 +10,7 @@
 #include "c_baseentity.h"
 #include "const.h"
 #include "datamodel/dmelementhandle.h"
+#include "platform.h"
 #include "touchlink.h"
 #include "utlvector.h"
 #if !defined( PREDICTION_H )
@@ -167,7 +168,20 @@ private:
         CUtlVector<EHANDLE> touchedTriggerEntities;
     };
 
+	struct EventQueueForHistory
+	{
+		float m_flFireTime;
+		char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
+		char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
+		EHANDLE m_pActivator;
+		EHANDLE m_pCaller;
+		int m_iOutputID;
+		EHANDLE m_pEntTarget;
+		variant_t m_VariantValue;
+	};
+
 	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
+	CUtlVector<EventQueueForHistory> m_eventQueueHistory[MULTIPLAYER_BACKUP];
 
 	// TODO_ENHANCED: checks if this affects vehicles properly too! It should.
 	enum INTERPOLATION_CONTEXT

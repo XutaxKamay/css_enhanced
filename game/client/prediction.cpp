@@ -15,6 +15,7 @@
 #include "prediction_private.h"
 #include "ivrenderview.h"
 #include "iinput.h"
+#include "strtools.h"
 #include "usercmd.h"
 #include <vgui_controls/Controls.h>
 #include <vgui/ISurface.h>
@@ -1353,90 +1354,132 @@ void CPrediction::RestorePredictedTouched( int current_command )
 {
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
-	if (m_nCommandsPredicted == 0)
+	if ( m_nCommandsPredicted == 0 )
 	{
 		return;
 	}
 
-    bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
+	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
 
-    int pc = predictables->GetPredictableCount();
+	int pc = predictables->GetPredictableCount();
 	int p;
 	for ( p = 0; p < pc; p++ )
 	{
-		C_BaseEntity *ent = predictables->GetPredictable( p );
+		C_BaseEntity* ent = predictables->GetPredictable( p );
 		if ( !ent )
-            continue;
+		{
+			continue;
+		}
 
-        auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
 
-        C_BaseEntity::PhysicsRemoveTouchedList(ent);
+		C_BaseEntity::PhysicsRemoveTouchedList( ent );
 
 		for ( int i = 0; i < savedTouchList.savedTouches.Count(); i++ )
-        {
-            SavedTouch_t& touch = savedTouchList.savedTouches[i];
-            auto pEntity        = ClientEntityList().GetBaseEntity(touch.entityTouched);
+		{
+			SavedTouch_t& touch = savedTouchList.savedTouches[i];
+			auto pEntity		= ClientEntityList().GetBaseEntity( touch.entityTouched );
 
-            // Entity doesn't exist anymore, don't bother ...
-            if (!pEntity)
-            {
+			// Entity doesn't exist anymore, don't bother ...
+			if ( !pEntity )
+			{
 				continue;
-            }
+			}
 
-            ent->PhysicsMarkEntityAsTouched(pEntity);
+			ent->PhysicsMarkEntityAsTouched( pEntity );
 			pEntity->PhysicsMarkEntityAsTouched( ent );
-        }
-
-        if (ent->IsTrigger())
-        {
-            auto trigger = static_cast<C_BaseTrigger*>(ent);
-            trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
 		}
-    }
 
-    CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
+		if ( ent->IsTrigger() )
+		{
+			auto trigger				 = static_cast< C_BaseTrigger* >( ent );
+			trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+		}
+	}
+
+	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
+
+	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+
+	for ( auto&& event : savedEventQueue )
+	{
+		EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
+
+		newEvent->m_flFireTime	 = event.m_flFireTime;
+		newEvent->m_iTarget		 = event.m_iTarget;
+		newEvent->m_iTargetInput = event.m_iTargetInput;
+		newEvent->m_pEntTarget	 = event.m_pEntTarget;
+		newEvent->m_pActivator	 = event.m_pActivator;
+		newEvent->m_pCaller		 = event.m_pCaller;
+		newEvent->m_VariantValue = event.m_VariantValue;
+		newEvent->m_iOutputID	 = event.m_iOutputID;
+
+		g_EventQueue.AddEvent( newEvent );
+	}
 }
 
 void CPrediction::StorePredictedTouched( int current_command )
 {
 	VPROF( "CPrediction::StorePredictedTouched" );
 
-    int pc = predictables->GetPredictableCount();
-    int p;
+	int pc = predictables->GetPredictableCount();
+	int p;
 
 	for ( p = 0; p < pc; p++ )
 	{
-		C_BaseEntity *ent = predictables->GetPredictable( p );
+		C_BaseEntity* ent = predictables->GetPredictable( p );
 		if ( !ent )
-            continue;
+		{
+			continue;
+		}
 
-		touchlink_t* link     = nullptr;
-		auto root = ( touchlink_t * )ent->GetDataObject( TOUCHLINK );
-		auto &savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+		auto root			 = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
+		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
 
 		savedTouchList.savedTouches.RemoveAll();
 
 		if ( root )
 		{
-			for (link = root->nextLink; link != root; link = link->nextLink)
-            {
-                SavedTouch_t touch;
-                touch.entityTouched = link->entityTouched->index;
-                touch.touchStamp    = link->touchStamp;
-                touch.flags         = link->flags;
-				savedTouchList.savedTouches.AddToTail(touch);
+			for ( auto link = root->nextLink; link != root; link = link->nextLink )
+			{
+				SavedTouch_t touch;
+				touch.entityTouched = link->entityTouched->index;
+				touch.touchStamp	= link->touchStamp;
+				touch.flags			= link->flags;
+				savedTouchList.savedTouches.AddToTail( touch );
 			}
-        }
+		}
 
-		if (ent->IsTrigger())
+		if ( ent->IsTrigger() )
 		{
-			auto trigger = static_cast<C_BaseTrigger*>(ent);
+			auto trigger						  = static_cast< C_BaseTrigger* >( ent );
 			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
 		}
 	}
+
+	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+	savedEventQueue.RemoveAll();
+
+	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
+	{
+		EventQueueForHistory event;
+		event.m_flFireTime = pEvent->m_flFireTime;
+		event.m_iOutputID  = pEvent->m_iOutputID;
+		Q_strcpy( event.m_iTarget, pEvent->m_iTarget );
+		Q_strcpy( event.m_iTargetInput, pEvent->m_iTargetInput );
+		event.m_pEntTarget	 = pEvent->m_pEntTarget;
+		event.m_pActivator	 = pEvent->m_pActivator;
+		event.m_pCaller		 = pEvent->m_pCaller;
+		event.m_VariantValue = pEvent->m_VariantValue;
+
+		savedEventQueue.AddToTail( event );
+	}
+
+	// This will be reconstructed later.
+	g_EventQueue.Clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -1761,15 +1804,14 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 
 		RunSimulation( current_command, curtime, cmd, localPlayer );
 
-        StorePredictedTouched( current_command );
-
 		gpGlobals->curtime		= curtime;
 		gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 
-		// Call untouch on any entities no longer predicted to be touching
-        Untouch();
+		Untouch();
 
 		ServiceEventQueue( NULL );
+
+		StorePredictedTouched( current_command );
 
 		// Store intermediate data into appropriate slot
 		StorePredictionResults( i - 1 ); // Note that I starts at 1
