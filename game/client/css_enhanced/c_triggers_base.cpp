@@ -21,6 +21,11 @@ CON_COMMAND(report_triggerinfo, "")
     {
         C_BaseEntity* pEntity = (C_BaseEntity*) cl_entitylist->GetClientEntity( i );
 
+		if ( !pEntity )
+		{
+			continue;
+		}
+
 		if (!IsTriggerClass(pEntity))
 		{
 			continue;
@@ -50,7 +55,7 @@ void Cmd_ShowtriggersToggle_f( const CCommand &args )
     {
         C_BaseEntity* pEntity = (C_BaseEntity*) cl_entitylist->GetClientEntity( i );
 
-		if ( IsTriggerClass(pEntity) )
+		if ( pEntity && IsTriggerClass(pEntity) )
 		{
 			if ( pEntity->IsEffectActive( EF_NODRAW ) )
 			{
