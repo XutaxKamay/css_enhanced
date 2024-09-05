@@ -1344,7 +1344,7 @@ ICollideable *CEngineTraceServer::GetWorldCollideable()
 //-----------------------------------------------------------------------------
 void EngineTraceRenderRayCasts()
 {
-#if defined _DEBUG
+#if defined _DEBUG && !defined(SWDS)
 	if( debugrayenable.GetBool() && s_FrameRays.Count() > debugraylimit.GetInt() && !debugrayreset.GetInt() )
 	{
 		Warning( "m_FrameRays.Count() == %d\n", s_FrameRays.Count() );
