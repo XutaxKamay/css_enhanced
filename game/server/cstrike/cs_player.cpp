@@ -1584,7 +1584,7 @@ void CCSPlayer::PostThink()
 	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
 
 	// Use the m_angRotation instead.
-	SetAbsAngles( m_PlayerAnimState->GetRenderAngles() );
+	SetLocalAngles( m_PlayerAnimState->GetRenderAngles() );
 
 	// check if we need to apply a deafness DSP effect.
 	if ((m_applyDeafnessTime != 0.0f) && (m_applyDeafnessTime <= gpGlobals->curtime))
