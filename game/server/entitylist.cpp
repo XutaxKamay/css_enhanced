@@ -33,6 +33,9 @@ static CUtlVector<IServerNetworkable*> g_DeleteList;
 CGlobalEntityList gEntList;
 CBaseEntityList *g_pEntityList = &gEntList;
 
+static CFastEntityLookUp g_FastEntityLookUp;
+CFastEntityLookUp* g_pFastEntityLookUp = &g_FastEntityLookUp;
+
 class CAimTargetManager : public IEntityListener
 {
 public:
@@ -1634,3 +1637,32 @@ CON_COMMAND(report_simthinklist, "Lists all simulating/thinking entities")
 	list.ReportEntityList();
 }
 
+CFastEntityLookUp::CFastEntityLookUp()
+{
+	for ( int i = 0; i < MAX_EDICTS; i++ )
+	{
+		entities[i] = NULL;
+	}
+
+	gEntList.AddListenerEntity( this );
+}
+
+void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
+{
+	auto index = pEntity->entindex();
+
+	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	{
+		entities[index] = pEntity;
+	}
+}
+
+void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
+{
+	auto index = pEntity->entindex();
+
+	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	{
+		entities[index] = NULL;
+	}
+}

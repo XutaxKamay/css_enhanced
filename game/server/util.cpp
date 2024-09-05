@@ -557,20 +557,14 @@ void UTIL_RemoveImmediate( CBaseEntity *oldObj )
 // returns a CBaseEntity pointer to a player by index.  Only returns if the player is spawned and connected
 // otherwise returns NULL
 // Index is 1 based
-CBasePlayer	*UTIL_PlayerByIndex( int playerIndex )
+CBasePlayer* UTIL_PlayerByIndex( int playerIndex )
 {
-	CBasePlayer *pPlayer = NULL;
-
 	if ( playerIndex > 0 && playerIndex <= gpGlobals->maxClients )
 	{
-		edict_t *pPlayerEdict = INDEXENT( playerIndex );
-		if ( pPlayerEdict && !pPlayerEdict->IsFree() )
-		{
-			pPlayer = (CBasePlayer*)GetContainingEntity( pPlayerEdict );
-		}
+		return ( CBasePlayer* )( g_pFastEntityLookUp->entities[playerIndex] );
 	}
-	
-	return pPlayer;
+
+	return NULL;
 }
 
 CBasePlayer* UTIL_PlayerByName( const char *name )
@@ -698,18 +692,12 @@ bool UTIL_IsCommandIssuedByServerAdmin( void )
  */
 CBaseEntity	*UTIL_EntityByIndex( int entityIndex )
 {
-	CBaseEntity *entity = NULL;
-
 	if ( entityIndex > 0 )
 	{
-		edict_t *edict = INDEXENT( entityIndex );
-		if ( edict && !edict->IsFree() )
-		{
-			entity = GetContainingEntity( edict );
-		}
+		return g_pFastEntityLookUp->entities[entityIndex];
 	}
-	
-	return entity;
+
+	return NULL;
 }
 
 

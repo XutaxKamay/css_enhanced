@@ -9,6 +9,7 @@
 #ifndef ENTITYLIST_H
 #define ENTITYLIST_H
 
+#include "const.h"
 #ifdef _WIN32
 #pragma once
 #endif
@@ -348,6 +349,20 @@ public:
 	virtual void OnEntitySpawned( CBaseEntity *pEntity ) {};
 	virtual void OnEntityDeleted( CBaseEntity *pEntity ) {};
 };
+
+class CFastEntityLookUp : public IEntityListener
+{
+  public:
+	CFastEntityLookUp();
+
+	virtual void OnEntityCreated( CBaseEntity* pEntity );
+	virtual void OnEntityDeleted( CBaseEntity* pEntity );
+
+	// Let have a chance to the CPU in order to autovectorize these!
+	CBaseEntity* entities[NUM_ENT_ENTRIES];
+};
+
+extern CFastEntityLookUp* g_pFastEntityLookUp;
 
 // singleton
 extern INotify *g_pNotify;
