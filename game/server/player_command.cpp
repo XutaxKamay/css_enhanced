@@ -56,10 +56,10 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 	CBaseEntity::SetPredictionRandomSeed( cmd );
 	CBaseEntity::SetPredictionPlayer( player );
 
-	InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset = player->GetViewOffset();
-	InterpolationContexts[BEFORE_MOVEMENT].m_vecAbsOrigin  = player->GetAbsOrigin();
+	InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset	= player->GetViewOffset();
+	InterpolationContexts[BEFORE_MOVEMENT].m_vecLocalOrigin = player->GetLocalOrigin();
 
-#if defined (HL2_DLL)
+#if defined( HL2_DLL )
 	// pull out backchannel data and move this out
 
 	int i;
@@ -305,27 +305,27 @@ void CPlayerMove::StartInterpolatingPlayer( CBasePlayer *player )
 
 	// Let's interpolate the local player, this is similar to lag compensation,
 	// except it isn't since local player is always predicted. (except if user didn't want to for some reasons)
-	InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset = player->GetViewOffset();
-	InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin  = player->GetAbsOrigin();
+	InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset  = player->GetViewOffset();
+	InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin = player->GetLocalOrigin();
 
 	auto pCmd = player->m_pCurrentCommand;
 
-	Vector vecNewAbsOrigin	= VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecAbsOrigin,
-										  InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin,
-										  pCmd->interpolated_amount );
-	Vector vecNewViewOffset = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset,
-										  InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset,
-										  pCmd->interpolated_amount );
+	Vector vecNewLocalOrigin = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecLocalOrigin,
+										   InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin,
+										   pCmd->interpolated_amount );
+	Vector vecNewViewOffset	 = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset,
+										   InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset,
+										   pCmd->interpolated_amount );
 
-	player->SetAbsOrigin( vecNewAbsOrigin );
+	player->SetLocalOrigin( vecNewLocalOrigin );
 	player->SetViewOffset( vecNewViewOffset );
 }
 
-void CPlayerMove::FinishInterpolatingPlayer( CBasePlayer *player )
+void CPlayerMove::FinishInterpolatingPlayer( CBasePlayer* player )
 {
 	VPROF( "CPlayerMove::FinishInterpolatingPlayer" );
 
-	player->SetAbsOrigin( InterpolationContexts[AFTER_MOVEMENT].m_vecAbsOrigin );
+	player->SetLocalOrigin( InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin );
 	player->SetViewOffset( InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset );
 }
 
