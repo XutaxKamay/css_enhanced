@@ -122,9 +122,6 @@ void FX_FireBullets(
 	float flSoundTime
 	)
 {
-    // Fallback if failed to find the interpolated shoot position.
-    Vector vHookedOrigin = vOrigin;
-
     if (weapon_accuracy_noinaccuracy.GetBool())
     {
         fInaccuracy = 0.0f;
@@ -227,7 +224,7 @@ void FX_FireBullets(
 	// Dispatch one message for all the bullet impacts and sounds.
 	TE_FireBullets(
 		iPlayerIndex,
-		vHookedOrigin,
+		vOrigin,
 		vAngles,
 		iWeaponID,
 		iMode,
@@ -282,7 +279,7 @@ void FX_FireBullets(
 
 	if ( bDoEffects)
 	{
-		FX_WeaponSound( iPlayerIndex, sound_type, vHookedOrigin, pWeaponInfo, flSoundTime );
+		FX_WeaponSound( iPlayerIndex, sound_type, vOrigin, pWeaponInfo, flSoundTime );
 	}
 
 
@@ -305,18 +302,7 @@ void FX_FireBullets(
 	float x0 = fRadius0 * cosf(fTheta0);
 	float y0 = fRadius0 * sinf(fTheta0);
 
-	const int kMaxBullets = 16;
-	float x1[kMaxBullets], y1[kMaxBullets];
 	Assert(pWeaponInfo->m_iBullets <= kMaxBullets);
-
-	// the RNG can be desynchronized by FireBullet(), so pre-generate all spread offsets
-	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
-	{
-		float fTheta1 = RandomFloat(0.0f, 2.0f * M_PI);
-		float fRadius1 = RandomFloat(0.0f, fSpread);
-		x1[iBullet] = fRadius1 * cosf(fTheta1);
-		y1[iBullet] = fRadius1 * sinf(fTheta1);
-	}
 
 #ifdef CLIENT_DLL
     static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
@@ -374,19 +360,25 @@ void FX_FireBullets(
             gpGlobals->client_taking_screenshot = true;
         }
 #endif
-        pPlayer->FireBullet(
-			iBullet,
-			vHookedOrigin,
-			vAngles,
-			flRange,
-			iPenetration,
-			iAmmoType,
-			iDamage,
-			flRangeModifier,
-			pPlayer,
-			bDoEffects,
-			x0 + x1[iBullet], y0 + y1[iBullet] );
-    }
+
+		float fTheta1  = RandomFloat( 0.0f, 2.0f * M_PI );
+		float fRadius1 = RandomFloat( 0.0f, fSpread );
+		float x1	   = fRadius1 * cosf( fTheta1 );
+		float y1	   = fRadius1 * sinf( fTheta1 );
+
+		pPlayer->FireBullet( iBullet,
+							 vOrigin,
+							 vAngles,
+							 flRange,
+							 iPenetration,
+							 iAmmoType,
+							 iDamage,
+							 flRangeModifier,
+							 pPlayer,
+							 bDoEffects,
+							 x0 + x1,
+							 y0 + y1 );
+	}
 
 	EndGroupingSounds();
 }

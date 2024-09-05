@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "entitylist.h"
 #include "icvar.h"
 #include "player.h"
 #include "shareddefs.h"
@@ -155,9 +156,12 @@ void CLagCompensationManager::TrackEntities()
 
 	VPROF_BUDGET( "TrackEntities", "CLagCompensationManager" );
 
+	auto entities = g_pFastEntityLookUp->entities;
+
+	// Iterate all active entities
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		CBaseEntity* pEntity = UTIL_EntityByIndex( i );
+		CBaseEntity* pEntity = entities[i];
 
 		if ( !pEntity )
 		{
@@ -248,9 +252,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	// Iterate all active entities
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
 
+	auto entities = g_pFastEntityLookUp->entities;
+
+	// Iterate all active entities
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		CBaseEntity* pEntity = UTIL_EntityByIndex( i );
+		CBaseEntity* pEntity = entities[i];
 
 		if ( !pEntity )
 		{
@@ -287,10 +294,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	LagRecord* recordSim;
 	LagRecord* recordAnim;
 
-	int pl_index = loopindex;
-
-	float flTargetSimTime  = cmd->simulationdata[pl_index].sim_time;
-	float flTargetAnimTime = cmd->simulationdata[pl_index].anim_time;
+	float flTargetSimTime  = cmd->simulationdata[loopindex].sim_time;
+	float flTargetAnimTime = cmd->simulationdata[loopindex].anim_time;
 
 	// Somehow the client didn't care.
 	if ( flTargetSimTime == 0 )
@@ -305,7 +310,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	}
 
 	// get track history of this entity
-	auto track	   = &m_EntityTrack[pl_index];
+	auto track	   = &m_EntityTrack[loopindex];
 	bool foundSim  = false;
 	bool foundAnim = false;
 
@@ -375,8 +380,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 	// See if this represents a change for the entity
 	int flags		   = 0;
-	LagRecord* restore = &m_RestoreData[pl_index];
-	LagRecord* change  = &m_ChangeData[pl_index];
+	LagRecord* restore = &m_RestoreData[loopindex];
+	LagRecord* change  = &m_ChangeData[loopindex];
 
 	QAngle angdiff = pEntity->GetLocalAngles() - ang;
 	Vector orgdiff = pEntity->GetLocalOrigin() - org;
@@ -438,10 +443,10 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 			}
 		}
 
-		m_RestoreEntity.Set( pl_index ); // remember that we changed this entity
-		m_bNeedToRestore  = true;		 // we changed at least one entity
-		restore->m_fFlags = flags;		 // we need to restore these flags
-		change->m_fFlags  = flags;		 // we have changed these flags
+		m_RestoreEntity.Set( loopindex ); // remember that we changed this entity
+		m_bNeedToRestore  = true;		  // we changed at least one entity
+		restore->m_fFlags = flags;		  // we need to restore these flags
+		change->m_fFlags  = flags;		  // we have changed these flags
 	};
 
 	// Somehow the client didn't care.
@@ -486,8 +491,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		return;
 	}
 
-	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
-
 	if ( pAnim && foundAnim )
 	{
 		// Sorry for the loss of the optimization for the case of people
@@ -526,6 +529,8 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 			flags |= LC_ENCD_CONS_CHANGED;
 		}
 	}
+
+	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
 
 	if ( pAnimOverlay && foundAnim )
 	{
@@ -569,6 +574,8 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 		return; // no entities was changed at all
 	}
 
+	auto entities = g_pFastEntityLookUp->entities;
+
 	// Iterate all active entities
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
@@ -578,7 +585,8 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			continue;
 		}
 
-		CBaseEntity* pEntity = UTIL_EntityByIndex( i );
+		CBaseEntity* pEntity = entities[i];
+
 		if ( !pEntity )
 		{
 			continue;
@@ -602,8 +610,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			pEntity->SetLocalOrigin( restore->m_vecOrigin );
 		}
 
-		auto pAnim		  = dynamic_cast< CBaseAnimating* >( pEntity );
-		auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+		auto pAnim = dynamic_cast< CBaseAnimating* >( pEntity );
 
 		if ( pAnim )
 		{
@@ -635,7 +642,9 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			}
 		}
 
-		if ( restore->m_fFlags & LC_ANIM_OVERS_CHANGED && pAnimOverlay )
+		auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+
+		if ( pAnimOverlay && restore->m_fFlags & LC_ANIM_OVERS_CHANGED )
 		{
 			int layerCount = pAnimOverlay->GetNumAnimOverlays();
 

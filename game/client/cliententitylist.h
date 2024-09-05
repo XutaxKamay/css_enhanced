@@ -312,8 +312,8 @@ class CFastEntityLookUp : public IClientEntityListener
 	virtual void OnEntityCreated( C_BaseEntity* pEntity );
 	virtual void OnEntityDeleted( C_BaseEntity* pEntity );
 
-	// Let have a chance to let the CPU autovectorize these!
-	CBaseEntity* entities[MAX_EDICTS];
+	// Let have a chance to the CPU in order to autovectorize these!
+	CBaseEntity* entities[NUM_ENT_ENTRIES];
 };
 
 extern CFastEntityLookUp* g_pFastEntityLookUp;

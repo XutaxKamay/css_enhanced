@@ -518,18 +518,22 @@ CFastEntityLookUp::CFastEntityLookUp()
 	cl_entitylist->AddListenerEntity( this );
 }
 
-void CFastEntityLookUp::OnEntityCreated( C_BaseEntity* pEntity )
+void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 {
-	if ( pEntity->index > 0 && pEntity->index < MAX_EDICTS )
+	auto index = pEntity->entindex();
+
+	if ( index >= 0 && index < NUM_ENT_ENTRIES )
 	{
-		entities[pEntity->index] = pEntity;
+		entities[index] = pEntity;
 	}
 }
 
-void CFastEntityLookUp::OnEntityDeleted( C_BaseEntity* pEntity )
+void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 {
-	if ( pEntity->index > 0 && pEntity->index < MAX_EDICTS )
+	auto index = pEntity->entindex();
+
+	if ( index >= 0 && index < NUM_ENT_ENTRIES )
 	{
-		entities[pEntity->index] = NULL;
+		entities[index] = NULL;
 	}
 }
