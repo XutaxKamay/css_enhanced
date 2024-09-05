@@ -2232,7 +2232,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				}
 
 				auto numanimoverlays = event->GetInt( "num_anim_overlays" );
-				Assert( num_anim_overlays == player->GetNumAnimOverlays() );
+				Assert( numanimoverlays == player->GetNumAnimOverlays() );
 
 				for ( int i = 0; i < numanimoverlays; i++ )
 				{

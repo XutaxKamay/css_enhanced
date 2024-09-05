@@ -25,7 +25,7 @@ OR:
 - First, you need original CS:S & HL2 files.
 - Copy the original CS:S folder somewhere
 - Overwrite the hl2 and platform folder from the Half-Life 2 files so that shaders can work.\
-This is because stdshaders needs some rewrite to make it work basically with sdk 2013, can't do it now yet.\
+This is because stdshaders needs some rewrite to make it work basically with sdk 2013, can't do it now yet
 - Run the game with hl2_launcher(.exe) -game cstrike.
 - I have my own server at cssserv.xutaxkamay.com, when it isn't down.
 
