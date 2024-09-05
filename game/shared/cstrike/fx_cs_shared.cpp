@@ -302,8 +302,6 @@ void FX_FireBullets(
 	float x0 = fRadius0 * cosf(fTheta0);
 	float y0 = fRadius0 * sinf(fTheta0);
 
-	Assert(pWeaponInfo->m_iBullets <= kMaxBullets);
-
 #ifdef CLIENT_DLL
     static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
 	static ConVarRef cl_showimpacts( "cl_showimpacts" );
