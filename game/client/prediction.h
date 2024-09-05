@@ -193,7 +193,7 @@ private:
 
 	struct InterpolationContext
 	{
-		Vector m_vecAbsOrigin;
+		Vector m_vecLocalOrigin;
 		Vector m_vecViewOffset;
 	} InterpolationContexts[INTERPOLATION_CONTEXT_MAX];
 };
