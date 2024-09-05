@@ -625,14 +625,14 @@ void CPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *
     move->m_bFirstRunOfFunctions = IsFirstTimePredicted();
 
 	move->m_bGameCodeMovedPlayer = false;
-	if ( player->GetPreviouslyPredictedOrigin() != player->GetNetworkOrigin() )
+	if ( player->GetPreviouslyPredictedOrigin() != player->GetLocalOrigin() )
 	{
 		move->m_bGameCodeMovedPlayer = true;
 	}
 
 	move->m_nPlayerHandle = player->GetClientHandle();
 	move->m_vecVelocity		= player->GetAbsVelocity();
-	move->SetAbsOrigin( player->GetNetworkOrigin() );
+	move->SetAbsOrigin( player->GetLocalOrigin() );
 	move->m_vecOldAngles	= move->m_vecAngles;
 	move->m_nOldButtons		= player->m_Local.m_nOldButtons;
 	move->m_flClientMaxSpeed = player->m_flMaxspeed;
@@ -678,7 +678,7 @@ void CPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *
 
 	// Copy constraint information
 	if ( player->m_hConstraintEntity )
-		move->m_vecConstraintCenter = player->m_hConstraintEntity->GetAbsOrigin();
+		move->m_vecConstraintCenter = player->m_hConstraintEntity->GetLocalOrigin();
 	else
 		move->m_vecConstraintCenter = player->m_vecConstraintCenter;
 
