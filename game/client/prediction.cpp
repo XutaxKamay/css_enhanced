@@ -897,6 +897,7 @@ void CPrediction::RunPostThink( C_BasePlayer *player )
 
 void CPrediction::CheckMovingGround( CBasePlayer *player, double frametime )
 {
+#if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::CheckMovingGround()" );
 
 	CBaseEntity	    *groundentity;
@@ -926,6 +927,7 @@ void CPrediction::CheckMovingGround( CBasePlayer *player, double frametime )
 	}
 
 	player->RemoveFlag( FL_BASEVELOCITY );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1352,6 +1354,7 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 // TODO_ENHANCED: we should get rid of this to prefer SaveData/RestoreData.
 void CPrediction::RestorePredictedTouched( int current_command )
 {
+#if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
 	if ( m_nCommandsPredicted == 0 )
@@ -1419,10 +1422,12 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 		g_EventQueue.AddEvent( newEvent );
 	}
+#endif
 }
 
 void CPrediction::StorePredictedTouched( int current_command )
 {
+#if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StorePredictedTouched" );
 
 	int pc = predictables->GetPredictableCount();
@@ -1480,6 +1485,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	// This will be reconstructed later.
 	g_EventQueue.Clear();
+#endif
 }
 
 //-----------------------------------------------------------------------------
