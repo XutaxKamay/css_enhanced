@@ -73,6 +73,7 @@ static const char * s_WeaponAliasInfo[] =
 	"galil",	// WEAPON_GALIL
 	"famas",	// WEAPON_FAMAS				// CT cheap m4a1
 	"usp",		// WEAPON_USP
+	"m82a1",	// WEAPON_M82A1
 	"awp",		// WEAPON_AWP
 	"mp5navy",	// WEAPON_MP5N 
 	"m249",		// WEAPON_M249				// big machinegun

@@ -6,6 +6,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "cs_weapon_parse.h"
 #include "in_buttons.h"
 #include "takedamageinfo.h"
 #include "weapon_csbase.h"
@@ -37,7 +38,7 @@
 #endif
 
 
-ConVar weapon_accuracy_model( "weapon_accuracy_model", "2", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
+ConVar weapon_accuracy_model( "weapon_accuracy_model", "1", FCVAR_REPLICATED );
 
 
 // ----------------------------------------------------------------------------- //
@@ -57,6 +58,7 @@ static const WeaponAliasTranslationInfoStruct s_WeaponAliasTranslationInfo[] =
 	{ "cv47", "ak47" },
 	{ "defender", "galil" },
 	{ "krieg552", "sg552" },
+	{ "m82a1", "m82a1" },
 	{ "magnum", "awp" },
 	{ "d3au1", "g3sg1" },
 	{ "clarion", "famas" },
@@ -105,6 +107,7 @@ WeaponAliasInfo s_weaponAliasInfo[] =
 	{ WEAPON_GALIL,				"galil" },
 	{ WEAPON_FAMAS,				"famas" },
 	{ WEAPON_USP,				"usp" },
+	{ WEAPON_M82A1,				"m82a1" },
 	{ WEAPON_AWP,				"awp" },
 	{ WEAPON_MP5NAVY,			"mp5navy" },
 	{ WEAPON_M249,				"m249" },

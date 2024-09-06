@@ -14,6 +14,7 @@ AutoBuyInfoStruct g_autoBuyInfo[] =
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_RIFLE), "ak47", "weapon_ak47" },  // ak47
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_SNIPERRIFLE), "scout", "weapon_scout" }, // scout
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_RIFLE), "sg552", "weapon_sg552" }, // sg552
+	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_SNIPERRIFLE), "m82a1", "weapon_m82a1" }, // m82a1
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_SNIPERRIFLE), "awp", "weapon_awp" }, // awp
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_SNIPERRIFLE), "g3sg1", "weapon_g3sg1" }, // g3sg1
 	{ (AutoBuyClassType)(AUTOBUYCLASS_PRIMARY | AUTOBUYCLASS_RIFLE), "famas", "weapon_famas" }, // famas

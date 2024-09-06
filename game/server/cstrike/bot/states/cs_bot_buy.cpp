@@ -212,7 +212,7 @@ struct BuyInfo
 	const char *buyAlias;			///< the buy alias for this equipment
 };
 
-#define PRIMARY_WEAPON_BUY_COUNT 13
+#define PRIMARY_WEAPON_BUY_COUNT 14
 #define SECONDARY_WEAPON_BUY_COUNT 3
 
 /**
@@ -232,6 +232,7 @@ static BuyInfo primaryWeaponBuyInfoCT[ PRIMARY_WEAPON_BUY_COUNT ] =
 	{ RIFLE,			true,  "m4a1" },		// WEAPON_M4A1
 	{ RIFLE,			false, "aug" },			// WEAPON_AUG
 	{ SNIPER_RIFLE,		true,  "sg550" },		// WEAPON_SG550
+	{ SNIPER_RIFLE,		true,  "m82a1" },		// WEAPON_M82A1
 	{ SNIPER_RIFLE,		true,  "awp" },			// WEAPON_AWP
 	{ MACHINE_GUN,		false, "m249" }			// WEAPON_M249
 };
@@ -258,6 +259,7 @@ static BuyInfo primaryWeaponBuyInfoT[ PRIMARY_WEAPON_BUY_COUNT ] =
 	{ RIFLE,			true,  "ak47" },		// WEAPON_AK47
 	{ SNIPER_RIFLE,		false, "scout" },		// WEAPON_SCOUT
 	{ RIFLE,			true,  "sg552" },		// WEAPON_SG552
+	{ SNIPER_RIFLE,		true,  "m82a1" },		// WEAPON_M82A1
 	{ SNIPER_RIFLE,		true,  "awp" },			// WEAPON_AWP
 	{ SNIPER_RIFLE,		true,  "g3sg1" },		// WEAPON_G3SG1
 	{ MACHINE_GUN,		false, "m249" }			// WEAPON_M249

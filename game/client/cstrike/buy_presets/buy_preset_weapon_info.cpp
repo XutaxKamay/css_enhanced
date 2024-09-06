@@ -44,6 +44,7 @@ static WeaponDisplayNameInfo weaponDisplayNameInfo[] =
 	{ WEAPON_GALIL,		"#Cstrike_TitlesTXT_Galil" },
 	{ WEAPON_FAMAS,		"#Cstrike_TitlesTXT_Famas" },
 	{ WEAPON_USP,		"#Cstrike_TitlesTXT_USP45" },
+	{ WEAPON_M82A1,		"#Cstrike_TitlesTXT_M82A1" },
 	{ WEAPON_AWP,		"#Cstrike_TitlesTXT_ArcticWarfareMagnum" },
 	{ WEAPON_MP5NAVY,	"#Cstrike_TitlesTXT_mp5navy" },
 	{ WEAPON_M249,		"#Cstrike_TitlesTXT_ESM249" },

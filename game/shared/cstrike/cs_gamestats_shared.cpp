@@ -5,6 +5,7 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "cs_weapon_parse.h"
 #include "fmtstr.h"
 #ifdef GAME_DLL
 #include "gamestats.h"
@@ -44,6 +45,7 @@ const WeaponName_StatId WeaponName_StatId_Table[] =
 	{ WEAPON_P228,			CSSTAT_KILLS_P228,		CSSTAT_SHOTS_P228,		CSSTAT_HITS_P228,		CSSTAT_DAMAGE_P228		},
 	{ WEAPON_ELITE,			CSSTAT_KILLS_ELITE,		CSSTAT_SHOTS_ELITE,		CSSTAT_HITS_ELITE,		CSSTAT_DAMAGE_ELITE		},
 	{ WEAPON_FIVESEVEN,		CSSTAT_KILLS_FIVESEVEN, CSSTAT_SHOTS_FIVESEVEN, CSSTAT_HITS_FIVESEVEN,	CSSTAT_DAMAGE_FIVESEVEN	},
+	{ WEAPON_M82A1,			CSSTAT_KILLS_M82A1,		CSSTAT_SHOTS_M82A1,		CSSTAT_HITS_M82A1,		CSSTAT_DAMAGE_M82A1		},
 	{ WEAPON_AWP,			CSSTAT_KILLS_AWP,		CSSTAT_SHOTS_AWP,		CSSTAT_HITS_AWP,		CSSTAT_DAMAGE_AWP		},
 	{ WEAPON_AK47,			CSSTAT_KILLS_AK47,		CSSTAT_SHOTS_AK47,		CSSTAT_HITS_AK47,		CSSTAT_DAMAGE_AK47		},
 	{ WEAPON_M4A1,			CSSTAT_KILLS_M4A1,		CSSTAT_SHOTS_M4A1,		CSSTAT_HITS_M4A1,		CSSTAT_DAMAGE_M4A1		},
@@ -94,6 +96,7 @@ CSStatProperty CSStatProperty_Table[] =
 	{	CSSTAT_KILLS_P228,						"total_kills_p228",					"#GAMEUI_Stat_P228Kills",				CSSTAT_PRIORITY_HIGH,			},
 	{	CSSTAT_KILLS_ELITE,						"total_kills_elite",				"#GAMEUI_Stat_EliteKills",				CSSTAT_PRIORITY_HIGH,			},
 	{	CSSTAT_KILLS_FIVESEVEN,					"total_kills_fiveseven",			"#GAMEUI_Stat_FiveSevenKills",			CSSTAT_PRIORITY_HIGH,			},
+	{	CSSTAT_KILLS_M82A1,						"total_kills_m82a1",				"#GAMEUI_Stat_M82A1Kills",				CSSTAT_PRIORITY_HIGH,			},
 	{	CSSTAT_KILLS_AWP,						"total_kills_awp",					"#GAMEUI_Stat_AWPKills",				CSSTAT_PRIORITY_HIGH,			},
 	{	CSSTAT_KILLS_AK47,						"total_kills_ak47",					"#GAMEUI_Stat_AK47Kills",				CSSTAT_PRIORITY_HIGH,			},
 	{	CSSTAT_KILLS_M4A1,						"total_kills_m4a1",					"#GAMEUI_Stat_M4A1Kills",				CSSTAT_PRIORITY_HIGH,			},
@@ -121,6 +124,7 @@ CSStatProperty CSStatProperty_Table[] =
 	{	CSSTAT_SHOTS_P228,						"total_shots_p228",					"#GAMEUI_Stat_P228Shots",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_SHOTS_ELITE,						"total_shots_elite",				"#GAMEUI_Stat_EliteShots",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_SHOTS_FIVESEVEN,					"total_shots_fiveseven",			"#GAMEUI_Stat_FiveSevenShots",			CSSTAT_PRIORITY_LOW,			},
+	{	CSSTAT_SHOTS_M82A1,						"total_shots_m82a1",				"#GAMEUI_Stat_M82A1Shots",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_SHOTS_AWP,						"total_shots_awp",					"#GAMEUI_Stat_AWPShots",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_SHOTS_AK47,						"total_shots_ak47",					"#GAMEUI_Stat_AK47Shots",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_SHOTS_M4A1,						"total_shots_m4a1",					"#GAMEUI_Stat_M4A1Shots",				CSSTAT_PRIORITY_LOW,			},
@@ -148,6 +152,7 @@ CSStatProperty CSStatProperty_Table[] =
 	{	CSSTAT_HITS_P228,						"total_hits_p228",					"#GAMEUI_Stat_P228Hits",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_HITS_ELITE,						"total_hits_elite",					"#GAMEUI_Stat_EliteHits",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_HITS_FIVESEVEN,					"total_hits_fiveseven",				"#GAMEUI_Stat_FiveSevenHits",			CSSTAT_PRIORITY_LOW,			},
+	{	CSSTAT_HITS_M82A1,						"total_hits_m82a1",					"#GAMEUI_Stat_M82A1Hits",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_HITS_AWP,						"total_hits_awp",					"#GAMEUI_Stat_AWPHits",					CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_HITS_AK47,						"total_hits_ak47",					"#GAMEUI_Stat_AK47Hits",				CSSTAT_PRIORITY_LOW,			},
 	{	CSSTAT_HITS_M4A1,						"total_hits_m4a1",					"#GAMEUI_Stat_M4A1Hits",				CSSTAT_PRIORITY_LOW,			},
@@ -175,6 +180,7 @@ CSStatProperty CSStatProperty_Table[] =
 	{	CSSTAT_DAMAGE_P228,						NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
 	{	CSSTAT_DAMAGE_ELITE,					NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
 	{	CSSTAT_DAMAGE_FIVESEVEN,				NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
+	{	CSSTAT_DAMAGE_M82A1,					NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
 	{	CSSTAT_DAMAGE_AWP,						NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
 	{	CSSTAT_DAMAGE_AK47,						NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},
 	{	CSSTAT_DAMAGE_M4A1,						NULL,								NULL,									CSSTAT_PRIORITY_NEVER,			},

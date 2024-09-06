@@ -8,6 +8,7 @@
 
 #include "buy_preset_debug.h"
 #include "buy_presets.h"
+#include "cs_weapon_parse.h"
 #include "weapon_csbase.h"
 #include "cs_ammodef.h"
 #include "cs_gamerules.h"
@@ -776,6 +777,8 @@ const char *ImageFnameFromWeaponID( CSWeaponID weaponID, bool isPrimary )
 		return "gfx/vgui/galil";
 	case WEAPON_FAMAS:
 		return "gfx/vgui/famas";
+	case WEAPON_M82A1:
+		return "gfx/vgui/m82a1";
 	case WEAPON_AWP:
 		return "gfx/vgui/awp";
 	case WEAPON_MP5NAVY:

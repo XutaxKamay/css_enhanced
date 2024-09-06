@@ -108,6 +108,7 @@ typedef enum
     CSEnemyKillsP228,
     CSEnemyKillsElite,
     CSEnemyKillsFiveSeven,
+    CSEnemyKillsM82A1,
     CSEnemyKillsAWP,
     CSEnemyKillsAK47,
     CSEnemyKillsM4A1,

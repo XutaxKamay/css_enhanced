@@ -4,7 +4,7 @@
 // Desc: 		Manages client side stat storage, accumulation, and access
 // Author: 		Peter Freese <peter@hiddenpath.com>
 // Date: 		2009/09/11
-// Copyright:	© 2009 Hidden Path Entertainment
+// Copyright:	ï¿½ 2009 Hidden Path Entertainment
 //
 // Keywords: 	
 //-------------------------------------------------------------
@@ -264,6 +264,7 @@ CON_COMMAND_F( stats_preload, "Load stats with data ripe for getting achievmenet
 		{ CSSTAT_KILLS_P228, 199},
 		{ CSSTAT_KILLS_ELITE, 99},
 		{ CSSTAT_KILLS_FIVESEVEN, 99},
+		{ CSSTAT_KILLS_M82A1, 999},
 		{ CSSTAT_KILLS_AWP, 999},
 		{ CSSTAT_KILLS_AK47, 999},
 		{ CSSTAT_KILLS_M4A1, 999},
@@ -363,6 +364,7 @@ CON_COMMAND_F( stats_corrupt, "Load stats with corrupt values", FCVAR_DEVELOPMEN
 		{ CSSTAT_KILLS_P228,					0x00000000	},
 		{ CSSTAT_KILLS_ELITE,					0x00000000	},
 		{ CSSTAT_KILLS_FIVESEVEN,				0x00000000	},
+		{ CSSTAT_KILLS_M82A1,					0x00000000	},
 		{ CSSTAT_KILLS_AWP,						0x00000000	},
 		{ CSSTAT_KILLS_AK47,					0x00000001	},
 		{ CSSTAT_KILLS_M4A1,					0x00000000	},
@@ -389,6 +391,7 @@ CON_COMMAND_F( stats_corrupt, "Load stats with corrupt values", FCVAR_DEVELOPMEN
 		{ CSSTAT_SHOTS_P228,					0x00000000	},
 		{ CSSTAT_SHOTS_ELITE,					0x00000000	},
 		{ CSSTAT_SHOTS_FIVESEVEN,				0x00000000	},
+		{ CSSTAT_SHOTS_M82A1,					0x00000000	},
 		{ CSSTAT_SHOTS_AWP,						0x00000000	},
 		{ CSSTAT_SHOTS_AK47,					0x0000000E	},
 		{ CSSTAT_SHOTS_M4A1,					0x00000000	},
@@ -413,6 +416,7 @@ CON_COMMAND_F( stats_corrupt, "Load stats with corrupt values", FCVAR_DEVELOPMEN
 		{ CSSTAT_HITS_P228,						0x00000000	},
 		{ CSSTAT_HITS_ELITE,					0x00000000	},
 		{ CSSTAT_HITS_FIVESEVEN,				0x00000000	},
+		{ CSSTAT_HITS_M82A1,					0x00000000	},
 		{ CSSTAT_HITS_AWP,						0x00000000	},
 		{ CSSTAT_HITS_AK47,						0x00000003	},
 		{ CSSTAT_HITS_M4A1,						0x00000000	},

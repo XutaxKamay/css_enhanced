@@ -4460,6 +4460,7 @@ bool CCSPlayer::ClientCommand( const CCommand &args )
 			ClientPrint( this, msg_dest, "  ak47\n" );
 			ClientPrint( this, msg_dest, "  scout\n" );
 			ClientPrint( this, msg_dest, "  sg552\n" );
+			ClientPrint( this, msg_dest, "  m82a1\n" );
 			ClientPrint( this, msg_dest, "  awp\n" );
 			ClientPrint( this, msg_dest, "  g3sg1\n" );
 			ClientPrint( this, msg_dest, "  famas\n" );

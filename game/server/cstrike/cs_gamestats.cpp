@@ -14,6 +14,7 @@
 #include <tier0/platform.h>
 #include "cs_gamerules.h"
 #include "cs_gamestats.h"
+#include "cs_weapon_parse.h"
 #include "weapon_csbase.h"
 #include "props.h"
 #include "cs_achievement_constants.h"
@@ -1042,7 +1043,8 @@ void CCSGameStats::Event_PlayerKilledOther( CBasePlayer *pAttacker, CBaseEntity 
 		bool bUsingSniper = (	weaponId == WEAPON_AWP ||
 								weaponId == WEAPON_SCOUT ||
 								weaponId == WEAPON_SG550 ||
-								weaponId == WEAPON_G3SG1 );
+								weaponId == WEAPON_G3SG1 ||
+								weaponId == WEAPON_M82A1 );
 			
 		// If we're zoomed in
 		if ( bUsingSniper && pPlayerAttacker->GetFOV() != pPlayerAttacker->GetDefaultFOV() )

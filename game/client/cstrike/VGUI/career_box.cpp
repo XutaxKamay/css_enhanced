@@ -421,7 +421,7 @@ static CSWeaponID s_secondaryWeapons[NUM_SECONDARY_WEAPONS] =
 	WEAPON_FIVESEVEN,
 };
 
-const int NUM_PRIMARY_WEAPONS = 23;
+const int NUM_PRIMARY_WEAPONS = 24;
 static CSWeaponID s_primaryWeapons[NUM_PRIMARY_WEAPONS] =
 {
 	WEAPON_NONE,
@@ -437,6 +437,7 @@ static CSWeaponID s_primaryWeapons[NUM_PRIMARY_WEAPONS] =
 
 	// Snipers
 	CSWeaponID(-WEAPONTYPE_SNIPER_RIFLE),
+	WEAPON_M82A1,
 	WEAPON_AWP,
 	WEAPON_SG550,
 	WEAPON_G3SG1,

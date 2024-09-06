@@ -203,6 +203,7 @@ void CStatsSummary::ApplySchemeSettings(vgui::IScheme *pScheme)
 		m_StatImageMap.Insert(CSSTAT_KILLS_P228, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/p228", true)));
 		m_StatImageMap.Insert(CSSTAT_KILLS_ELITE, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/elites", true)));
 		m_StatImageMap.Insert(CSSTAT_KILLS_FIVESEVEN, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/fiveseven", true)));
+		m_StatImageMap.Insert(CSSTAT_KILLS_M82A1, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/m82a1", true)));
 		m_StatImageMap.Insert(CSSTAT_KILLS_AWP, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/awp", true)));
 		m_StatImageMap.Insert(CSSTAT_KILLS_AK47, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/ak47", true)));
 		m_StatImageMap.Insert(CSSTAT_KILLS_M4A1, m_pImageList->AddImage(scheme()->GetImage("gfx/vgui/fav_weap/m4a1", true)));

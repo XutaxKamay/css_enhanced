@@ -399,8 +399,7 @@ void CCSBaseBuyMenu::UpdateBuyPresets( bool showDefaultPanel )
 	HandleBlackMarket();
 }
 
-const char *g_pWeaponNames[] =
-{
+const char* g_pWeaponNames[] = {
 	" ",
 	"#Cstrike_TitlesTXT_P228",
 	"#Cstrike_TitlesTXT_Glock18",
@@ -418,6 +417,7 @@ const char *g_pWeaponNames[] =
 	"#Cstrike_TitlesTXT_Galil",
 	"#Cstrike_TitlesTXT_Famas",
 	"#Cstrike_TitlesTXT_USP45",
+	"#Cstrike_TitlesTXT_M82A1",
 	"#Cstrike_TitlesTXT_Magnum",
 	"#Cstrike_TitlesTXT_mp5navy",
 	"#Cstrike_TitlesTXT_ESM249",
