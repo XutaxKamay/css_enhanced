@@ -14,6 +14,7 @@
 #include "cs_bot.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
+#include "cs_weapon_parse.h"
 #include "tier0/memdbgon.h"
 
 //--------------------------------------------------------------------------------------------------------------
@@ -93,6 +94,11 @@ void CCSBot::OnWeaponFire( IGameEvent *event )
 		// loud
 		case WEAPON_AWP:
 			range = 99999.0f;
+			break;
+
+		// very loud
+		case WEAPON_M82A1:
+			range = 10000000.0f;
 			break;
 
 		// normal

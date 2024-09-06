@@ -148,6 +148,7 @@ $Project "Client (CStrike)"
 			{
 				$File	"$SRCDIR\game\shared\cstrike\weapon_ak47.cpp"
 				$File	"$SRCDIR\game\shared\cstrike\weapon_aug.cpp"
+				$File	"$SRCDIR\game\shared\cstrike\weapon_m82a1.cpp"
 				$File	"$SRCDIR\game\shared\cstrike\weapon_awp.cpp"
 				$File	"$SRCDIR\game\shared\cstrike\weapon_basecsgrenade.cpp"
 				$File	"$SRCDIR\game\shared\cstrike\weapon_basecsgrenade.h"

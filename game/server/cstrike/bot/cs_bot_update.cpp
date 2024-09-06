@@ -10,6 +10,7 @@
 #include "cbase.h"
 #include "cs_gamerules.h"
 #include "cs_bot.h"
+#include "cs_weapon_parse.h"
 #include "fmtstr.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -87,7 +88,7 @@ void CCSBot::Upkeep( void )
 					// spray the big machinegun at the enemy's gut
 					aimAtPart = GUT;
 				}
-				else if (IsUsing( WEAPON_AWP ) || IsUsingShotgun())
+				else if (IsUsing( WEAPON_AWP ) || IsUsingShotgun() || IsUsing( WEAPON_M82A1 ))
 				{
 					// these weapons are best aimed at the chest
 					aimAtPart = GUT;

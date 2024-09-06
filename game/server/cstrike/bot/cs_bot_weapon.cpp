@@ -12,6 +12,7 @@
 #include "basecsgrenade_projectile.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
+#include "cs_weapon_parse.h"
 #include "tier0/memdbgon.h"
 
 //--------------------------------------------------------------------------------------------------------------
@@ -61,7 +62,7 @@ void CCSBot::FireWeaponAtEnemy( void )
 			{
 				// check our accuracy versus our target distance
 				float fProjectedSpread = rangeToEnemy * GetActiveCSWeapon()->GetInaccuracy();
-				float fRequiredSpread = IsUsing( WEAPON_AWP ) ? 50.0f : 25.0f;	// AWP will kill with any hit
+				float fRequiredSpread = (IsUsing( WEAPON_AWP ) || IsUsing( WEAPON_M82A1 )) ? 50.0f : 25.0f;	// AWP will kill with any hit
 				if ( fProjectedSpread > fRequiredSpread )
 					return;
 			}
@@ -1177,7 +1178,7 @@ void CCSBot::ReloadCheck( void )
 	}
 
 	// don't reload the AWP until it is totally out of ammo
-	if (IsUsing( WEAPON_AWP ) && !IsActiveWeaponClipEmpty())
+	if ((IsUsing( WEAPON_AWP ) || IsUsing( WEAPON_M82A1 )) && !IsActiveWeaponClipEmpty())
 		return;
 
 	Reload();

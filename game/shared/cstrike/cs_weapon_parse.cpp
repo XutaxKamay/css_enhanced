@@ -68,6 +68,7 @@ WeaponNameInfo s_weaponNameInfo[] =
 	{ WEAPON_FAMAS,				"weapon_famas" },
 	{ WEAPON_USP,				"weapon_usp" },
 	{ WEAPON_AWP,				"weapon_awp" },
+	{ WEAPON_M82A1,				"weapon_m82a1" },
 	{ WEAPON_MP5NAVY,			"weapon_mp5navy" },
 	{ WEAPON_M249,				"weapon_m249" },
 	{ WEAPON_M3,				"weapon_m3" },

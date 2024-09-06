@@ -50,6 +50,7 @@ enum CSWeaponID
 	WEAPON_GALIL,
 	WEAPON_FAMAS,
 	WEAPON_USP,
+	WEAPON_M82A1,
 	WEAPON_AWP,
 	WEAPON_MP5NAVY,
 	WEAPON_M249,
@@ -124,6 +125,7 @@ static weapons_t g_Weapons[] =
 	{ WEAPON_EVERYTHING, 2000, WEAPON_GALIL, 0, 0, },
 	{ WEAPON_EVERYTHING, 2250, WEAPON_FAMAS, 0, 0, },
 	{ WEAPON_PISTOL,	500, WEAPON_USP, 0, 0, },
+	{ WEAPON_EVERYTHING, 10000, WEAPON_M82A1, 0, 0, },
 	{ WEAPON_EVERYTHING, 4750, WEAPON_AWP, 0, 0, },
 	{ WEAPON_EVERYTHING, 1500, WEAPON_MP5NAVY, 0, 0, },
 	{ WEAPON_EVERYTHING, 5750, WEAPON_M249, 0, 0, },
@@ -162,6 +164,7 @@ const char * s_WeaponAliasInfo[] =
 		"galil",	// WEAPON_GALIL
 		"famas",	// WEAPON_FAMAS				// CT cheap m4a1
 		"usp",		// WEAPON_USP
+		"m82a1",	// WEAPON_M82A1
 		"awp",		// WEAPON_AWP
 		"mp5navy",	// WEAPON_MP5N 
 		"m249",		// WEAPON_M249				// big machinegun
