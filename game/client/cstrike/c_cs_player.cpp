@@ -11,6 +11,7 @@
 #include "cdll_client_int.h"
 #include "convar.h"
 #include "datacache/imdlcache.h"
+#include "dbg.h"
 #include "dt_recv.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
@@ -2144,12 +2145,13 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 			if ( player && !player->IsLocalPlayer() )
 			{
 				const auto nAttackerTickBase = event->GetInt( "tickbase" );
+				const auto pStudioHdr		 = player->GetModelPtr();
+				const auto numhitboxes		 = event->GetInt( "num_hitboxes" );
 
-				const auto numhitboxes = event->GetInt( "num_hitboxes" );
 				QAngle angles[MAXSTUDIOBONES];
 				Vector positions[MAXSTUDIOBONES];
 
-				Assert( numhitboxes == player->GetModelPtr()->numbones() );
+				AssertFatal( numhitboxes == pStudioHdr->numbones() );
 
 				for ( int i = 0; i < numhitboxes; i++ )
 				{
@@ -2210,7 +2212,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 												event->GetFloat( "angle_z" ) ) );
 
 				const auto numposeparams = event->GetInt( "num_poseparams" );
-				Assert( numposeparams == player->GetModelPtr()->GetNumPoseParameters() );
+				AssertFatal( numposeparams == pStudioHdr->GetNumPoseParameters() );
 
 				for ( int i = 0; i < numposeparams; i++ )
 				{
@@ -2221,7 +2223,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				}
 
 				const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
-				Assert( numbonecontrollers == player->GetModelPtr()->GetNumBoneControllers() );
+				AssertFatal( numbonecontrollers == pStudioHdr->GetNumBoneControllers() );
 
 				for ( int i = 0; i < numbonecontrollers; i++ )
 				{
@@ -2232,7 +2234,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				}
 
 				auto numanimoverlays = event->GetInt( "num_anim_overlays" );
-				Assert( numanimoverlays == player->GetNumAnimOverlays() );
+				AssertFatal( numanimoverlays == player->GetNumAnimOverlays() );
 
 				for ( int i = 0; i < numanimoverlays; i++ )
 				{
@@ -2352,16 +2354,14 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						pos++;
 					}
 
-					auto mdl = player->GetModelPtr();
-
-					for ( int i = 0; i < mdl->GetNumPoseParameters(); i++ )
+					for ( int i = 0; i < pStudioHdr->GetNumPoseParameters(); i++ )
 					{
 						if ( pRecord->m_flPoseParameters[i] != player->m_flPoseParameter[i] )
 						{
 							char buffer[256];
 							V_sprintf_safe( buffer,
 											"pose parameter %s (%i): %f != %f",
-											mdl->pPoseParameter( i ).pszName(),
+											pStudioHdr->pPoseParameter( i ).pszName(),
 											i,
 											player->m_flPoseParameter[i],
 											pRecord->m_flPoseParameters[i] );
@@ -2371,14 +2371,14 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						}
 					}
 
-					for ( int i = 0; i < mdl->GetNumBoneControllers(); i++ )
+					for ( int i = 0; i < pStudioHdr->GetNumBoneControllers(); i++ )
 					{
 						if ( pRecord->m_flEncodedControllers[i] != player->m_flEncodedController[i] )
 						{
 							char buffer[256];
 							V_sprintf_safe( buffer,
 											"bone controller %i (%i): %f != %f",
-											mdl->pBonecontroller( i )->bone,
+											pStudioHdr->pBonecontroller( i )->bone,
 											i,
 											player->m_flEncodedController[i],
 											pRecord->m_flEncodedControllers[i] );
