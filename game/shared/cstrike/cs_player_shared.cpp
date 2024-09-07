@@ -235,7 +235,7 @@ float CCSPlayer::GetBulletDiameter(int iBulletType)
     {
         return MMToUnits(13.8f);
     }
-    else if (IsAmmoType(iBulletType, BULLET_PLAYER_50BMG))
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_20Special))
     {
         return MMToUnits(20.f);
     }
@@ -296,7 +296,7 @@ void CCSPlayer::GetBulletTypeParameters(
 		fPenetrationPower = 39;
         flPenetrationDistance = 5000.0;
 	}
-	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_50BMG ) )
+	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_20Special ) )
 	{
 		fPenetrationPower = 266.6f;
         flPenetrationDistance = 150000.0;
@@ -478,11 +478,11 @@ void CCSPlayer::FireBullet(
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
 
-	bool is50bmg = false;
+	bool is20special = false;
 
-	if (IsAmmoType( iBulletType, BULLET_PLAYER_50BMG ))
+	if (IsAmmoType( iBulletType, BULLET_PLAYER_20Special ))
 	{
-		is50bmg = true;
+		is20special = true;
 	}
 
     float flBulletRadius = flBulletDiameter / 2.0f;
@@ -711,7 +711,7 @@ void CCSPlayer::FireBullet(
 			flDamageModifier = 0.99f;
         }
 
-		if (is50bmg && iEnterMaterial >= 'A')
+		if (is20special && iEnterMaterial >= 'A')
 		{
 			flPenetrationModifier = 1.0f;
 		}
@@ -866,7 +866,7 @@ void CCSPlayer::FireBullet(
 // #endif
 		Vector penetrationEnd;
 
-		float flMaxPenetrationDistance = is50bmg ? 1024.0f : 128.0f;
+		float flMaxPenetrationDistance = is20special ? 1024.0f : 128.0f;
 
 		// try to penetrate object, maximum penetration is 128 inch
 		if ( !TraceToExit( tr.endpos, vecDir, penetrationEnd, 24, flMaxPenetrationDistance ) )

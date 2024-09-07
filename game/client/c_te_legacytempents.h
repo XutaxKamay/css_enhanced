@@ -28,7 +28,7 @@ enum
 	CS_SHELL_556,
 	CS_SHELL_762NATO,
 	CS_SHELL_338MAG,
-	CS_SHELL_50BMG
+	CS_SHELL_20Special
 };
 #endif
 
@@ -162,7 +162,7 @@ private:
 	struct model_t			*m_pCS_556Shell;
 	struct model_t			*m_pCS_762NATOShell;
 	struct model_t			*m_pCS_338MAGShell;
-	struct model_t			*m_pCS_50BMGShell;
+	struct model_t			*m_pCS_20SpecialShell;
 #endif
 
 // Internal methods also available to children

@@ -8,7 +8,7 @@ First install dependencies: https://github.com/nillerusr/source-engine/wiki/Sour
 You also need zstd library.
 
 To compile for CS:S Enhanced a command line can look like so:
-```./waf configure clangdb install -p -o build --use-ccache -T fastnative --prefix ../css_enhanced```
+```./waf configure clangdb install -p -o build -T fastnative --prefix ./gamedata/css_enhanced/game```
 
 - `clangdb` generates compilation database for LSP
 - `install` installs into the prefix `../css_enhanced` the binaries
@@ -18,14 +18,7 @@ To compile for CS:S Enhanced a command line can look like so:
 
 ## How to play:
 
-You can join my Discord server at to get a release: https://discord.gg/e8nbakt8
-
-OR:
-
-- First, you need original CS:S & HL2 files.
-- Copy the original CS:S folder somewhere.
-- Overwrite the hl2 and platform folder from the Half-Life 2 files so that shaders can work.\
-This is because stdshaders needs some rewrite to make it work basically with sdk 2013, can't do it now yet
+- Compile the game as above.
 - Run the game with hl2_launcher(.exe) -game cstrike.
 - I have my own server at cssserv.xutaxkamay.com, when it isn't down.
 
@@ -43,6 +36,7 @@ A lot! If you're curious you can look on the commit log, but here's the most int
 - You can use ARM servers to run a dedicated server (this is huge, since servers have a lot of power consumption).
 - Network compression mostly removed so the client get the exact values from the server
 - zstd compression with trained data so that it compress (and decompress) very fast for a very good ratio. (around 1/10)
+- Added new weapon, M82A1
 
 And more to come (TODO):
 - New weapons coming, thinking gluon gun & m82a1
