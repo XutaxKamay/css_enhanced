@@ -7,3 +7,6 @@
 [submodule "lib"]
 	path = lib
 	url = https://github.com/xutaxkamay/source-engine-libs.git
+[submodule "gamedata"]
+	path = gamedata
+	url = git@xutaxkamay.com:xutaxkamay/css_enhanced_game_files
