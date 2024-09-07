@@ -54,14 +54,14 @@ public:
 LINK_ENTITY_TO_CLASS( ammo_50ae, CItemAmmo50AE );
 
 //-----------------------------------------------------------------------------
-class CItemAmmo50BMG : public CItemAmmo
+class CItemAmmo20Special : public CItemAmmo
 {
 public:
-	DECLARE_CLASS( CItemAmmo50BMG, CItemAmmo );
-	virtual const char * GetAmmoName( void ) const { return BULLET_PLAYER_50BMG; }
+	DECLARE_CLASS( CItemAmmo20Special, CItemAmmo );
+	virtual const char * GetAmmoName( void ) const { return BULLET_PLAYER_20Special; }
 };
 
-LINK_ENTITY_TO_CLASS( ammo_50bmg, CItemAmmo50BMG );
+LINK_ENTITY_TO_CLASS( ammo_20special, CItemAmmo20Special );
 
 //-----------------------------------------------------------------------------
 class CItemAmmo762MM : public CItemAmmo

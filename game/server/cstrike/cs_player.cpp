@@ -1316,7 +1316,7 @@ void CCSPlayer::CheatImpulseCommands( int iImpulse )
 
 				AddAccount( 16000 );
 
-				GiveAmmo( 13371, BULLET_PLAYER_50BMG );
+				GiveAmmo( 13371, BULLET_PLAYER_20Special );
 				GiveAmmo( 13371, BULLET_PLAYER_50AE );
 				GiveAmmo( 13371, BULLET_PLAYER_762MM );
 				GiveAmmo( 13371, BULLET_PLAYER_338MAG );
