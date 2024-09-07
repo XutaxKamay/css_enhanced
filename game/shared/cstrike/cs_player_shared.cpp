@@ -541,9 +541,9 @@ void CCSPlayer::FireBullet(
 #endif
 
 #ifndef CLIENT_DLL
-	auto WritePlayerHitboxEvent = [&]( CBasePlayer* lagPlayer )
+	auto WritePlayerHitboxEvent = [&]( CBasePlayer* lagPlayer, const char* context )
 	{
-		IGameEvent* event = gameeventmanager->CreateEvent( "bullet_player_hitboxes" );
+		IGameEvent* event = gameeventmanager->CreateEvent( context );
 		if ( event )
 		{
 			event->SetInt( "userid", GetUserID() );
@@ -658,7 +658,7 @@ void CCSPlayer::FireBullet(
 					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
 				}
 #else
-				WritePlayerHitboxEvent( lagPlayer );
+				WritePlayerHitboxEvent( lagPlayer, "bullet_player_hitboxes" );
 #endif
 			}
 		}
@@ -757,7 +757,7 @@ void CCSPlayer::FireBullet(
 					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
 				}
 #else
-				WritePlayerHitboxEvent( lagPlayer );
+				WritePlayerHitboxEvent( lagPlayer, "bullet_hit_player" );
 #endif
 			}
 		}

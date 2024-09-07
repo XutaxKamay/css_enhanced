@@ -2151,7 +2151,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				QAngle angles[MAXSTUDIOBONES];
 				Vector positions[MAXSTUDIOBONES];
 
-				AssertFatal( numhitboxes == pStudioHdr->numbones() );
+				AssertFatal( numhitboxes == pStudioHdr->pHitboxSet( player->m_nHitboxSet )->numhitboxes );
 
 				for ( int i = 0; i < numhitboxes; i++ )
 				{

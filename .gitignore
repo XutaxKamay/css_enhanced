@@ -46,3 +46,9 @@ gamedata/css_enhanced/game/cstrike/download/*
 *.tmp
 *.lst
 gamedata/css_enhanced/game/cstrike/textwindow_temp.html
+*.so
+gamedata/css_enhanced/game/cstrike/videoconfig_linux.cfg
+gamedata/css_enhanced/game/cstrike/cfg/autoexec.cfg
+gamedata/css_enhanced/game/cstrike/glshaders.cfg
+gamedata/css_enhanced/game/cstrike/gamestate.txt
+gamedata/css_enhanced/game/cstrike/serverconfig.vdf
