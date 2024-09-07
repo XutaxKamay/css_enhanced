@@ -24,6 +24,7 @@ Release_*/
 *.sln
 *.dll*
 *.exp
+*.exe
 *.ilk
 ValveETWProviderEvents.h
 game/client/*/client.lib
@@ -36,3 +37,12 @@ waf3*/
 .vscode/
 .depproj/
 source-engine.sln
+gamedata/css_enhanced/game/cstrike/cfg/config.cfg
+gamedata/css_enhanced/game/bin/*.lib
+gamedata/css_enhanced/game/cstrike/bin/*.lib
+gamedata/css_enhanced/game/cstrike/downladlists/*
+gamedata/css_enhanced/game/cstrike/download/*
+*.cache
+*.tmp
+*.lst
+gamedata/css_enhanced/game/cstrike/textwindow_temp.html

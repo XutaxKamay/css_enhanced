@@ -110,7 +110,7 @@ void CWeaponM82A1::Spawn()
 
 void CWeaponM82A1::SecondaryAttack()
 {
-	const float kZoomTime = 0.2f;
+	static constexpr float kZoomTime = 0.2f;
 
 	CCSPlayer *pPlayer = GetPlayerOwner();
 
@@ -122,27 +122,27 @@ void CWeaponM82A1::SecondaryAttack()
 
 	if ( pPlayer->GetFOV() == pPlayer->GetDefaultFOV() )
 	{
-			pPlayer->SetFOV( pPlayer, FOVValues[FOV_SCOPE_1], kZoomTime );
-			m_weaponMode = Secondary_Mode;
-			m_fAccuracyPenalty += GetCSWpnData().m_fInaccuracyAltSwitch;
+		m_iLastZoom			= FOVValues[FOV_SCOPE_1];
+		m_weaponMode		= Secondary_Mode;
+		m_fAccuracyPenalty += GetCSWpnData().m_fInaccuracyAltSwitch;
 	}
 	else if ( pPlayer->GetFOV() == FOVValues[FOV_SCOPE_1] )
 	{
-			pPlayer->SetFOV( pPlayer, FOVValues[FOV_SCOPE_2], kZoomTime );
-			m_weaponMode = Secondary_Mode;
+		m_iLastZoom	 = FOVValues[FOV_SCOPE_2];
+		m_weaponMode = Secondary_Mode;
 	}
 	else if ( pPlayer->GetFOV() == FOVValues[FOV_SCOPE_2] )
 	{
-			pPlayer->SetFOV( pPlayer, FOVValues[FOV_SCOPE_3], kZoomTime );
-			m_weaponMode = Secondary_Mode;
+		m_iLastZoom	 = FOVValues[FOV_SCOPE_3];
+		m_weaponMode = Secondary_Mode;
 	}
 	else
 	{
-		pPlayer->SetFOV( pPlayer, pPlayer->GetDefaultFOV(), kZoomTime );
+		m_iLastZoom	 = pPlayer->GetDefaultFOV();
 		m_weaponMode = Primary_Mode;
 	}
 
-	m_iLastZoom = pPlayer->GetFOV();
+	pPlayer->SetFOV( pPlayer, m_iLastZoom, kZoomTime );
 
 #ifndef CLIENT_DLL
 	// If this isn't guarded, the sound will be emitted twice, once by the server and once by the client.
@@ -170,7 +170,7 @@ void CWeaponM82A1::SecondaryAttack()
 #endif
 
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.4f;
-	m_zoomFullyActiveTime = gpGlobals->curtime + 0.2f;
+	m_zoomFullyActiveTime = gpGlobals->curtime + kZoomTime;
 
 }
 
@@ -229,10 +229,13 @@ void CWeaponM82A1::PrimaryAttack()
 		#endif
 	}
 
-	QAngle angle = pPlayer->GetPunchAngle();
 	RandomSeed( pPlayer->GetPredictionRandomSeed() );
-	angle.x		 -= 15 + RandomFloat( 2, 8 );
-	angle.y		 -= static_cast< float >( RandomInt( -1, 1 ) ) * RandomFloat( 2, 4 );
+
+	QAngle angle = pPlayer->GetPunchAngle();
+
+	angle.x -= 15 + RandomFloat( 5, 10 );
+	angle.y -= static_cast< float >( RandomInt( -1, 1 ) ) * RandomFloat( 2, 5 );
+
 	pPlayer->SetPunchAngle( angle );
 }
 
@@ -269,7 +272,7 @@ float CWeaponM82A1::GetMaxSpeed() const
 	else
 	{
 		// Slower speed when zoomed in.
-		return 100;
+		return 90;
 	}
 }
 
