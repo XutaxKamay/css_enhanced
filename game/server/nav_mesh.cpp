@@ -363,12 +363,16 @@ public:
 	CheckAreasOverlappingBreakable( CBaseEntity *breakable )
 	{
 		m_breakable = breakable;
-		ICollideable *collideable = breakable->GetCollideable();
-		collideable->WorldSpaceSurroundingBounds( &m_breakableExtent.lo, &m_breakableExtent.hi );
 
-		const float expand = 10.0f;
-		m_breakableExtent.lo += Vector( -expand, -expand, -expand );
-		m_breakableExtent.hi += Vector(  expand,  expand,  expand );
+		if ( m_breakable )
+		{
+			ICollideable* collideable = breakable->GetCollideable();
+			collideable->WorldSpaceSurroundingBounds( &m_breakableExtent.lo, &m_breakableExtent.hi );
+
+			const float expand	  = 10.0f;
+			m_breakableExtent.lo += Vector( -expand, -expand, -expand );
+			m_breakableExtent.hi += Vector( expand, expand, expand );
+		}
 	}
 
 	bool operator() ( CNavArea *area )

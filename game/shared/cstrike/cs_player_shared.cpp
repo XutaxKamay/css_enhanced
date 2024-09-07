@@ -235,6 +235,10 @@ float CCSPlayer::GetBulletDiameter(int iBulletType)
     {
         return MMToUnits(13.8f);
     }
+    else if (IsAmmoType(iBulletType, BULLET_PLAYER_50BMG))
+    {
+        return MMToUnits(20.f);
+    }
     else if (IsAmmoType(iBulletType, BULLET_PLAYER_762MM))
     {
         return MMToUnits(7.62f);
@@ -291,6 +295,11 @@ void CCSPlayer::GetBulletTypeParameters(
 	{
 		fPenetrationPower = 39;
         flPenetrationDistance = 5000.0;
+	}
+	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_50BMG ) )
+	{
+		fPenetrationPower = 266.6f;
+        flPenetrationDistance = 150000.0;
 	}
 	else if ( IsAmmoType( iBulletType, BULLET_PLAYER_556MM ) ||
 			  IsAmmoType( iBulletType, BULLET_PLAYER_556MM_BOX ) )
@@ -455,6 +464,7 @@ void CCSPlayer::FireBullet(
 
 	float fCurrentDamage = iDamage;   // damage of the bullet at it's current trajectory
 	float flCurrentDistance = 0.0;  //distance that the bullet has traveled so far
+	float flLastCurrentDistance = 0.0; // Sometimes some maps are badly made and we need to check the distance we traveled.
 
 	Vector vecDirShooting, vecRight, vecUp;
 	AngleVectors( shootAngles, &vecDirShooting, &vecRight, &vecUp );
@@ -467,6 +477,13 @@ void CCSPlayer::FireBullet(
     float flBulletDiameter = 0.0f;
 
 	GetBulletTypeParameters( iBulletType, flPenetrationPower, flPenetrationDistance, flBulletDiameter );
+
+	bool is50bmg = false;
+
+	if (IsAmmoType( iBulletType, BULLET_PLAYER_50BMG ))
+	{
+		is50bmg = true;
+	}
 
     float flBulletRadius = flBulletDiameter / 2.0f;
     
@@ -664,6 +681,9 @@ void CCSPlayer::FireBullet(
 
 		lastPlayerHit = ToBasePlayer(tr.m_pEnt);
 
+// #ifdef GAME_DLL
+// 		DevMsg("1: %i %f %f %f\n", iPenetration, flPenetrationDistance, flCurrentDistance, flPenetrationPower);
+// #endif
 		if ( tr.fraction == 1.0f )
 			break; // we didn't hit anything, stop tracing shoot
 
@@ -690,6 +710,11 @@ void CCSPlayer::FireBullet(
 			flPenetrationModifier = 1.0f;
 			flDamageModifier = 0.99f;
         }
+
+		if (is50bmg && iEnterMaterial >= 'A')
+		{
+			flPenetrationModifier = 1.0f;
+		}
 
 		if ( shouldDebugHitboxesOnHit )
 		{
@@ -825,6 +850,9 @@ void CCSPlayer::FireBullet(
 
 #endif
 
+// #ifdef GAME_DLL
+// 		DevMsg("2: %i %f %f %f\n", iPenetration, flPenetrationDistance, flCurrentDistance, flPenetrationPower);
+// #endif
 		// check if bullet can penetrate another entity
 		if ( iPenetration == 0 && !hitGrate )
 			break; // no, stop
@@ -833,12 +861,20 @@ void CCSPlayer::FireBullet(
 		if ( iPenetration < 0 )
 			break;
 
+// #ifdef GAME_DLL
+// 		DevMsg("3: %i %f %f %f\n", iPenetration, flPenetrationDistance, flCurrentDistance, flPenetrationPower);
+// #endif
 		Vector penetrationEnd;
 
+		float flMaxPenetrationDistance = is50bmg ? 1024.0f : 128.0f;
+
 		// try to penetrate object, maximum penetration is 128 inch
-		if ( !TraceToExit( tr.endpos, vecDir, penetrationEnd, 24, 128 ) )
+		if ( !TraceToExit( tr.endpos, vecDir, penetrationEnd, 24, flMaxPenetrationDistance ) )
 			break;
 
+// #ifdef GAME_DLL
+// 		DevMsg("4: %i %f %f %f\n", iPenetration, flPenetrationDistance, flCurrentDistance, flPenetrationPower);
+// #endif
 		// find exact penetration exit
 		trace_t exitTr;
 		UTIL_TraceHull( penetrationEnd, tr.endpos, vecBulletRadiusMins, vecBulletRadiusMaxs, CS_MASK_SHOOT|CONTENTS_HITBOX, NULL, &exitTr );
@@ -872,6 +908,9 @@ void CCSPlayer::FireBullet(
 		if ( flTraceDistance > ( flPenetrationPower * flPenetrationModifier ) )
 			break; // bullet hasn't enough power to penetrate this distance
 
+// #ifdef GAME_DLL
+// 		DevMsg("5: %i %f %f %f\n", iPenetration, flPenetrationDistance, flCurrentDistance, flPenetrationPower);
+// #endif
 		// penetration was successful
 
 		// bullet did penetrate object, exit Decal

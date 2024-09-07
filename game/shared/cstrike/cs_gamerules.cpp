@@ -165,6 +165,7 @@ IMPLEMENT_NETWORKCLASS_ALIASED( CSGameRulesProxy, DT_CSGameRulesProxy )
 
 
 ConVar ammo_50AE_max( "ammo_50AE_max", "35", FCVAR_REPLICATED );
+ConVar ammo_50bmg_max( "ammo_50bmg_max", "18", FCVAR_REPLICATED );
 ConVar ammo_762mm_max( "ammo_762mm_max", "90", FCVAR_REPLICATED );
 ConVar ammo_556mm_max( "ammo_556mm_max", "90", FCVAR_REPLICATED );
 ConVar ammo_556mm_box_max( "ammo_556mm_box_max", "200", FCVAR_REPLICATED );
@@ -5076,6 +5077,7 @@ CAmmoDef* GetAmmoDef()
 		bInitted = true;
 		
 		ammoDef.AddAmmoType( BULLET_PLAYER_50AE,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_50AE_max",		2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
+		ammoDef.AddAmmoType( BULLET_PLAYER_50BMG,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_50bmg_max",	4800 * BULLET_IMPULSE_EXAGGERATION, 0, 30, 40 );
 		ammoDef.AddAmmoType( BULLET_PLAYER_762MM,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_762mm_max",	2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
 		ammoDef.AddAmmoType( BULLET_PLAYER_556MM,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_556mm_max",	2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
 		ammoDef.AddAmmoType( BULLET_PLAYER_556MM_BOX,	DMG_BULLET, TRACER_LINE, 0, 0, "ammo_556mm_box_max",2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
@@ -5092,6 +5094,7 @@ CAmmoDef* GetAmmoDef()
 		//Adrian: I set all the prices to 0 just so the rest of the buy code works
 		//This should be revisited.
 		ammoDef.AddAmmoCost( BULLET_PLAYER_50AE, 0, 7 );
+		ammoDef.AddAmmoCost( BULLET_PLAYER_50BMG, 0, 6 );
 		ammoDef.AddAmmoCost( BULLET_PLAYER_762MM, 0, 30 );
 		ammoDef.AddAmmoCost( BULLET_PLAYER_556MM, 0, 30 );
 		ammoDef.AddAmmoCost( BULLET_PLAYER_556MM_BOX, 0, 30 );

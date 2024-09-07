@@ -2419,6 +2419,7 @@ void CTempEnts::LevelInit()
 	m_pCS_556Shell		= (model_t *)engine->LoadModel( "models/Shells/shell_556.mdl" );
 	m_pCS_762NATOShell	= (model_t *)engine->LoadModel( "models/Shells/shell_762nato.mdl" );
 	m_pCS_338MAGShell	= (model_t *)engine->LoadModel( "models/Shells/shell_338mag.mdl" );
+	m_pCS_50BMGShell	= (model_t *)engine->LoadModel( "models/Shells/shell_50bmg.mdl" );
 #endif
 }
 
@@ -2456,6 +2457,7 @@ void CTempEnts::Init (void)
 	m_pCS_556Shell		= NULL;
 	m_pCS_762NATOShell	= NULL;
 	m_pCS_338MAGShell	= NULL;
+	m_pCS_50BMGShell	= NULL;
 #endif
 
 	// Clear out lists to start
@@ -3360,6 +3362,10 @@ void CTempEnts::CSEjectBrass( const Vector &vecPosition, const QAngle &angVeloci
 	case CS_SHELL_338MAG:
 		hitsound = TE_RIFLE_SHELL;
 		pModel = m_pCS_338MAGShell;
+		break;
+	case CS_SHELL_50BMG:
+		hitsound = TE_RIFLE_SHELL;
+		pModel = m_pCS_50BMGShell;
 		break;
 	}
 #endif
