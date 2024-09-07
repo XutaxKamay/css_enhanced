@@ -53,9 +53,15 @@ void CStrike_FX_EjectBrass_338Mag_Callback( const CEffectData &data )
 	CStrike_EjectBrass( CS_SHELL_338MAG, data );
 }
 
+void CStrike_FX_EjectBrass_50BMG_Callback( const CEffectData &data )
+{
+	CStrike_EjectBrass( CS_SHELL_50BMG, data );
+}
+
 DECLARE_CLIENT_EFFECT( "EjectBrass_9mm",		CStrike_FX_EjectBrass_9mm_Callback );
 DECLARE_CLIENT_EFFECT( "EjectBrass_12Gauge",	CStrike_FX_EjectBrass_12Gauge_Callback );
 DECLARE_CLIENT_EFFECT( "EjectBrass_57",			CStrike_FX_EjectBrass_57_Callback );
 DECLARE_CLIENT_EFFECT( "EjectBrass_556",		CStrike_FX_EjectBrass_556_Callback );
 DECLARE_CLIENT_EFFECT( "EjectBrass_762Nato",	CStrike_FX_EjectBrass_762Nato_Callback );
 DECLARE_CLIENT_EFFECT( "EjectBrass_338Mag",		CStrike_FX_EjectBrass_338Mag_Callback );
+DECLARE_CLIENT_EFFECT( "EjectBrass_50BMG",		CStrike_FX_EjectBrass_50BMG_Callback );

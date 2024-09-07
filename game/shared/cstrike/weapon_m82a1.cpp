@@ -1,10 +1,5 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
-//
-// Purpose: 
-//
-//=============================================================================//
-
 #include "cbase.h"
+#include "vstdlib/random.h"
 #include "weapon_csbasegun.h"
 
 
@@ -30,7 +25,7 @@ enum FOVContext_t
 	FOV_MAX
 };
 
-static constexpr int FOVValues[FOV_MAX] = { 40, 10, 3 };
+static constexpr int FOVValues[FOV_MAX] = { 40, 10, 1 };
 
 #ifdef M82A1_UNZOOM
 	ConVar sv_m82a1unzoomdelay( 
@@ -115,7 +110,7 @@ void CWeaponM82A1::Spawn()
 
 void CWeaponM82A1::SecondaryAttack()
 {
-	const float kZoomTime = 0.15f;
+	const float kZoomTime = 0.2f;
 
 	CCSPlayer *pPlayer = GetPlayerOwner();
 
@@ -202,7 +197,7 @@ float CWeaponM82A1::GetInaccuracy() const
 			fSpread = 0.0f;
 	
 		else
-			fSpread = 0.0f;
+			fSpread = 0.002f;
 	
 		return fSpread;
 	}
@@ -235,7 +230,9 @@ void CWeaponM82A1::PrimaryAttack()
 	}
 
 	QAngle angle = pPlayer->GetPunchAngle();
-	angle.x -= 5;
+	RandomSeed( pPlayer->GetPredictionRandomSeed() );
+	angle.x		 -= 15 + RandomFloat( 2, 8 );
+	angle.y		 -= static_cast< float >( RandomInt( -1, 1 ) ) * RandomFloat( 2, 4 );
 	pPlayer->SetPunchAngle( angle );
 }
 

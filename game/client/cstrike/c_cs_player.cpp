@@ -820,7 +820,7 @@ CSPlayerState C_CSPlayer::State_Get() const
 float C_CSPlayer::GetMinFOV() const
 {
 	// Min FOV for M82A1.
-	return 3;
+	return 1;
 }
 
 

@@ -262,6 +262,9 @@ int GetShellForAmmoType( const char *ammoname )
 	if ( !Q_strcmp( BULLET_PLAYER_57MM, ammoname ) )
 		return CS_SHELL_57;
 
+	if ( !Q_strcmp( BULLET_PLAYER_50BMG, ammoname ) )
+		return CS_SHELL_50BMG;
+
 	// default 9 mm
 	return CS_SHELL_9MM;
 }

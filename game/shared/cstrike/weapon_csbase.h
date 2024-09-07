@@ -33,6 +33,7 @@ class CCSPlayer;
 
 // These are the names of the ammo types that go in the CAmmoDefs and that the 
 // weapon script files reference.
+#define BULLET_PLAYER_50BMG		"BULLET_PLAYER_50BMG"
 #define BULLET_PLAYER_50AE		"BULLET_PLAYER_50AE"
 #define BULLET_PLAYER_762MM		"BULLET_PLAYER_762MM"
 #define BULLET_PLAYER_556MM		"BULLET_PLAYER_556MM"
