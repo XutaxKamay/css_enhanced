@@ -313,6 +313,10 @@ private:
 	Vector m_lastLadderNormal;
 	Vector m_lastLadderPos;
 
+#ifdef GLOWS_ENABLE
+	void GetGlowEffectColor( float *r, float *g, float *b ) override;
+#endif
+
 	void UpdateRadar();
 	void UpdateSoundEvents();
 

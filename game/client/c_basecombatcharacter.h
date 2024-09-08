@@ -120,7 +120,10 @@ private:
 	CHandle<C_BaseCombatWeapon>		m_hMyWeapons[MAX_WEAPONS];
 	CHandle< C_BaseCombatWeapon > m_hActiveWeapon;
 
+protected:
 #ifdef GLOWS_ENABLE
+	bool				m_bGlowOccluded;
+	bool				m_bGlowNonOccluded;
 	bool				m_bGlowEnabled;
 	bool				m_bOldGlowEnabled;
 	CGlowObject			*m_pGlowEffect;

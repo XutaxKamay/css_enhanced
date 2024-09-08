@@ -2878,6 +2878,27 @@ bool C_CSPlayer::SetupBones( matrix3x4_t* pBoneToWorldOut, int nMaxBones, int bo
 	return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
 }
 
+#ifdef GLOWS_ENABLE
+void C_CSPlayer::GetGlowEffectColor( float* r, float* g, float* b )
+{
+	if ( GetTeamNumber() == TEAM_CT )
+	{
+		*r = 0;
+		*g = 0;
+		*b = 1.0f;
+	}
+	else if ( GetTeamNumber() == TEAM_TERRORIST )
+	{
+		*r = 1.0f;
+		*g = 0;
+		*b = 0;
+	}
+
+	m_bGlowOccluded = false;
+	m_bGlowNonOccluded = true;
+}
+#endif
+
 //=============================================================================
 // HPE_END
 //=============================================================================

@@ -31,6 +31,8 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 	}
 
 #ifdef GLOWS_ENABLE
+	m_bGlowOccluded = true;
+	m_bGlowNonOccluded = false;
 	m_pGlowEffect = NULL;
 	m_bGlowEnabled = false;
 	m_bOldGlowEnabled = false;
@@ -130,7 +132,7 @@ void C_BaseCombatCharacter::UpdateGlowEffect( void )
 		float r, g, b;
 		GetGlowEffectColor( &r, &g, &b );
 
-		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true );
+		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, m_bGlowOccluded, m_bGlowNonOccluded );
 	}
 }
 
