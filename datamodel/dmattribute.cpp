@@ -2062,45 +2062,6 @@ void CDmAttribute::OnChanged( bool bArrayCountChanged, bool bIsTopological )
 	}
 }
 
-
-//-----------------------------------------------------------------------------
-// Type conversion related methods
-//-----------------------------------------------------------------------------
-template< class T > bool CDmAttribute::IsTypeConvertable() const
-{
-	return ( CDmAttributeInfo< T >::ATTRIBUTE_TYPE == GetType() );
-}
-
-template<> bool CDmAttribute::IsTypeConvertable<bool>() const
-{
-	DmAttributeType_t type = GetType();
-	return ( type == AT_BOOL || type == AT_INT || type == AT_FLOAT );
-}
-
-template<> bool CDmAttribute::IsTypeConvertable<int>() const
-{
-	DmAttributeType_t type = GetType();
-	return ( type == AT_INT || type == AT_BOOL || type == AT_FLOAT );
-}
-
-template<> bool CDmAttribute::IsTypeConvertable<float>() const
-{
-	DmAttributeType_t type = GetType();
-	return ( type == AT_FLOAT || type == AT_INT || type == AT_BOOL );
-}
-
-template<> bool CDmAttribute::IsTypeConvertable<QAngle>() const
-{
-	DmAttributeType_t type = GetType();
-	return ( type == AT_QANGLE || type == AT_QUATERNION );
-}
-
-template<> bool CDmAttribute::IsTypeConvertable<Quaternion>() const
-{
-	DmAttributeType_t type = GetType();
-	return ( type == AT_QUATERNION || type == AT_QANGLE);
-}
-
 template< class T > void CDmAttribute::CopyData( const T& value )
 {
 	*reinterpret_cast< T* >( m_pData ) = value;

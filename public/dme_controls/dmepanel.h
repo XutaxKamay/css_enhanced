@@ -13,7 +13,7 @@
 
 
 #include "tier0/basetypes.h"
-#include "tier1/utlstringmap.h"
+#include "tier1/UtlStringMap.h"
 #include "vgui_controls/EditablePanel.h"
 #include "datamodel/dmelement.h"
 #include "datamodel/dmehandle.h"

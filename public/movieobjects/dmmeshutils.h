@@ -12,13 +12,22 @@
 #pragma once
 #endif
 
+#include "dmemesh.h"
+#include "movieobjects/dmeanimationset.h"
+#include "movieobjects/dmecombinationoperator.h"
+#include "movieobjects/dmemodel.h"
+#include "movieobjects/dmedag.h"
+#include "movieobjects/dmefaceset.h"
+#include "movieobjects/dmematerial.h"
 #include "movieobjects/dmevertexdata.h"
+#include "movieobjects/dmmeshcomp.h"	// TODO: This has to be included before dmmeshutils.h
+#include "tier1/utlstack.h"
+#include "tier2/p4helpers.h"
 #include "tier1/utlstring.h"
 #include "tier1/UtlStringMap.h"
-#include "tier1/utlvector.h"
-
-class CDmeMesh;
-class CDmMeshComp::CEdge;
+#include "tier1/utlbuffer.h"
+#include "tier1/fmtstr.h"
+#include "filesystem.h"
 
 
 //-----------------------------------------------------------------------------
@@ -179,7 +188,7 @@ inline bool CDmMeshFaceIt::GetVertexData(
 	if ( IsDone() )
 		return false;
 
-	CDmeVertexData *pBase = pPassedBase ? pPassedBase : m_pMesh->GetCurrentBaseState();
+	auto *pBase = pPassedBase ? pPassedBase : m_pMesh->GetCurrentBaseState();
 	if ( !pBase )
 		return false;
 
@@ -187,7 +196,7 @@ inline bool CDmMeshFaceIt::GetVertexData(
 	if ( nFieldIndex < 0 )
 		return false;
 
-	CDmAttribute *pDataAttr = pBase->GetVertexData( nFieldIndex );
+	auto *pDataAttr = pBase->GetVertexData( nFieldIndex );
 	if ( pDataAttr->GetType() != CDmAttributeInfo< CUtlVector< T_t > >().AttributeType() )
 		return false;
 

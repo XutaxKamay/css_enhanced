@@ -19,6 +19,7 @@
 #include "tier1/utlbuffer.h"
 #include "tier1/utlstring.h"
 #include "tier1/utlvector.h"
+#include "utlmap.h"
 
 
 
@@ -123,7 +124,7 @@ protected:
 		int &nId,
 		int &nParentId ) const;
 
-	CDmElement *CDmSmdSerializer::ReadSMD(
+	CDmElement *ReadSMD(
 		CUtlBuffer &inUtlBuf,
 		DmFileId_t nDmFileId,
 		const char *pszFilename,

@@ -15,7 +15,6 @@
 #pragma warning( disable : 4305 )
 
 
-#include <io.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -64,11 +63,11 @@ static byte *pBlockStart;
 #undef ALIGN4
 #undef ALIGN16
 #undef ALIGN32
-#define ALIGN4( a ) a = (byte *)((int)((byte *)a + 3) & ~ 3)
-#define ALIGN16( a ) a = (byte *)((int)((byte *)a + 15) & ~ 15)
-#define ALIGN32( a ) a = (byte *)((int)((byte *)a + 31) & ~ 31)
-#define ALIGN64( a ) a = (byte *)((int)((byte *)a + 63) & ~ 63)
-#define ALIGN512( a ) a = (byte *)((int)((byte *)a + 511) & ~ 511)
+#define ALIGN4( a ) a = (byte *)((uintptr_t)((byte *)a + 3) & ~ 3)
+#define ALIGN16( a ) a = (byte *)((uintptr_t)((byte *)a + 15) & ~ 15)
+#define ALIGN32( a ) a = (byte *)((uintptr_t)((byte *)a + 31) & ~ 31)
+#define ALIGN64( a ) a = (byte *)((uintptr_t)((byte *)a + 63) & ~ 63)
+#define ALIGN512( a ) a = (byte *)((uintptr_t)((byte *)a + 511) & ~ 511)
 // make sure kalloc aligns to maximum alignment size
 
 #define FILEBUFFER (8 * 1024 * 1024)
@@ -1736,12 +1735,12 @@ static void WriteBoneTransforms( studiohdr2_t *phdr, mstudiobone_t *pBone )
 		pLinearBone->numbones = g_numbones;
 
 #define WRITE_BONE_BLOCK( type, srcfield, dest, destindex ) \
-		type *##dest = (type *)pData; \
-		pLinearBone->##destindex = pData - (byte *)pLinearBone; \
-		pData += g_numbones * sizeof( *##dest ); \
+		type *dest = (type *)pData; \
+		pLinearBone->destindex = pData - (byte *)pLinearBone; \
+		pData += g_numbones * sizeof( *dest ); \
 		ALIGN4( pData ); \
 		for ( int i = 0; i < g_numbones; i++) \
-			dest##[i] = pBone[i].##srcfield;
+			dest[i] = pBone[i].srcfield;
 
 		WRITE_BONE_BLOCK( int, flags, pFlags, flagsindex );
 		WRITE_BONE_BLOCK( int, parent, pParent, parentindex );
@@ -1823,10 +1822,10 @@ static void WriteVertices( studiohdr_t *phdr )
 	char			fileName[MAX_PATH];
 	byte			*pStart;
 	byte			*pData;
-	int				i;
-	int				j;
-	int				k;
-	int				cur;
+	uintptr_t				i;
+	uintptr_t				j;
+	uintptr_t				k;
+	uintptr_t				cur;
 
 	if (!g_nummodelsbeforeLOD)
 		return;
@@ -1881,7 +1880,7 @@ static void WriteVertices( studiohdr_t *phdr )
 
 		// save vertices
 		ALIGN16( pData );
-		cur = (int)pData;
+		cur = (uintptr_t)pData;
 		mstudiovertex_t *pVert = (mstudiovertex_t *)pData;
 		pData += pLodData->numvertices * sizeof( mstudiovertex_t );
 		for (j = 0; j < pLodData->numvertices; j++)
@@ -1908,7 +1907,7 @@ static void WriteVertices( studiohdr_t *phdr )
 
 		if (!g_quiet)
 		{
-			printf( "vertices   %7d bytes (%d vertices)\n", (int)(pData - cur), pLodData->numvertices );
+			printf( "vertices   %7d bytes (%d vertices)\n", (uintptr_t)(pData - cur), pLodData->numvertices );
 		}
 	}
 
@@ -1925,7 +1924,7 @@ static void WriteVertices( studiohdr_t *phdr )
 
 		// save tangent space S
 		ALIGN4( pData );
-		cur = (int)pData;
+		cur = (uintptr_t)pData;
 		Vector4D *ptangents = (Vector4D *)pData;
 		pData += pLodData->numvertices * sizeof( Vector4D );
 		for (j = 0; j < pLodData->numvertices; j++)
@@ -1939,7 +1938,7 @@ static void WriteVertices( studiohdr_t *phdr )
 
 		if (!g_quiet)
 		{
-			printf( "tangents   %7d bytes (%d vertices)\n", (int)(pData - cur), pLodData->numvertices );
+			printf( "tangents   %7d bytes (%d vertices)\n", (uintptr_t)(pData - cur), pLodData->numvertices );
 		}
 	}
 
@@ -2053,14 +2052,14 @@ float ComputeVertAnimFixedPointScale( studiohdr_t *pStudioHdr )
 
 static void WriteModel( studiohdr_t *phdr )
 {
-	int i, j, k, m;
+	uintptr_t i, j, k, m;
 	mstudiobodyparts_t	*pbodypart;
 	mstudiomodel_t		*pmodel;
 	s_source_t			*psource;
 	mstudiovertanim_t	*pvertanim;
 	s_vertanim_t		*pvanim;
 
-	int cur	= (int)pData;
+	uintptr_t cur	= (uintptr_t)pData;
 
 	// vertex data is written to external file, offsets kept internal
 	// track expected external base to store proper offsets
@@ -2362,9 +2361,9 @@ static void WriteModel( studiohdr_t *phdr )
 
 	if( !g_quiet )
 	{
-		printf("ik/pose    %7d bytes\n", (int)(pData - cur) );
+		printf("ik/pose    %7d bytes\n", (uintptr_t)(pData - cur) );
 	}
-	cur = (int)pData;
+	cur = (uintptr_t)pData;
 
 	const float flVertAnimFixedPointScale = ComputeVertAnimFixedPointScale( phdr );
 
@@ -2424,15 +2423,15 @@ static void WriteModel( studiohdr_t *phdr )
 
 		// set expected base offsets to external data
 		ALIGN16( externalVertexIndex );
-		pmodel[i].vertexindex = (int)externalVertexIndex; 
+		pmodel[i].vertexindex = (uintptr_t)externalVertexIndex; 
 		externalVertexIndex += pmodel[i].numvertices * sizeof(mstudiovertex_t);
 
 		// set expected base offsets to external data
 		ALIGN4( externalTangentsIndex );
-		pmodel[i].tangentsindex = (int)externalTangentsIndex;
+		pmodel[i].tangentsindex = (uintptr_t)externalTangentsIndex;
 		externalTangentsIndex += pmodel[i].numvertices * sizeof( Vector4D );
 
-		cur = (int)pData;
+		cur = (uintptr_t)pData;
 
 		// save eyeballs
 		mstudioeyeball_t *peyeball;
@@ -2470,11 +2469,11 @@ static void WriteModel( studiohdr_t *phdr )
 
 		if ( !g_quiet )
 		{
-			printf("eyeballs   %7d bytes (%d eyeballs)\n", (int)(pData - cur), g_model[i]->numeyeballs );
+			printf("eyeballs   %7d bytes (%d eyeballs)\n", (uintptr_t)(pData - cur), g_model[i]->numeyeballs );
 		}
 
 		// move flexes into individual meshes
-		cur = (int)pData;
+		cur = (uintptr_t)pData;
 		for (m = 0; m < pmodel[i].nummeshes; m++)
 		{
 			int numflexkeys[MAXSTUDIOFLEXKEYS];
@@ -2581,9 +2580,9 @@ static void WriteModel( studiohdr_t *phdr )
 
 		if( !g_quiet )
 		{
-			printf("flexes     %7d bytes (%d flexes)\n", (int)(pData - cur), g_numflexkeys );
+			printf("flexes     %7d bytes (%d flexes)\n", (uintptr_t)(pData - cur), g_numflexkeys );
 		}
-		cur = (int)pData;
+		cur = (uintptr_t)pData;
 	}
 
 
@@ -3188,7 +3187,7 @@ typedef struct
 	lodMeshInfo_t	lodMeshInfo;
 } vertexPool_t;
 
-#define ALIGN(b,s)		(((unsigned int)(b)+(s)-1)&~((s)-1))
+#define ALIGN(b,s)		(((uintptr_t)(b)+(s)-1)&~((s)-1))
 
 //-----------------------------------------------------------------------------
 // FindVertexOffsets

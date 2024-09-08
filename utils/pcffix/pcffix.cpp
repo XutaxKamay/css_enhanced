@@ -21,7 +21,7 @@
 #include "tier2/p4helpers.h"
 #include "p4lib/ip4.h"
 #include "tier1/utlbuffer.h"
-#include "tier1/utlstringmap.h"
+#include "tier1/UtlStringMap.h"
 #include "datamodel/dmelement.h"
 
 #ifdef _DEBUG

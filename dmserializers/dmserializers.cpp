@@ -14,7 +14,7 @@
 
 #include "dmserializers.h"
 #include "dmserializers/idmserializers.h"
-#include "appframework/iappsystem.h"
+#include "appframework/IAppSystem.h"
 #include "filesystem.h"
 #include "datamodel/idatamodel.h"
 #include "datamodel/dmelementfactoryhelper.h"

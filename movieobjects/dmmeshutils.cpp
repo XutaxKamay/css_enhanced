@@ -10,7 +10,6 @@
 #include "movieobjects/dmecombinationoperator.h"
 #include "movieobjects/dmemodel.h"
 #include "movieobjects/dmedag.h"
-#include "movieobjects/dmemesh.h"
 #include "movieobjects/dmefaceset.h"
 #include "movieobjects/dmematerial.h"
 #include "movieobjects/dmevertexdata.h"
@@ -19,7 +18,7 @@
 #include "tier1/utlstack.h"
 #include "tier2/p4helpers.h"
 #include "tier1/utlstring.h"
-#include "tier1/utlstringmap.h"
+#include "tier1/UtlStringMap.h"
 #include "tier1/utlbuffer.h"
 #include "tier1/fmtstr.h"
 #include "filesystem.h"
@@ -436,7 +435,7 @@ void RemoveUnusedData(
 	const char *pFieldName,
 	int *pIndices,
 	int nIndicesCount,
-	CDmrGenericArray &data )
+	CDmrGenericArray &&data )
 {
 	const int nDataCount = data.Count();
 
@@ -1403,8 +1402,8 @@ bool CDmMeshUtils::Merge( CDmeMesh *pSrcMesh, CDmElement *pRoot )
 //-----------------------------------------------------------------------------
 template < class T_t >
 void AppendData(
-	const CDmrArrayConst< T_t > &srcData,
-	CDmrArray< T_t > &dstData,
+	const CDmrArrayConst< T_t > &&srcData,
+	CDmrArray< T_t > &&dstData,
 	const matrix3x4_t *pMat = NULL )
 {
 	const int nSrcCount = srcData.Count();
@@ -1420,8 +1419,8 @@ void AppendData(
 //-----------------------------------------------------------------------------
 template <>
 void AppendData(
-	const CDmrArrayConst< Vector > &srcData,
-	CDmrArray< Vector > &dstData,
+	const CDmrArrayConst< Vector > &&srcData,
+	CDmrArray< Vector > &&dstData,
 	const matrix3x4_t *pMat )
 {
 	const int nSrcCount = srcData.Count();

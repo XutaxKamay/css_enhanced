@@ -3,10 +3,18 @@
 #define NV_TRISTRIP_OBJECTS_H
 
 #include <assert.h>
-#include <windows.h>
 #include <vector>
 #include <list>
-#include "VertexCache.h"
+#include <cstdint>
+#include <iostream>
+#include <string.h>
+#include <math.h>
+#include "vertexcache.h"
+
+#define NULL nullptr
+
+typedef uint32_t UINT;
+typedef uint16_t WORD;
 
 /////////////////////////////////////////////////////////////////////////////////
 //

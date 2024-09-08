@@ -16,6 +16,7 @@
 #include "datamodel/dmattributevar.h"
 #include "datamodel/dmehandle.h"
 #include "movieobjects/timeutils.h"
+#include "movieobjects/dmeclip.h"
 
 
 //-----------------------------------------------------------------------------
@@ -24,8 +25,6 @@
 class CDmeClip;
 class CDmeFilmClip;
 class CDmeTrack;
-enum DmeClipType_t;
-enum DmeClipSkipFlag_t;
 
 
 //-----------------------------------------------------------------------------

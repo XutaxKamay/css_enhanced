@@ -1,10 +1,7 @@
-
-#pragma warning( disable : 4786 4018 4530 )  
-
 #include <assert.h>
 #include <set>
-#include "NvTriStripObjects.h"
-#include "VertexCache.h"
+#include "nvtristripobjects.h"
+#include "vertexcache.h"
 #include "tier0/platform.h"
 
 #define CACHE_INEFFICIENCY 6
@@ -1107,7 +1104,7 @@ void NvStripifier::Stripify(const WordVec &in_indices, const int in_cacheSize,
 	int numSamples = 10;
 	
 	//the cache size, clamped to one
-	cacheSize = max(1, in_cacheSize - CACHE_INEFFICIENCY);
+	cacheSize = std::max(1, in_cacheSize - CACHE_INEFFICIENCY);
 	
 	minStripLength = in_minStripLength;  //this is the strip size threshold below which we dump the strip into a list
 	

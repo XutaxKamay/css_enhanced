@@ -17,6 +17,25 @@
 #include "mathlib/vector.h"
 #include "tier1/utllinkedlist.h"
 #include "Color.h"
+#include "movieobjects/dmevertexdata.h"
+#include "movieobjects/dmefaceset.h"
+#include "movieobjects/dmematerial.h"
+#include "movieobjects/dmetransform.h"
+#include "movieobjects/dmemodel.h"
+#include "movieobjects/dmecombinationoperator.h"
+#include "movieobjects/dmeselection.h"
+#include "movieobjects/dmedrawsettings.h"
+#include "movieobjects/dmmeshcomp.h"
+#include "tier3/tier3.h"
+#include "tier1/KeyValues.h"
+#include "tier0/dbg.h"
+#include "datamodel/dmelementfactoryhelper.h"
+#include "materialsystem/imaterialsystem.h"
+#include "materialsystem/imorph.h"
+#include "materialsystem/imesh.h"
+#include "materialsystem/imaterialvar.h"
+#include "istudiorender.h"
+#include "studio.h"
 
 
 //-----------------------------------------------------------------------------
@@ -331,21 +350,84 @@ private:
 
 	static void ComputeCorrectedPositionsFromActualPositions( const CUtlVector< int > &deltaStateList, int nPositionCount, Vector *pPositions );
 
-	template < class T_t > void AddCorrectedDelta(
+	//-----------------------------------------------------------------------------
+	// There's no guarantee that fields are added in any order, nor that only
+	// standard fields exist...
+	//-----------------------------------------------------------------------------
+	template < class T_t >
+	void AddCorrectedDelta(
 		CDmrArray< T_t > &baseDataArray,
 		const CUtlVector< int > &baseIndices,
 		const DeltaComputation_t &deltaComputation,
 		const char *pFieldName,
 		float weight = 1.0f,
-		const CDmeSingleIndexedComponent *pMask = NULL );
+		const CDmeSingleIndexedComponent *pMask = NULL )
+	{
+		const CUtlVector< T_t > &baseData( baseDataArray.Get() );
+		const int nData( baseData.Count() );
+		T_t *pData( reinterpret_cast< T_t * >( alloca( nData * sizeof( T_t ) ) ) );
+		Q_memcpy( pData, baseData.Base(), nData * sizeof( T_t ) );
 
-	template < class T_t > void AddCorrectedDelta(
+		CDmeVertexDeltaData *pDelta( GetDeltaState( deltaComputation.m_nDeltaIndex ) );
+
+		const int deltaFieldIndex( pDelta->FindFieldIndex( pFieldName ) );
+		if ( deltaFieldIndex < 0 )
+			return;
+
+		AddDelta( pDelta, pData, nData, deltaFieldIndex, weight, pMask );
+
+		const CUtlVector< int > &depDeltas( deltaComputation.m_DependentDeltas );
+		const int nDepDeltas( depDeltas.Count() );
+		for ( int j( 0 ); j < nDepDeltas; ++j )
+		{
+			pDelta = GetDeltaState( depDeltas[ j ] );
+
+			int depFieldIndex = pDelta->FindFieldIndex( pFieldName );
+			if ( depFieldIndex < 0 )
+				continue;
+
+			AddDelta( pDelta, pData, nData, depFieldIndex, weight, pMask );
+		}
+
+		baseDataArray.CopyArray( pData, nData );
+	}
+
+
+	//-----------------------------------------------------------------------------
+	//
+	//-----------------------------------------------------------------------------
+	template < class T_t >
+	void AddCorrectedDelta(
 		CUtlVector< T_t > &baseData,
 		const CUtlVector< int > &baseIndices,
 		const DeltaComputation_t &deltaComputation,
 		const char *pFieldName,
 		float weight = 1.0f,
-		const CDmeSingleIndexedComponent *pMask = NULL );
+		const CDmeSingleIndexedComponent *pMask = NULL )
+	{
+		const int nData( baseData.Count() );
+
+		CDmeVertexDeltaData *pDelta( GetDeltaState( deltaComputation.m_nDeltaIndex ) );
+
+		const int deltaFieldIndex( pDelta->FindFieldIndex( pFieldName ) );
+		if ( deltaFieldIndex < 0 )
+			return;
+
+		AddDelta( pDelta, baseData.Base(), nData, deltaFieldIndex, weight, pMask );
+
+		const CUtlVector< int > &depDeltas( deltaComputation.m_DependentDeltas );
+		const int nDepDeltas( depDeltas.Count() );
+		for ( int j( 0 ); j < nDepDeltas; ++j )
+		{
+			pDelta = GetDeltaState( depDeltas[ j ] );
+
+			int depFieldIndex = pDelta->FindFieldIndex( pFieldName );
+			if ( depFieldIndex < 0 )
+				continue;
+
+			AddDelta( pDelta, baseData.Base(), nData, depFieldIndex, weight, pMask );
+		}
+	}
 
 	// Add the delta into the vertex data state weighted by the weight and masked by the weight map
 	bool AddCorrectedMaskedDelta(
@@ -422,18 +504,134 @@ private:
 	bool CreateDeltaFieldFromBaseField( CDmeVertexData::StandardFields_t nStandardFieldIndex, const CDmrArrayConst< Vector2D > &baseArray, const CDmrArrayConst< Vector2D > &bindArray, CDmeVertexDeltaData *pDelta );
 	bool CreateDeltaFieldFromBaseField( CDmeVertexData::StandardFields_t nStandardFieldIndex, const CDmrArrayConst< Vector > &baseArray, const CDmrArrayConst< Vector > &bindArray, CDmeVertexDeltaData *pDelta );
 
-	template< class T_t > bool InterpMaskedData(
-		CDmrArray< T_t > &aData,
+
+	//-----------------------------------------------------------------------------
+	// Interpolates between two arrays of values and stores the result in a
+	// CDmrArray.
+	//
+	// result = ( ( 1 - weight ) * a ) + ( weight * b )
+	//
+	//-----------------------------------------------------------------------------
+	template< class T_t >
+	bool InterpMaskedData(
+		CDmrArray< T_t > &&aData,
 		const CUtlVector< T_t > &bData,
 		float weight,
-		const CDmeSingleIndexedComponent *pMask ) const;
+		const CDmeSingleIndexedComponent *pMask ) const
+	{
+		const int nDst = aData.Count();
 
-	// Interpolate between the current state and the specified delta by the specified percentage masked by the selection
+		if ( bData.Count() != nDst )
+			return false;
+
+		// The wacky way of writing these expression is because Vector4D is missing operators
+		// And this probably works better because of fewer temporaries
+
+		T_t a;
+		T_t b;
+
+		if ( pMask )
+		{
+			// With a weight mask
+			float vWeight;
+			for ( int i = 0; i < nDst; ++i )
+			{
+				if ( pMask->GetWeight( i, vWeight ) )
+				{
+					vWeight *= weight;	// Specifically not clamping
+					a = aData.Get( i );
+					a *= ( 1.0f - vWeight );
+					b = bData[ i ];
+					b *= vWeight;
+					b += a;
+					aData.Set( i, b );
+				}
+			}
+		}
+		else
+		{
+			// Without a weight mask
+			const float oneMinusWeight( 1.0f - weight );
+			for ( int i = 0; i < nDst; ++i )
+			{
+				a = aData.Get( i );
+				a *= oneMinusWeight;
+				b = bData[ i ];
+				b *= weight;
+				b += a;
+				aData.Set( i, b );
+			}
+		}
+
+		return true;
+	}
+
+
+	//-----------------------------------------------------------------------------
+	// Interpolates between two CDmeVertexData's
+	//
+	// paData = ( ( 1 - weight ) * a ) + ( weight * b )
+	//-----------------------------------------------------------------------------
 	bool InterpMaskedData(
 		CDmeVertexData *paData,
 		const CDmeVertexData *pbData,
 		float weight,
-		const CDmeSingleIndexedComponent *pMask ) const;
+		const CDmeSingleIndexedComponent *pMask ) const
+	{
+		if ( !paData || !pbData || paData == pbData )
+			return false;
+
+		const int naField = paData->FieldCount();
+		const int nbField = pbData->FieldCount();
+
+		for ( int i = 0; i < naField; ++i )
+		{
+			const CUtlString &aFieldName( paData->FieldName( i ) );
+
+			for ( int j = 0; j < nbField; ++j )
+			{
+				const CUtlString &bFieldName( pbData->FieldName( j ) );
+				if ( aFieldName != bFieldName )
+					continue;
+
+				const FieldIndex_t aFieldIndex( paData->FindFieldIndex( aFieldName ) );
+				const FieldIndex_t bFieldIndex( pbData->FindFieldIndex( bFieldName ) );
+
+				if ( aFieldIndex < 0 || bFieldIndex < 0 )
+					break;
+
+				CDmAttribute *paAttr( paData->GetVertexData( aFieldIndex ) );
+				const CDmAttribute *pbAttr( pbData->GetVertexData( bFieldIndex ) );
+
+				if ( paAttr->GetType() != pbAttr->GetType() )
+					break;
+
+				if ( paData->GetVertexIndexData( aFieldIndex ).Count() != pbData->GetVertexIndexData( bFieldIndex ).Count() )
+					break;
+
+				switch ( paAttr->GetType() )
+				{
+				case AT_FLOAT_ARRAY:
+					InterpMaskedData( CDmrArray< float >( paAttr ), CDmrArrayConst< float >( pbAttr ).Get(), weight, pMask );
+					break;
+				case AT_COLOR_ARRAY:
+					InterpMaskedData( CDmrArray< Vector4D >( paAttr ), CDmrArrayConst< Vector4D >( pbAttr ).Get(), weight, pMask );
+					break;
+				case AT_VECTOR2_ARRAY:
+					InterpMaskedData( CDmrArray< Vector2D >( paAttr ), CDmrArrayConst< Vector2D >( pbAttr ).Get(), weight, pMask );
+					break;
+				case AT_VECTOR3_ARRAY:
+					InterpMaskedData( CDmrArray< Vector >( paAttr ), CDmrArrayConst< Vector >( pbAttr ).Get(), weight, pMask );
+					break;
+				default:
+					break;
+				}
+				break;
+			}
+		}
+
+		return true;
+	}
 
 	// Find the closest vertex in the specified selection to the passed vertex in the specified base state, if the passed base state is NULL is the current base state
 	int ClosestSelectedVertex( int vIndex, CDmeSingleIndexedComponent *pSelection, const CDmeVertexData *pPassedBase = NULL ) const;
