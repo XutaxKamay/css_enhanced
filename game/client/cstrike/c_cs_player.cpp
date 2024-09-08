@@ -2170,7 +2170,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
 
 				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
-				Vector vecBackupPosition = player->GetLocalOrigin();
+				Vector vecBackupPosition = player->GetRenderOrigin();
 				QAngle angBackupAngles	 = player->GetRenderAngles();
 				auto flOldCycle			 = player->GetCycle();
 				auto iOldSequence		 = player->GetSequence();
@@ -2190,9 +2190,9 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					backupAnimLayers[i] = *player->GetAnimOverlay( i );
 				}
 
-				player->m_nSequence = event->GetInt( "sequence" );
-				player->m_flCycle	= event->GetFloat( "cycle" );
-				player->SetLocalOrigin( Vector( event->GetFloat( "position_x" ),
+				player->SetSequence( event->GetInt( "sequence" ) );
+				player->SetCycle( event->GetFloat( "cycle" ) );
+				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
 												event->GetFloat( "position_y" ),
 												event->GetFloat( "position_z" ) ) );
 
@@ -2264,7 +2264,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					// Let's check what went wrong.
 					int pos = 0;
 
-					auto newOrigin = player->GetLocalOrigin();
+					auto newOrigin = player->GetRenderOrigin();
 					auto simtime   = event->GetFloat( "simtime" );
 					auto animtime  = event->GetFloat( "animtime" );
 
@@ -2273,7 +2273,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "simtime: %f != %f", simtime, pRecord->m_flSimulationTime );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2282,41 +2282,41 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "animtime: %f != %f", animtime, pRecord->m_flAnimTime );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
-					if ( pRecord->m_vecLocalOrigin != newOrigin )
+					if ( pRecord->m_vecRenderOrigin != newOrigin )
 					{
 						char buffer[256];
 						V_sprintf_safe( buffer,
 										"pos: %f != %f, %f != %f, %f != %f",
 										newOrigin.x,
-										pRecord->m_vecLocalOrigin.x,
+										pRecord->m_vecRenderOrigin.x,
 										newOrigin.y,
-										pRecord->m_vecLocalOrigin.y,
+										pRecord->m_vecRenderOrigin.y,
 										newOrigin.z,
-										pRecord->m_vecLocalOrigin.z );
+										pRecord->m_vecRenderOrigin.z );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
 					auto angles = player->GetRenderAngles();
 
-					if ( pRecord->m_angLocalAngles != angles )
+					if ( pRecord->m_angRenderAngles != angles )
 					{
 						char buffer[256];
 						V_sprintf_safe( buffer,
 										"angles: %f != %f, %f != %f, %f != %f",
 										angles.x,
-										pRecord->m_angLocalAngles.x,
+										pRecord->m_angRenderAngles.x,
 										angles.y,
-										pRecord->m_angLocalAngles.y,
+										pRecord->m_angRenderAngles.y,
 										angles.z,
-										pRecord->m_angLocalAngles.z );
+										pRecord->m_angRenderAngles.z );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2325,7 +2325,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "cycle: %f != %f", player->m_flCycle, pRecord->m_flCycle );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2339,7 +2339,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										player->GetSequenceName( pRecord->m_nSequence ),
 										pRecord->m_nSequence );
 
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
 
@@ -2355,7 +2355,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flPoseParameter[i],
 											pRecord->m_flPoseParameters[i] );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2372,7 +2372,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flEncodedController[i],
 											pRecord->m_flEncodedControllers[i] );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2405,7 +2405,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											animOverlay->m_fFlags,
 											pRecord->m_AnimationLayer[i].m_fFlags );
 
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecLocalOrigin, pos, buffer, flDuration );
+							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
 					}
@@ -2418,17 +2418,19 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 							nAttackerTickBase );
 				}
 
+				player->PushEnableAbsRecomputations( true );
 				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
 				// Be sure we setup the bones again.
 				player->InvalidateBoneCache();
 				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
 				player->DrawClientHitboxes( flDuration, false );
 				player->PopBoneAccess( "Lag compensation context" );
+				player->PopEnableAbsRecomputations();
 
 				// Set back original stuff.
-				player->m_nSequence = iOldSequence;
-				player->m_flCycle	= flOldCycle;
-				player->SetLocalOrigin( vecBackupPosition );
+				player->SetSequence( iOldSequence );
+				player->SetCycle( flOldCycle );
+				player->SetAbsOrigin( vecBackupPosition );
 				player->m_angRenderAngles = angBackupAngles;
 
 				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
