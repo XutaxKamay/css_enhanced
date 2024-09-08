@@ -54,7 +54,7 @@ C_HL2MP_Player::C_HL2MP_Player() : m_PlayerAnimState( this ), m_iv_angEyeAngles(
 
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 
-	m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
+	DisableServerIK();
 	m_blinkTimer.Invalidate();
 
 	m_pFlashlightBeam = NULL;

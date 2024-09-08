@@ -215,6 +215,9 @@ NextBotCombatCharacter::NextBotCombatCharacter( void )
 {
 	m_lastAttacker = NULL;
 	m_didModelChange = false;
+
+	// Left4Dead have surfaces too steep for IK to work properly
+	DisableServerIK();
 }
 
 

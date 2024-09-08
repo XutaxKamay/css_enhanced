@@ -324,7 +324,7 @@ C_Portal_Player::C_Portal_Player()
 
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 
-	m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
+	DisableServerIK();
 	m_blinkTimer.Invalidate();
 
 	m_CCDeathHandle = INVALID_CLIENT_CCHANDLE;

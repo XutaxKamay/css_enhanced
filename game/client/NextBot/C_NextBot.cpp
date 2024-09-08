@@ -24,9 +24,6 @@ END_RECV_TABLE()
 //-----------------------------------------------------------------------------
 C_NextBotCombatCharacter::C_NextBotCombatCharacter()
 {
-	// Left4Dead have surfaces too steep for IK to work properly
-	m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
-
 	m_shadowType = SHADOWS_SIMPLE;
 	m_forcedShadowType = SHADOWS_NONE;
 	m_bForceShadowType = false;

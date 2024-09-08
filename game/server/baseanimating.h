@@ -424,6 +424,7 @@ protected:
 
 public:
 	COutputEvent m_OnIgnite;
+	CNetworkVar( bool, m_bUseIks );
 
 protected:
 	CStudioHdr			*m_pStudioHdr;

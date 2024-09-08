@@ -202,16 +202,6 @@ C_CHostage::C_CHostage()
 	m_flDeadOrRescuedTime = 0.0;
 	m_flLastBodyYaw = 0;
 	m_createdLowViolenceRagdoll = false;
-
-    // TODO: Get IK working on the steep slopes CS has, then enable it on characters.
-    // Breaks server side setup bones !
-	// m_EntClientFlags |= ENTCLIENTFLAG_DONTUSEIK;
-
-	// set the model so the PlayerAnimState uses the Hostage activities/sequences
-	SetModelName( "models/Characters/Hostage_01.mdl" );
-
-	m_PlayerAnimState = CreateHostageAnimState( this, this, LEGANIM_8WAY, false );
-	
 	m_leader = NULL;
 	m_blinkTimer.Invalidate();
 	m_seq = -1;
@@ -234,7 +224,6 @@ C_CHostage::C_CHostage()
 C_CHostage::~C_CHostage()
 {
 	g_Hostages.FindAndRemove( this );
-	m_PlayerAnimState->Release();
 }
 
 //-----------------------------------------------------------------------------
@@ -438,8 +427,6 @@ void C_CHostage::UpdateClientSideAnimation()
 	{
 		return;
 	}
-
-	m_PlayerAnimState->Update( GetAbsAngles()[YAW], GetAbsAngles()[PITCH] );
 
 	// initialize pose parameters
 	char *setToZero[] =
