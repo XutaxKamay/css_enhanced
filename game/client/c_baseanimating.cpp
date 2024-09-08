@@ -5101,7 +5101,7 @@ float C_BaseAnimating::GetLastVisibleCycle( CStudioHdr *pStudioHdr, int iSequenc
 //=========================================================
 void C_BaseAnimating::StudioFrameAdvance()
 {
-	if ( m_bClientSideAnimation )
+	if ( !m_bClientSideAnimation )
 		return;
 
 	CStudioHdr *hdr = GetModelPtr();
