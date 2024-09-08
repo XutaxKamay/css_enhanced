@@ -857,7 +857,7 @@ void CCSPlayer::Spawn()
     m_applyDeafnessTime = 0.0f;
 
 	StockPlayerAmmo();
-	}
+}
 
 void CCSPlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *data )
 {
@@ -1541,6 +1541,10 @@ void CCSPlayer::UpdateMouseoverHints()
 	}
 }
 
+#ifdef GLOWS_ENABLE
+ConVar sv_enable_cs_glows("sv_enable_cs_glows", "1");
+#endif
+
 void CCSPlayer::PostThink()
 {
 	BaseClass::PostThink();
@@ -1597,9 +1601,18 @@ void CCSPlayer::PostThink()
 	{
 		StopSound( "Player.AmbientUnderWater" );
 		SetPlayerUnderwater( false );
-    }
+	}
 
-	AddGlowEffect();
+#ifdef GLOWS_ENABLE
+	if ( sv_enable_cs_glows.GetBool() )
+	{
+		AddGlowEffect();
+	}
+	else
+	{
+		RemoveGlowEffect();
+	}
+#endif
 }
 
 

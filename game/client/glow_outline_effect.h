@@ -14,7 +14,8 @@
 #include "utlvector.h"
 #include "mathlib/vector.h"
 
-#ifdef GLOWS_ENABLE
+// ZMRCHANGE: Enable glow.
+//#ifdef GLOWS_ENABLE
 
 class C_BaseEntity;
 class CViewSetup;
@@ -117,7 +118,6 @@ public:
 
 private:
 
-	void RenderGlowModels( const CViewSetup *pSetup, int nSplitScreenSlot, CMatRenderContextPtr &pRenderContext );
 	void ApplyEntityGlowEffects( const CViewSetup *pSetup, int nSplitScreenSlot, CMatRenderContextPtr &pRenderContext, float flBloomScale, int x, int y, int w, int h );
 
 	struct GlowObjectDefinition_t
@@ -149,6 +149,10 @@ private:
 		static const int END_OF_FREE_LIST = -1;
 		static const int ENTRY_IN_USE = -2;
 	};
+
+	void DrawGlowVisible( int nSplitScreenSlot, CMatRenderContextPtr& pRenderContext );
+	void DrawGlowOccluded( int nSplitScreenSlot, CMatRenderContextPtr& pRenderContext );
+	void DrawGlowAlways( int nSplitScreenSlot, CMatRenderContextPtr& pRenderContext );
 
 	CUtlVector< GlowObjectDefinition_t > m_GlowObjectDefinitions;
 	int m_nFirstFreeSlot;
@@ -214,6 +218,6 @@ private:
 	CGlowObject& operator=( const CGlowObject &other );
 };
 
-#endif // GLOWS_ENABLE
+//#endif // GLOWS_ENABLE
 
 #endif // GLOW_OUTLINE_EFFECT_H

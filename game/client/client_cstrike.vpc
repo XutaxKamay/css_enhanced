@@ -41,7 +41,6 @@ $Project "Client (CStrike)"
 		$File	"hud_baseachievement_tracker.h"
 		$File	"$SRCDIR\game\client\hud_vote.h"
 		$File	"$SRCDIR\game\client\hud_vote.cpp"
-		$File	"$SRCDIR\game\client\glow_outline_effect.cpp"
 		$File	"$SRCDIR\game\shared\predicted_viewmodel.cpp"
 		$File	"$SRCDIR\game\shared\predicted_viewmodel.h"
 		
