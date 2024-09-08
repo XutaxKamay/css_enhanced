@@ -15,7 +15,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$BASE;$SRCDIR\game\shared\cstrike\control,$SRCDIR\game\shared\cstrike,.\cstrike,.\cstrike\bot,.\cstrike\bot\states,$SRCDIR\game\shared\cstrike\bot,.\cstrike\hostage,.\cstrike\control"
-		$PreprocessorDefinitions		"$BASE;BOTS;CSTRIKE_DLL;NEXT_BOT"
+		$PreprocessorDefinitions		"$BASE;BOTS;CSTRIKE_DLL;NEXT_BOT;GLOWS_ENABLE"
 	}
 
 	$Linker
