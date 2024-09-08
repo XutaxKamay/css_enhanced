@@ -2875,6 +2875,8 @@ bool C_CSPlayer::SetupBones( matrix3x4_t* pBoneToWorldOut, int nMaxBones, int bo
 	return BaseClass::SetupBones( pBoneToWorldOut, nMaxBones, boneMask, currentTime );
 }
 
+ConVar cl_cs_render_glow_behind_walls("cl_cs_render_glow_behind_walls", "0", FCVAR_CHEAT);
+
 #ifdef GLOWS_ENABLE
 void C_CSPlayer::GetGlowEffectColor( float* r, float* g, float* b )
 {
@@ -2891,8 +2893,21 @@ void C_CSPlayer::GetGlowEffectColor( float* r, float* g, float* b )
 		*b = 0;
 	}
 
-	m_bGlowOccluded = false;
-	m_bGlowNonOccluded = true;
+	if ( cl_cs_render_glow_behind_walls.GetInt() == 1 )
+	{
+		m_bGlowOccluded	   = false;
+		m_bGlowNonOccluded = true;
+	}
+	else if ( cl_cs_render_glow_behind_walls.GetInt() == 2 )
+	{
+		m_bGlowOccluded	   = true;
+		m_bGlowNonOccluded = true;
+	}
+	else
+	{
+		m_bGlowOccluded	   = false;
+		m_bGlowNonOccluded = true;
+	}
 }
 #endif
 

@@ -83,6 +83,15 @@ void C_BaseCombatCharacter::OnDataChanged( DataUpdateType_t updateType )
 	{
 		UpdateGlowEffect();
 	}
+
+	if ( m_pGlowEffect )
+	{
+		float r, g, b;
+		GetGlowEffectColor( &r, &g, &b );
+
+		m_pGlowEffect->SetColor( Vector( r, g, b ) );
+		m_pGlowEffect->SetRenderFlags( m_bGlowOccluded, m_bGlowNonOccluded );
+	}
 #endif // GLOWS_ENABLE
 }
 
