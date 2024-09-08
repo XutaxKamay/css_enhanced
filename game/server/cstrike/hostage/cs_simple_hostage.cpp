@@ -861,14 +861,7 @@ void CHostage::HostageThink( void )
 	// set animation to idle for now
 	StudioFrameAdvance();
 
-	int sequence = SelectWeightedSequence( ACT_IDLE );
-	if (GetSequence() != sequence)
-	{
-		SetSequence( sequence );
-	}
-
 	m_PlayerAnimState->Update( GetAbsAngles()[YAW], GetAbsAngles()[PITCH] );
-
 
 	if ( m_disappearTime && m_disappearTime < gpGlobals->curtime )
 	{
