@@ -1598,6 +1598,8 @@ void CCSPlayer::PostThink()
 		StopSound( "Player.AmbientUnderWater" );
 		SetPlayerUnderwater( false );
     }
+
+	AddGlowEffect();
 }
 
 
