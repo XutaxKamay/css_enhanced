@@ -385,7 +385,6 @@ void C_CSRagdoll::CreateLowViolenceRagdoll( void )
 	char str[512];
 	Q_snprintf( str, sizeof( str ), "death%d", iDeathAnim );
 	SetSequence( LookupSequence( str ) );
-	ForceClientSideAnimationOn();
 
 	Interp_Reset( GetVarMapping() );
 }
