@@ -9,4 +9,4 @@
 	url = https://github.com/xutaxkamay/source-engine-libs.git
 [submodule "gamedata"]
 	path = gamedata
-	url = git@xutaxkamay.com:xutaxkamay/css_enhanced_game_files
+	url = https://xutaxkamay.com:3000/xutaxkamay/css_enhanced_game_files.git
