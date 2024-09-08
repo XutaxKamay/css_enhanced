@@ -292,13 +292,6 @@ CBaseAnimating::CBaseAnimating()
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
 	m_bUseIks = true;
-
-	int sequence = SelectWeightedSequence( ACT_IDLE );
-
-	if (GetSequence() != sequence)
-	{
-		SetSequence( sequence );
-	}
 }
 
 CBaseAnimating::~CBaseAnimating()

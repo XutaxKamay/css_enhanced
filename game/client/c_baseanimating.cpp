@@ -1152,24 +1152,26 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 		AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
 	}
 
-
-	// Most entities clear out their sequences when they change models on the server, but 
-	// not all entities network down their m_nSequence (like multiplayer game player entities), 
-	// so we may need to clear it out here. Force a SetSequence call no matter what, though.
-	int forceSequence = ShouldResetSequenceOnNewModel() ? 0 : m_nSequence;
-
-	if ( GetSequence() >= hdr->GetNumSeq() )
+	if (m_bClientSideAnimation)
 	{
-		forceSequence = 0;
-	}
+		// Most entities clear out their sequences when they change models on the server, but 
+		// not all entities network down their m_nSequence (like multiplayer game player entities), 
+		// so we may need to clear it out here. Force a SetSequence call no matter what, though.
+		int forceSequence = ShouldResetSequenceOnNewModel() ? 0 : m_nSequence;
 
-	m_nSequence = -1;
-	SetSequence( forceSequence );
+		if ( GetSequence() >= hdr->GetNumSeq() )
+		{
+			forceSequence = 0;
+		}
 
-	if ( m_bResetSequenceInfoOnLoad )
-	{
-		m_bResetSequenceInfoOnLoad = false;
-		ResetSequenceInfo();
+		m_nSequence = -1;
+		SetSequence( forceSequence );
+
+		if ( m_bResetSequenceInfoOnLoad )
+		{
+			m_bResetSequenceInfoOnLoad = false;
+			ResetSequenceInfo();
+		}
 	}
 		
 	return hdr;
@@ -4219,16 +4221,17 @@ bool C_BaseAnimating::IsSelfAnimating()
 	if ( m_bClientSideAnimation )
 		return true;
 
-	// Yes, we use animtime.
-	int iMoveType = GetMoveType();
-	if ( iMoveType != MOVETYPE_STEP && 
-		  iMoveType != MOVETYPE_NONE && 
-		  iMoveType != MOVETYPE_WALK &&
-		  iMoveType != MOVETYPE_FLY &&
-		  iMoveType != MOVETYPE_FLYGRAVITY )
-	{
-		return true;
-	}
+	// TODO_ENHANCED: check if that's correct to do, since we use server side animations.
+	// // Yes, we use animtime.
+	// int iMoveType = GetMoveType();
+	// if ( iMoveType != MOVETYPE_STEP && 
+	// 	  iMoveType != MOVETYPE_NONE && 
+	// 	  iMoveType != MOVETYPE_WALK &&
+	// 	  iMoveType != MOVETYPE_FLY &&
+	// 	  iMoveType != MOVETYPE_FLYGRAVITY )
+	// {
+	// 	return true;
+	// }
 
 	return false;
 }
