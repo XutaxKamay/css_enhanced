@@ -319,8 +319,8 @@ void FX_FireBullets(
 
 			C_CSPlayer::HitboxRecord record;
 
-			record.m_vecLocalOrigin	= lagPlayer->GetLocalOrigin();
-			record.m_angLocalAngles = lagPlayer->GetRenderAngles();
+			record.m_vecRenderOrigin = lagPlayer->GetRenderOrigin();
+			record.m_angRenderAngles = lagPlayer->GetRenderAngles();
 
 			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
 			record.m_flSimulationTime  = lagPlayer->m_flInterpolatedSimulationTime;
