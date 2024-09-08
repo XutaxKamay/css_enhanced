@@ -92,6 +92,7 @@ extern bool IsInCommentaryMode( void );
 CLIENTEFFECT_REGISTER_BEGIN( PrecachePostProcessingEffectsGlow )
 CLIENTEFFECT_MATERIAL( "dev/glow_color" )
 CLIENTEFFECT_MATERIAL( "dev/halo_add_to_screen" )
+CLIENTEFFECT_MATERIAL( "debug/debugfbtexture1" )
 CLIENTEFFECT_REGISTER_END_CONDITIONAL( engine->GetDXSupportLevel() >= 90 )
 
 #ifdef VOICE_VOX_ENABLE
