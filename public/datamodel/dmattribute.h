@@ -204,7 +204,7 @@ private:
 	// Called by elements after unserialization of their attributes is complete
 	void OnUnserializationFinished();
 
-	template< class T > bool IsTypeConvertable() const;
+	template< class T > bool inline IsTypeConvertable() const;
 	template< class T > bool ShouldModify( const T& src );
 	template< class T > void CopyData( const T& src );
 	template< class T > void CopyDataOut( T& dest ) const;
@@ -228,7 +228,45 @@ private:
 	template< class T > friend class CDmArrayAttributeOp;
 };
 
-	 
+
+//-----------------------------------------------------------------------------
+// Type conversion related methods
+//-----------------------------------------------------------------------------
+template< class T > inline bool CDmAttribute::IsTypeConvertable() const
+{
+	return ( CDmAttributeInfo< T >::ATTRIBUTE_TYPE == GetType() );
+}
+
+template<> inline bool CDmAttribute::IsTypeConvertable<bool>() const
+{
+	DmAttributeType_t type = GetType();
+	return ( type == AT_BOOL || type == AT_INT || type == AT_FLOAT );
+}
+
+template<> inline bool CDmAttribute::IsTypeConvertable<int>() const
+{
+	DmAttributeType_t type = GetType();
+	return ( type == AT_INT || type == AT_BOOL || type == AT_FLOAT );
+}
+
+template<> inline bool CDmAttribute::IsTypeConvertable<float>() const
+{
+	DmAttributeType_t type = GetType();
+	return ( type == AT_FLOAT || type == AT_INT || type == AT_BOOL );
+}
+
+template<> inline bool CDmAttribute::IsTypeConvertable<QAngle>() const
+{
+	DmAttributeType_t type = GetType();
+	return ( type == AT_QANGLE || type == AT_QUATERNION );
+}
+
+template<> inline bool CDmAttribute::IsTypeConvertable<Quaternion>() const
+{
+	DmAttributeType_t type = GetType();
+	return ( type == AT_QUATERNION || type == AT_QANGLE);
+}
+
 //-----------------------------------------------------------------------------
 // Inline methods
 //-----------------------------------------------------------------------------

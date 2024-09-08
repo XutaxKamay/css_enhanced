@@ -13,21 +13,24 @@
 //
 
 
+#include "dbg.h"
+#include <cstdlib>
 #pragma warning( disable : 4244 )
 #pragma warning( disable : 4237 )
 #pragma warning( disable : 4305 )
 
-#include <windows.h>
 #undef GetCurrentDirectory
 
-#include <Shlwapi.h> // PathCanonicalize
-#pragma comment( lib, "shlwapi" )
+#ifdef _WIN32
+#else
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <math.h>
-#include <direct.h>
 #include "istudiorender.h"
 #include "filesystem_tools.h"
 #include "tier2/fileutils.h"
@@ -45,9 +48,9 @@
 #include "bspflags.h"
 #include "tier0/icommandline.h"
 #include "utldict.h"
-#include "tier1/utlsortvector.h"
+#include "tier1/UtlSortVector.h"
 #include "bitvec.h"
-#include "appframework/appframework.h"
+#include "appframework/AppFramework.h"
 #include "datamodel/idatamodel.h"
 #include "materialsystem/materialsystem_config.h"
 #include "vstdlib/cvar.h"
@@ -203,8 +206,7 @@ void EnsureDependencyFileCheckedIn( const char *pFileName )
 	}
 
 	Q_FixSlashes( pFullPath );
-	char bufCanonicalPath[ MAX_PATH ] = {0};
-	PathCanonicalize( bufCanonicalPath, pFullPath );
+	auto bufCanonicalPath = canonicalize_file_name( pFullPath );
 	CP4AutoAddFile p4_add_dep_file( bufCanonicalPath );
 }
 
@@ -342,7 +344,7 @@ void MdlWarning( const char *fmt, ... )
 	if (g_bNoWarnings || g_maxWarnings == 0)
 		return;
 
-	WORD old = SetConsoleTextColor( 1, 1, 0, 1 );
+	// WORD old = SetConsoleTextColor( 1, 1, 0, 1 );
 
 	if (g_quiet)
 	{
@@ -372,7 +374,7 @@ void MdlWarning( const char *fmt, ... )
 		printf("suppressing further warnings...\n");
 	}
 
-	RestoreConsoleTextColor( old );
+	// RestoreConsoleTextColor( old );
 }
 
 SpewRetval_t MdlSpewOutputFunc( SpewType_t type, char const *pMsg )
@@ -387,91 +389,12 @@ SpewRetval_t MdlSpewOutputFunc( SpewType_t type, char const *pMsg )
 	}
 	else
 	{
-		return CmdLib_SpewOutputFunc( type, pMsg );
+		printf( pMsg );
+		return SPEW_ABORT;
 	}
 
 	return SPEW_CONTINUE;
 }
-
-
-#ifndef _DEBUG
-
-void MdlHandleCrash( const char *pMessage, bool bAssert )
-{
-	static LONG crashHandlerCount = 0;
-	if ( InterlockedIncrement( &crashHandlerCount ) == 1 )
-	{
-		MdlError( "'%s' (assert: %d)\n", pMessage, bAssert );
-	}
-
-	InterlockedDecrement( &crashHandlerCount );
-}
-
-
-// This is called if we crash inside our crash handler. It just terminates the process immediately.
-LONG __stdcall MdlSecondExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
-{
-	TerminateProcess( GetCurrentProcess(), 2 );
-	return EXCEPTION_EXECUTE_HANDLER; // (never gets here anyway)
-}
-
-
-void MdlExceptionFilter( unsigned long code )
-{
-	// This is called if we crash inside our crash handler. It just terminates the process immediately.
-	SetUnhandledExceptionFilter( MdlSecondExceptionFilter );
-
-	//DWORD code = ExceptionInfo->ExceptionRecord->ExceptionCode;
-
-	#define ERR_RECORD( name ) { name, #name }
-	struct
-	{
-		int code;
-		char *pReason;
-	} errors[] =
-	{
-		ERR_RECORD( EXCEPTION_ACCESS_VIOLATION ),
-		ERR_RECORD( EXCEPTION_ARRAY_BOUNDS_EXCEEDED ),
-		ERR_RECORD( EXCEPTION_BREAKPOINT ),
-		ERR_RECORD( EXCEPTION_DATATYPE_MISALIGNMENT ),
-		ERR_RECORD( EXCEPTION_FLT_DENORMAL_OPERAND ),
-		ERR_RECORD( EXCEPTION_FLT_DIVIDE_BY_ZERO ),
-		ERR_RECORD( EXCEPTION_FLT_INEXACT_RESULT ),
-		ERR_RECORD( EXCEPTION_FLT_INVALID_OPERATION ),
-		ERR_RECORD( EXCEPTION_FLT_OVERFLOW ),
-		ERR_RECORD( EXCEPTION_FLT_STACK_CHECK ),
-		ERR_RECORD( EXCEPTION_FLT_UNDERFLOW ),
-		ERR_RECORD( EXCEPTION_ILLEGAL_INSTRUCTION ),
-		ERR_RECORD( EXCEPTION_IN_PAGE_ERROR ),
-		ERR_RECORD( EXCEPTION_INT_DIVIDE_BY_ZERO ),
-		ERR_RECORD( EXCEPTION_INT_OVERFLOW ),
-		ERR_RECORD( EXCEPTION_INVALID_DISPOSITION ),
-		ERR_RECORD( EXCEPTION_NONCONTINUABLE_EXCEPTION ),
-		ERR_RECORD( EXCEPTION_PRIV_INSTRUCTION ),
-		ERR_RECORD( EXCEPTION_SINGLE_STEP ),
-		ERR_RECORD( EXCEPTION_STACK_OVERFLOW ),
-		ERR_RECORD( EXCEPTION_ACCESS_VIOLATION ),
-	};
-
-	int nErrors = sizeof( errors ) / sizeof( errors[0] );
-	{
-		int i;
-		for ( i=0; i < nErrors; i++ )
-		{
-			if ( errors[i].code == code )
-				MdlHandleCrash( errors[i].pReason, true );
-		}
-
-		if ( i == nErrors )
-		{
-			MdlHandleCrash( "Unknown reason", true );
-		}
-	}
-
-	TerminateProcess( GetCurrentProcess(), 1 );
-}
-
-#endif
 
 /*
 =================
@@ -490,7 +413,7 @@ void *kalloc( int num, int size )
 	nMemSize += 511;
 	void *ptr = malloc( nMemSize );
 	memset( ptr, 0, nMemSize );
-	ptr = (byte *)((int)((byte *)ptr + 511) & ~511);
+	ptr = (byte *)((uintptr_t)((byte *)ptr + 511) & ~511);
 	return ptr;
 }
 
@@ -2293,16 +2216,6 @@ int Option_Activity( s_sequence_t *psequence )
 
 	return 0;
 }
-
-
-int Option_ActivityModifier( s_sequence_t *psequence )
-{
-	GetToken(false);
-	V_strcpy_safe( psequence->activitymodifier[ psequence->numactivitymodifiers++ ].name, token );
-
-	return 0;
-}
-
 
 /*
 ===============
@@ -4158,10 +4071,6 @@ int ParseSequence( s_sequence_t *pseq, bool isAppend )
 		else if (stricmp("activity", token ) == 0)
 		{
 			Option_Activity( pseq );
-		}
-		else if (stricmp("activitymodifier", token ) == 0)
-		{
-			Option_ActivityModifier( pseq );
 		}
 		else if (strnicmp( token, "ACT_", 4 ) == 0)
 		{
@@ -8364,9 +8273,9 @@ bool GetGlobalFilePath( const char *pSrc, char *pFullPath, int nMaxLen )
 			V_strcpy_safe( tmp, CmdLib_GetBasePath( i ) );
 			V_strcat_safe( tmp, pFileName + nPathLength );
 
-			struct _stat buf;
-			int rt = _stat( tmp, &buf );
-			if ( rt != -1 && ( buf.st_size > 0 ) && ( ( buf.st_mode & _S_IFDIR ) == 0 ) )
+			struct stat buf;
+			int rt = stat( tmp, &buf );
+			if ( rt != -1 && ( buf.st_size > 0 ) && ( ( buf.st_mode & S_IFDIR ) == 0 ) )
 			{
 				Q_strncpy( pFullPath, tmp, nMaxLen );
 				return true;
@@ -8375,9 +8284,9 @@ bool GetGlobalFilePath( const char *pSrc, char *pFullPath, int nMaxLen )
 		return false;
 	}
 
-	struct _stat buf;
-	int rt = _stat( pFileName, &buf );
-	if ( rt != -1 && ( buf.st_size > 0 ) && ( ( buf.st_mode & _S_IFDIR ) == 0 )	)
+	struct stat buf;
+	int rt = stat( pFileName, &buf );
+	if ( rt != -1 && ( buf.st_size > 0 ) && ( ( buf.st_mode & S_IFDIR ) == 0 )	)
 	{
 		Q_strncpy( pFullPath, pFileName, nMaxLen );
 		return true;
@@ -9463,15 +9372,6 @@ void UsageAndExit()
 		);
 }
 
-#ifndef _DEBUG
-
-LONG __stdcall VExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
-{
-	MdlExceptionFilter( ExceptionInfo->ExceptionRecord->ExceptionCode );
-	return EXCEPTION_EXECUTE_HANDLER; // (never gets here anyway)
-}
-
-#endif
 /*
 ==============
 main
@@ -9539,15 +9439,11 @@ int main( int argc, char **argv )
 //-----------------------------------------------------------------------------
 bool CStudioMDLApp::Create()
 {
-	InstallSpewFunction();
+	// InstallSpewFunction();
 	// override the default spew function
 	SpewOutputFunc( MdlSpewOutputFunc );
 
  	MathLib_Init( 2.2f, 2.2f, 0.0f, 2.0f, false, false, false, false );
-
-#ifndef _DEBUG
-	SetUnhandledExceptionFilter( VExceptionFilter );
-#endif
 
 	if ( CommandLine()->ParmCount() == 1 )
 	{

@@ -2782,86 +2782,6 @@ void CDmeMesh::ComputeAllCorrectedPositionsFromActualPositions()
 // standard fields exist...
 //-----------------------------------------------------------------------------
 template < class T_t >
-void CDmeMesh::AddCorrectedDelta(
-	CDmrArray< T_t > &baseDataArray,
-	const CUtlVector< int > &baseIndices,
-	const DeltaComputation_t &deltaComputation,
-	const char *pFieldName,
-	float weight,
-	const CDmeSingleIndexedComponent *pMask )
-{
-	const CUtlVector< T_t > &baseData( baseDataArray.Get() );
-	const int nData( baseData.Count() );
-	T_t *pData( reinterpret_cast< T_t * >( alloca( nData * sizeof( T_t ) ) ) );
-	Q_memcpy( pData, baseData.Base(), nData * sizeof( T_t ) );
-
-	CDmeVertexDeltaData *pDelta( GetDeltaState( deltaComputation.m_nDeltaIndex ) );
-
-	const int deltaFieldIndex( pDelta->FindFieldIndex( pFieldName ) );
-	if ( deltaFieldIndex < 0 )
-		return;
-
-	AddDelta( pDelta, pData, nData, deltaFieldIndex, weight, pMask );
-
-	const CUtlVector< int > &depDeltas( deltaComputation.m_DependentDeltas );
-	const int nDepDeltas( depDeltas.Count() );
-	for ( int j( 0 ); j < nDepDeltas; ++j )
-	{
-		pDelta = GetDeltaState( depDeltas[ j ] );
-
-		int depFieldIndex = pDelta->FindFieldIndex( pFieldName );
-		if ( depFieldIndex < 0 )
-			continue;
-
-		AddDelta( pDelta, pData, nData, depFieldIndex, weight, pMask );
-	}
-
-	baseDataArray.CopyArray( pData, nData );
-}
-
-
-//-----------------------------------------------------------------------------
-//
-//-----------------------------------------------------------------------------
-template < class T_t >
-void CDmeMesh::AddCorrectedDelta(
-	CUtlVector< T_t > &baseData,
-	const CUtlVector< int > &baseIndices,
-	const DeltaComputation_t &deltaComputation,
-	const char *pFieldName,
-	float weight,
-	const CDmeSingleIndexedComponent *pMask )
-{
-	const int nData( baseData.Count() );
-
-	CDmeVertexDeltaData *pDelta( GetDeltaState( deltaComputation.m_nDeltaIndex ) );
-
-	const int deltaFieldIndex( pDelta->FindFieldIndex( pFieldName ) );
-	if ( deltaFieldIndex < 0 )
-		return;
-
-	AddDelta( pDelta, baseData.Base(), nData, deltaFieldIndex, weight, pMask );
-
-	const CUtlVector< int > &depDeltas( deltaComputation.m_DependentDeltas );
-	const int nDepDeltas( depDeltas.Count() );
-	for ( int j( 0 ); j < nDepDeltas; ++j )
-	{
-		pDelta = GetDeltaState( depDeltas[ j ] );
-
-		int depFieldIndex = pDelta->FindFieldIndex( pFieldName );
-		if ( depFieldIndex < 0 )
-			continue;
-
-		AddDelta( pDelta, baseData.Base(), nData, depFieldIndex, weight, pMask );
-	}
-}
-
-
-//-----------------------------------------------------------------------------
-// There's no guarantee that fields are added in any order, nor that only
-// standard fields exist...
-//-----------------------------------------------------------------------------
-template < class T_t >
 void CDmeMesh::AddRawDelta(
 	CDmeVertexDeltaData *pDelta,
 	CDmrArray< T_t > &baseDataArray,
@@ -2961,18 +2881,30 @@ bool CDmeMesh::SetBaseStateToDelta( const CDmeVertexDeltaData *pDelta, CDmeVerte
 
 				switch ( pBaseData->GetType() )
 				{
-				case AT_FLOAT_ARRAY:
-					AddCorrectedDelta( CDmrArray< float >( pBaseData ), baseIndices, compList[ i ], baseFieldName );
-					break;
-				case AT_COLOR_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector >( pBaseData ), baseIndices, compList[ i ], baseFieldName );
-					break;
-				case AT_VECTOR2_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector2D >( pBaseData ), baseIndices, compList[ i ], baseFieldName );
-					break;
-				case AT_VECTOR3_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector >( pBaseData ), baseIndices, compList[ i ], baseFieldName );
-					break;
+					case AT_FLOAT_ARRAY:
+					{
+						CDmrArray< float > array1( pBaseData );
+						AddCorrectedDelta( array1, baseIndices, compList[i], baseFieldName );
+						break;
+					}
+					case AT_COLOR_ARRAY:
+					{
+						CDmrArray< Vector > array2( pBaseData );
+						AddCorrectedDelta( array2, baseIndices, compList[i], baseFieldName );
+						break;
+					}
+					case AT_VECTOR2_ARRAY:
+					{
+						CDmrArray< Vector2D > array3( pBaseData );
+						AddCorrectedDelta( array3, baseIndices, compList[i], baseFieldName );
+						break;
+					}
+					case AT_VECTOR3_ARRAY:
+					{
+						CDmrArray< Vector > array4( pBaseData );
+						AddCorrectedDelta( array4, baseIndices, compList[i], baseFieldName );
+						break;
+					}
 				default:
 					break;
 				}
@@ -3828,21 +3760,31 @@ bool CDmeMesh::AddMaskedDelta(
 
 			switch ( pBaseData->GetType() )
 			{
-			case AT_FLOAT_ARRAY:
-				AddRawDelta( pDelta, CDmrArray< float >( pBaseData ), baseFieldIndex, weight, pMask );
-				break;
-			case AT_COLOR_ARRAY:
-				// TODO: Color is missing some algebraic operators
-//				AddRawDelta( pDelta, CDmrArray< Color >( pBaseData ), baseFieldIndex, weight, pMask );
-				break;
-			case AT_VECTOR2_ARRAY:
-				AddRawDelta( pDelta, CDmrArray< Vector2D >( pBaseData ), baseFieldIndex, weight, pMask );
-				break;
-			case AT_VECTOR3_ARRAY:
-				AddRawDelta( pDelta, CDmrArray< Vector >( pBaseData ), baseFieldIndex, weight, pMask );
-				break;
-			default:
-				break;
+				case AT_FLOAT_ARRAY:
+				{
+					CDmrArray< float > array( pBaseData );
+					AddRawDelta( pDelta, array, baseFieldIndex, weight, pMask );
+					break;
+				}
+				case AT_COLOR_ARRAY:
+					// TODO: Color is missing some algebraic operators
+					//				AddRawDelta( pDelta, CDmrArray< Color >( pBaseData ), baseFieldIndex, weight, pMask
+					//);
+					break;
+				case AT_VECTOR2_ARRAY:
+				{
+					CDmrArray< Vector2D > array( pBaseData );
+					AddRawDelta( pDelta, array, baseFieldIndex, weight, pMask );
+					break;
+				}
+				case AT_VECTOR3_ARRAY:
+				{
+					CDmrArray< Vector > array( pBaseData );
+					AddRawDelta( pDelta, array, baseFieldIndex, weight, pMask );
+					break;
+				}
+				default:
+					break;
 			}
 			break;
 		}
@@ -3917,18 +3859,30 @@ bool CDmeMesh::AddCorrectedMaskedDelta(
 
 				switch ( pBaseData->GetType() )
 				{
-				case AT_FLOAT_ARRAY:
-					AddCorrectedDelta( CDmrArray< float >( pBaseData ), baseIndices, compList[ i ], baseFieldName, weight, pMask );
-					break;
-				case AT_COLOR_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector >( pBaseData ), baseIndices, compList[ i ], baseFieldName, weight, pMask );
-					break;
-				case AT_VECTOR2_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector2D >( pBaseData ), baseIndices, compList[ i ], baseFieldName, weight, pMask );
-					break;
-				case AT_VECTOR3_ARRAY:
-					AddCorrectedDelta( CDmrArray< Vector >( pBaseData ), baseIndices, compList[ i ], baseFieldName, weight, pMask );
-					break;
+					case AT_FLOAT_ARRAY:
+					{
+						CDmrArray< float > array1( pBaseData );
+						AddCorrectedDelta( array1, baseIndices, compList[i], baseFieldName, weight, pMask );
+						break;
+					}
+					case AT_COLOR_ARRAY:
+					{
+						CDmrArray< Vector > array2( pBaseData );
+						AddCorrectedDelta( array2, baseIndices, compList[i], baseFieldName, weight, pMask );
+						break;
+					}
+					case AT_VECTOR2_ARRAY:
+					{
+						CDmrArray< Vector2D > array3( pBaseData );
+						AddCorrectedDelta( array3, baseIndices, compList[i], baseFieldName, weight, pMask );
+						break;
+					}
+					case AT_VECTOR3_ARRAY:
+					{
+						CDmrArray< Vector > array4( pBaseData );
+						AddCorrectedDelta( array4, baseIndices, compList[i], baseFieldName, weight, pMask );
+						break;
+					}
 				default:
 					break;
 				}
@@ -3938,135 +3892,6 @@ bool CDmeMesh::AddCorrectedMaskedDelta(
 	}
 
 	return retVal;
-}
-
-
-//-----------------------------------------------------------------------------
-// Interpolates between two arrays of values and stores the result in a
-// CDmrArray.
-//
-// result = ( ( 1 - weight ) * a ) + ( weight * b )
-//
-//-----------------------------------------------------------------------------
-template< class T_t >
-bool CDmeMesh::InterpMaskedData(
-	CDmrArray< T_t > &aData,
-	const CUtlVector< T_t > &bData,
-	float weight,
-	const CDmeSingleIndexedComponent *pMask ) const
-{
-	const int nDst = aData.Count();
-
-	if ( bData.Count() != nDst )
-		return false;
-
-	// The wacky way of writing these expression is because Vector4D is missing operators
-	// And this probably works better because of fewer temporaries
-
-	T_t a;
-	T_t b;
-
-	if ( pMask )
-	{
-		// With a weight mask
-		float vWeight;
-		for ( int i = 0; i < nDst; ++i )
-		{
-			if ( pMask->GetWeight( i, vWeight ) )
-			{
-				vWeight *= weight;	// Specifically not clamping
-				a = aData.Get( i );
-				a *= ( 1.0f - vWeight );
-				b = bData[ i ];
-				b *= vWeight;
-				b += a;
-				aData.Set( i, b );
-			}
-		}
-	}
-	else
-	{
-		// Without a weight mask
-		const float oneMinusWeight( 1.0f - weight );
-		for ( int i = 0; i < nDst; ++i )
-		{
-			a = aData.Get( i );
-			a *= oneMinusWeight;
-			b = bData[ i ];
-			b *= weight;
-			b += a;
-			aData.Set( i, b );
-		}
-	}
-
-	return true;
-}
-
-
-//-----------------------------------------------------------------------------
-// Interpolates between two CDmeVertexData's
-//
-// paData = ( ( 1 - weight ) * a ) + ( weight * b )
-//-----------------------------------------------------------------------------
-bool CDmeMesh::InterpMaskedData(
-	CDmeVertexData *paData,
-	const CDmeVertexData *pbData,
-	float weight,
-	const CDmeSingleIndexedComponent *pMask ) const
-{
-	if ( !paData || !pbData || paData == pbData )
-		return false;
-
-	const int naField = paData->FieldCount();
-	const int nbField = pbData->FieldCount();
-
-	for ( int i = 0; i < naField; ++i )
-	{
-		const CUtlString &aFieldName( paData->FieldName( i ) );
-
-		for ( int j = 0; j < nbField; ++j )
-		{
-			const CUtlString &bFieldName( pbData->FieldName( j ) );
-			if ( aFieldName != bFieldName )
-				continue;
-
-			const FieldIndex_t aFieldIndex( paData->FindFieldIndex( aFieldName ) );
-			const FieldIndex_t bFieldIndex( pbData->FindFieldIndex( bFieldName ) );
-
-			if ( aFieldIndex < 0 || bFieldIndex < 0 )
-				break;
-
-			CDmAttribute *paAttr( paData->GetVertexData( aFieldIndex ) );
-			const CDmAttribute *pbAttr( pbData->GetVertexData( bFieldIndex ) );
-
-			if ( paAttr->GetType() != pbAttr->GetType() )
-				break;
-
-			if ( paData->GetVertexIndexData( aFieldIndex ).Count() != pbData->GetVertexIndexData( bFieldIndex ).Count() )
-				break;
-
-			switch ( paAttr->GetType() )
-			{
-			case AT_FLOAT_ARRAY:
-				InterpMaskedData( CDmrArray< float >( paAttr ), CDmrArrayConst< float >( pbAttr ).Get(), weight, pMask );
-				break;
-			case AT_COLOR_ARRAY:
-				InterpMaskedData( CDmrArray< Vector4D >( paAttr ), CDmrArrayConst< Vector4D >( pbAttr ).Get(), weight, pMask );
-				break;
-			case AT_VECTOR2_ARRAY:
-				InterpMaskedData( CDmrArray< Vector2D >( paAttr ), CDmrArrayConst< Vector2D >( pbAttr ).Get(), weight, pMask );
-				break;
-			case AT_VECTOR3_ARRAY:
-				InterpMaskedData( CDmrArray< Vector >( paAttr ), CDmrArrayConst< Vector >( pbAttr ).Get(), weight, pMask );
-				break;
-			default:
-				break;
-			}
-			break;
-		}
-	}
-
-	return true;
 }
 
 
@@ -4152,22 +3977,22 @@ bool CDmeMesh::InterpMaskedDelta(
 					{
 					case AT_FLOAT_ARRAY:
 						floatData = CDmrArrayConst< float >( pBindData ).Get();
-						AddCorrectedDelta( floatData, bindIndices, compList[ i ], baseFieldName );
+						AddCorrectedDelta( floatData, bindIndices, compList[ i ], baseFieldName, weight, pMask );
 						InterpMaskedData( CDmrArray< float >( pDstBaseData ), floatData, weight, pMask );
 						break;
 					case AT_COLOR_ARRAY:
 						vector4DData = CDmrArrayConst< Vector4D >( pBindData ).Get();
-						AddCorrectedDelta( vector4DData, bindIndices, compList[ i ], baseFieldName );
+						AddCorrectedDelta( vector4DData, bindIndices, compList[ i ], baseFieldName, weight, pMask );
 						InterpMaskedData( CDmrArray< Vector4D >( pDstBaseData ), vector4DData, weight, pMask );
 						break;
 					case AT_VECTOR2_ARRAY:
 						vector2DData = CDmrArrayConst< Vector2D >( pBindData ).Get();
-						AddCorrectedDelta( vector2DData, bindIndices, compList[ i ], baseFieldName );
+						AddCorrectedDelta( vector2DData, bindIndices, compList[ i ], baseFieldName, weight, pMask );
 						InterpMaskedData( CDmrArray< Vector2D >( pDstBaseData ), vector2DData, weight, pMask );
 						break;
 					case AT_VECTOR3_ARRAY:
 						vectorData = CDmrArrayConst< Vector >( pBindData ).Get();
-						AddCorrectedDelta( vectorData, bindIndices, compList[ i ], baseFieldName );
+						AddCorrectedDelta( vectorData, bindIndices, compList[ i ], baseFieldName, weight, pMask );
 						InterpMaskedData( CDmrArray< Vector >( pDstBaseData ), vectorData, weight, pMask );
 						break;
 					default:
@@ -4664,11 +4489,19 @@ bool CDmeMesh::SetBaseStateToDeltas( CDmeVertexData *pPassedBase /*= NULL */ )
 		switch ( pDstAttr->GetType() )
 		{
 		case AT_FLOAT_ARRAY:
-			SetBaseDataToDeltas( pBind, nStandardField, CDmrArrayConst< float >( pSrcAttr ), CDmrArray< float >( pDstAttr ), bDoStereo, false );
+		{
+			CDmrArrayConst< float > array( pSrcAttr );
+			CDmrArray< float > array2( pDstAttr );
+			SetBaseDataToDeltas( pBind, nStandardField, array, array2, bDoStereo, false );
 			break;
+		}
 		case AT_VECTOR3_ARRAY:
-			SetBaseDataToDeltas( pBind, nStandardField, CDmrArrayConst< Vector >( pSrcAttr ), CDmrArray< Vector >( pDstAttr ), bDoStereo, false );
+		{
+			CDmrArrayConst< Vector > array( pSrcAttr );
+			CDmrArray< Vector > array2( pDstAttr );
+			SetBaseDataToDeltas( pBind, nStandardField, array, array2, bDoStereo, false );
 			break;
+		}
 		default:
 			Assert( 0 );
 			break;

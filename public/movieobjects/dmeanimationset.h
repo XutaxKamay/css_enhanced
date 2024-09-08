@@ -10,6 +10,7 @@
 #pragma once
 #endif
 
+#include "dmeoperator.h"
 #include "datamodel/dmelement.h"
 #include "datamodel/dmattribute.h"
 #include "datamodel/dmattributevar.h"

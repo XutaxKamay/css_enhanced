@@ -14,7 +14,7 @@
 #include "movieobjects/timeutils.h"
 #include "movieobjects/dmetimeselectiontimes.h"
 
-enum RecordingState_t;
+#include "dme_controls/RecordingState.h"
 
 class CDmeTimeSelection : public CDmElement
 {

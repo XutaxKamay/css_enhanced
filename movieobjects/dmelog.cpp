@@ -590,12 +590,6 @@ CUtlString ScaleValue( const CUtlString& value, float scale )
 	return value;
 }
 
-template< class T >
-float LengthOf( const T& value )
-{
-	return value;
-}
-
 template<>
 float LengthOf( const bool& value )
 {
@@ -657,12 +651,6 @@ template<>
 float LengthOf( const QAngle& value )
 {
 	return value.Length();
-}
-
-template< class T >
-T Subtract( const T& v1, const T& v2 )
-{
-	return v1 - v2;
 }
 
 template<>
@@ -758,18 +746,17 @@ Quaternion Add( const Quaternion& v1, const Quaternion& v2 )
 }
 
 IMPLEMENT_ABSTRACT_ELEMENT( DmeLogLayer,			CDmeLogLayer );
-
-IMPLEMENT_ELEMENT_FACTORY( DmeIntLogLayer,			CDmeIntLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeFloatLogLayer,		CDmeFloatLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeBoolLogLayer,			CDmeBoolLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeColorLogLayer,		CDmeColorLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector2LogLayer,		CDmeVector2LogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector3LogLayer,		CDmeVector3LogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector4LogLayer,		CDmeVector4LogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeQAngleLogLayer,		CDmeQAngleLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeQuaternionLogLayer,	CDmeQuaternionLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeVMatrixLogLayer,		CDmeVMatrixLogLayer );
-IMPLEMENT_ELEMENT_FACTORY( DmeStringLogLayer,		CDmeStringLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeIntLogLayer,			CDmeIntLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeFloatLogLayer,		CDmeFloatLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeBoolLogLayer,			CDmeBoolLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeColorLogLayer,		CDmeColorLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector2LogLayer,		CDmeVector2LogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector3LogLayer,		CDmeVector3LogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector4LogLayer,		CDmeVector4LogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQAngleLogLayer,		CDmeQAngleLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQuaternionLogLayer,	CDmeQuaternionLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVMatrixLogLayer,		CDmeVMatrixLogLayer );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeStringLogLayer,		CDmeStringLogLayer );
 
 //-----------------------------------------------------------------------------
 // explicit template instantiation
@@ -789,17 +776,17 @@ template class CDmeTypedLogLayer<CUtlString>;
 
 IMPLEMENT_ABSTRACT_ELEMENT( DmeCurveInfo,			CDmeCurveInfo );
 
-IMPLEMENT_ELEMENT_FACTORY( DmeIntCurveInfo,			CDmeIntCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeFloatCurveInfo,		CDmeFloatCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeBoolCurveInfo,		CDmeBoolCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeColorCurveInfo,		CDmeColorCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector2CurveInfo,		CDmeVector2CurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector3CurveInfo,		CDmeVector3CurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector4CurveInfo,		CDmeVector4CurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeQAngleCurveInfo,		CDmeQAngleCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeQuaternionCurveInfo,	CDmeQuaternionCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeVMatrixCurveInfo,		CDmeVMatrixCurveInfo );
-IMPLEMENT_ELEMENT_FACTORY( DmeStringCurveInfo,		CDmeStringCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeIntCurveInfo,			CDmeIntCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeFloatCurveInfo,		CDmeFloatCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeBoolCurveInfo,		CDmeBoolCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeColorCurveInfo,		CDmeColorCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector2CurveInfo,		CDmeVector2CurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector3CurveInfo,		CDmeVector3CurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector4CurveInfo,		CDmeVector4CurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQAngleCurveInfo,		CDmeQAngleCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQuaternionCurveInfo,	CDmeQuaternionCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVMatrixCurveInfo,		CDmeVMatrixCurveInfo );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeStringCurveInfo,		CDmeStringCurveInfo );
 
 //-----------------------------------------------------------------------------
 // explicit template instantiation
@@ -822,17 +809,17 @@ template class CDmeTypedCurveInfo<CUtlString>;
 //-----------------------------------------------------------------------------
 IMPLEMENT_ABSTRACT_ELEMENT( DmeLog,				CDmeLog );
 
-IMPLEMENT_ELEMENT_FACTORY( DmeIntLog,			CDmeIntLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeFloatLog,			CDmeFloatLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeBoolLog,			CDmeBoolLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeColorLog,			CDmeColorLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector2Log,		CDmeVector2Log );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector3Log,		CDmeVector3Log );
-IMPLEMENT_ELEMENT_FACTORY( DmeVector4Log,		CDmeVector4Log );
-IMPLEMENT_ELEMENT_FACTORY( DmeQAngleLog,		CDmeQAngleLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeQuaternionLog,	CDmeQuaternionLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeVMatrixLog,		CDmeVMatrixLog );
-IMPLEMENT_ELEMENT_FACTORY( DmeStringLog,		CDmeStringLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeIntLog,			CDmeIntLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeFloatLog,			CDmeFloatLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeBoolLog,			CDmeBoolLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeColorLog,			CDmeColorLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector2Log,		CDmeVector2Log );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector3Log,		CDmeVector3Log );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVector4Log,		CDmeVector4Log );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQAngleLog,		CDmeQAngleLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeQuaternionLog,	CDmeQuaternionLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeVMatrixLog,		CDmeVMatrixLog );
+IMPLEMENT_ELEMENT_FACTORY_T( DmeStringLog,		CDmeStringLog );
 
 
 //-----------------------------------------------------------------------------
@@ -854,17 +841,17 @@ template class CDmeTypedLog<CUtlString>;
 //-----------------------------------------------------------------------------
 // instantiate and initialize static vars
 //-----------------------------------------------------------------------------
-float CDmeIntLog::s_defaultThreshold = 0.0f;
-float CDmeFloatLog::s_defaultThreshold = 0.0f;
-float CDmeBoolLog::s_defaultThreshold = 0.0f;
-float CDmeColorLog::s_defaultThreshold = 0.0f;
-float CDmeVector2Log::s_defaultThreshold = 0.0f;
-float CDmeVector3Log::s_defaultThreshold = 0.0f;
-float CDmeVector4Log::s_defaultThreshold = 0.0f;
-float CDmeQAngleLog::s_defaultThreshold = 0.0f;
-float CDmeQuaternionLog::s_defaultThreshold = 0.0f;
-float CDmeVMatrixLog::s_defaultThreshold = 0.0f;
-float CDmeStringLog::s_defaultThreshold = 0.0f;
+template<> float CDmeIntLog::s_defaultThreshold = 0.0f;
+template<> float CDmeFloatLog::s_defaultThreshold = 0.0f;
+template<> float CDmeBoolLog::s_defaultThreshold = 0.0f;
+template<> float CDmeColorLog::s_defaultThreshold = 0.0f;
+template<> float CDmeVector2Log::s_defaultThreshold = 0.0f;
+template<> float CDmeVector3Log::s_defaultThreshold = 0.0f;
+template<> float CDmeVector4Log::s_defaultThreshold = 0.0f;
+template<> float CDmeQAngleLog::s_defaultThreshold = 0.0f;
+template<> float CDmeQuaternionLog::s_defaultThreshold = 0.0f;
+template<> float CDmeVMatrixLog::s_defaultThreshold = 0.0f;
+template<> float CDmeStringLog::s_defaultThreshold = 0.0f;
 
 
 void CDmeLogLayer::OnConstruction()
@@ -1835,42 +1822,6 @@ void CDmeTypedLogLayer<T>::RemoveRedundantKeys( float threshold )
 	
 }
 
-// Implementation of Douglas-Peucker curve simplification routine (hacked to only care about error against original curve (sort of 1D)
-
-template< class T >
-void CDmeTypedLogLayer< T >::CurveSimplify_R( float thresholdSqr, int startPoint, int endPoint, CDmeTypedLogLayer< T > *output )
-{
-	if ( endPoint <= startPoint + 1 )
-	{
-		return;
-	}
-
-	int maxPoint = startPoint;
-	float maxDistanceSqr = 0.0f;
-
-	for ( int i = startPoint + 1 ; i < endPoint; ++i )
-	{
-		DmeTime_t keyTime = GetKeyTime( i );
-        T check = GetKeyValue( i );
-		T check2 = output->GetValue( keyTime );
-		T dist = Subtract( check, check2 );
-		float distSqr = LengthOf( dist ) * LengthOf( dist );
-
-		if ( distSqr < maxDistanceSqr )
-			continue;
-
-		maxPoint = i;
-		maxDistanceSqr = distSqr;
-	}
-
-	if ( maxDistanceSqr > thresholdSqr )
-	{
-		output->InsertKey( GetKeyTime( maxPoint ), GetKeyValue( maxPoint ) );
-		CurveSimplify_R( thresholdSqr, startPoint, maxPoint, output );
-		CurveSimplify_R( thresholdSqr, maxPoint, endPoint, output );
-	}
-}
-
 template<> void CDmeTypedLogLayer< bool >::CurveSimplify_R( float thresholdSqr, int startPoint, int endPoint, CDmeTypedLogLayer< bool > *output ) {};
 template<> void CDmeTypedLogLayer< int >::CurveSimplify_R( float thresholdSqr, int startPoint, int endPoint, CDmeTypedLogLayer< int > *output ) {};
 template<> void CDmeTypedLogLayer< Color >::CurveSimplify_R( float thresholdSqr, int startPoint, int endPoint, CDmeTypedLogLayer< Color > *output ) {};
@@ -2564,8 +2515,8 @@ void CDmeTypedLogLayer< T >::CopyPartialLayer( const CDmeLogLayer *src, DmeTime_
 //-----------------------------------------------------------------------------
 // Creates a log of a specific type
 //-----------------------------------------------------------------------------
-template< class T >
-CDmeLogLayer *CreateLayer< T >( CDmeTypedLog< T > *pOwnerLog )
+template< typename T >
+CDmeLogLayer *CreateLayer( CDmeTypedLog< T > *pOwnerLog )
 {
 	DmFileId_t fileid = pOwnerLog ? pOwnerLog->GetFileId() : DMFILEID_INVALID;
 	CDmeLogLayer *layer = NULL;
@@ -4531,39 +4482,6 @@ int CDmeTypedLog< T >::FindKeyWithinTolerance( DmeTime_t nTime, DmeTime_t nToler
 }
 
 //-----------------------------------------------------------------------------
-// tests whether two values differ by more than the threshold
-//-----------------------------------------------------------------------------
-template<>
-bool CDmeTypedLog< Vector >::ValuesDiffer( const Vector& a, const Vector& b ) const
-{
-	return a.DistToSqr( b ) > m_threshold * m_threshold;
-}
-
-template<>
-bool CDmeTypedLog< QAngle >::ValuesDiffer( const QAngle& a, const QAngle& b ) const
-{
-	return ( a - b ).LengthSqr() > m_threshold * m_threshold;
-}
-
-template<>
-bool CDmeTypedLog< Quaternion >::ValuesDiffer( const Quaternion& a, const Quaternion& b ) const
-{
-	return QuaternionAngleDiff( a, b ) > m_threshold;
-}
-
-template<>
-bool CDmeTypedLog< float >::ValuesDiffer( const float& a, const float& b ) const
-{
-	return fabs( a - b ) > m_threshold;
-}
-
-template< class T >
-bool CDmeTypedLog< T >::ValuesDiffer( const T& a, const T& b ) const
-{
-	return a != b;
-}
-
-//-----------------------------------------------------------------------------
 // Sets a key, removes all keys after this time
 //-----------------------------------------------------------------------------
 template< class T >
@@ -4708,7 +4626,7 @@ void CDmeTypedLog< T >::GetValue( DmeTime_t time, CDmAttribute *pAttr, uint inde
 }
 
 template< class T >
-void CDmeTypedLog< T >::GetValueSkippingTopmostLayer( DmeTime_t time, CDmAttribute *pAttr, uint index = 0 ) const 
+void CDmeTypedLog< T >::GetValueSkippingTopmostLayer( DmeTime_t time, CDmAttribute *pAttr, uint index ) const 
 {
 	CUtlVector< int > layers;
 	FindLayersForTime( time, layers );

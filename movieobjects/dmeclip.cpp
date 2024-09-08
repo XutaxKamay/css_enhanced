@@ -1015,6 +1015,13 @@ void CDmeFilmClip::OnElementUnserialized( )
 		}
 	}
 
+	auto cleanUp = [&]()
+	{
+		// Always strip out the old overlay attribute
+		RemoveAttribute( "overlay" );							
+		RemoveAttribute( "overlayalpha" );	
+	};
+
 	// this conversion code went in on 10/31/2005
 	// I'm hoping we don't care about any files that old - if we ever hit this, we should move this code into an unserialization converter
 	Assert( !HasAttribute( "overlay" ) && !HasAttribute( "overlayalpha" ) );
@@ -1026,11 +1033,17 @@ void CDmeFilmClip::OnElementUnserialized( )
 		// If this is an older file with an overlay attribute, strip it out into materialoverlay
 		CDmAttribute *pOverlayAttribute = GetAttribute( "overlay" );
 		if ( !pOverlayAttribute )
-			goto cleanUp;
+		{
+			cleanUp();
+			return;
+		}
 
 		const char *pName = pOverlayAttribute->GetValueString();
 		if ( !pName || !pName[0] )
-			goto cleanUp;
+		{
+			cleanUp();
+			return;
+		}
 
 		// If we don't yet have a material overlay, create one
 		if ( m_MaterialOverlayEffect.GetElement() == NULL )
@@ -1048,10 +1061,6 @@ void CDmeFilmClip::OnElementUnserialized( )
 			m_MaterialOverlayEffect->SetAlpha( alpha );
 		}
 
-cleanUp:
-		// Always strip out the old overlay attribute
-		RemoveAttribute( "overlay" );							
-		RemoveAttribute( "overlayalpha" );
 	}
 }
 

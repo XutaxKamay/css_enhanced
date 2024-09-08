@@ -1,0 +1,69 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+from waflib import Utils
+import os
+import vpc_parser
+
+top = '.'
+PROJECT_NAME = 'studiomdl'
+
+def options(opt):
+	# stub
+	return
+
+def configure(conf):
+	return
+
+def build(bld):
+    studiomdl_vpc = vpc_parser.parse_vpcs( bld.env, ['studiomdl.vpc'], '../..' )
+    source = studiomdl_vpc["sources"]
+    includes = studiomdl_vpc["includes"]
+    includes += [
+       '../../public',
+       '../../public/tier0',
+       '../../public/tier1',
+       '../../public/tier2',
+       '../../public/tier3'
+    ]
+    
+    defines = studiomdl_vpc["defines"]
+
+    libs = [
+		'appframework',
+        'datamodel',
+		'dmserializers'
+        'dmxloader',
+		'filesystem',
+        'movieobjects',
+		'mdlobjects',
+		'nvtristriplib',
+		'tier0',
+		'tier1',
+		'tier2',
+		'tier3',
+		'matsys_controls',
+		'mathlib',
+		'vstdlib',
+		'choreoobjects',
+		'steam_api',
+		'bitmap',
+		'vtf',
+		'ZLIB'
+    ]
+    
+    install_path = bld.env.LIBDIR
+
+    bld(
+    	source   = source,
+    	target   = PROJECT_NAME,
+    	name     = PROJECT_NAME,
+    	features = 'c cxx cxxprogram',
+    	includes = includes,
+    	defines  = defines,
+    	use      = libs,
+    	install_path = install_path,
+    	subsystem = bld.env.MSVC_SUBSYSTEM,
+    	idx      = bld.get_taskgen_count()
+    )
+

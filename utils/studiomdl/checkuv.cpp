@@ -109,7 +109,7 @@ static void WriteOBJ( const char *pszFilename, const s_source_t *pSource )
 		for ( int j = 0; j < m.numfaces; ++j )
 		{
 			const s_face_t &f = pSource->face[m.faceoffset + j];
-			fprintf( pFile, "f %d/%d/%d %d/%d/%d %d/%d/%d\n",
+			fprintf( pFile, "f %li/%li/%li %li/%li/%li %li/%li/%li\n",
 				f.a, f.a, f.a,
 				f.b, f.b, f.b,
 				f.c, f.c, f.c );

@@ -5,12 +5,7 @@
 //=============================================================================
 
 
-// Because we use STL
-#pragma warning( disable: 4530 )
-
-
 // Standard includes
-#include <io.h>
 #include <algorithm>
 #include <deque>
 #include <fstream>
@@ -526,8 +521,8 @@ bool CQcData::GetQcData(
 
 		if ( sFileBase0.Length() > 0 && sFilePath.Length() > 0 )
 		{
-			struct _finddata_t qcFile;
-			long hFile;
+			CUtlString qcFile;
+			FileFindHandle_t hFile;
 
 			CUtlVector< CUtlString > tokens;
 
@@ -536,12 +531,16 @@ bool CQcData::GetQcData(
 			CUtlString sQcGlob = sFilePath;
 			sQcGlob += "*.qc";
 
-			if ( ( hFile = _findfirst( sQcGlob.Get(), &qcFile ) ) != -1L )
+			const auto found = g_pFullFileSystem->FindFirst( sQcGlob.Get(), &hFile );
+
+			if ( found )
 			{
+				qcFile = found;
+
 				/* Find the rest of the .qc files */
 				do {
 					CUtlString sQcFile = sFilePath;
-					sQcFile += qcFile.name;
+					sQcFile += qcFile;
 
 					std::ifstream ifs( sQcFile.Get() );
 					std::string buf;
@@ -550,13 +549,22 @@ bool CQcData::GetQcData(
 					{
 						if ( V_stristr( buf.c_str(), sFileBase0.Get() ) || V_stristr( buf.c_str(), sFileBase1.Get() ) )
 						{
-							_findclose( hFile );
+							g_pFullFileSystem->FindClose( hFile );
 							return ParseQc( smdPath, sQcFile );
 						}
 					}
-				} while( _findnext( hFile, &qcFile ) == 0 );
 
-				_findclose( hFile );
+					const auto next = g_pFullFileSystem->FindNext( hFile );
+					if ( !next )
+					{
+						break;
+					}
+
+					qcFile = next;
+
+				} while( true );
+
+				g_pFullFileSystem->FindClose( hFile );
 			}
 		}
 	}

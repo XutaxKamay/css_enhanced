@@ -1138,18 +1138,25 @@ int Load_DMX( s_source_t *pSource )
 	// Load model info
 	LoadModelInfo( pRoot, pFullPath );
 
+	auto dwError = [&]()
+	{
+		fileId = pRoot->GetFileId();
+		g_pDataModel->RemoveFileId( fileId );
+		return 0;
+	};
+
 	// Extract out the skeleton
 	CDmeDag *pSkeleton = pRoot->GetValueElement< CDmeDag >( "skeleton" );
 	CDmeModel *pModel = pRoot->GetValueElement< CDmeModel >( "model" );
 	CDmeCombinationOperator *pCombinationOperator = pRoot->GetValueElement< CDmeCombinationOperator >( "combinationOperator" );
 	if ( !pSkeleton )
-		goto dmxError;
+		return dwError();
 
 	// BoneRemap[bone index in file] == bone index in studiomdl
 	BoneTransformMap_t boneMap;
 	pSource->numbones = LoadSkeleton( pSkeleton, pModel, pSource->localBone, boneMap );
 	if ( pSource->numbones == 0 )
-		goto dmxError;
+		return dwError();
 
 	LoadAttachments( pSkeleton, pSkeleton, pSource );
 
@@ -1162,7 +1169,7 @@ int Load_DMX( s_source_t *pSource )
 		}
 		LoadBindPose( pModel, g_currentscale, boneMap.m_pBoneRemap, pSource );
 		if ( !LoadMeshes( pModel, g_currentscale, boneMap.m_pBoneRemap, pSource ) )
-			goto dmxError;
+			return dwError();
 
 		UnifyIndices( pSource );
 		BuildVertexAnimations( pSource );
@@ -1184,11 +1191,6 @@ int Load_DMX( s_source_t *pSource )
 	fileId = pRoot->GetFileId();
 	g_pDataModel->RemoveFileId( fileId );
 	return 1;
-
-dmxError:
-	fileId = pRoot->GetFileId();
-	g_pDataModel->RemoveFileId( fileId );
-	return 0;
 }
 
 

@@ -18,6 +18,7 @@
 #include "materialsystem/MaterialSystemUtil.h"
 #include "tier1/utlmap.h"
 #include "movieobjects/timeutils.h"
+#include "datamodel/dmelementfactoryhelper.h"
 
 
 //-----------------------------------------------------------------------------

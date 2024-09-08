@@ -11,7 +11,7 @@
 #include "tier2/tier2.h"
 #include "tier0/memdbgon.h"
 #include "filesystem.h"
-#include "tier1/utlstringmap.h"
+#include "tier1/UtlStringMap.h"
 #include "tier1/strtools.h"
 #include "tier1/utlmap.h"
 #include "bitmap/float_bm.h"

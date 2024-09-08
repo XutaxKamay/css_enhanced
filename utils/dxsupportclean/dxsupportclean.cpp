@@ -11,7 +11,7 @@
 #include "tier0/memdbgon.h"
 #include "filesystem.h"
 #include "icommandline.h"
-#include "tier1/utlstringmap.h"
+#include "tier1/UtlStringMap.h"
 #include "tier1/strtools.h"
 #include "tier1/utlmap.h"
 #include "tier2/fileutils.h"

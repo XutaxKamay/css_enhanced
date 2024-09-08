@@ -1,8 +1,5 @@
-
-#pragma warning( disable : 4786 4018 4530 )  
-
-#include "NvTriStripObjects.h"
-#include "NvTriStrip.h"
+#include "nvtristripobjects.h"
+#include "nvtristrip.h"
 #include <assert.h>
 
 static inline unsigned short AsUShort( int nValue )
