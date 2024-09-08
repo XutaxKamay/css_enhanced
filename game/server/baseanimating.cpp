@@ -4,6 +4,7 @@
 //
 //=============================================================================//
 
+#include "ai_activity.h"
 #include "cbase.h"
 #include "baseanimating.h"
 #include "animation.h"
@@ -261,7 +262,8 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	// Fading
 	SendPropFloat( SENDINFO( m_fadeMinDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_fadeMaxDist ), 0, SPROP_NOSCALE ),
-	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE )
+	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
+	SendPropBool( SENDINFO( m_bUseIks ) )
 END_SEND_TABLE()
 
 
@@ -289,6 +291,14 @@ CBaseAnimating::CBaseAnimating()
 	m_fadeMaxDist = 0;
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
+	m_bUseIks = true;
+
+	int sequence = SelectWeightedSequence( ACT_IDLE );
+
+	if (GetSequence() != sequence)
+	{
+		SetSequence( sequence );
+	}
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -387,7 +397,7 @@ void CBaseAnimating::Spawn()
 //-----------------------------------------------------------------------------
 void CBaseAnimating::UseClientSideAnimation()
 {
-	m_bClientSideAnimation = false;
+	m_bClientSideAnimation = true;
 }
 
 #define MAX_ANIMTIME_INTERVAL 0.2f
@@ -3499,17 +3509,12 @@ int CBaseAnimating::GetHitboxesFrontside( int *boxList, int boxMax, const Vector
 
 void CBaseAnimating::EnableServerIK()
 {
-	if (!m_pIk)
-	{
-		m_pIk = new CIKContext;
-		m_iIKCounter = 0;
-	}
+	m_bUseIks = true;
 }
 
 void CBaseAnimating::DisableServerIK()
 {
-	delete m_pIk;
-	m_pIk = NULL;
+	m_bUseIks = false;
 }
 
 Activity CBaseAnimating::GetSequenceActivity( int iSequence )

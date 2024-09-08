@@ -181,7 +181,8 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
-	RecvPropFloat( RECVINFO( m_flFadeScale ) )
+	RecvPropFloat( RECVINFO( m_flFadeScale ) ),
+	RecvPropBool( RECVINFO(m_bUseIks) )
 
 END_RECV_TABLE()
 
@@ -2877,12 +2878,12 @@ bool C_BaseAnimating::SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, i
 			AddFlag( EFL_SETTING_UP_BONES );
 
 			// NOTE: For model scaling, we need to opt out of IK because it will mark the bones as already being calculated
-			if ( !IsModelScaled() )
+			if ( !IsModelScaled() && m_bUseIks )
 			{
                 // only allocate an ik block if the npc can use it
                 // The flag is now completely ignored to match server bones!
                 // If it doesn't work well, blame models.
-				if ( !m_pIk && hdr->numikchains() > 0 && !(m_EntClientFlags & ENTCLIENTFLAG_DONTUSEIK) )
+				if ( !m_pIk && hdr->numikchains() > 0 )
 				{
 					m_pIk = new CIKContext;
 				}

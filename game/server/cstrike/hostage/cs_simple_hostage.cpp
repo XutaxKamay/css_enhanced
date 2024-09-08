@@ -35,7 +35,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define HOSTAGE_THINK_INTERVAL	0.1f
+#define HOSTAGE_THINK_INTERVAL	gpGlobals->interval_per_tick
 
 #define DrawLine( from, to, duration, red, green, blue )		NDebugOverlay::Line( from, to, red, green, blue, true, 0.1f )
 #define HOSTAGE_PUSHAWAY_THINK_CONTEXT	"HostagePushawayThink"
@@ -75,8 +75,7 @@ BEGIN_DATADESC( CHostage )
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "OnRescueZoneTouch", HostageRescueZoneTouch ),
 
-	DEFINE_USEFUNC( HostageUse ), 
-	DEFINE_THINKFUNC( HostageThink ),
+	DEFINE_USEFUNC( HostageUse )
 
 END_DATADESC()
 
@@ -104,6 +103,8 @@ CHostage::CHostage()
 	g_Hostages.AddToTail( this );
 	m_PlayerAnimState = CreateHostageAnimState( this, this, LEGANIM_8WAY, false );
 	SetBloodColor( BLOOD_COLOR_RED );
+    // TODO_ENHANCED: Get IK working on the steep slopes CS has, then enable it on characters.
+	DisableServerIK();
 }
 
 //-----------------------------------------------------------------------------------------------------
