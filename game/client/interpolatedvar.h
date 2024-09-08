@@ -13,7 +13,6 @@
 #include "tier1/utllinkedlist.h"
 #include "rangecheckedvar.h"
 #include "lerp_functions.h"
-#include "animationlayer.h"
 #include "convar.h"
 
 

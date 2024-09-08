@@ -6,6 +6,8 @@
 //===========================================================================//
 #include "cbase.h"
 #include "c_baseentity.h"
+#include "convar.h"
+#include "iconvar.h"
 #include "interpolatedvar.h"
 #include "prediction.h"
 #include "model_types.h"
@@ -6340,6 +6342,11 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 }
 #endif // TF_CLIENT_DLL
 
+ConVar cl_interp_no_hermite( "cl_interp_no_hermite",
+							 "1",
+							 FCVAR_NOT_CONNECTED,
+							 "This fixes lag compensation and game screen not respecting camera's at the expense of "
+							 "maybe more unsmooth game play. (maybe)" );
 
 void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool bSetup )
 {
@@ -6350,7 +6357,16 @@ void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool
 	// This is needed to get the perfect lag compensation for origin.
 	// It's possible to have hermite interpolation in lag compensation,
 	// but it would require some extra flags being sent to the server.
-	type |= INTERPOLATE_LINEAR_ONLY;
+
+	if ( cl_interp_no_hermite.GetBool() )
+	{
+		type |= INTERPOLATE_LINEAR_ONLY;
+		DevMsg( "Linear only interpolation enabled for entity %i (varname: %s) !\n", index, watcher->GetDebugName());
+	}
+	else
+	{
+		DevMsg( "Hermite interpolation enabled for entity: %i (varname: %s) !\n", index, watcher->GetDebugName());
+	}
 
 	for ( int i=0; i < m_VarMap.m_Entries.Count(); i++ )
 	{
