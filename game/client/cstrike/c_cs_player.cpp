@@ -766,6 +766,8 @@ C_CSPlayer::C_CSPlayer() :
 	ListenForGameEvent( "bullet_hit_player" );
 	ListenForGameEvent( "bullet_player_hitboxes" );
 	ListenForGameEvent( "player_lag_hitboxes" );
+
+	m_bIsInsideLagCompensationContext = false;
 }
 
 
@@ -2136,9 +2138,13 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				const auto nAttackerTickBase = event->GetInt( "tickbase" );
 				const auto pStudioHdr		 = player->GetModelPtr();
 				const auto numhitboxes		 = event->GetInt( "num_hitboxes" );
+				const auto parent_index		 = event->GetInt( "parent_index", -1 );
 
 				QAngle angles[MAXSTUDIOBONES];
 				Vector positions[MAXSTUDIOBONES];
+
+				player->m_bIsInsideLagCompensationContext = true;
+				player->PushEnableAbsRecomputations( true );
 
 				AssertFatal( numhitboxes == pStudioHdr->pHitboxSet( player->m_nHitboxSet )->numhitboxes );
 
@@ -2193,8 +2199,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				player->SetSequence( event->GetInt( "sequence" ) );
 				player->SetCycle( event->GetFloat( "cycle" ) );
 				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
-												event->GetFloat( "position_y" ),
-												event->GetFloat( "position_z" ) ) );
+											  event->GetFloat( "position_y" ),
+											  event->GetFloat( "position_z" ) ) );
 
 				player->m_angRenderAngles = QAngle( event->GetFloat( "angle_x" ),
 													event->GetFloat( "angle_y" ),
@@ -2418,14 +2424,12 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 							nAttackerTickBase );
 				}
 
-				player->PushEnableAbsRecomputations( true );
 				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
 				// Be sure we setup the bones again.
 				player->InvalidateBoneCache();
 				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
 				player->DrawClientHitboxes( flDuration, false );
 				player->PopBoneAccess( "Lag compensation context" );
-				player->PopEnableAbsRecomputations();
 
 				// Set back original stuff.
 				player->SetSequence( iOldSequence );
@@ -2452,6 +2456,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
 				player->InvalidateBoneCache();
 				player->PopBoneAccess( "Lag compensation context" );
+				player->PopEnableAbsRecomputations();
+				player->m_bIsInsideLagCompensationContext = false;
 			}
 		}
 	};
@@ -2507,7 +2513,7 @@ Activity C_CSPlayer::GetActivity() const
 
 const Vector& C_CSPlayer::GetRenderOrigin( void )
 {
-	if ( m_hRagdoll.Get() )
+	if ( m_hRagdoll.Get() && !m_bIsInsideLagCompensationContext )
 	{
 		C_CSRagdoll *pRagdoll = (C_CSRagdoll*)m_hRagdoll.Get();
 		if ( pRagdoll->IsInitialized() )
