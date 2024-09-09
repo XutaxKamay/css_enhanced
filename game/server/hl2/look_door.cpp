@@ -123,7 +123,7 @@ void CLookDoor::Spawn(void)
 {
 	BaseClass::Spawn();
 
-	if (m_target.Get() == NULL_STRING)
+	if (m_target == NULL_STRING)
 	{
 		Warning( "ERROR: DoorLook (%s) given no target.  Rejecting spawn.\n",GetDebugName());
 		return;
@@ -148,7 +148,7 @@ void CLookDoor::MoveThink(void)
 	// --------------------------------
 	if (m_hLooker == NULL)
 	{
-		m_hLooker = (CBaseEntity*)gEntList.FindEntityByName( NULL, m_target.Get() );
+		m_hLooker = (CBaseEntity*)gEntList.FindEntityByName( NULL, m_target );
 
 		if (m_hLooker == NULL)
 		{

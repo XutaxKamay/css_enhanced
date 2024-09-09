@@ -1176,108 +1176,131 @@ const char* UTIL_GetActiveHolidayString()
 #endif
 }
 
-#ifdef CLIENT_DLL
+#ifdef GAME_DLL
+#include "entitylist.h"
 
-CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
+extern CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer );
+#endif
+
+CBaseEntity *UTIL_FindEntityProceduralCRC( CRC32_t hszName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
 {
-	//
-	// Check for the name escape character.
-	//
-	if ( szName[0] == '!' )
+	if ( hszName == NULL )
 	{
-		const char *pName = szName + 1;
+		return NULL;
+	}
 
-		//
-		// It is a procedural name, look for the ones we understand.
-		//
-		if ( FStrEq( pName, "player" ) )
-		{
-			return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
-		}
-		// XYZ_TODO implement this
-		else if ( FStrEq( pName, "pvsplayer" ) )
-		{
-			/*if ( pSearchingEntity )
-			{
-				return CBaseEntity::Instance( UTIL_FindClientInPVS( pSearchingEntity->edict() ) );
-			}
-			else if ( pActivator )
-			{
-				// FIXME: error condition?
-				return CBaseEntity::Instance( UTIL_FindClientInPVS( pActivator->edict() ) );
-			}
-			else
-			{
-				// FIXME: error condition?
-				return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
-			}*/
+	static bool s_bInitialized = false;
 
-			return NULL;
-		}
-		else if ( FStrEq( pName, "activator" ) )
-		{
-			return pActivator;
-		}
-		else if ( FStrEq( pName, "caller" ) )
-		{
-			return pCaller;
-		}
-		else if ( FStrEq( pName, "picker" ) )
-		{
-			//return UTIL_PlayerByIndex(1) ? UTIL_PlayerByIndex(1)->FindPickerEntity() : NULL;
-			return NULL;
-		}
-		else if ( FStrEq( pName, "self" ) )
-		{
-			return pSearchingEntity;
-		}
-#ifdef PORTAL2
-		else if ( FStrEq( pName, "player_orange" ) )
-		{
-			CTeam *pTeam = GetGlobalTeam( TEAM_RED );
-			Assert( pTeam );
-			if ( pTeam == NULL )
-				return NULL;
+	static CRC32_t hsz_player;
+	static CRC32_t hsz_pvsplayer;
+	static CRC32_t hsz_activator;
+	static CRC32_t hsz_caller;
+	static CRC32_t hsz_picker;
+	static CRC32_t hsz_self;
 
-			for ( int i = 0; i < pTeam->GetNumPlayers(); i++ )
-			{
-				if ( pTeam->GetPlayer( i ) != NULL )
-				{
-					return (CBaseEntity *) pTeam->GetPlayer( i );
-				}
-			}
-		}
-		else if ( FStrEq( pName, "player_blue" ) )
-		{
-			CTeam *pTeam = GetGlobalTeam( TEAM_BLUE );
-			Assert( pTeam );
-			if ( pTeam == NULL )
-				return NULL;
+	// this is stupid 
+	if ( !s_bInitialized )
+	{
+		hsz_player = UTIL_GetCheckSum("!player");
+		hsz_pvsplayer = UTIL_GetCheckSum("!pvsplayer");
+		hsz_activator = UTIL_GetCheckSum("!activator");
+		hsz_caller = UTIL_GetCheckSum("!caller");
+		hsz_picker = UTIL_GetCheckSum("!picker");
+		hsz_self = UTIL_GetCheckSum("!self");
 
-			for ( int i = 0; i < pTeam->GetNumPlayers(); i++ )
-			{
-				if ( pTeam->GetPlayer( i ) != NULL )
-				{
-					return (CBaseEntity *) pTeam->GetPlayer( i );
-				}
-			}
+		s_bInitialized = true;
+	}
+
+	if ( hszName == hsz_player )
+	{
+		// XYZ_TODO this is wrong
+		return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
+	}
+	else if ( hszName == hsz_pvsplayer )
+	{
+#ifdef GAME_DLL
+		if ( pSearchingEntity )
+		{
+			return CBaseEntity::Instance( UTIL_FindClientInPVS( pSearchingEntity->edict() ) );
 		}
-#endif // PORTAL2
+		else if ( pActivator )
+		{
+			// FIXME: error condition?
+			return CBaseEntity::Instance( UTIL_FindClientInPVS( pActivator->edict() ) );
+		}
 		else
 		{
-			Warning( "Invalid entity search name %s\n", szName );
-			Assert(0);
+			// FIXME: error condition?
+			return (CBaseEntity *)UTIL_PlayerByIndex( 1 );
 		}
+#else
+		// XYZ_TODO implement this
+		return NULL;
+#endif
+	}
+	else if ( hszName == hsz_activator )
+	{
+		return pActivator;
+	}
+	else if ( hszName == hsz_caller )
+	{
+		return pCaller;
+	}
+	else if ( hszName == hsz_picker )
+	{
+#ifdef GAME_DLL
+		return FindPickerEntity( UTIL_PlayerByIndex(1) );
+#else
+		// XYZ_TODO implement this
+		return NULL;
+#endif
+	}
+	else if ( hszName == hsz_self )
+	{
+		return pSearchingEntity;
 	}
 
 	return NULL;
 }
 
-/*
-	XYZ_TODO: use hashed entity names
-*/
-CBaseEntity* UTIL_FindEntityByName(const char* szName)
+CBaseEntity *UTIL_FindEntityByClassnameCRC( CBaseEntity *pStartEntity, CRC32_t hszName )
 {
+	if ( hszName == NULL )
+	{
+		return NULL;
+	}
+
+#ifdef CLIENT_DLL
+	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
+#else
+	const CEntInfo *pInfo = pStartEntity ? gEntList.GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : gEntList.FirstEntInfo();
+#endif
+
+	for ( ;pInfo; pInfo = pInfo->m_pNext )
+	{
+		CBaseEntity *pEntity = (CBaseEntity *)pInfo->m_pEntity;
+		if ( !pEntity )
+		{
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
+		}
+
+		if ( pEntity->m_hszClassname == hszName )
+			return pEntity;
+	}
+
+	return NULL;
+}
+
+#ifdef CLIENT_DLL
+
+CBaseEntity *UTIL_FindEntityByNameCRC( CRC32_t hszName )
+{
+	if ( !hszName )
+	{
+		return NULL;
+	}
+
 	auto entities = g_pFastEntityLookUp->entities;
 
     for (int i = 0; i < MAX_EDICTS; ++i)
@@ -1291,78 +1314,13 @@ CBaseEntity* UTIL_FindEntityByName(const char* szName)
 
 		CBaseEntity* pEntity = pClientEntity->GetBaseEntity();
 
-        if (FStrEq(pEntity->GetEntityName(), szName))
+        if (pEntity->m_hszName == hszName)
         {
             return pEntity->GetBaseEntity();
         }
     }
 
     return NULL;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Iterates the entities with a given name.
-// Input  : pStartEntity - Last entity found, NULL to start a new iteration.
-//			szName - Name to search for.
-//			pActivator - Activator entity if this was called from an input
-//				handler or Use handler.
-//-----------------------------------------------------------------------------
-CBaseEntity *UTIL_FindEntityByName( CBaseEntity *pStartEntity, const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
-{
-	if ( !szName || szName[0] == 0 )
-		return NULL;
-
-	if ( szName[0] == '!' )
-	{
-		//
-		// Avoid an infinite loop, only find one match per procedural search!
-		//
-		if (pStartEntity == NULL)
-			return UTIL_FindEntityProcedural( szName, pSearchingEntity, pActivator, pCaller );
-
-		return NULL;
-	}
-
-	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
-
-	for ( ;pInfo; pInfo = pInfo->m_pNext )
-	{
-		CBaseEntity *ent = (CBaseEntity *)pInfo->m_pEntity;
-		if ( !ent )
-		{
-			DevWarning( "NULL entity in global entity list!\n" );
-			continue;
-		}
-
-		string_t szEntityName = ent->GetEntityName();
-
-		if (FStrEq(szEntityName, szName))
-        {
-            return ent;
-        }
-	}
-
-	return NULL;
-}
-
-CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName )
-{
-	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
-
-	for ( ;pInfo; pInfo = pInfo->m_pNext )
-	{
-		CBaseEntity *pEntity = (CBaseEntity *)pInfo->m_pEntity;
-		if ( !pEntity )
-		{
-			DevWarning( "NULL entity in global entity list!\n" );
-			continue;
-		}
-
-		if ( FStrEq( szName, pEntity->GetClassname() ) )
-			return pEntity;
-	}
-
-	return NULL;
 }
 
 /*
@@ -1387,4 +1345,122 @@ bool UTIL_IsMasterTriggered(string_t sMaster, CBaseEntity *pActivator)
 	return true;
 }
 
+#endif // CLIENT
+
+//-----------------------------------------------------------------------------
+// Purpose: Iterates the entities with a given name.
+// Input  : pStartEntity - Last entity found, NULL to start a new iteration.
+//			szName - Name to search for.
+//			pActivator - Activator entity if this was called from an input
+//				handler or Use handler.
+//-----------------------------------------------------------------------------
+CBaseEntity *UTIL_FindEntityByNameCRC( CBaseEntity *pStartEntity, CRC32_t hszName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller )
+{
+	if ( hszName == NULL )
+	{
+		return NULL;
+	}
+
+	// how to check this?
+	//if ( szName[0] == '!' )
+	{
+		//
+		// Avoid an infinite loop, only find one match per procedural search!
+		//
+		if (pStartEntity == NULL)
+		{
+			CBaseEntity* pEntity = UTIL_FindEntityProceduralCRC( hszName, pSearchingEntity, pActivator, pCaller );
+
+			if ( pEntity )
+			{
+				return pEntity;
+			}
+		}
+
+		//return NULL;
+	}
+
+#ifdef CLIENT_DLL
+	const CEntInfo *pInfo = pStartEntity ? ClientEntityList().GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : ClientEntityList().FirstEntInfo();
+#else
+	const CEntInfo *pInfo = pStartEntity ? gEntList.GetEntInfoPtr( pStartEntity->GetRefEHandle() )->m_pNext : gEntList.FirstEntInfo();
 #endif
+
+	for ( ;pInfo; pInfo = pInfo->m_pNext )
+	{
+		CBaseEntity *ent = (CBaseEntity *)pInfo->m_pEntity;
+		if ( !ent )
+		{
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
+		}
+
+		if ( ent->m_hszName == hszName )
+        {
+            return ent;
+        }
+	}
+
+	return NULL;
+}
+
+#include <unordered_map>
+#include <string>
+
+std::unordered_map<CRC32_t, std::string> g_HashToStringMap;
+
+void AddStringToHashMap(CRC32_t crc, const char* pString)
+{
+    // Check if the CRC already exists
+    if (g_HashToStringMap.find(crc) == g_HashToStringMap.end())
+    {
+        g_HashToStringMap.emplace(crc, pString);
+    }
+}
+
+void CC_PrintStringForHash(const CCommand& args)
+{
+    if (args.ArgC() != 2)
+    {
+        ConMsg("Usage: print_string_for_hash <hash>\n");
+        return;
+    }
+
+   // Use strtoul to handle negative and positive values correctly
+    CRC32_t hash = static_cast<CRC32_t>(atoi(args[1]));
+
+	ConMsg("arg1: %s - %i - %i\n", args[1], atoi(args[1]), strtoul(args[1], NULL, 10));
+
+    auto index = g_HashToStringMap.find(hash);
+
+    if (index != g_HashToStringMap.end())
+    {
+        ConMsg("String for hash %u: %s\n", hash, index->second.c_str());
+    }
+    else
+    {
+        ConMsg("No string found for hash %u\n", hash);
+    }
+}
+
+ConCommand print_string_for_hash("print_string_for_hash", CC_PrintStringForHash, "Print the string for a given CRC32 hash", FCVAR_NONE);
+
+CRC32_t UTIL_GetCheckSum(const char* pString)
+{
+	//return CRC32_ProcessSingleBuffer( pString, Q_strlen(pString) );
+
+	if (pString && *pString)
+	{
+		CRC32_t crc;
+
+		CRC32_Init(&crc);
+		CRC32_ProcessBuffer(&crc, pString, Q_strlen(pString));
+		CRC32_Final(&crc);
+		
+		AddStringToHashMap( crc, pString );
+
+		return crc;
+	}
+	
+	return NULL;
+}

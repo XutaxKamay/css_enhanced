@@ -3,9 +3,16 @@
 #include "predictable_entity.h"
 
 BEGIN_SIMPLE_DATADESC( C_EventAction )
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_ENTITY_OUTPUT_
 	DEFINE_FIELD( m_iTarget, FIELD_STRING ),
 	DEFINE_FIELD( m_iTargetInput, FIELD_STRING ),
 	DEFINE_FIELD( m_iParameter, FIELD_STRING ),
+#endif
+	
+	DEFINE_FIELD( m_hszTarget, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hszTargetInput, FIELD_INTEGER ),
+	DEFINE_FIELD( m_hszParameter, FIELD_INTEGER ),
+
 	DEFINE_FIELD( m_flDelay, FIELD_FLOAT ),
 	DEFINE_FIELD( m_nTimesToFire, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iIDStamp, FIELD_INTEGER ),
@@ -29,9 +36,17 @@ C_EventAction::C_EventAction( const char *ActionData )
 	m_iIDStamp = ++s_iNextIDStamp;
 
 	m_flDelay = 0;
+
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 	m_iTarget = NULL_STRING;
 	m_iParameter = NULL_STRING;
 	m_iTargetInput = NULL_STRING;
+#endif
+
+	m_hszTarget = 0; 
+	m_hszTargetInput = 0; 
+	m_hszParameter = 0;
+
 	m_nTimesToFire = EVENT_FIRE_ALWAYS;
 
 	if (ActionData == NULL)
@@ -45,7 +60,10 @@ C_EventAction::C_EventAction( const char *ActionData )
 	const char *psz = nexttoken(szToken, ActionData, ',', sizeof(szToken));
 	if (szToken[0] != '\0')
 	{
+		m_hszTarget = UTIL_GetCheckSum(szToken);
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 		m_iTarget = AllocPooledString(szToken);
+#endif
 	}
 
 	//
@@ -54,11 +72,17 @@ C_EventAction::C_EventAction( const char *ActionData )
 	psz = nexttoken(szToken, psz, ',', sizeof(szToken));
 	if (szToken[0] != '\0')
 	{
+		m_hszTargetInput = UTIL_GetCheckSum(szToken); 
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 		m_iTargetInput = AllocPooledString(szToken);
+#endif
 	}
 	else
 	{
+		m_hszTargetInput = UTIL_GetCheckSum("Use"); 
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 		m_iTargetInput = AllocPooledString("Use");
+#endif
 	}
 
 	//
@@ -67,7 +91,10 @@ C_EventAction::C_EventAction( const char *ActionData )
 	psz = nexttoken(szToken, psz, ',', sizeof(szToken));
 	if (szToken[0] != '\0')
 	{
+		m_hszParameter = UTIL_GetCheckSum(szToken); 
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 		m_iParameter = AllocPooledString(szToken);
+#endif
 	}
 
 	//
@@ -160,7 +187,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 	//
 	C_EventAction *ev = m_ActionList;
 	C_EventAction *prev = NULL;
-
+	
 	while (ev != NULL)
 	{
 		if (ev->m_iParameter == NULL_STRING)
@@ -168,7 +195,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			// Post the event with the default parameter.
 			//
-			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_EventQueue.AddEvent( ev->m_hszTarget, ev->m_hszTargetInput, Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 		else
 		{
@@ -177,22 +204,38 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			variant_t ValueOverride;
 			ValueOverride.SetString( ev->m_iParameter );
-			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_EventQueue.AddEvent( ev->m_hszTarget, ev->m_hszTargetInput, ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 
 		if ( ev->m_flDelay )
 		{
 			char szBuffer[256];
+
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 			Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"(%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
+				"[Client] (%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
 				gpGlobals->curtime,
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL",
 				STRING(ev->m_iTarget),
 				STRING(ev->m_iTargetInput),
 				ev->m_flDelay,
-				STRING(ev->m_iParameter) );
+				STRING(ev->m_iParameter)
+				);
+#else
+			Q_snprintf( szBuffer,
+				sizeof(szBuffer),
+				"[Client] (%0.2f) output: (%s,%s) -> (%i,%i,%.1f)(%i)\n",
+				gpGlobals->curtime,
+				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
+				pCaller ? pCaller->GetDebugName() : "NULL",
+				ev->m_hszTarget,
+				ev->m_hszTargetInput,
+				ev->m_flDelay,
+				ev->m_hszParameter
+				);
+#endif
 
 			DevMsg( 2, "%s", szBuffer );
 #ifdef GAME_DLL
@@ -204,7 +247,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			char szBuffer[256];
 			Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"(%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
+				"[Client] (%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
 				gpGlobals->curtime,
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL", STRING(ev->m_iTarget),
@@ -236,7 +279,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 				char szBuffer[256];
 				Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"Removing from action list: (%s,%s) -> (%s,%s)\n",
+				"[Client] Removing from action list: (%s,%s) -> (%s,%s)\n",
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL",
 				STRING(ev->m_iTarget), STRING(ev->m_iTargetInput) );

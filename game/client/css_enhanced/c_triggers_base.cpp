@@ -34,16 +34,16 @@ CON_COMMAND(report_triggerinfo, "")
 		C_BaseTrigger* pTrigger = (C_BaseTrigger*) ( pEntity );
 
 	ConMsg(
-			"------ Trigger Information ------\n"
+		"------ Trigger Information ------\n"
 		"  >> Trigger Index 	: %i\n"
-		"  >> Name           	: %s\n"
-			"  >> Classname         : %s\n"
-		"  >> Target Name    	: %s\n"
-		"  >> Filter Name    	: %s\n"
+		"  >> Name           	: %i\n"
+		"  >> Classname         : %s\n"
+		"  >> Target Name    	: %i\n"
+		"  >> Filter Name    	: %i\n"
 		"  >> Origin         	: %.2f, %.2f, %.2f\n"
 		"---------------------------------\n\n",
 		pTrigger->entindex(),
-		pTrigger->GetEntityName(), pTrigger->GetClassname(), pTrigger->m_target, pTrigger->m_iFilterName,
+		pTrigger->m_hszName, pTrigger->GetClassname(), pTrigger->m_hszTarget, pTrigger->m_hszFilter,
 		pTrigger->GetAbsOrigin().x, pTrigger->GetAbsOrigin().y, pTrigger->GetAbsOrigin().z);
     }
 }
@@ -90,6 +90,8 @@ BEGIN_DATADESC( C_BaseTrigger )
 	DEFINE_OUTPUT( m_OnEndTouchAll, "OnEndTouchAll"),
 	DEFINE_OUTPUT( m_OnTouching, "OnTouching" ),
 	DEFINE_OUTPUT( m_OnNotTouching, "OnNotTouching" ),
+	
+	DEFINE_FIELD( m_bInitialized, FIELD_BOOLEAN ),
 
 END_DATADESC()
 
@@ -107,17 +109,18 @@ void RecvProxy_FilterName(const CRecvProxyData *pData, void *pStruct, void *pOut
 {
 	C_BaseTrigger *entity = (C_BaseTrigger *) pStruct;
 
-	Q_strncpy( entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH );
+	//Q_strncpy( entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH );
+
+	// this might be problematic
+	entity->m_hszFilter = pData->m_Value.m_Int;
+
+	if (entity->m_hszFilter)
+	{
+		ConColorMsg(Color(0, 255, 0, 255), "Got m_hszFilter: %i\n", entity->m_hszFilter);
+	}
 
 	// Update the Filter
-	entity->m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(entity->m_iFilterName));
-}
-
-void RecvProxy_Target(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_BaseTrigger *entity = (C_BaseTrigger *) pStruct;
-
-	Q_strncpy( entity->m_target, pData->m_Value.m_pString, MAX_PATH );
+	entity->m_hFilter = static_cast<C_BaseFilter *>( UTIL_FindEntityByNameCRC(NULL, entity->m_hszFilter) );
 }
 
 // Incase server decides to change m_bDisabled
@@ -133,70 +136,28 @@ void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseTrigger, DT_BaseTrigger, CBaseTrigger)
 	RecvPropInt(RECVINFO(m_bDisabled), NULL, RecvProxy_Disabled),
-	RecvPropString(RECVINFO(m_target), NULL, RecvProxy_Target),
-	RecvPropString(RECVINFO(m_iFilterName), NULL, RecvProxy_FilterName),
+	RecvPropInt(RECVINFO(m_hszTarget)),
+	RecvPropInt(RECVINFO(m_hszFilter)),
 END_RECV_TABLE();
 
 LINK_ENTITY_TO_CLASS( trigger, C_BaseTrigger );
-
-
-const char *ParseEntity(CBaseEntity *&pEntity, const char *pEntData)
-{
-	CEntityMapData entData( (char*)pEntData );
-	char model[MAPKEY_MAXLENGTH];
-
-	if (!entData.ExtractValue("model", model))
-	{
-		return entData.CurrentBufferPosition();
-	}
-
-	int i = atoi(&model[0] + 1);
-
-	if ((pEntity->GetModelIndex() - 1) == i)
-	{
-		pEntity->ParseMapData(&entData);
-	}
-
-	return entData.CurrentBufferPosition();
-}
-
-void ParseAllEntities(CBaseEntity *pEntity, const char *pMapData)
-{
-	char szTokenBuffer[MAPKEY_MAXLENGTH];
-
-	for ( ; true; pMapData = MapEntity_SkipToNextEntity(pMapData, szTokenBuffer) )
-	{
-		char token[MAPKEY_MAXLENGTH];
-		pMapData = MapEntity_ParseToken( pMapData, token );
-
-		if (!pMapData)
-			break;
-
-		if (token[0] != '{')
-		{
-			Error( "ParseAllEntities: found %s when expecting {", token);
-			continue;
-		}
-
-		const char *pCurMapData = pMapData;
-		pMapData = ParseEntity(pEntity, pMapData);
-	}
-}
 
 
 C_BaseTrigger::C_BaseTrigger()
 {
     SetPredictionEligible( true );
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
-    Q_memset(m_iFilterName, 0, sizeof(m_iFilterName));
-    Q_memset(m_target, 0, sizeof(m_target));
+    //Q_memset(m_iFilterName, 0, sizeof(m_iFilterName));
+    //Q_memset(m_target, 0, sizeof(m_target));
     // m_iCountPredictedTouchingEntities = 0;
     // Q_memset(m_hPredictedTouchingEntities, 0, sizeof(m_hPredictedTouchingEntities));
+
+	m_bInitialized = false;
 }
 
 void C_BaseTrigger::Spawn()
 {
-	m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName( m_iFilterName ));
+	m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByNameCRC( NULL, m_hszFilter ));
 
 	SetSolid(SOLID_BSP);
 	AddSolidFlags(FSOLID_TRIGGER);
@@ -206,11 +167,15 @@ void C_BaseTrigger::Spawn()
 	UpdatePartitionListEntry();
 }
 
+extern void MapEntityInit(C_BaseEntity* pEntity);
+
 void C_BaseTrigger::PostDataUpdate( DataUpdateType_t updateType )
 {
-	if (updateType == DATA_UPDATE_CREATED)
+	if (updateType == DATA_UPDATE_CREATED && !m_bInitialized)
 	{
-		ParseAllEntities( this, engine->GetMapEntitiesString() );
+		MapEntityInit( this );
+
+		m_bInitialized = true;
 	}
 
 	BaseClass::PostDataUpdate( updateType );
@@ -282,7 +247,7 @@ void C_BaseTrigger::UpdateFilter(void)
 	// before the client know about the filter entity
 	if (prediction->IsFirstTimePredicted() && m_hFilter.Get() == nullptr)
 	{
-		m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(m_iFilterName));
+		m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByNameCRC(m_hszFilter));
 	}
 }
 

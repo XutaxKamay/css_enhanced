@@ -289,7 +289,7 @@ void CEnvTracer::Activate( void )
 {
 	BaseClass::Activate();
 
-	CBaseEntity *pEnd = gEntList.FindEntityByName( NULL, m_target.Get() );
+	CBaseEntity *pEnd = gEntList.FindEntityByName( NULL, m_target );
 	if (pEnd != NULL)
 	{
 		m_vecEnd = pEnd->GetLocalOrigin();
@@ -298,7 +298,7 @@ void CEnvTracer::Activate( void )
 	}
 	else
 	{
-		Msg( "env_tracer: unknown entity \"%s\"\n", STRING(m_target.Get()) );
+		Msg( "env_tracer: unknown entity \"%s\"\n", STRING(m_target) );
 	}
 }
 
@@ -2145,9 +2145,9 @@ void CEnvGunfire::Spawn()
 void CEnvGunfire::Activate( void )
 {
 	// Find my target
-	if (m_target.Get() != NULL_STRING)
+	if (m_target != NULL_STRING)
 	{
-		m_hTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
+		m_hTarget = gEntList.FindEntityByName( NULL, m_target );
 	}
 
 	BaseClass::Activate();

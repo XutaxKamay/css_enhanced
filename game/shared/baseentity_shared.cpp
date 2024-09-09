@@ -456,13 +456,48 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		return true;
 	}
 	
-#ifdef GAME_DLL
 	if ( FStrEq( szKeyName, "targetname" ) )
 	{
+		m_hszName = UTIL_GetCheckSum( szValue );
+#ifdef GAME_DLL
 		m_iName = AllocPooledString( szValue );
+#endif
+		ConMsg("\tCRC targetname: %s - %i\n", szValue, m_hszName);
+
 		return true;
 	}
+	
+	if ( FStrEq( szKeyName, "classname" ) )
+	{
+		m_hszClassname = UTIL_GetCheckSum( szValue );
+#ifdef GAME_DLL
+		m_iClassname = AllocPooledString( szValue );
 #endif
+		ConMsg("\tCRC classname: %s - %i\n", szValue, m_hszClassname);
+
+		return true;
+	}
+
+	// XYZ_TODO: do the same for globalname, parentname, etc
+
+	// do the same for globalname
+	if ( FStrEq( szKeyName, "globalname" ) )
+	{
+		m_hszGlobalname = UTIL_GetCheckSum( szValue );
+#ifdef GAME_DLL
+		m_iGlobalname = AllocPooledString( szValue );
+#endif
+		return true;
+	}
+
+	else if ( FStrEq(szKeyName, "damagefilter") )
+	{
+		m_hszDamageFilter = UTIL_GetCheckSum( szValue );
+#ifdef GAME_DLL
+		m_iGlobalname = AllocPooledString( szValue );
+#endif
+		return true;
+	}
 
 	// loop through the data description, and try and place the keys in
 	if ( !*ent_debugkeys.GetString() )
@@ -613,7 +648,6 @@ bool CBaseEntity::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen
 		Q_snprintf( szValue, iMaxLen, "%s", STRING( GetEntityName() ) );
 		return true;
 	}
-#endif
 
 	if ( FStrEq( szKeyName, "classname" ) )
 	{
@@ -626,6 +660,7 @@ bool CBaseEntity::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen
 		if ( ::ExtractKeyvalue( this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue, iMaxLen ) )
 			return true;
 	}
+#endif
 
 	return false;
 }
@@ -2723,6 +2758,138 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 	return false;
 }
 
+#ifdef CLIENT_DLL
+bool CBaseEntity::AcceptInput( CRC32_t hszInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID )
+{
+	ConMsg("AcceptInput\n");
+		if ( ent_messages_draw.GetBool() )
+	{
+		if ( pCaller != NULL )
+		{
+			NDebugOverlay::Line( pCaller->GetAbsOrigin(), GetAbsOrigin(), 255, 255, 255, false, 3 );
+			NDebugOverlay::Box( pCaller->GetAbsOrigin(), Vector(-4, -4, -4), Vector(4, 4, 4), 255, 0, 0, 0, 3 );
+		}
+
+		//NDebugOverlay::Text( GetAbsOrigin(), szInputName, false, 3 );
+		NDebugOverlay::Box( GetAbsOrigin(), Vector(-4, -4, -4), Vector(4, 4, 4), 0, 255, 0, 0, 3 );
+	}
+
+	// loop through the data description list, restoring each data desc block
+	for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
+	{
+		// search through all the actions in the data description, looking for a match
+		for ( int i = 0; i < dmap->dataNumFields; i++ )
+		{
+			if ( dmap->dataDesc[i].flags & FTYPEDESC_INPUT )
+			{
+				if ( dmap->dataDesc[i].m_hszExternalName == hszInputName )
+				{
+					// found a match
+
+					char szBuffer[256];
+					// mapper debug message
+					if (pCaller != NULL)
+					{
+						Q_snprintf(
+							szBuffer,
+							sizeof(szBuffer),
+#ifdef CLIENT_DLL
+							"[Client] "
+#else
+							"[Server] "
+#endif
+							"(%0.2f) input %s: %s.%i(%s)\n",
+							gpGlobals->curtime,
+							pCaller->GetClassname(),
+							GetDebugName(),
+							hszInputName,
+							Value.String() );
+					}
+					else
+					{
+						#ifdef CLIENT_DLL
+						Q_snprintf( szBuffer, sizeof(szBuffer),
+#ifdef CLIENT_DLL
+							"[Client] "
+#else
+							"[Server] "
+#endif
+							"(%0.2f) input <NULL>: %s.%i(%s)\n", gpGlobals->curtime, GetDebugName(), hszInputName, Value.String() );
+						#endif
+					}
+					DevMsg( 2, "%s", szBuffer );
+#ifdef GAME_DLL
+					ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
+
+					if (m_debugOverlays & OVERLAY_MESSAGE_BIT)
+					{
+						DrawInputOverlay(szInputName,pCaller,Value);
+					}
+#endif
+
+					// convert the value if necessary
+					if ( Value.FieldType() != dmap->dataDesc[i].fieldType )
+					{
+						if ( !(Value.FieldType() == FIELD_VOID && dmap->dataDesc[i].fieldType == FIELD_STRING) ) // allow empty strings
+						{
+							if ( !Value.Convert( (fieldtype_t)dmap->dataDesc[i].fieldType ) )
+							{
+								// bad conversion
+								Warning( "!! ERROR: bad input/output link:\n!! %s(%s,%s) doesn't match type from %s(%s)\n",
+									STRING(m_iClassname), GetDebugName(), hszInputName,
+									( pCaller != NULL ) ? pCaller->GetClassname() : "<null>",
+									( pCaller != NULL ) ? pCaller->GetDebugName() : "<null>" );
+								return false;
+							}
+						}
+					}
+
+					// call the input handler, or if there is none just set the value
+					inputfunc_t pfnInput = dmap->dataDesc[i].inputFunc;
+
+					if ( pfnInput )
+					{
+						// Package the data into a struct for passing to the input handler.
+						inputdata_t data;
+						data.pActivator = pActivator;
+						data.pCaller = pCaller;
+						data.value = Value;
+						data.nOutputID = outputID;
+
+						(this->*pfnInput)( data );
+					}
+					else if ( dmap->dataDesc[i].flags & FTYPEDESC_KEY )
+					{
+						// set the value directly
+						Value.SetOther( ((char*)this) + dmap->dataDesc[i].fieldOffset[ TD_OFFSET_NORMAL ]);
+
+						// TODO: if this becomes evil and causes too many full entity updates, then we should make
+						// a macro like this:
+						//
+						// define MAKE_INPUTVAR(x) void Note##x##Modified() { x.GetForModify(); }
+						//
+						// Then the datadesc points at that function and we call it here. The only pain is to add
+						// that function for all the DEFINE_INPUT calls.
+						NetworkStateChanged();
+					}
+
+					return true;
+				}
+			}
+		}
+	}
+
+	DevMsg( 2,
+#ifdef CLIENT_DLL
+	"[Client] "
+#else
+	"[Server] "
+#endif
+	"unhandled input: (%i) -> (%s,%s)\n", hszInputName, STRING(m_iClassname), GetDebugName()/*,", from (%s,%s)" STRING(pCaller->m_iClassname), STRING(pCaller->m_iName)*/ );
+	return false;
+}
+#endif
+
 void CBaseEntity::PhysicsTouchTriggers( const Vector *pPrevAbsOrigin )
 {
 #if defined( CLIENT_DLL )
@@ -2839,10 +3006,14 @@ void CBaseEntity::InputSetDamageFilter( inputdata_t &inputdata )
 {
 #ifdef GAME_DLL
 	// Get a handle to my damage filter entity if there is one.
-	m_iszDamageFilterName.GetForModify() = inputdata.value.StringID();
-	if ( m_iszDamageFilterName.Get() != NULL_STRING )
+	m_iszDamageFilterName = inputdata.value.StringID();
+
+	// update the crc
+	m_hszDamageFilter.GetForModify() = UTIL_GetCheckSum( STRING(m_iszDamageFilterName) );
+	
+	if ( m_iszDamageFilterName != NULL_STRING )
 	{
-		m_hDamageFilter = gEntList.FindEntityByName( NULL, m_iszDamageFilterName.Get() );
+		m_hDamageFilter = gEntList.FindEntityByName( NULL, m_iszDamageFilterName );
 	}
 	else
 	{
@@ -2851,9 +3022,15 @@ void CBaseEntity::InputSetDamageFilter( inputdata_t &inputdata )
 #else
 	// Get a handle to my damage filter entity if there is one.
 	m_iszDamageFilterName = inputdata.value.StringID();
+
+	// update the crc
+	m_hszDamageFilter = UTIL_GetCheckSum( m_iszDamageFilterName );
+
+	// XYZ_TODO implement damage on client
+	
 	if ( m_iszDamageFilterName != NULL_STRING )
 	{
-		m_hDamageFilter = UTIL_FindEntityByName( NULL, m_iszDamageFilterName );
+		m_hDamageFilter = UTIL_FindEntityByNameCRC( NULL, m_hszDamageFilter );
 	}
 	else
 	{
@@ -2940,8 +3117,8 @@ void CBaseEntity::InputSetParent( inputdata_t &inputdata )
 
 #ifdef GAME_DLL
 	SetParent( inputdata.value.StringID(), inputdata.pActivator );
-#else
-	SetParent( UTIL_FindEntityByName( NULL, STRING( inputdata.value.StringID() ), NULL, inputdata.pActivator ) );
+#else //   	 XYZ_TODO: fix this!!
+	SetParent( UTIL_FindEntityByNameCRC( NULL, UTIL_GetCheckSum(STRING( inputdata.value.StringID() )), NULL, inputdata.pActivator ) );
 #endif
 }
 
@@ -3086,6 +3263,9 @@ void CBaseEntity::InputEnableShadow( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CBaseEntity::InputAddOutput( inputdata_t &inputdata )
 {
+#ifdef CLIENT_DLL
+	ConMsg("InputAddOutput\n");
+#endif
 	char sOutputName[MAX_PATH];
 	Q_strncpy( sOutputName, inputdata.value.String(), sizeof(sOutputName) );
 	char *sChar = strchr( sOutputName, ' ' );

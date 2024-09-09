@@ -37,7 +37,7 @@ void CInfoIntermission::Think ( void )
 	CBaseEntity *pTarget;
 
 	// find my target
-	pTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
+	pTarget = gEntList.FindEntityByName( NULL, m_target );
 
 	if ( pTarget )
 	{

@@ -264,7 +264,7 @@ bool variant_t::Convert( fieldtype_t newType )
 					if ( iszVal != NULL_STRING )
 					{
 						// FIXME: do we need to pass an activator in here?
-						ent = UTIL_FindEntityByName( NULL, iszVal );
+						ent = UTIL_FindEntityByNameCRC( NULL, UTIL_GetCheckSum(iszVal) );
 					}
 					SetEntity( ent );
 					return true;

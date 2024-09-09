@@ -18,15 +18,8 @@ BEGIN_PREDICTION_DATA(C_TriggerTeleport)
 //	DEFINE_PRED_FIELD(m_iLandmark, FIELD_STRING, FTYPEDESC_INSENDTABLE),
 END_PREDICTION_DATA();
 
-void RecvProxy_LandMark(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_TriggerTeleport *entity = (C_TriggerTeleport *) pStruct;
-
-	Q_strncpy( entity->m_iLandmark, pData->m_Value.m_pString, MAX_PATH );
-}
-
 IMPLEMENT_CLIENTCLASS_DT(C_TriggerTeleport, DT_TriggerTeleport, CTriggerTeleport)
-	RecvPropString(RECVINFO(m_iLandmark), NULL, RecvProxy_LandMark)
+	RecvPropInt(RECVINFO(m_hszLandmark))
 END_RECV_TABLE();
 
 void C_TriggerTeleport::Touch( CBaseEntity *pOther )
@@ -39,7 +32,7 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
 	}
 
 	// The activator and caller are the same
-	pentTarget = UTIL_FindEntityByName( pentTarget, m_target, NULL, pOther, pOther );
+	pentTarget = UTIL_FindEntityByNameCRC( pentTarget, m_hszTarget, NULL, pOther, pOther );
 	if (!pentTarget)
 	{
 	   return;
@@ -52,9 +45,12 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
 	Vector vecLandmarkOffset(0, 0, 0);
 
     // The activator and caller are the same
-    pentLandmark = UTIL_FindEntityByName(pentLandmark, m_iLandmark, NULL, pOther, pOther );
+    pentLandmark = UTIL_FindEntityByNameCRC(pentLandmark, m_hszLandmark, NULL, pOther, pOther );
+	
     if (pentLandmark)
     {
+		ConColorMsg(Color(0, 255, 0, 255), "C_TriggerTeleport::Touch - pentLandmark: %p\n", pentTarget);
+
         vecLandmarkOffset = pOther->GetAbsOrigin() - pentLandmark->GetAbsOrigin();
     }
 

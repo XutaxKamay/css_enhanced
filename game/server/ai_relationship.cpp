@@ -108,7 +108,7 @@ void CAI_Relationship::Spawn()
 		DevWarning("ai_relationship '%s' with no subject specified, removing.\n", GetDebugName());
 		UTIL_Remove(this);
 	}
-	else if (m_target.Get() == NULL_STRING)
+	else if (m_target == NULL_STRING)
 	{
 		DevWarning("ai_relationship '%s' with no target specified, removing.\n", GetDebugName());
 		UTIL_Remove(this);
@@ -266,10 +266,10 @@ bool CAI_Relationship::IsASubject( CBaseEntity *pEntity )
 //---------------------------------------------------------
 bool CAI_Relationship::IsATarget( CBaseEntity *pEntity )
 {
-	if( pEntity->NameMatches( m_target.Get() ) )
+	if( pEntity->NameMatches( m_target ) )
 		return true;
 
-	if( pEntity->ClassMatches( m_target.Get() ) )
+	if( pEntity->ClassMatches( m_target ) )
 		return true;
 
 	return false;
@@ -357,7 +357,7 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
 	}
 
 	// Add any special targets we found
-	CBaseEntity *pSpecialTarget = FindEntityForProceduralName( m_target.Get(), pActivator, pCaller );
+	CBaseEntity *pSpecialTarget = FindEntityForProceduralName( m_target, pActivator, pCaller );
 	if ( pSpecialTarget && pSpecialTarget->MyCombatCharacterPointer() )
 	{
 		targetList.AddToTail( pSpecialTarget->MyCombatCharacterPointer() );
@@ -425,7 +425,7 @@ void CAI_Relationship::ChangeRelationships( int disposition, int iReverting, CBa
 	}
 	else if ( targetList.Count() == 0 )
 	{
-		DevMsg( 2, "ai_relationship '%s' finds no target(s) called: %s\n", GetDebugName(), STRING( m_target.Get() ) );
+		DevMsg( 2, "ai_relationship '%s' finds no target(s) called: %s\n", GetDebugName(), STRING( m_target ) );
 		return;
 	}
 

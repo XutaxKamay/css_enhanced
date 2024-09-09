@@ -1313,10 +1313,10 @@ float CAI_TrackPather::MaxDistanceFromCurrentPath() const
 void CAI_TrackPather::UpdateTrackNavigation( void )
 {
 	// No target? Use the string specified. We have no spawn method (sucky!!) so this is how that works
-	if ( ( CPathTrack::ValidPath( m_pDestPathTarget ) == NULL ) && ( m_target.Get() != NULL_STRING ) )
+	if ( ( CPathTrack::ValidPath( m_pDestPathTarget ) == NULL ) && ( m_target != NULL_STRING ) )
 	{
-		FlyToPathTrack( m_target.Get() );
-		m_target.GetForModify() = NULL_STRING;
+		FlyToPathTrack( m_target );
+		m_target = NULL_STRING;
 	}
 
 	if ( !IsLeading() )

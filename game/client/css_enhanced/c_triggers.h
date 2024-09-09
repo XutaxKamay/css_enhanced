@@ -87,11 +87,14 @@ public:
 
 	bool		m_bDisabled;
 	// eChangeTrackerBufSize
-	char m_iFilterName[MAX_PATH];
+	//char m_iFilterName[MAX_PATH];
 	CHandle<class C_BaseFilter>	m_hFilter;
+	CRC32_t m_hszFilter; 
+	
+	bool m_bInitialized;
 
 	// unlike m_iName this should be constant
-	char m_target[MAX_PATH];
+	//char m_target[MAX_PATH];
 
 protected:
 	// Network the outputs
@@ -137,6 +140,8 @@ public:
 
 	// Outputs
 	C_OutputEvent m_OnTrigger;
+
+	DECLARE_DATADESC();
 };
 
 #endif // TRIGGERS_H

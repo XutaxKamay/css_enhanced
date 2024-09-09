@@ -22,8 +22,8 @@ BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
 	DEFINE_PRED_FIELD(m_vecNetworkOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
 	DEFINE_PRED_FIELD(m_angNetworkAngles, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_iszDamageFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	DEFINE_PRED_FIELD( m_hszName, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hszDamageFilter, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD(m_spawnflags, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
 	DEFINE_PRED_FIELD(m_nModelIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
 	DEFINE_PRED_FIELD(m_CollisionGroup, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
@@ -31,19 +31,37 @@ BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
 END_PREDICTION_DATA();
 
+// Incase server decides to change the filter name
+void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
+{
+	C_BaseToggle *entity = (C_BaseToggle *) pStruct;
+
+	//Q_strncpy( entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH );
+
+	// this might be problematic
+	entity->m_hszName = pData->m_Value.m_Int;
+
+	if (entity->m_hszName)
+	{
+		ConColorMsg(Color(0, 255, 0, 255), "Got m_hszName: %u\n", entity->m_hszName);
+	}
+}
+
 IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropDataTable(RECVINFO_DT(m_Collision), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty)),
 	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)),
 	RecvPropQAngles(RECVINFO_NAME(m_angNetworkAngles, m_angRotation)),
 	RecvPropString(RECVINFO(m_sMaster)),
-	RecvPropString(RECVINFO(m_iName)),
-	RecvPropString(RECVINFO(m_iszDamageFilterName)),
+	RecvPropInt(RECVINFO(m_hszName)),
+	RecvPropInt(RECVINFO(m_hszDamageFilter)),
 	RecvPropInt(RECVINFO(m_nModelIndex)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),
 	RecvPropInt(RECVINFO(m_spawnflags)),
 	RecvPropInt(RECVINFO(m_fEffects), 0, RecvProxy_EffectFlags ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
+
+	RecvPropInt(RECVINFO(m_iHammerID)),
 END_RECV_TABLE();
 
 

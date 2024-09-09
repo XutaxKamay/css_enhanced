@@ -2687,7 +2687,7 @@ void CCSPlayer::MoveToNextIntroCamera()
 
 	if( m_pIntroCamera )
 	{
-		Target = gEntList.FindEntityByName( NULL, STRING(m_pIntroCamera->m_target.Get()) );
+		Target = gEntList.FindEntityByName( NULL, STRING(m_pIntroCamera->m_target) );
 	}
 
 	// if we still couldn't find a camera, goto T spawn

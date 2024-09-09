@@ -719,7 +719,7 @@ void CPhysBox::VPhysicsUpdate( IPhysicsObject *pPhysics )
 		if ( !pPhysics->IsAsleep() )
 		{
 			m_OnAwakened.FireOutput(this, this);
-			FireTargets( STRING(m_target.Get()), this, this, USE_TOGGLE, 0 );
+			FireTargets( STRING(m_target), this, this, USE_TOGGLE, 0 );
 			RemoveSpawnFlags( SF_PHYSBOX_ASLEEP );
 		}
 	}
@@ -1396,7 +1396,7 @@ void CPhysConvert::InputConvertTarget( inputdata_t &inputdata )
 	CBaseEntity *pEntity = NULL;
 	
 	int count = 0;
-	while ( (pEntity = gEntList.FindEntityByName( pEntity, m_target.Get(), NULL, inputdata.pActivator, inputdata.pCaller )) != NULL )
+	while ( (pEntity = gEntList.FindEntityByName( pEntity, m_target, NULL, inputdata.pActivator, inputdata.pCaller )) != NULL )
 	{
 		entlist[count++] = pEntity;
 		if ( count >= ARRAYSIZE(entlist) )
@@ -1911,10 +1911,10 @@ class CInfoMassCenter : public CPointEntity
 public:
 	void Spawn( void )
 	{
-		if ( m_target.Get() != NULL_STRING )
+		if ( m_target != NULL_STRING )
 		{
 			masscenteroverride_t params;
-			params.SnapToPoint( m_target.Get(), GetAbsOrigin() );
+			params.SnapToPoint( m_target, GetAbsOrigin() );
 			PhysSetMassCenterOverride( params );
 			UTIL_Remove( this );
 		}

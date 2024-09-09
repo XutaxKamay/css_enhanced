@@ -77,7 +77,7 @@ void CLogicMirrorMovement::Activate()
 	BaseClass::Activate();
 
 	SetMirrorTarget( STRING(m_strMirrorTarget) );
-	SetTarget( STRING(m_target.Get()) );
+	SetTarget( STRING(m_target) );
 	SetRemoteTarget( STRING(m_strRemoteTarget ) );
 	SetMirrorRelative( STRING( m_strMirrorRelative) );
 
@@ -133,7 +133,7 @@ void CLogicMirrorMovement::InputSetMirrorTarget( inputdata_t &inputdata )
 
 void CLogicMirrorMovement::InputSetTarget( inputdata_t &inputdata )
 {
-	m_target.GetForModify() = AllocPooledString( inputdata.value.String() );
+	m_target = AllocPooledString( inputdata.value.String() );
 	SetTarget( inputdata.value.String() );
 }
 

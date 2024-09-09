@@ -14,12 +14,6 @@
 
 #define SF_FILTER_ENEMY_NO_LOSE_AQUIRED	(1<<0)
 
-enum filter_t
-{
-	FILTER_AND,
-	FILTER_OR,
-};
-
 class C_BaseFilter : public C_BaseEntity
 {
 public:
@@ -27,11 +21,13 @@ public:
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
 
-	bool PassesFilter( C_BaseEntity *pCaller, C_BaseEntity *pEntity ) { return true; }
-	bool PassesDamageFilter( const CTakeDamageInfo &info ) { return false; }
+	virtual void PostDataUpdate( DataUpdateType_t updateType );
+
+	bool PassesFilter( C_BaseEntity *pCaller, C_BaseEntity *pEntity );
+	bool PassesDamageFilter( const CTakeDamageInfo &info );
 
 	// Inputs
-	void InputTestActivator( inputdata_t &inputdata ) { }
+	void InputTestActivator( inputdata_t &inputdata );
 
 	// Outputs
 	C_OutputEvent	m_OnPass;		// Fired when filter is passed
@@ -40,9 +36,13 @@ public:
 	// Vars
 	CNetworkVar(bool, m_bNegated);
 
+	bool m_bInitialized;
+
 protected:
 	virtual bool PassesFilterImpl( C_BaseEntity *pCaller, C_BaseEntity *pEntity );
 	virtual bool PassesDamageFilterImpl(const CTakeDamageInfo &info);
+
+	DECLARE_DATADESC();
 };
 
 #endif

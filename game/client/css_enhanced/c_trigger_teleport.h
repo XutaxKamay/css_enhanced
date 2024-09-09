@@ -15,7 +15,9 @@ public:
 
 	virtual void Touch( CBaseEntity *pOther );
 
-	char m_iLandmark[MAX_PATH];
+	//char m_iLandmark[MAX_PATH];
+
+	CRC32_t m_hszLandmark;
 };
 
 #endif // C_TRIGGERS_TELEPORT_H

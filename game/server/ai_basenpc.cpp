@@ -7330,14 +7330,14 @@ void CAI_BaseNPC::StartNPC( void )
 		SetGroundEntity( NULL );
 	}
 
-	if ( m_target.Get() != NULL_STRING )// this npc has a target
+	if ( m_target != NULL_STRING )// this npc has a target
 	{
 		// Find the npc's initial target entity, stash it
-		SetGoalEnt( gEntList.FindEntityByName( NULL, m_target.Get() ) );
+		SetGoalEnt( gEntList.FindEntityByName( NULL, m_target ) );
 
 		if ( !GetGoalEnt() )
 		{
-			Warning( "ReadyNPC()--%s couldn't find target %s\n", GetClassname(), STRING(m_target.Get()));
+			Warning( "ReadyNPC()--%s couldn't find target %s\n", GetClassname(), STRING(m_target));
 		}
 		else
 		{
@@ -11603,14 +11603,14 @@ void CAI_BaseNPC::InputWake( inputdata_t &inputdata )
 
 	// Check if we have a path to follow.  This is normally done in StartNPC,
 	// but putting the NPC to sleep will cancel it, so we have to do it again.
-	if ( m_target.Get() != NULL_STRING )// this npc has a target
+	if ( m_target != NULL_STRING )// this npc has a target
 	{
 		// Find the npc's initial target entity, stash it
-		SetGoalEnt( gEntList.FindEntityByName( NULL, m_target.Get() ) );
+		SetGoalEnt( gEntList.FindEntityByName( NULL, m_target ) );
 
 		if ( !GetGoalEnt() )
 		{
-			Warning( "ReadyNPC()--%s couldn't find target %s\n", GetClassname(), STRING(m_target.Get()));
+			Warning( "ReadyNPC()--%s couldn't find target %s\n", GetClassname(), STRING(m_target));
 		}
 		else
 		{

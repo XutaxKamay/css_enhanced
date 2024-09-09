@@ -162,14 +162,16 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
 	SendPropVector(SENDINFO(m_vecOrigin), 0,  SPROP_NOSCALE|SPROP_COORD|SPROP_CHANGES_OFTEN ),
 	SendPropQAngles(SENDINFO(m_angRotation), 0, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 	SendPropStringT(SENDINFO(m_sMaster)),
-	SendPropStringT(SENDINFO(m_iName)),
-	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
+	SendPropInt(SENDINFO(m_hszName), -1, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_hszDamageFilter), -1, SPROP_UNSIGNED),
 	SendPropModelIndex(SENDINFO(m_nModelIndex)),
 	SendPropInt(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),
 	SendPropInt(SENDINFO(m_spawnflags)),
 	SendPropInt(SENDINFO(m_fEffects),EF_MAX_BITS, SPROP_UNSIGNED),
 	SendPropInt(SENDINFO_NAME(m_MoveCollide, movecollide), MOVECOLLIDE_MAX_BITS, SPROP_UNSIGNED),
 	SendPropInt(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
+	
+	SendPropInt(SENDINFO(m_iHammerID)),
 END_SEND_TABLE();
 
 CBaseToggle::CBaseToggle()

@@ -171,8 +171,12 @@ private:
 	struct EventQueueForHistory
 	{
 		float m_flFireTime;
-		char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
-		char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
+		//char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
+		//char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
+
+		CRC32_t m_hszTarget;	   
+		CRC32_t m_hszTargetInput; 
+
 		EHANDLE m_pActivator;
 		EHANDLE m_pCaller;
 		int m_iOutputID;

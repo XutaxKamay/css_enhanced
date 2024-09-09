@@ -132,8 +132,8 @@ END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST(CBaseTrigger, DT_BaseTrigger)
 	SendPropInt(SENDINFO(m_bDisabled)),
-	SendPropStringT(SENDINFO(m_target)),
-	SendPropStringT(SENDINFO(m_iFilterName)),
+	SendPropInt(SENDINFO(m_hszTarget)),
+	SendPropInt(SENDINFO(m_hszFilter)),
 END_SEND_TABLE();
 
 
@@ -171,6 +171,10 @@ void CBaseTrigger::InputTouchTest( inputdata_t &inputdata )
 //------------------------------------------------------------------------------
 void CBaseTrigger::Spawn()
 {
+	// Get checksums
+	m_hszTarget.GetForModify() = UTIL_GetCheckSum( STRING(m_target) );
+	m_hszFilter.GetForModify() = UTIL_GetCheckSum( STRING(m_iFilterName) );
+
 	if ( HasSpawnFlags( SF_TRIGGER_ONLY_PLAYER_ALLY_NPCS ) || HasSpawnFlags( SF_TRIGGER_ONLY_NPCS_IN_VEHICLES ) )
 	{
 		// Automatically set this trigger to work with NPC's.
@@ -230,9 +234,9 @@ void CBaseTrigger::Enable( void )
 void CBaseTrigger::Activate( void ) 
 { 
 	// Get a handle to my filter entity if there is one
-	if (m_iFilterName.Get() != NULL_STRING)
+	if (m_iFilterName != NULL_STRING)
 	{
-		m_hFilter = dynamic_cast<CBaseFilter *>(gEntList.FindEntityByName( NULL, m_iFilterName.Get() ));
+		m_hFilter = dynamic_cast<CBaseFilter *>(UTIL_FindEntityByNameCRC( NULL, m_hszFilter ));
 	}
 
 	BaseClass::Activate();
@@ -2343,13 +2347,15 @@ public:
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
 
-	CNetworkVar(string_t, m_iLandmark);
+	string_t m_iLandmark;
+
+	CNetworkVar(CRC32_t, m_hszLandmark);
 
 	DECLARE_DATADESC();
 };
 
 IMPLEMENT_SERVERCLASS_ST(CTriggerTeleport, DT_TriggerTeleport)
-	SendPropStringT(SENDINFO(m_iLandmark))
+	SendPropInt(SENDINFO(m_hszLandmark)),
 END_SEND_TABLE();
 
 LINK_ENTITY_TO_CLASS( trigger_teleport, CTriggerTeleport );
@@ -2364,6 +2370,10 @@ END_DATADESC()
 
 void CTriggerTeleport::Spawn( void )
 {
+	m_hszLandmark.GetForModify() = UTIL_GetCheckSum( STRING(m_iLandmark) );
+
+	BaseClass::Spawn();
+
 	InitTrigger();
 }
 
@@ -2389,7 +2399,7 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 	}
 
 	// The activator and caller are the same
-	pentTarget = gEntList.FindEntityByName( pentTarget, m_target.Get(), NULL, pOther, pOther );
+	pentTarget = UTIL_FindEntityByNameCRC( pentTarget, m_hszTarget, NULL, pOther, pOther );
 	if (!pentTarget)
 	{
 	   return;
@@ -2400,10 +2410,10 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 	//
 	CBaseEntity	*pentLandmark = NULL;
 	Vector vecLandmarkOffset(0, 0, 0);
-	if (m_iLandmark.Get() != NULL_STRING)
+	if (m_iLandmark != NULL_STRING)
 	{
 		// The activator and caller are the same
-		pentLandmark = gEntList.FindEntityByName(pentLandmark, m_iLandmark, NULL, pOther, pOther );
+		pentLandmark = UTIL_FindEntityByNameCRC(pentLandmark, m_hszLandmark, NULL, pOther, pOther );
 		if (pentLandmark)
 		{
 			vecLandmarkOffset = pOther->GetAbsOrigin() - pentLandmark->GetAbsOrigin();
@@ -2693,9 +2703,9 @@ void CAI_ChangeTarget::InputActivate( inputdata_t &inputdata )
 {
 	CBaseEntity *pTarget = NULL;
 
-	while ((pTarget = gEntList.FindEntityByName( pTarget, m_target.Get(), NULL, inputdata.pActivator, inputdata.pCaller )) != NULL)
+	while ((pTarget = gEntList.FindEntityByName( pTarget, m_target, NULL, inputdata.pActivator, inputdata.pCaller )) != NULL)
 	{
-		pTarget->m_target.GetForModify() = m_iszNewTarget;
+		pTarget->m_target = m_iszNewTarget;
 		CAI_BaseNPC *pNPC = pTarget->MyNPCPointer( );
 		if (pNPC)
 		{

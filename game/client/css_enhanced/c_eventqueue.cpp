@@ -154,13 +154,14 @@ void CEventQueue::Dump( void )
 	{
 		EventQueuePrioritizedEvent_t *next = pe->m_pNext;
 
-		Msg("   (%f) Target: '%s', Input: '%s', Parameter '%s'. Activator: '%s', Caller '%s'.  \n",
+		Msg("   (%f) Target: '%i', Input: '%i', Parameter '%s'. Activator: '%s', Caller '%s'.  \n",
 			pe->m_flFireTime,
-			STRING(pe->m_iTarget),
-			STRING(pe->m_iTargetInput),
+			pe->m_hszTarget,
+			pe->m_hszTargetInput,
 			pe->m_VariantValue.String(),
 			pe->m_pActivator ? pe->m_pActivator->GetDebugName() : "None",
 			pe->m_pCaller ? pe->m_pCaller->GetDebugName() : "None"  );
+
 
 		pe = next;
 	}
@@ -172,14 +173,14 @@ void CEventQueue::Dump( void )
 //-----------------------------------------------------------------------------
 // Purpose: adds the action into the correct spot in the priority queue, targeting entity via string name
 //-----------------------------------------------------------------------------
-void CEventQueue::AddEvent( const char *target, const char *targetInput, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
+void CEventQueue::AddEvent( CRC32_t target, CRC32_t targetInput, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
 	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// priority key in the priority queue
-	newEvent->m_iTarget = MAKE_STRING( target );
+	newEvent->m_hszTarget = target;
 	newEvent->m_pEntTarget = NULL;
-	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
+	newEvent->m_hszTargetInput = targetInput;
 	newEvent->m_pActivator = pActivator;
 	newEvent->m_pCaller = pCaller;
 	newEvent->m_VariantValue = Value;
@@ -191,14 +192,14 @@ void CEventQueue::AddEvent( const char *target, const char *targetInput, variant
 //-----------------------------------------------------------------------------
 // Purpose: adds the action into the correct spot in the priority queue, targeting entity via pointer
 //-----------------------------------------------------------------------------
-void CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
+void CEventQueue::AddEvent( CBaseEntity *target, CRC32_t targetInput, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
 {
 	// build the new event
 	EventQueuePrioritizedEvent_t *newEvent = new EventQueuePrioritizedEvent_t;
 	newEvent->m_flFireTime = gpGlobals->curtime + fireDelay;	// priority key in the priority queue
-	newEvent->m_iTarget = NULL_STRING;
+	newEvent->m_hszTarget = NULL;
 	newEvent->m_pEntTarget = target;
-	newEvent->m_iTargetInput = MAKE_STRING( targetInput );
+	newEvent->m_hszTargetInput = targetInput;
 	newEvent->m_pActivator = pActivator;
 	newEvent->m_pCaller = pCaller;
 	newEvent->m_VariantValue = Value;
@@ -207,7 +208,7 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *targetInput, varian
 	AddEvent( newEvent );
 }
 
-void CEventQueue::AddEvent( CBaseEntity *target, const char *action, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
+void CEventQueue::AddEvent( CBaseEntity *target, CRC32_t action, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID )
 {
 	variant_t Value;
 	Value.Set( FIELD_VOID, NULL );
@@ -221,6 +222,7 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *action, float fireD
 //-----------------------------------------------------------------------------
 void CEventQueue::AddEvent( EventQueuePrioritizedEvent_t *newEvent )
 {
+	ConColorMsg(Color(0, 255, 0, 255), "CEventQueue::AddEvent\n");
 	// loop through the actions looking for a place to insert
 	EventQueuePrioritizedEvent_t *pe;
 	for ( pe = &m_Events; pe->m_pNext != NULL; pe = pe->m_pNext )
@@ -264,24 +266,24 @@ void CEventQueue::ServiceEvents( void )
 	while ( pe != NULL && pe->m_flFireTime <= gpGlobals->curtime )
 	{
 		MDLCACHE_CRITICAL_SECTION();
-
+		
 		bool targetFound = false;
 
 		// find the targets
-		if ( pe->m_iTarget != NULL_STRING )
+		if ( pe->m_hszTarget != NULL )
 		{
 			// In the context the event, the searching entity is also the caller
 			CBaseEntity *pSearchingEntity = pe->m_pCaller;
 			CBaseEntity *target = NULL;
 			while ( 1 )
 			{
-				target = UTIL_FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+				target = UTIL_FindEntityByNameCRC( target, pe->m_hszTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
 
 				if ( !target )
 					break;
 
 				// pump the action into the target
-				target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+				target->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 				targetFound = true;
 			}
 		}
@@ -289,25 +291,25 @@ void CEventQueue::ServiceEvents( void )
 		// direct pointer
 		if ( pe->m_pEntTarget != NULL )
 		{
-			pe->m_pEntTarget->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+			pe->m_pEntTarget->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 			targetFound = true;
 		}
 
 		if ( !targetFound )
 		{
 			// See if we can find a target if we treat the target as a classname
-			if ( pe->m_iTarget != NULL_STRING )
+			if ( pe->m_hszTarget != NULL )
 			{
 				CBaseEntity *target = NULL;
 				while ( 1 )
 				{
-					target = UTIL_FindEntityByClassname( target, STRING(pe->m_iTarget) );
+					target = UTIL_FindEntityByClassnameCRC( target, pe->m_hszTarget );
 
 					if ( !target )
 						break;
 
 					// pump the action into the target
-					target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+					target->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 					targetFound = true;
 				}
 			}
@@ -325,7 +327,7 @@ void CEventQueue::ServiceEvents( void )
 			}
 
 			char szBuffer[256];
-			Q_snprintf( szBuffer, sizeof(szBuffer), "[Client] unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			Q_snprintf( szBuffer, sizeof(szBuffer), "[Client] unhandled input: (%i) -> (%i), from (%s,%s); target entity not found\n", pe->m_hszTargetInput, pe->m_hszTarget, pClass, pName );
 			DevMsg( 2, "%s", szBuffer );
 		}
 
@@ -355,20 +357,20 @@ void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
 		bool targetFound = false;
 
 		// find the targets
-		if ( pe->m_iTarget != NULL_STRING )
+		if ( pe->m_hszTarget != NULL )
 		{
 			// In the context the event, the searching entity is also the caller
 			CBaseEntity *pSearchingEntity = pe->m_pCaller;
 			CBaseEntity *target = NULL;
 			while ( 1 )
 			{
-				target = UTIL_FindEntityByName( target, pe->m_iTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
+				target = UTIL_FindEntityByNameCRC( target, pe->m_hszTarget, pSearchingEntity, pe->m_pActivator, pe->m_pCaller );
 
 				if ( !target )
 					break;
 
 				// pump the action into the target
-				target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+				target->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 				targetFound = true;
 			}
 		}
@@ -376,25 +378,25 @@ void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
 		// direct pointer
 		if ( pe->m_pEntTarget != NULL )
 		{
-			pe->m_pEntTarget->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+			pe->m_pEntTarget->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 			targetFound = true;
 		}
 
 		if ( !targetFound )
 		{
 			// See if we can find a target if we treat the target as a classname
-			if ( pe->m_iTarget != NULL_STRING )
+			if ( pe->m_hszTarget != NULL )
 			{
 				CBaseEntity *target = NULL;
 				while ( 1 )
 				{
-					target = UTIL_FindEntityByClassname( target, STRING(pe->m_iTarget) );
+					target = UTIL_FindEntityByClassnameCRC( target, pe->m_hszTarget );
 
 					if ( !target )
 						break;
 
 					// pump the action into the target
-					target->AcceptInput( STRING(pe->m_iTargetInput), pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
+					target->AcceptInput( pe->m_hszTargetInput, pe->m_pActivator, pe->m_pCaller, pe->m_VariantValue, pe->m_iOutputID );
 					targetFound = true;
 				}
 			}
@@ -412,7 +414,7 @@ void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
 			}
 
 			char szBuffer[256];
-			Q_snprintf( szBuffer, sizeof(szBuffer), "[Client] unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			Q_snprintf( szBuffer, sizeof(szBuffer), "[Client] unhandled input: (%i) -> (%i), from (%s,%s); target entity not found\n", pe->m_hszTargetInput, pe->m_hszTarget, pClass, pName );
 			DevMsg( 2, "%s", szBuffer );
 		}
 
@@ -484,19 +486,19 @@ void CEventQueue::CancelEvents( CBaseEntity *pCaller )
 //			TODO: This is only as reliable as callers are in passing the correct
 //				  caller pointer when they fire the outputs. Make more foolproof.
 //-----------------------------------------------------------------------------
-void CEventQueue::CancelEventOn( CBaseEntity *pTarget, const char *sInputName )
+void CEventQueue::CancelEventOn( CBaseEntity *pTarget, CRC32_t hszInputName )
 {
 	if (!pTarget)
 		return;
 
 	EventQueuePrioritizedEvent_t *pCur = m_Events.m_pNext;
-	const size_t inputNameSize = strlen(sInputName);
+
 	while (pCur != nullptr)
 	{
 		bool bDelete = false;
 		if (pCur->m_pEntTarget == pTarget)
 		{
-			if (!Q_strncmp(STRING(pCur->m_iTargetInput), sInputName, inputNameSize))
+			if (pCur->m_hszTargetInput == hszInputName)
 			{
 				// Found a matching event; delete it from the queue.
 				bDelete = true;
@@ -519,18 +521,18 @@ void CEventQueue::CancelEventOn( CBaseEntity *pTarget, const char *sInputName )
 // Input  : *pTarget -
 //			*sInputName - NULL for any input, or a specified one
 //-----------------------------------------------------------------------------
-bool CEventQueue::HasEventPending( CBaseEntity *pTarget, const char *sInputName )
+bool CEventQueue::HasEventPending( CBaseEntity *pTarget, CRC32_t hszInputName )
 {
 	if (!pTarget)
 		return false;
 
 	EventQueuePrioritizedEvent_t *pCur = m_Events.m_pNext;
-	const size_t inputNameSize = strlen(sInputName);
+
 	while (pCur != nullptr)
 	{
 		if (pCur->m_pEntTarget == pTarget)
 		{
-			if (!sInputName || !Q_strncmp(STRING(pCur->m_iTargetInput), sInputName, inputNameSize))
+			if (!hszInputName || pCur->m_hszTargetInput == hszInputName)
 				return true;
 		}
 
@@ -568,8 +570,8 @@ END_DATADESC()
 // save data for a single event in the queue
 BEGIN_SIMPLE_DATADESC( EventQueuePrioritizedEvent_t )
 DEFINE_FIELD( m_flFireTime, FIELD_FLOAT ),
-DEFINE_FIELD( m_iTarget, FIELD_STRING ),
-DEFINE_FIELD( m_iTargetInput, FIELD_STRING ),
+DEFINE_FIELD( m_hszTarget, FIELD_INTEGER ),
+DEFINE_FIELD( m_hszTargetInput, FIELD_INTEGER ),
 DEFINE_FIELD( m_pActivator, FIELD_EHANDLE ),
 DEFINE_FIELD( m_pCaller, FIELD_EHANDLE ),
 DEFINE_FIELD( m_pEntTarget, FIELD_EHANDLE ),
@@ -626,7 +628,7 @@ int CEventQueue::Restore( IRestore &restore )
 		if ( tmpEvent.m_pEntTarget )
 		{
 			AddEvent( tmpEvent.m_pEntTarget,
-				STRING(tmpEvent.m_iTargetInput),
+				tmpEvent.m_hszTargetInput,
 				tmpEvent.m_VariantValue,
 #ifdef TF_DLL
 				tmpEvent.m_flFireTime - engine->GetServerTime(),
@@ -639,8 +641,8 @@ int CEventQueue::Restore( IRestore &restore )
 		}
 		else
 		{
-			AddEvent( STRING(tmpEvent.m_iTarget),
-				STRING(tmpEvent.m_iTargetInput),
+			AddEvent( tmpEvent.m_hszTarget,
+				tmpEvent.m_hszTargetInput,
 				tmpEvent.m_VariantValue,
 #ifdef TF_DLL
 				tmpEvent.m_flFireTime - engine->GetServerTime(),

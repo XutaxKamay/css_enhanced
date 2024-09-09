@@ -20,6 +20,7 @@
 #include "ServerNetworkProperty.h"
 #include "shareddefs.h"
 #include "engine/ivmodelinfo.h"
+#include "checksum_crc.h"
 
 class CDamageModifier;
 class CDmgAccumulator;
@@ -782,7 +783,7 @@ public:
 	string_t m_iGlobalname; // identifier for carrying entity across level transitions
 	string_t m_iParent;	// the name of the entities parent; linked into m_pParent during Activate()
 
-	int		m_iHammerID; // Hammer unique edit id number
+	CNetworkVar(int, m_iHammerID); // Hammer unique edit id number
 
 public:
 	// was pev->speed
@@ -1183,7 +1184,8 @@ private:
 
 public:
 	// variables promoted from edict_t
-	CNetworkVar(string_t, m_target);
+	string_t m_target;
+
 	CNetworkVarForDerived( int, m_iMaxHealth ); // CBaseEntity doesn't care about changes to this variable, but there are derived classes that do.
 	CNetworkVarForDerived( int, m_iHealth );
 
@@ -1191,7 +1193,7 @@ public:
 	CNetworkVarForDerived( char , m_takedamage );
 
 	// Damage filtering
-	CNetworkVar(string_t,	m_iszDamageFilterName);	// The name of the entity to use as our damage filter.
+	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.
 	EHANDLE		m_hDamageFilter;		// The entity that controls who can damage us.
 
 	// Debugging / devolopment fields
@@ -1639,7 +1641,7 @@ private:
 	// was pev->flags
 	CNetworkVarForDerived( int, m_fFlags );
 
-	CNetworkVar( string_t, m_iName ); // name used to identify this entity
+	string_t m_iName; // name used to identify this entity
 
 	// Damage modifiers
 	friend class CDamageModifier;
@@ -1838,6 +1840,16 @@ public:
 	{
 		return s_bAbsQueriesValid;
 	}
+
+
+public:
+// For css_enhanced
+	CNetworkVar(CRC32_t, m_hszTarget);
+	CNetworkVar(CRC32_t, m_hszClassname);
+	CNetworkVar(CRC32_t, m_hszGlobalname);
+	// CNetworkVar(CRC32_t, m_hszParent); // XYZ_TODO: this needs to be done too
+	CNetworkVar(CRC32_t, m_hszName);
+	CNetworkVar(CRC32_t, m_hszDamageFilter);
 };
 
 // Send tables exposed in this module.
@@ -1964,11 +1976,6 @@ inline int CBaseEntity::GetParentAttachment()
 inline string_t CBaseEntity::GetEntityName() 
 { 
 	return m_iName; 
-}
-
-inline void CBaseEntity::SetName( string_t newName )
-{
-	m_iName = newName;
 }
 
 

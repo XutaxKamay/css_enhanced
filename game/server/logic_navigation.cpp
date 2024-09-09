@@ -131,7 +131,7 @@ void CLogicNavigation::UpdateOnRemove()
 //-----------------------------------------------------------------------------
 void CLogicNavigation::OnEntitySpawned( CBaseEntity *pEntity )
 {
-	if ( m_isOn && ( m_navProperty & NAV_IGNORE ) && pEntity->NameMatches( m_target.Get() ) )
+	if ( m_isOn && ( m_navProperty & NAV_IGNORE ) && pEntity->NameMatches( m_target ) )
 	{
 		pEntity->SetNavIgnore();
 	}
@@ -152,7 +152,7 @@ void CLogicNavigation::TurnOn()
 void CLogicNavigation::UpdateProperty()
 {
 	CBaseEntity *pEntity = NULL;
-	while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING(m_target.Get()) ) ) != NULL )
+	while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING(m_target) ) ) != NULL )
 	{
 		if ( m_isOn )
 		{

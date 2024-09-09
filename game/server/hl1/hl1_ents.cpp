@@ -929,10 +929,10 @@ void CRenderFxManager::Spawn( void )
 
 void CRenderFxManager::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( m_target.Get() != NULL_STRING )
+	if ( m_target != NULL_STRING )
 	{
 		CBaseEntity *pEntity = NULL;
-		while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING( m_target.Get() ) ) ) != NULL )
+		while ( ( pEntity = gEntList.FindEntityByName( pEntity, STRING( m_target ) ) ) != NULL )
 		{
 			if ( !HasSpawnFlags( SF_RENDER_MASKFX ) )
 				pEntity->m_nRenderFX = m_nRenderFX;
@@ -1074,7 +1074,7 @@ void CXenPLight::Touch( CBaseEntity *pOther )
 void CXenPLight::LightOn( void )
 {
 	variant_t Value;
-	g_EventQueue.AddEvent( STRING( m_target.Get() ), "TurnOn", Value, 0, this, this );
+	g_EventQueue.AddEvent( STRING( m_target ), "TurnOn", Value, 0, this, this );
 
 	if ( m_pGlow )
 	     m_pGlow->RemoveEffects( EF_NODRAW );
@@ -1084,7 +1084,7 @@ void CXenPLight::LightOn( void )
 void CXenPLight::LightOff( void )
 {
 	variant_t Value;
-	g_EventQueue.AddEvent( STRING( m_target.Get() ), "TurnOff", Value, 0, this, this );
+	g_EventQueue.AddEvent( STRING( m_target ), "TurnOff", Value, 0, this, this );
 
 	if ( m_pGlow )
 		 m_pGlow->AddEffects( EF_NODRAW );

@@ -1401,24 +1401,6 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	}
 
 	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
-
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
-
-	for ( auto&& event : savedEventQueue )
-	{
-		EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
-
-		newEvent->m_flFireTime	 = event.m_flFireTime;
-		newEvent->m_iTarget		 = event.m_iTarget;
-		newEvent->m_iTargetInput = event.m_iTargetInput;
-		newEvent->m_pEntTarget	 = event.m_pEntTarget;
-		newEvent->m_pActivator	 = event.m_pActivator;
-		newEvent->m_pCaller		 = event.m_pCaller;
-		newEvent->m_VariantValue = event.m_VariantValue;
-		newEvent->m_iOutputID	 = event.m_iOutputID;
-
-		g_EventQueue.AddEvent( newEvent );
-	}
 }
 
 void CPrediction::StorePredictedTouched( int current_command )
@@ -1459,27 +1441,6 @@ void CPrediction::StorePredictedTouched( int current_command )
 			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
 		}
 	}
-
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
-	savedEventQueue.RemoveAll();
-
-	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
-	{
-		EventQueueForHistory event;
-		event.m_flFireTime = pEvent->m_flFireTime;
-		event.m_iOutputID  = pEvent->m_iOutputID;
-		Q_strcpy( event.m_iTarget, pEvent->m_iTarget );
-		Q_strcpy( event.m_iTargetInput, pEvent->m_iTargetInput );
-		event.m_pEntTarget	 = pEvent->m_pEntTarget;
-		event.m_pActivator	 = pEvent->m_pActivator;
-		event.m_pCaller		 = pEvent->m_pCaller;
-		event.m_VariantValue = pEvent->m_VariantValue;
-
-		savedEventQueue.AddToTail( event );
-	}
-
-	// This will be reconstructed later.
-	g_EventQueue.Clear();
 }
 
 //-----------------------------------------------------------------------------

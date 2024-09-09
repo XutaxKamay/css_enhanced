@@ -99,7 +99,7 @@ void CLogicMeasureMovement::Activate()
 
 	SetMeasureTarget( STRING(m_strMeasureTarget) );
 	SetMeasureReference( STRING(m_strMeasureReference) );
-	SetTarget( STRING(m_target.Get()) );
+	SetTarget( STRING(m_target) );
 	SetTargetReference( STRING(m_strTargetReference) );
 	
 	SetThink( &CLogicMeasureMovement::MeasureThink );
@@ -229,7 +229,7 @@ void CLogicMeasureMovement::InputSetMeasureTarget( inputdata_t &inputdata )
 {
 	m_strMeasureTarget = MAKE_STRING( inputdata.value.String() );
 	SetMeasureTarget( inputdata.value.String() );
-	SetTarget( STRING(m_target.Get()) );
+	SetTarget( STRING(m_target) );
 	SetTargetReference( STRING(m_strTargetReference) );
 }
 
@@ -241,7 +241,7 @@ void CLogicMeasureMovement::InputSetMeasureReference( inputdata_t &inputdata )
 
 void CLogicMeasureMovement::InputSetTarget( inputdata_t &inputdata )
 {
-	m_target.GetForModify() = MAKE_STRING( inputdata.value.String() );
+	m_target = MAKE_STRING( inputdata.value.String() );
 	SetTarget( inputdata.value.String() );
 }
 

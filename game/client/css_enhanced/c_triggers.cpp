@@ -18,6 +18,13 @@ END_PREDICTION_DATA();
 IMPLEMENT_CLIENTCLASS_DT(C_TriggerMultiple, DT_TriggerMultiple, CTriggerMultiple)
 END_RECV_TABLE();
 
+BEGIN_DATADESC( C_TriggerMultiple )
+
+	// Outputs
+	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger")
+
+END_DATADESC()
+
 // Global list of triggers that care about weapon fire
 // Doesn't need saving, the triggers re-add themselves on restore.
 CUtlVector< CHandle<C_TriggerMultiple> >	g_hWeaponFireTriggers;

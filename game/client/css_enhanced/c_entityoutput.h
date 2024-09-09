@@ -17,6 +17,7 @@ class variant_t;
 
 #define EVENT_FIRE_ALWAYS	-1
 
+#define _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 
 //-----------------------------------------------------------------------------
 // Purpose: A C_OutputEvent consists of an array of these C_EventActions.
@@ -28,9 +29,15 @@ class C_EventAction
 public:
 	C_EventAction( const char *ActionData = NULL );
 
+#ifdef _USE_STRINGS_WITH_CRC32_ENTITY_OUTPUT_
 	string_t m_iTarget; // name of the entity(s) to cause the action in
 	string_t m_iTargetInput; // the name of the action to fire
 	string_t m_iParameter; // parameter to send, 0 if none
+#endif
+	CRC32_t m_hszTarget; // name of the entity(s) to cause the action in
+	CRC32_t m_hszTargetInput; // the name of the action to fire
+	CRC32_t m_hszParameter; // parameter to send, 0 if none
+	
 	float m_flDelay; // the number of seconds to wait before firing the action
 	int m_nTimesToFire; // The number of times to fire this event, or EVENT_FIRE_ALWAYS.
 

@@ -83,8 +83,9 @@ public:
 	virtual int UpdateTransmitState(void);
 
 	CNetworkVar(bool, m_bDisabled);
-	CNetworkVar(string_t, m_iFilterName);
+	string_t m_iFilterName;
 	CHandle<class CBaseFilter>	m_hFilter;
+	CNetworkVar(CRC32_t, m_hszFilter); 
 
 protected:
 

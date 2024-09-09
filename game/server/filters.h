@@ -31,18 +31,21 @@
 // ###################################################################
 //	> BaseFilter
 // ###################################################################
-class CBaseFilter : public CLogicalEntity
+class CBaseFilter : public CBaseEntity
 {
-	DECLARE_CLASS( CBaseFilter, CLogicalEntity );
+//	DECLARE_CLASS( CBaseFilter, CLogicalEntity );
 
 public:
-
+	DECLARE_CLASS( CBaseFilter, CBaseEntity );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
+
+	virtual int UpdateTransmitState(void);
 
 	bool PassesFilter( CBaseEntity *pCaller, CBaseEntity *pEntity );
 	bool PassesDamageFilter( const CTakeDamageInfo &info );
 
-	bool m_bNegated;
+	CNetworkVar(bool, m_bNegated);
 
 	// Inputs
 	void InputTestActivator( inputdata_t &inputdata );

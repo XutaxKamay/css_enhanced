@@ -31,6 +31,17 @@ BEGIN_DATADESC( CBaseFilter )
 
 END_DATADESC()
 
+
+IMPLEMENT_SERVERCLASS_ST(CBaseFilter, DT_BaseFilter)
+	SendPropInt(SENDINFO(m_bNegated)),
+	SendPropInt(SENDINFO(m_hszName)),
+END_SEND_TABLE();
+
+int CBaseFilter::UpdateTransmitState()
+{
+	return SetTransmitState( FL_EDICT_ALWAYS );  //SetTransmitState( FL_EDICT_PVSCHECK );
+}
+
 //-----------------------------------------------------------------------------
 
 bool CBaseFilter::PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
@@ -89,16 +100,20 @@ enum filter_t
 
 class CFilterMultiple : public CBaseFilter
 {
+public:
 	DECLARE_CLASS( CFilterMultiple, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
 	filter_t	m_nFilterType;
 	string_t	m_iFilterName[MAX_FILTERS];
+	CNetworkArray(CRC32_t, m_hszFilterName, MAX_FILTERS);
 	EHANDLE		m_hFilter[MAX_FILTERS];
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity );
 	bool PassesDamageFilterImpl(const CTakeDamageInfo &info);
 	void Activate(void);
+	virtual void		Spawn() override;
 };
 
 LINK_ENTITY_TO_CLASS(filter_multi, CFilterMultiple);
@@ -122,6 +137,19 @@ BEGIN_DATADESC( CFilterMultiple )
 END_DATADESC()
 
 
+IMPLEMENT_SERVERCLASS_ST(CFilterMultiple, DT_FilterMultiple)
+    SendPropArray3(SENDINFO_ARRAY3(m_hszFilterName), SendPropInt(SENDINFO_ARRAY(m_hszFilterName), 32, SPROP_UNSIGNED)),
+END_SEND_TABLE();
+
+void CFilterMultiple::Spawn()
+{
+	for (int i = 0; i < MAX_FILTERS; i++)
+	{
+		m_hszFilterName.GetForModify( i ) = UTIL_GetCheckSum( STRING(m_iFilterName[ i ]) );
+	}
+
+	BaseClass::Spawn();
+}
 
 //------------------------------------------------------------------------------
 // Purpose : Called after all entities have been loaded
@@ -138,7 +166,7 @@ void CFilterMultiple::Activate( void )
 	{
 		if ( m_iFilterName[i] != NULL_STRING )
 		{
-			CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_iFilterName[i] );
+			CBaseEntity *pEntity = UTIL_FindEntityByNameCRC( NULL, m_hszFilterName[i] );
 			CBaseFilter *pFilter = dynamic_cast<CBaseFilter *>(pEntity);
 			if ( pFilter == NULL )
 			{
@@ -240,10 +268,14 @@ bool CFilterMultiple::PassesDamageFilterImpl(const CTakeDamageInfo &info)
 class CFilterName : public CBaseFilter
 {
 	DECLARE_CLASS( CFilterName, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
 public:
 	string_t m_iFilterName;
+	CNetworkVar(int, m_hszFilterName);
+
+	virtual void Spawn() override;
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -259,6 +291,13 @@ public:
 	}
 };
 
+void CFilterName::Spawn()
+{
+	m_hszFilterName = UTIL_GetCheckSum(STRING(m_iFilterName));
+
+	BaseClass::Spawn();
+}
+
 LINK_ENTITY_TO_CLASS( filter_activator_name, CFilterName );
 
 BEGIN_DATADESC( CFilterName )
@@ -268,6 +307,9 @@ BEGIN_DATADESC( CFilterName )
 
 END_DATADESC()
 
+IMPLEMENT_SERVERCLASS_ST(CFilterName, DT_FilterName)
+	SendPropInt(SENDINFO(m_hszFilterName)),
+END_SEND_TABLE();
 
 
 // ###################################################################
@@ -276,16 +318,27 @@ END_DATADESC()
 class CFilterClass : public CBaseFilter
 {
 	DECLARE_CLASS( CFilterClass, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
 public:
 	string_t m_iFilterClass;
+	CNetworkVar(int, m_hszFilterClass);
+
+	virtual void Spawn() override;
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
 		return pEntity->ClassMatches( STRING(m_iFilterClass) );
 	}
 };
+
+void CFilterClass::Spawn()
+{
+	m_hszFilterClass = UTIL_GetCheckSum(STRING(m_iFilterClass));
+
+	BaseClass::Spawn();
+}
 
 LINK_ENTITY_TO_CLASS( filter_activator_class, CFilterClass );
 
@@ -297,16 +350,22 @@ BEGIN_DATADESC( CFilterClass )
 END_DATADESC()
 
 
+IMPLEMENT_SERVERCLASS_ST(CFilterClass, DT_FilterClass)
+	SendPropInt(SENDINFO(m_hszFilterClass)),
+END_SEND_TABLE();
+
+
 // ###################################################################
 //	> FilterTeam
 // ###################################################################
 class FilterTeam : public CBaseFilter
 {
 	DECLARE_CLASS( FilterTeam, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
 public:
-	int		m_iFilterTeam;
+	CNetworkVar(int,		m_iFilterTeam);
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -323,6 +382,10 @@ BEGIN_DATADESC( FilterTeam )
 
 END_DATADESC()
 
+IMPLEMENT_SERVERCLASS_ST(FilterTeam, DT_FilterTeam)
+	SendPropInt(SENDINFO(m_iFilterTeam)),
+END_SEND_TABLE();
+
 
 // ###################################################################
 //	> FilterMassGreater
@@ -330,10 +393,11 @@ END_DATADESC()
 class CFilterMassGreater : public CBaseFilter
 {
 	DECLARE_CLASS( CFilterMassGreater, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
 public:
-	float m_fFilterMass;
+	CNetworkVar(	float, m_fFilterMass);
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -353,6 +417,10 @@ DEFINE_KEYFIELD( m_fFilterMass,	FIELD_FLOAT,	"filtermass" ),
 
 END_DATADESC()
 
+IMPLEMENT_SERVERCLASS_ST(CFilterMassGreater, DT_FilterMassGreater)
+	SendPropFloat(SENDINFO(m_fFilterMass)),
+END_SEND_TABLE();
+
 
 // ###################################################################
 //	> FilterDamageType
@@ -360,9 +428,10 @@ END_DATADESC()
 class FilterDamageType : public CBaseFilter
 {
 	DECLARE_CLASS( FilterDamageType, CBaseFilter );
+	DECLARE_NETWORKCLASS();
 	DECLARE_DATADESC();
 
-protected:
+public:
 
 	bool PassesFilterImpl(CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -375,7 +444,7 @@ protected:
 	 	return info.GetDamageType() == m_iDamageType;
 	}
 
-	int m_iDamageType;
+	CNetworkVar(int, m_iDamageType);
 };
 
 LINK_ENTITY_TO_CLASS( filter_damage_type, FilterDamageType );
@@ -386,6 +455,10 @@ BEGIN_DATADESC( FilterDamageType )
 	DEFINE_KEYFIELD( m_iDamageType,	FIELD_INTEGER,	"damagetype" ),
 
 END_DATADESC()
+
+IMPLEMENT_SERVERCLASS_ST(FilterDamageType, DT_FilterDamageType)
+	SendPropInt(SENDINFO(m_iDamageType)),
+END_SEND_TABLE();
 
 // ###################################################################
 //	> CFilterEnemy

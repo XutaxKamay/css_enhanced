@@ -605,7 +605,7 @@ CBaseEntity *CGlobalEntityList::FindEntityByName( CBaseEntity *pStartEntity, con
 			continue;
 		}
 
-		if ( ent->m_iName.Get() == NULL_STRING )
+		if ( ent->m_iName == NULL_STRING )
 			continue;
 
 		if ( ent->NameMatches( szName ) )
@@ -668,10 +668,10 @@ CBaseEntity	*CGlobalEntityList::FindEntityByTarget( CBaseEntity *pStartEntity, c
 			continue;
 		}
 
-		if ( !ent->m_target.Get() )
+		if ( !ent->m_target )
 			continue;
 
-		if ( FStrEq( STRING(ent->m_target.Get()), szName ) )
+		if ( FStrEq( STRING(ent->m_target), szName ) )
 			return ent;
 	}
 

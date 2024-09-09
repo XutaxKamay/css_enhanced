@@ -194,18 +194,6 @@ void SendProxy_OriginZ( const SendProp *pProp, const void *pStruct, const void *
 	pOut->m_Float = v->z;
 }
 
-CON_COMMAND(log_global_names, "")
-{
-	CBaseEntity* pEntity = gEntList.FirstEnt();
-
-	while ( pEntity != NULL )
-	{
-		ConMsg("Entity %i: \n\tm_iGlobalname: %s\n\tm_iName: %s\n\tm_target: %s\n\tm_iClassname: %s\n", pEntity->entindex(), pEntity->m_iGlobalname, pEntity->GetEntityName(), pEntity->m_target.Get(), pEntity->GetClassname());
-
-		pEntity = gEntList.NextEnt( pEntity );
-	}
-}
-
 void SendProxy_Angles( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
 {
 	CBaseEntity *entity = (CBaseEntity*)pStruct;
@@ -251,7 +239,15 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropInt		(SENDINFO(m_iParentAttachment), NUM_PARENTATTACHMENT_BITS, SPROP_UNSIGNED),
 
 	// Send the name
-	SendPropStringT	(SENDINFO(m_iName)),
+	//SendPropStringT	(SENDINFO(m_iName)),
+	SendPropInt(SENDINFO(m_hszName)),
+	SendPropInt(SENDINFO(m_hszClassname)),
+	SendPropInt(SENDINFO(m_hszGlobalname)),
+	SendPropInt(SENDINFO(m_hszDamageFilter)), // should this be here?
+
+	SendPropInt(SENDINFO(m_iHammerID)), // networking this to link
+										// game to map entities
+	
 
 	SendPropInt		(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO_NAME( m_MoveCollide, movecollide ), MOVECOLLIDE_MAX_BITS, SPROP_UNSIGNED ),
@@ -576,11 +572,6 @@ CBaseEntity *CBaseEntity::GetFollowedEntity()
 	if (!IsFollowingEntity())
 		return NULL;
 	return GetMoveParent();
-}
-
-void CBaseEntity::SetClassname( const char *className )
-{
-	m_iClassname = AllocPooledString( className );
 }
 
 void CBaseEntity::SetModelIndex( int index )
@@ -1195,7 +1186,7 @@ void CBaseEntity::SetParent( CBaseEntity *pParentEntity, int iAttachment )
 //-----------------------------------------------------------------------------
 void CBaseEntity::ValidateEntityConnections()
 {
-	if ( m_target.Get() == NULL_STRING )
+	if ( m_target == NULL_STRING )
 		return;
 
 	if ( ClassMatches( "scripted_*" )			||
@@ -1294,9 +1285,9 @@ void CBaseEntity::Activate( void )
 	}	
 
 	// Get a handle to my damage filter entity if there is one.
-	if ( m_iszDamageFilterName.Get() != NULL_STRING )
+	if ( m_iszDamageFilterName != NULL_STRING )
 	{
-		m_hDamageFilter = gEntList.FindEntityByName( NULL, m_iszDamageFilterName.Get() );
+		m_hDamageFilter = gEntList.FindEntityByName( NULL, m_iszDamageFilterName );
 	}
 
 	// Add any non-null context strings to our context vector
@@ -1612,8 +1603,8 @@ void CBaseEntity::SendOnKilledGameEvent( const CTakeDamageInfo &info )
 
 bool CBaseEntity::HasTarget( string_t targetname )
 {
-	if( targetname != NULL_STRING && m_target.Get() != NULL_STRING )
-		return FStrEq(STRING(targetname), STRING(m_target.Get()) );
+	if( targetname != NULL_STRING && m_target != NULL_STRING )
+		return FStrEq(STRING(targetname), STRING(m_target) );
 	else
 		return false;
 }
@@ -1621,9 +1612,9 @@ bool CBaseEntity::HasTarget( string_t targetname )
 
 CBaseEntity *CBaseEntity::GetNextTarget( void )
 {
-	if ( !m_target.Get() )
+	if ( !m_target )
 		return NULL;
-	return gEntList.FindEntityByName( NULL, m_target.Get() );
+	return gEntList.FindEntityByName( NULL, m_target );
 }
 
 class CThinkContextsSaveDataOps : public CDefSaveRestoreOps
@@ -1726,6 +1717,18 @@ BEGIN_SIMPLE_DATADESC( ResponseContext_t )
 	DEFINE_FIELD( m_fExpirationTime,	FIELD_TIME ),
 
 END_DATADESC()
+
+CON_COMMAND(log_global_names, "")
+{
+	CBaseEntity* pEntity = gEntList.FirstEnt();
+
+	while ( pEntity != NULL )
+	{
+		ConMsg("Entity %i: \n\tm_iGlobalname: %s\n\tm_iName: %s\n\tm_target: %s\n\tm_iClassname: %s\nm_iHammerID: %i\n", pEntity->entindex(), pEntity->m_iGlobalname, pEntity->GetEntityName(), pEntity->m_target, pEntity->GetClassname(), pEntity->m_iHammerID);
+
+		pEntity = gEntList.NextEnt( pEntity );
+	}
+}
 
 BEGIN_DATADESC_NO_BASE( CBaseEntity )
 
@@ -3649,9 +3652,9 @@ const char *CBaseEntity::GetDebugName(void)
 	if ( this == NULL )
 		return "<<null>>";
 
-	if ( m_iName.Get() != NULL_STRING )
+	if ( m_iName != NULL_STRING )
 	{
-		return STRING(m_iName.Get());
+		return STRING(m_iName);
 	}
 	else
 	{
@@ -7002,6 +7005,20 @@ void CC_Ent_Orient( const CCommand& args )
 
 		pEnt->SetAbsAngles( vecEntAngles );
 	}
+}
+
+void CBaseEntity::SetName( string_t newName )
+{
+	m_hszName.GetForModify() = UTIL_GetCheckSum( STRING(newName) );
+
+	m_iName = newName;
+}
+
+void CBaseEntity::SetClassname( const char *className )
+{
+	m_iClassname = AllocPooledString( className );
+
+	m_hszClassname.GetForModify() = UTIL_GetCheckSum( STRING(m_iClassname) );
 }
 
 static ConCommand ent_orient("ent_orient", CC_Ent_Orient, "Orient the specified entity to match the player's angles. By default, only orients target entity's YAW. Use the 'allangles' option to orient on all axis.\n\tFormat: ent_orient <entity name> <optional: allangles>", FCVAR_CHEAT);

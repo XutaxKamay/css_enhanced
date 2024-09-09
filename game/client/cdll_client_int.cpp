@@ -1569,6 +1569,87 @@ void CHLClient::View_Fade( ScreenFade_t *pSF )
 		vieweffects->Fade( *pSF );
 }
 
+#include "mapentities_shared.h"
+
+// for quicker access to map entities
+// is CUtlMap fine?
+static CUtlMap<int, int> s_entityMap(0, 0, DefLessFunc( int ));
+
+static int s_GetOffsetByHammerID( int hammerid )
+{
+	if (hammerid != 0)
+	{
+		unsigned short slot = s_entityMap.Find( hammerid );
+
+		if ( slot != s_entityMap.InvalidIndex() )
+		{
+			return s_entityMap.Element( slot );
+		}
+	}
+
+	return -1;
+}
+
+void MapEntityInit(C_BaseEntity* pEntity)
+{
+	int ofs = s_GetOffsetByHammerID( pEntity->m_iHammerID );
+
+	if (ofs != -1)
+	{
+		const char* pMapData = PTCHAR( engine->GetMapEntitiesString() + ofs ); 
+
+		//ConColorMsg(Color(7, 177, 77, 255), "\tC_BaseEntity::PostDataUpdate - DATA_UPDATE_CREATED - %i\n", pEntity->m_iHammerID);
+
+		const char *pCurMapData = pMapData;
+
+		CEntityMapData entData( (char*)pMapData );
+			
+		pEntity->ParseMapData( &entData );
+
+		pMapData = entData.CurrentBufferPosition();
+	}
+}
+
+static void s_LevitInit()
+{
+	s_entityMap.Purge();
+
+	char szTokenBuffer[MAPKEY_MAXLENGTH];
+	
+	const char* pMapData = engine->GetMapEntitiesString();
+
+	for ( ; true; pMapData = MapEntity_SkipToNextEntity(pMapData, szTokenBuffer) )
+	{
+		char token[MAPKEY_MAXLENGTH];
+		pMapData = MapEntity_ParseToken( pMapData, token );
+
+		if (!pMapData)
+			break;
+
+		if (token[0] != '{')
+		{
+			Error( "ParseAllEntities: found %s when expecting {", token);
+			continue;
+		}
+
+		int offset = pMapData - engine->GetMapEntitiesString();
+		//offset -= 1;
+
+		const char *pCurMapData = pMapData;
+
+		CEntityMapData entData( (char*)pMapData );
+		char hammerid[MAPKEY_MAXLENGTH];
+
+		if (entData.ExtractValue("hammerid", hammerid))
+		{
+			//ConColorMsg(Color(7, 177, 77, 255), "\ts_LevitInit %s - %i, %i, %c\n", hammerid, atoi( hammerid ), offset, engine->GetMapEntitiesString()[offset]);
+			s_entityMap.Insert( atoi( hammerid ), offset );
+		}
+
+		pMapData = entData.CurrentBufferPosition();
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Per level init
 //-----------------------------------------------------------------------------
@@ -1578,6 +1659,8 @@ void CHLClient::LevelInitPreEntity( char const* pMapName )
 	if (g_bLevelInitialized)
 		return;
 	g_bLevelInitialized = true;
+
+	s_LevitInit();
 
 	input->LevelInit();
 

@@ -810,10 +810,10 @@ void CInfoAPCMissileHint::Activate( )
 {
 	BaseClass::Activate();
 
-	m_hTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
+	m_hTarget = gEntList.FindEntityByName( NULL, m_target );
 	if ( m_hTarget == NULL )
 	{
-		DevWarning( "%s: Could not find target '%s'!\n", GetClassname(), STRING( m_target.Get() ) );
+		DevWarning( "%s: Could not find target '%s'!\n", GetClassname(), STRING( m_target ) );
 	}
 	else
 	{

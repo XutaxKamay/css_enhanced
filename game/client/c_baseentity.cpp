@@ -364,14 +364,6 @@ BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_PredictableId )
 	RecvPropInt( RECVINFO( m_bIsPlayerSimulated ) ),
 END_RECV_TABLE()
 #endif
-
-void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
-
-	Q_strncpy( entity->m_iName, pData->m_Value.m_pString, MAX_PATH );
-}
-
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "AnimTimeMustBeFirst", 0, 0, &REFERENCE_RECV_TABLE(DT_AnimTimeMustBeFirst) ),
 	RecvPropFloat( RECVINFO(m_flSimulationTime) ),
@@ -404,7 +396,14 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
 	// Receive the name
-	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_Name),
+	//RecvPropString(RECVINFO(m_iName)),
+	RecvPropInt(RECVINFO(m_hszName)),
+	RecvPropInt(RECVINFO(m_hszClassname)),
+	RecvPropInt(RECVINFO(m_hszGlobalname)),
+	RecvPropInt(RECVINFO(m_hszDamageFilter)), // should this be here?
+	// XYZ_TODO: network the other stuff!!
+
+	RecvPropInt(RECVINFO(m_iHammerID)),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
@@ -432,8 +431,12 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 	// These have a special proxy to handle send/receive
 	DEFINE_PRED_TYPEDESCRIPTION( m_Collision, CCollisionProperty ),
 
-	DEFINE_PRED_FIELD( m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
-
+//	DEFINE_PRED_FIELD( m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hszName, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hszClassname, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hszGlobalname, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_hszDamageFilter, FIELD_STRING, FTYPEDESC_INSENDTABLE ), // should this be here?
+	
 	DEFINE_PRED_FIELD( m_MoveType, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_MoveCollide, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 
