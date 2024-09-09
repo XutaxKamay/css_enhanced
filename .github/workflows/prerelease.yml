@@ -56,7 +56,7 @@ jobs:
         ./waf configure -T release --prefix ./gamedata/css_enhanced/game
         ./waf build install
         cd ./gamedata/css_enhanced/game
-        zip -r CSS_Enhanced_Windows_Development_Release.zip ./*
+        7z a CSS_Enhanced_Windows_Development_Release.zip ./
         mkdir -p ~/.ssh
         eval $(ssh-agent)
         ssh-add - <<< "$SSH_KEY"
