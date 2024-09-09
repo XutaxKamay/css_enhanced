@@ -242,11 +242,6 @@ void FX_FireBullets(
 	
 	StartGroupingSounds();
 
-#if !defined (CLIENT_DLL)
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
-
 	RandomSeed( iSeed );
 
 	float x, y;
@@ -359,10 +354,6 @@ void FX_FireBullets(
 			break;
 		}
 	}
-#endif
-
-#if !defined (CLIENT_DLL)
-	lagcompensation->FinishLagCompensation( pPlayer );
 #endif
 
 	EndGroupingSounds();
