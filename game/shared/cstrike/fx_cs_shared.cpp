@@ -366,6 +366,15 @@ void FX_FireBullets(
 		float x1	   = fRadius1 * cosf( fTheta1 );
 		float y1	   = fRadius1 * sinf( fTheta1 );
 
+		// Always straight for the first bullet;
+		if ( weapon_accuracy_noinaccuracy.GetBool() && iBullet == 0 )
+		{
+			x0 = 0.0f;
+			y0 = 0.0f;
+			x1 = 0.0f;
+			y1 = 0.0f;
+		}
+
 		pPlayer->FireBullet( iBullet,
 							 vOrigin,
 							 vAngles,
