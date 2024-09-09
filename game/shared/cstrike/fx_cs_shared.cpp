@@ -359,6 +359,8 @@ void FX_FireBullets(
         }
 #endif
 
+		RandomSeed( iSeed + iBullet ); // init random system with this seed
+
 		float fTheta1  = RandomFloat( 0.0f, 2.0f * M_PI );
 		float fRadius1 = RandomFloat( 0.0f, fSpread );
 		float x1	   = fRadius1 * cosf( fTheta1 );
