@@ -1,0 +1,83 @@
+name: Prerelease
+
+on:
+  push:
+    branches:
+      - "master"
+
+jobs:
+  build-linux-amd64:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build linux-amd64
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      run: |
+        scripts/build-ubuntu-amd64.sh install -T release --prefix ./gamedata/css_enhanced/game
+        cd ./gamedata/css_enhanced/game
+        zip -r CSS_Enhanced_Linux_Development_Release.zip ./*
+        mkdir -p ~/.ssh
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+        scp CSS_Enhanced_Linux_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
+
+  build-android-armv7a:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build android-armv7a
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      run: |
+        scripts/build-android-armv7a.sh install -T release --prefix ./gamedata/css_enhanced/game
+        cd ./gamedata/css_enhanced/game
+        zip -r CSS_Enhanced_Android_Development_Release.zip ./*
+        mkdir -p ~/.ssh
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+        scp CSS_Enhanced_Android_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
+
+  build-windows-amd64:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build windows-amd64
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      shell: bash
+      run: |
+        git submodule init && git submodule update
+        ./waf configure -T release --prefix ./gamedata/css_enhanced/game
+        ./waf build install
+        cd ./gamedata/css_enhanced/game
+        zip -r CSS_Enhanced_Windows_Development_Release.zip ./*
+        mkdir -p ~/.ssh
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+        scp CSS_Enhanced_Windows_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
+
+  build-macos-amd64:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build macos-amd64
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      run: |
+        scripts/build-macos-amd64.sh install -T release --prefix ./gamedata/css_enhanced/game
+        cd ./gamedata/css_enhanced/game
+        zip -r CSS_Enhanced_MacOS_Development_Release.zip ./*
+        mkdir -p ~/.ssh
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+        scp CSS_Enhanced_MacOS_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
+
