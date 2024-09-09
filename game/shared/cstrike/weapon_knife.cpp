@@ -219,14 +219,7 @@ void CKnife::PrimaryAttack()
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( pPlayer )
 	{
-#if !defined (CLIENT_DLL)
-		// Move other players back to history positions based on local player's lag
-		lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
 		SwingOrStab( false );
-#if !defined (CLIENT_DLL)
-		lagcompensation->FinishLagCompensation( pPlayer );
-#endif
 	}
 }
 

@@ -99,11 +99,6 @@ CBaseEntity *CWeaponDODBaseMelee::MeleeAttack( int iDamageAmount, int iDamageTyp
 
 	CDODPlayer *pPlayer = ToDODPlayer( GetPlayerOwner() );
 
-#if !defined (CLIENT_DLL)
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
-
 	Vector vForward, vRight, vUp;
 	AngleVectors( pPlayer->EyeAngles(), &vForward, &vRight, &vUp );
 	Vector vecSrc	= pPlayer->Weapon_ShootPosition();
@@ -230,7 +225,6 @@ CBaseEntity *CWeaponDODBaseMelee::MeleeAttack( int iDamageAmount, int iDamageTyp
 		gameeventmanager->FireEvent( event );
 	}
 
-	lagcompensation->FinishLagCompensation( pPlayer );
 #endif	//CLIENT_DLL
 
 	return tr.m_pEnt;

@@ -585,9 +585,6 @@ void CHL2MP_Player::PlayerDeathThink()
 
 void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 {
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( this, this->GetCurrentCommand() );
-
 	FireBulletsInfo_t modinfo = info;
 
 	CWeaponHL2MPBase *pWeapon = dynamic_cast<CWeaponHL2MPBase *>( GetActiveWeapon() );
@@ -600,9 +597,6 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 	NoteWeaponFired();
 
 	BaseClass::FireBullets( modinfo );
-
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->FinishLagCompensation( this );
 }
 
 void CHL2MP_Player::NoteWeaponFired( void )

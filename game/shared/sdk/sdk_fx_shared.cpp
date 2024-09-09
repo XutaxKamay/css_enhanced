@@ -188,11 +188,6 @@ void FX_FireBullets(
 	
 	StartGroupingSounds();
 
-#if !defined (CLIENT_DLL)
-	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
-#endif
-
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
 	{
 		RandomSeed( iSeed );	// init random system with this seed
@@ -214,10 +209,6 @@ void FX_FireBullets(
 			bDoEffects,
 			x,y );
 	}
-
-#if !defined (CLIENT_DLL)
-	lagcompensation->FinishLagCompensation( pPlayer );
-#endif
 
 	EndGroupingSounds();
 }
