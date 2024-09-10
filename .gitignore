@@ -41,3 +41,4 @@ source-engine.sln
 *.tmp
 *.lst
 *.so
+*.patch
