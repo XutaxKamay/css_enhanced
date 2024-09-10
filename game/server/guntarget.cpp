@@ -183,7 +183,7 @@ void CGunTarget::Wait( void )
 		
 	m_flWait = pTarget->GetDelay();
 
-	m_target.GetForModify() = pTarget->m_target.Get();
+	m_target = pTarget->m_target;
 	SetMoveDone( &CGunTarget::Next );
 	if (m_flWait != 0)
 	{// -1 wait will wait forever!		

@@ -29,6 +29,7 @@
 #include "util_shared.h"
 #include "css_enhanced/c_eventqueue.h"
 #include "utlvector.h"
+#include "client_thinklist.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -113,8 +114,8 @@ CPrediction::CPrediction( void )
 	{
 		for (int j = 0; j < MAX_EDICTS; j++)
         {
-            m_touchedHistory[i][j].savedTouches.RemoveAll();
-			m_touchedHistory[i][j].touchedTriggerEntities.RemoveAll();
+            m_TouchedHistory[i][j].savedTouches.RemoveAll();
+			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
 		}
 	}
 #endif
@@ -1357,71 +1358,114 @@ void CPrediction::RestorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
-	if ( m_nCommandsPredicted == 0 )
+	if ( m_nCommandsPredicted > 0 )
 	{
-		return;
-	}
+		bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 
-	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
+		// Don't call StartTouch/EndTouch here, let run command do it.
+		CBaseEntity::sm_bDisableTouchFuncs = true;
 
-	// Don't call StartTouch/EndTouch here, let run command do it.
-	CBaseEntity::sm_bDisableTouchFuncs = true;
+		int pc = predictables->GetPredictableCount();
+		int p;
 
-	int pc = predictables->GetPredictableCount();
-	int p;
-	for ( p = 0; p < pc; p++ )
-	{
-		C_BaseEntity* ent = predictables->GetPredictable( p );
-		if ( !ent )
+		for ( p = 0; p < pc; p++ )
 		{
-			continue;
-		}
-
-		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
-
-		C_BaseEntity::PhysicsRemoveTouchedList( ent );
-
-		for ( int i = 0; i < savedTouchList.savedTouches.Count(); i++ )
-		{
-			SavedTouch_t& touch = savedTouchList.savedTouches[i];
-			auto pEntity		= ClientEntityList().GetBaseEntity( touch.entityTouched );
-
-			// Entity doesn't exist anymore, don't bother ...
-			if ( !pEntity )
+			C_BaseEntity* ent = predictables->GetPredictable( p );
+			if ( !ent )
 			{
 				continue;
 			}
 
-			ent->PhysicsMarkEntityAsTouched( pEntity );
-			pEntity->PhysicsMarkEntityAsTouched( ent );
+			// First remove from previous touch list.
+			C_BaseEntity::PhysicsRemoveTouchedList( ent );
 		}
 
-		if ( ent->IsTrigger() )
+		// Restore now.
+		for ( p = 0; p < pc; p++ )
 		{
-			auto trigger				 = static_cast< C_BaseTrigger* >( ent );
-			trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+			C_BaseEntity* ent = predictables->GetPredictable( p );
+			if ( !ent )
+			{
+				continue;
+			}
+
+			auto& savedTouchList = m_TouchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+
+			for ( int i = 0; i < savedTouchList.savedTouches.Count(); i++ )
+			{
+				SavedTouch_t& touch = savedTouchList.savedTouches[i];
+				auto pEntity		= ClientEntityList().GetBaseEntity( touch.entityTouched );
+
+				// Entity doesn't exist anymore, don't bother ...
+				if ( !pEntity )
+				{
+					continue;
+				}
+
+				ent->PhysicsMarkEntityAsTouched( pEntity );
+				pEntity->PhysicsMarkEntityAsTouched( ent );
+			}
+
+			if ( ent->IsTrigger() )
+			{
+				auto trigger				 = static_cast< C_BaseTrigger* >( ent );
+				trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+			}
 		}
+
+		CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
 	}
 
-	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
+	// Clear the event queue first.
+	g_EventQueue.Clear();
 
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& savedEventQueue = m_EventQueueHistory[current_command % MULTIPLAYER_BACKUP];
 
 	for ( auto&& event : savedEventQueue )
 	{
 		EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
 
-		newEvent->m_flFireTime	 = event.m_flFireTime;
-		newEvent->m_iTarget		 = event.m_iTarget;
-		newEvent->m_iTargetInput = event.m_iTargetInput;
-		newEvent->m_pEntTarget	 = event.m_pEntTarget;
-		newEvent->m_pActivator	 = event.m_pActivator;
-		newEvent->m_pCaller		 = event.m_pCaller;
-		newEvent->m_VariantValue = event.m_VariantValue;
-		newEvent->m_iOutputID	 = event.m_iOutputID;
+		newEvent->m_flFireTime	   = event.m_flFireTime;
+		newEvent->m_hszTarget	   = event.m_hszTarget;
+		newEvent->m_hszTargetInput = event.m_hszTargetInput;
+		newEvent->m_pEntTarget	   = event.m_pEntTarget;
+		newEvent->m_pActivator	   = event.m_pActivator;
+		newEvent->m_pCaller		   = event.m_pCaller;
+		newEvent->m_VariantValue   = event.m_VariantValue;
+		newEvent->m_iOutputID	   = event.m_iOutputID;
 
 		g_EventQueue.AddEvent( newEvent );
 	}
+
+	// auto& savedThinkList = m_ClientThinkListHistory[current_command % MULTIPLAYER_BACKUP];
+
+	// // First remove any previously predicted think list.
+	// auto clientThinkList = ClientThinkList();
+	// auto thinkEntries	 = clientThinkList->GetThinkEntries();
+	// auto changeList		 = clientThinkList->GetChangeList();
+	// auto deleteList		 = clientThinkList->GetDeleteList();
+
+	// thinkEntries->RemoveAll();
+	// changeList->RemoveAll();
+	// deleteList->RemoveAll();
+
+	// // Then restore
+	// for ( auto&& thinkEntry : savedThinkList.m_ThinkEntries )
+	// {
+	// 	thinkEntries->AddToTail( thinkEntry );
+	// }
+
+	// for ( auto&& change : savedThinkList.m_aChangeList )
+	// {
+	// 	changeList->AddToTail( change );
+	// }
+
+	// for ( auto&& _delete : savedThinkList.m_aDeleteList )
+	// {
+	// 	deleteList->AddToTail( _delete );
+	// }
+
+	// *clientThinkList->IterNum() = savedThinkList.m_nIterEnum;
 #endif
 }
 
@@ -1442,7 +1486,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 		}
 
 		auto root			 = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
-		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+		auto& savedTouchList = m_TouchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
 
 		savedTouchList.savedTouches.RemoveAll();
 
@@ -1465,26 +1509,52 @@ void CPrediction::StorePredictedTouched( int current_command )
 		}
 	}
 
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& savedEventQueue = m_EventQueueHistory[current_command % MULTIPLAYER_BACKUP];
 	savedEventQueue.RemoveAll();
 
 	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
 	{
 		EventQueueForHistory event;
-		event.m_flFireTime = pEvent->m_flFireTime;
-		event.m_iOutputID  = pEvent->m_iOutputID;
-		Q_strcpy( event.m_iTarget, pEvent->m_iTarget );
-		Q_strcpy( event.m_iTargetInput, pEvent->m_iTargetInput );
-		event.m_pEntTarget	 = pEvent->m_pEntTarget;
-		event.m_pActivator	 = pEvent->m_pActivator;
-		event.m_pCaller		 = pEvent->m_pCaller;
-		event.m_VariantValue = pEvent->m_VariantValue;
+		event.m_flFireTime	   = pEvent->m_flFireTime;
+		event.m_iOutputID	   = pEvent->m_iOutputID;
+		event.m_hszTarget	   = pEvent->m_hszTarget;
+		event.m_hszTargetInput = pEvent->m_hszTargetInput;
+		event.m_pEntTarget	   = pEvent->m_pEntTarget;
+		event.m_pActivator	   = pEvent->m_pActivator;
+		event.m_pCaller		   = pEvent->m_pCaller;
+		event.m_VariantValue   = pEvent->m_VariantValue;
 
 		savedEventQueue.AddToTail( event );
 	}
 
-	// This will be reconstructed later.
-	g_EventQueue.Clear();
+	// // First remove all previous entry.
+	// auto& savedThinkList = m_ClientThinkListHistory[current_command % MULTIPLAYER_BACKUP];
+	// savedThinkList.Clear();
+
+	// // Then save.
+	// auto clientThinkList = ClientThinkList();
+	// auto thinkEntries	 = clientThinkList->GetThinkEntries();
+
+	// for ( auto&& thinkEntry : *thinkEntries )
+	// {
+	// 	savedThinkList.m_ThinkEntries.AddToTail( thinkEntry );
+	// }
+
+	// auto changeList = clientThinkList->GetChangeList();
+
+	// for ( auto&& change : *changeList )
+	// {
+	// 	savedThinkList.m_aChangeList.AddToTail( change );
+	// }
+
+	// auto deleteList = clientThinkList->GetDeleteList();
+
+	// for ( auto&& _delete : *deleteList )
+	// {
+	// 	savedThinkList.m_aDeleteList.AddToTail( _delete );
+	// }
+
+	// savedThinkList.m_nIterEnum = *clientThinkList->IterNum();
 #endif
 }
 

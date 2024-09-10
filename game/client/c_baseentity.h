@@ -1690,6 +1690,7 @@ public: // CSSENHANCED
 	// handles an input (usually caused by outputs)
 	// returns true if the the value in the pass in should be set, false if the input is to be ignored
 	virtual bool 			AcceptInput( const char *szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID );
+	virtual bool 			AcceptInput( CRC32_t szInputName, CBaseEntity *pActivator, CBaseEntity *pCaller, variant_t Value, int outputID );
 
 	void					PhysicsTouchTriggers( const Vector *pPrevAbsOrigin = NULL );
 
@@ -1706,7 +1707,7 @@ public: // CSSENHANCED
 	void 					ClearSpawnFlags( void );
 	bool 					HasSpawnFlags( int nFlags ) const;
 
-	string_t 				GetEntityName();
+	CRC32_t 				GetEntityNameCRC();
 
 	//
 	// Input handlers.
@@ -1742,11 +1743,21 @@ public: // CSSENHANCED
 	float 	m_flLocalTime; // XYZ_TODO: Network this?
 	float 	m_flMoveDoneTime;
 	int		m_spawnflags;
-	char m_iName[MAX_PATH];
+	//char m_iName[MAX_PATH];
 
 	// Damage filtering
 	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.
 	EHANDLE		m_hDamageFilter;		// The entity that controls who can damage us.
+
+	// For css_enhanced
+	CRC32_t m_hszTarget;
+	CRC32_t m_hszClassname;
+	CRC32_t m_hszGlobalname;
+	// CRC32_t m_hszParent; // XYZ_TODO: this needs to be done too
+	CRC32_t m_hszName;
+	CRC32_t m_hszDamageFilter;
+
+	int m_iHammerID;
 
 	// User outputs. Fired when the "FireInputX" input is triggered.
 	C_OutputEvent m_OnUser1;
@@ -2328,9 +2339,9 @@ inline bool C_BaseEntity::HasSpawnFlags( int nFlags ) const
 	return (m_spawnflags & nFlags) != 0;
 }
 
-inline string_t C_BaseEntity::GetEntityName()
+inline CRC32_t C_BaseEntity::GetEntityNameCRC()
 {
-	return m_iName;
+	return m_hszName;
 }
 
 C_BaseEntity *CreateEntityByName( const char *className );

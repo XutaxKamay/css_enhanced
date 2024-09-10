@@ -266,7 +266,7 @@ void CHLTVDirector::BuildCameraList( void )
 
 	while ( pCamera && m_nNumFixedCameras < MAX_NUM_CAMERAS)
 	{
-		CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, STRING(pCamera->m_target.Get()) );
+		CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, STRING(pCamera->m_target) );
 
 		if ( pTarget )
 		{

@@ -533,7 +533,7 @@ void CNPC_BigMomma::NodeReach( void )
 
 	Forget( bits_MEMORY_FIRED_NODE );
 
-	m_iszTarget = pTarget->m_target.Get();
+	m_iszTarget = pTarget->m_target;
 	
 	if ( pTarget->m_iHealth == 0 )
 		 Remember( bits_MEMORY_ADVANCE_NODE );	// Move on if no health at this node

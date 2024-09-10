@@ -816,7 +816,7 @@ void CFuncTrain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		// Pop back to last target if it's available
 		if ( m_hEnemy )
 		{
-			m_target.GetForModify() = m_hEnemy->GetEntityName();
+			m_target = m_hEnemy->GetEntityName();
 		}
 
 		SetNextThink( TICK_NEVER_THINK );
@@ -931,9 +931,9 @@ void CFuncTrain::Next( void )
 	}
 
 	// Save last target in case we need to find it again
-	m_iszLastTarget = m_target.Get();
+	m_iszLastTarget = m_target;
 
-	m_target.GetForModify() = pTarg->m_target;
+	m_target = pTarg->m_target;
 	m_flWait = pTarg->GetDelay();
 
 	// If our target has a speed, take it
@@ -1019,16 +1019,16 @@ void CFuncTrain::SetupTarget( void )
 	// Find our target whenever we don't have one (level transition)
 	if ( !m_hCurrentTarget )
 	{
-		CBaseEntity	*pTarg = gEntList.FindEntityByName( NULL, m_target.Get() );
+		CBaseEntity	*pTarg = gEntList.FindEntityByName( NULL, m_target );
 
 		if ( pTarg == NULL )
 		{
-			Msg( "Can't find target of train %s\n", STRING(m_target.Get()) );
+			Msg( "Can't find target of train %s\n", STRING(m_target) );
 			return;
 		}
 		
 		// Keep track of this since path corners change our target for us
-		m_target.GetForModify() = pTarg->m_target.Get();
+		m_target = pTarg->m_target;
 		m_hCurrentTarget = pTarg;
 	}
 }
@@ -1045,7 +1045,7 @@ void CFuncTrain::Spawn( void )
 		m_flSpeed = 100;
 	}
 	
-	if ( !m_target.Get() )
+	if ( !m_target )
 	{
 		Warning("FuncTrain '%s' has no target.\n", GetDebugName());
 	}
@@ -1086,7 +1086,7 @@ void CFuncTrain::OnRestore( void )
 	if ( IsMoving() )
 	{
 		// Continue moving to the same target
-		m_target.GetForModify() = m_iszLastTarget;
+		m_target = m_iszLastTarget;
 	}
 
 	SetupTarget();
@@ -1141,7 +1141,7 @@ void CFuncTrain::Stop( void )
 		// Pop back to last target if it's available
 		if ( m_hEnemy )
 		{
-			m_target.GetForModify() = m_hEnemy->GetEntityName();
+			m_target = m_hEnemy->GetEntityName();
 		}
 
 		SetNextThink( TICK_NEVER_THINK );
@@ -2516,7 +2516,7 @@ bool CFuncTrackTrain::OnControls( CBaseEntity *pTest )
 
 void CFuncTrackTrain::Find( void )
 {
-	m_ppath = (CPathTrack *)gEntList.FindEntityByName( NULL, m_target.Get() );
+	m_ppath = (CPathTrack *)gEntList.FindEntityByName( NULL, m_target );
 	if ( !m_ppath )
 		return;
 
@@ -2670,7 +2670,7 @@ void CFuncTrackTrain::Spawn( void )
 
 	m_dir = 1;
 
-	if ( !m_target.Get() )
+	if ( !m_target )
 	{
 		Msg("FuncTrackTrain '%s' has no target.\n", GetDebugName());
 	}
@@ -2811,12 +2811,12 @@ void CFuncTrainControls::Find( void )
 
 	do 
 	{
-		pTarget = gEntList.FindEntityByName( pTarget, m_target.Get() );
+		pTarget = gEntList.FindEntityByName( pTarget, m_target );
 	} while ( pTarget && !FClassnameIs(pTarget, "func_tracktrain") );
 
 	if ( !pTarget )
 	{
-		Msg( "No train %s\n", STRING(m_target.Get()) );
+		Msg( "No train %s\n", STRING(m_target) );
 		return;
 	}
 

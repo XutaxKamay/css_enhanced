@@ -78,7 +78,7 @@ void CFuncAreaPortalWindow::Activate()
 	}
 
 	// Find our target and steal its bmodel.
-	CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target.Get() );
+	CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target );
 	if( pTarget )
 	{
 		SetModel( STRING(pTarget->GetModelName()) );

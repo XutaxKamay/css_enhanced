@@ -17,6 +17,7 @@
 #include "engine/IEngineTrace.h"
 #include "engine/IStaticPropMgr.h"
 #include "shared_classnames.h"
+#include "checksum_crc.h"
 
 #ifdef CLIENT_DLL
 #include "cdll_client_int.h"
@@ -602,19 +603,15 @@ bool				UTIL_IsHolidayActive( /*EHoliday*/ int eHoliday );
 // holidays overlapping, the list order will act as priority.
 const char		   *UTIL_GetActiveHolidayString();
 
+CRC32_t UTIL_GetCheckSum(const char* pString);
 
 #ifdef CLIENT_DLL
-
-CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller );
-
-CBaseEntity *UTIL_FindEntityByName( const char* szName );
-CBaseEntity *UTIL_FindEntityByName( CBaseEntity *pStartEntity, const char *szName, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL );
-
-CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName );
-
+CBaseEntity *UTIL_FindEntityByNameCRC( CRC32_t hszName );
 bool UTIL_IsMasterTriggered(string_t sMaster, CBaseEntity *pActivator);
-
 #endif
 
+CBaseEntity *UTIL_FindEntityByClassnameCRC( CBaseEntity *pStartEntity, CRC32_t hszName );
+CBaseEntity *UTIL_FindEntityProceduralCRC( CRC32_t hszName, CBaseEntity *pSearchingEntity, CBaseEntity *pActivator, CBaseEntity *pCaller );
+CBaseEntity *UTIL_FindEntityByNameCRC( CBaseEntity *pStartEntity, CRC32_t hszName, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL );
 
 #endif // UTIL_SHARED_H

@@ -70,7 +70,7 @@ public:
 	virtual void OnRestore() {}
 	virtual void SafeRemoveIfDesired() {}
 
-private:
+public:
 	struct ThinkEntry_t
 	{
 		ClientEntityHandle_t	m_hEnt;
@@ -85,6 +85,27 @@ private:
 		ClientThinkHandle_t		m_hThink;
 		float					m_flNextTime;
 	};
+
+public:
+	inline CUtlLinkedList< ThinkEntry_t, unsigned short >* GetThinkEntries()
+	{
+		return &m_ThinkEntries;
+	}
+
+	inline CUtlVector<ClientEntityHandle_t>* GetDeleteList()
+	{
+		return &m_aDeleteList;
+	}
+
+	inline CUtlVector<ThinkListChanges_t>* GetChangeList()
+	{
+		return &m_aChangeList;
+	}
+
+	inline int* IterNum()
+	{
+		return &m_nIterEnum;
+	}
 
 // Internal stuff.
 private:

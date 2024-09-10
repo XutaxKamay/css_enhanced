@@ -239,7 +239,7 @@ void CEnvProjectedTexture::Activate( void )
 
 void CEnvProjectedTexture::InitialThink( void )
 {
-	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
+	m_hTargetEntity = gEntList.FindEntityByName( NULL, m_target );
 }
 
 int CEnvProjectedTexture::UpdateTransmitState()

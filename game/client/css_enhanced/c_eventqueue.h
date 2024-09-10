@@ -20,8 +20,8 @@ class variant_t;
 struct EventQueuePrioritizedEvent_t
 {
 	float m_flFireTime;
-	string_t m_iTarget;
-	string_t m_iTargetInput;
+	CRC32_t m_hszTarget;
+	CRC32_t m_hszTargetInput;
 	EHANDLE m_pActivator;
 	EHANDLE m_pCaller;
 	int m_iOutputID;
@@ -40,13 +40,13 @@ class CEventQueue
 {
 public:
 	// pushes an event into the queue, targeting a string name (m_iName), or directly by a pointer
-	void AddEvent( const char *target, const char *action, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
-	void AddEvent( CBaseEntity *target, const char *action, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
-	void AddEvent( CBaseEntity *target, const char *action, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
+	void AddEvent( CRC32_t target, CRC32_t action, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
+	void AddEvent( CBaseEntity *target, CRC32_t action, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
+	void AddEvent( CBaseEntity *target, CRC32_t action, variant_t Value, float fireDelay, CBaseEntity *pActivator, CBaseEntity *pCaller, int outputID = 0 );
 
 	void CancelEvents( CBaseEntity *pCaller );
-	void CancelEventOn( CBaseEntity *pTarget, const char *sInputName );
-	bool HasEventPending( CBaseEntity *pTarget, const char *sInputName );
+	void CancelEventOn( CBaseEntity *pTarget, CRC32_t sInputName );
+	bool HasEventPending( CBaseEntity *pTarget, CRC32_t sInputName );
 
 	// services the queue, firing off any events who's time hath come
 	void ServiceEvents( void );

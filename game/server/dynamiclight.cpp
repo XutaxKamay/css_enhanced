@@ -163,7 +163,7 @@ void CDynamicLight::Spawn( void )
 	AddEFlags( EFL_FORCE_CHECK_TRANSMIT );
 
 	// If we have a target, think so we can orient towards it
-	if ( m_target.Get() != NULL_STRING )
+	if ( m_target != NULL_STRING )
 	{
 		SetThink( &CDynamicLight::DynamicLightThink );
 		SetNextThink( gpGlobals->curtime + 0.1 );
@@ -187,7 +187,7 @@ void CDynamicLight::Spawn( void )
 //-----------------------------------------------------------------------------
 void CDynamicLight::DynamicLightThink( void )
 {
-	if ( m_target.Get() == NULL_STRING )
+	if ( m_target == NULL_STRING )
 		return;
 
 	CBaseEntity *pEntity = GetNextTarget();

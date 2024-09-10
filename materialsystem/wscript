@@ -45,6 +45,7 @@ def build(bld):
 		'cmatrendercontext.cpp',
 		'cmatqueuedrendercontext.cpp',
 		'ctexturecompositor.cpp',
+		'../tier1/checksum_crc.cpp', # TODO_ENHANCED: this needs to be removed, but cant work without for now.
 		'../public/tier0/memoverride.cpp'
 	]
 

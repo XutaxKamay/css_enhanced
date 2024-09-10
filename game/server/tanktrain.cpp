@@ -138,14 +138,14 @@ void CTankTargetChange::Precache( void )
 
 void CTankTargetChange::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target.Get(), NULL, pActivator, pCaller );
+	CBaseEntity *pTarget = gEntList.FindEntityByName( NULL, m_target, NULL, pActivator, pCaller );
 
 	// UNDONE: This should use more of the event system
 	while ( pTarget )
 	{
 		// Change the target over
 		pTarget->AcceptInput( "TargetEntity", this, this, m_newTarget, 0 );
-		pTarget = gEntList.FindEntityByName( pTarget, m_target.Get(), NULL, pActivator, pCaller );
+		pTarget = gEntList.FindEntityByName( pTarget, m_target, NULL, pActivator, pCaller );
 	}
 }
 
@@ -362,11 +362,11 @@ void CTankTrainAI::Activate( void )
 
 	CFuncTrackTrain *pTrain = NULL;
 
-	if ( m_target.Get() != NULL_STRING )
+	if ( m_target != NULL_STRING )
 	{
 		do
 		{
-			pTarget = gEntList.FindEntityByName( pTarget, m_target.Get() );
+			pTarget = gEntList.FindEntityByName( pTarget, m_target );
 			pTrain = dynamic_cast<CFuncTrackTrain *>(pTarget);
 		} while (!pTrain && pTarget);
 	}

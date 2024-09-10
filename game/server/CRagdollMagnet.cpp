@@ -75,10 +75,10 @@ CRagdollMagnet *CRagdollMagnet::FindBestMagnet( CBaseEntity *pNPC )
 
 		if( pMagnet && pMagnet->IsEnabled() )
 		{
-			if( pMagnet->m_target.Get() != NULL_STRING )
+			if( pMagnet->m_target != NULL_STRING )
 			{
 				// if this magnet has a target, only affect that target!
-				if( pNPC->GetEntityName() == pMagnet->m_target.Get() )
+				if( pNPC->GetEntityName() == pMagnet->m_target )
 				{
 					return pMagnet;
 				}

@@ -8,6 +8,7 @@
 //=============================================================================//
 #include "baseentity_shared.h"
 #include "c_baseentity.h"
+#include "client_thinklist.h"
 #include "const.h"
 #include "datamodel/dmelementhandle.h"
 #include "platform.h"
@@ -171,8 +172,12 @@ private:
 	struct EventQueueForHistory
 	{
 		float m_flFireTime;
-		char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
-		char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
+		//char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
+		//char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
+
+		CRC32_t m_hszTarget;
+		CRC32_t m_hszTargetInput;
+
 		EHANDLE m_pActivator;
 		EHANDLE m_pCaller;
 		int m_iOutputID;
@@ -180,8 +185,25 @@ private:
 		variant_t m_VariantValue;
 	};
 
-	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
-	CUtlVector<EventQueueForHistory> m_eventQueueHistory[MULTIPLAYER_BACKUP];
+	TouchedHistory m_TouchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
+	CUtlVector< EventQueueForHistory > m_EventQueueHistory[MULTIPLAYER_BACKUP];
+
+	struct CClientThinkListForHistory
+	{
+		CUtlVector< CClientThinkList::ThinkEntry_t > m_ThinkEntries;
+		CUtlVector< ClientEntityHandle_t > m_aDeleteList; // TODO_ENHANCED: Check if those is necessary
+		CUtlVector< CClientThinkList::ThinkListChanges_t > m_aChangeList;// TODO_ENHANCED: Check if this is necessary
+		int m_nIterEnum;
+
+		inline void Clear()
+		{
+			m_ThinkEntries.RemoveAll();
+			m_aDeleteList.RemoveAll();
+			m_aChangeList.RemoveAll();
+		}
+	};
+
+	CClientThinkListForHistory m_ClientThinkListHistory[MULTIPLAYER_BACKUP];
 
 	// TODO_ENHANCED: checks if this affects vehicles properly too! It should.
 	enum INTERPOLATION_CONTEXT

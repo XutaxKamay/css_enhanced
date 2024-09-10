@@ -96,7 +96,7 @@ void CInfoCameraLink::Activate()
 
 	if ( !m_hTargetEntity )
 	{
-		m_hTargetEntity = gEntList.FindEntityByName( NULL, STRING(m_target.Get()) );
+		m_hTargetEntity = gEntList.FindEntityByName( NULL, STRING(m_target) );
 	}
 }
 

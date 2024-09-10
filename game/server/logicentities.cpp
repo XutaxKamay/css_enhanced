@@ -512,9 +512,9 @@ void CLogicLineToEntity::Activate(void)
 {
 	BaseClass::Activate();
 
-	if (m_target.Get() != NULL_STRING)
+	if (m_target != NULL_STRING)
 	{
-		m_EndEntity = gEntList.FindEntityByName( NULL, m_target.Get() );
+		m_EndEntity = gEntList.FindEntityByName( NULL, m_target );
 
 		//
 		// If we were given a bad measure target, just measure sound where we are.
