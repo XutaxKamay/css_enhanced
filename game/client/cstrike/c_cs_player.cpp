@@ -9,10 +9,12 @@
 #include "c_cs_player.h"
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
+#include "cdll_util.h"
 #include "convar.h"
 #include "datacache/imdlcache.h"
 #include "dbg.h"
 #include "dt_recv.h"
+#include "hud_basechat.h"
 #include "iconvar.h"
 #include "interpolatedvar.h"
 #include "mathlib/vector.h"
@@ -69,6 +71,8 @@
 #include "iviewrender.h"				//for view->
 
 #include "iviewrender_beams.h"			// flashlight beam
+
+#include "cs_hud_chat.h"
 
 //=============================================================================
 // HPE_BEGIN:
@@ -766,6 +770,7 @@ C_CSPlayer::C_CSPlayer() :
 	ListenForGameEvent( "bullet_hit_player" );
 	ListenForGameEvent( "bullet_player_hitboxes" );
 	ListenForGameEvent( "player_lag_hitboxes" );
+	ListenForGameEvent( "player_hurt" );
 
 	m_bIsInsideLagCompensationContext = false;
 }
@@ -2109,6 +2114,7 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 }
 
 ConVar cl_debug_duration( "cl_debug_duration", "60" );
+ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
 
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
@@ -2496,6 +2502,57 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 	else if ( FStrEq( event->GetName(), "bullet_player_hitboxes" ) && shouldShowFireBulletHitboxes )
 	{
 		ShowEventHitboxes( cl_debug_duration.GetFloat() );
+	}
+	else if ( cl_enable_hitmarks.GetBool() && FStrEq( event->GetName(), "player_hurt" ) )
+	{
+		const int index = event->GetInt( "attacker" );
+
+		if ( index == GetUserID() && IsLocalPlayer() )
+		{
+			const auto playerUserID = event->GetInt( "userid" );
+			const auto player		= ( C_CSPlayer* )UTIL_PlayerByUserId( playerUserID );
+
+			if ( player && !player->IsLocalPlayer() )
+			{
+				auto health_damages = event->GetInt( "dmg_health" );
+				auto armor_damages	= event->GetInt( "dmg_armor" );
+				auto hitgroup		= event->GetInt( "hitgroup" );
+
+				CLocalPlayerFilter filter;
+				EmitSound( filter, GetSoundSourceIndex(), "Player.Hitmark" );
+
+				CHudChat* hudChat = ( CHudChat* )GET_HUDELEMENT( CHudChat );
+
+				if ( hudChat )
+				{
+					char buffer_armor[256];
+
+					if ( armor_damages > 0 )
+					{
+						V_sprintf_safe( buffer_armor,
+										" and \x7"
+										"FF0000%i \x7"
+										"FFFFFFarmor.",
+										armor_damages );
+					}
+					else
+					{
+						buffer_armor[0] = '.';
+						buffer_armor[1] = 0;
+					}
+
+					hudChat->Printf( CHAT_FILTER_NONE,
+									 "\7FFFFFFYou hit \x7"
+									 "FF00FF%s\x7"
+									 "FFFFFF with: \x7"
+									 "FF0000%i \x7"
+									 "FFFFFFhealth%s",
+									 player->GetPlayerName(),
+									 health_damages,
+									 buffer_armor );
+				}
+			}
+		}
 	}
 }
 
