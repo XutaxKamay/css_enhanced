@@ -150,7 +150,7 @@ static void CalcDemoViewOverride( Vector &origin, QAngle &angles )
 {
 	engine->SetViewAngles( s_DemoAngle );
 
-	input->ExtraMouseSample( gpGlobals->absoluteframetime, true );
+	input->ExtraMouseSample( 0, gpGlobals->absoluteframetime, true );
 
 	engine->GetViewAngles( s_DemoAngle );
 

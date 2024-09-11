@@ -3246,6 +3246,7 @@ void _Host_RunFrame (float time)
 			// continuous controllers affecting the view are also simulated this way
 			// but they have a cap applied by IN_SetSampleTime() so they are not also
 			// simulated during input gathering
+			g_ClientGlobalVariables.frametime = host_frametime;
 			CL_ExtraMouseUpdate( host_frametime );
 #endif
 			for ( int tick = 0; tick < numticks; tick++ )
@@ -3432,7 +3433,17 @@ void _Host_RunFrame (float time)
 			serverticks = numticks;
 			g_ClientGlobalVariables.simTicksThisFrame = clientticks;
 			g_ServerGlobalVariables.simTicksThisFrame = serverticks;
-			g_ServerGlobalVariables.tickcount = sv.m_nTickCount;
+			g_ServerGlobalVariables.tickcount		  = sv.m_nTickCount;
+
+			// TODO_ENHANCED:
+			// Update the mouse as last so we can get the right viewangles while taking screenshot.
+			// The mouse is always simulated for the current frame's time
+			// This makes updates smooth in every case
+			// continuous controllers affecting the view are also simulated this way
+			// but they have a cap applied by IN_SetSampleTime() so they are not also
+			// simulated during input gathering
+			g_ClientGlobalVariables.frametime = host_frametime;
+			CL_ExtraMouseUpdate( host_frametime );
 
 			// THREADED: Run Client
 			// -------------------
