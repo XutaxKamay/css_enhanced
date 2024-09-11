@@ -4113,17 +4113,6 @@ void CGameMovement::FinishUnDuck( void )
 
 	mv->SetAbsOrigin( newOrigin );
 
-#ifdef CLIENT_DLL
-#ifdef STAGING_ONLY
-	if ( debug_latch_reset_onduck.GetBool() )
-	{
-		player->ResetLatched();
-	}
-#else
-	player->ResetLatched();
-#endif
-#endif // CLIENT_DLL
-
 	// Recategorize position since ducking can change origin
 	CategorizePosition();
 }
@@ -4217,17 +4206,6 @@ void CGameMovement::FinishDuck( void )
 		Vector out;
    		VectorAdd( mv->GetAbsOrigin(), viewDelta, out );
 		mv->SetAbsOrigin( out );
-
-#ifdef CLIENT_DLL
-#ifdef STAGING_ONLY
-		if ( debug_latch_reset_onduck.GetBool() )
-		{
-			player->ResetLatched();
-		}
-#else
-		player->ResetLatched();
-#endif
-#endif // CLIENT_DLL
 	}
 
 	// See if we are stuck?
@@ -4488,7 +4466,7 @@ void CGameMovement::Duck( void )
 						float flDuckSeconds = flDuckMilliseconds * 0.001f;
 						
 						// Finish ducking immediately if duck time is over or not on ground
-						if ( flDuckSeconds > TIME_TO_UNDUCK || ( bInAir && !bDuckJump ) )
+						if ( flDuckSeconds >= TIME_TO_UNDUCK || ( bInAir && !bDuckJump ) )
 						{
 							FinishUnDuck();
 						}

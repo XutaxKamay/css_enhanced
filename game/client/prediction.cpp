@@ -630,7 +630,7 @@ void CPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *
 		move->m_bGameCodeMovedPlayer = true;
 	}
 
-	move->m_nPlayerHandle = player->GetClientHandle();
+	move->m_nPlayerHandle = player;
 	move->m_vecVelocity		= player->GetAbsVelocity();
 	move->SetAbsOrigin( player->GetLocalOrigin() );
 	move->m_vecOldAngles	= move->m_vecAngles;
