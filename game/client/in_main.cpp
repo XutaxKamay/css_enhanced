@@ -1020,7 +1020,21 @@ void CInput::ExtraMouseSample( int sequence_number, float frametime, bool active
 {
 	VPROF( "CInput::ExtraMouseSample" );
 
-	CUserCmd *cmd = &m_pCommands[sequence_number % MULTIPLAYER_BACKUP];
+	CUserCmd dummy;
+	CUserCmd* cmd;
+
+	static int old_sequence_number = 0;
+
+	// Be sure to call this only once per tick.
+	if ( old_sequence_number != sequence_number )
+	{
+		cmd = &m_pCommands[sequence_number % MULTIPLAYER_BACKUP];
+		old_sequence_number = sequence_number;
+	}
+	else
+	{
+		cmd = &dummy;
+	}
 
 	cmd->Reset();
 
