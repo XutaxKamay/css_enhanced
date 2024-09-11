@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "gamemovement.h"
 #include "cs_gamerules.h"
+#include "iconvar.h"
 #include "in_buttons.h"
 #include "movevars_shared.h"
 #include "weapon_csbase.h"
@@ -313,7 +314,6 @@ void CCSGameMovement::CheckParameters( void )
 		}
 	}
 }
-
 
 void CCSGameMovement::ProcessMovement( CBasePlayer *pBasePlayer, CMoveData *pMove )
 {
@@ -640,6 +640,8 @@ void CCSGameMovement::PreventBunnyJumping()
 
 }
 
+ConVar sv_no_stamina( "sv_no_stamina", "0", FCVAR_REPLICATED );
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -750,7 +752,7 @@ bool CCSGameMovement::CheckJumpButton( void )
 		mv->m_vecVelocity[2] *= flRatio;
 	}
 
-	m_pCSPlayer->m_flStamina = ( STAMINA_COST_JUMP / STAMINA_RECOVER_RATE ) * 1000.0;
+	m_pCSPlayer->m_flStamina = sv_no_stamina.GetBool() ? 0 : ( STAMINA_COST_JUMP / STAMINA_RECOVER_RATE ) * 1000.0;
 	
 	FinishGravity();
 
