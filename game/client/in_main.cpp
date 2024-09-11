@@ -1016,12 +1016,11 @@ if active == 1 then we are 1) not playing back demos ( where our commands are ig
 ================
 */
 
-void CInput::ExtraMouseSample( float frametime, bool active )
+void CInput::ExtraMouseSample( int sequence_number, float frametime, bool active )
 {
 	VPROF( "CInput::ExtraMouseSample" );
 
-	CUserCmd dummy;
-	CUserCmd *cmd = &dummy;
+	CUserCmd *cmd = &m_pCommands[sequence_number % MULTIPLAYER_BACKUP];
 
 	cmd->Reset();
 
@@ -1131,8 +1130,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 	CUserCmd *cmd = &m_pCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 	CVerifiedUserCmd *pVerified = &m_pVerifiedCommands[ sequence_number % MULTIPLAYER_BACKUP ];
-
-	cmd->Reset();
 
 	cmd->command_number = sequence_number;
 

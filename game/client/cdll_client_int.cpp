@@ -630,7 +630,7 @@ public:
 	virtual void					IN_SetSampleTime( float frametime );
 	// Create movement command
 	virtual void					CreateMove ( int sequence_number, float input_sample_frametime, bool active );
-	virtual void					ExtraMouseSample( float frametime, bool active );
+	virtual void					ExtraMouseSample( int sequence_number, float frametime, bool active );
 	virtual bool					WriteUsercmdDeltaToBuffer( bf_write *buf, int from, int to, bool isnewcommand );	
 	virtual void					EncodeUserCmdToBuffer( bf_write& buf, int slot );
 	virtual void					DecodeUserCmdFromBuffer( bf_read& buf, int slot );
@@ -1419,7 +1419,7 @@ int CHLClient::IN_KeyEvent( int eventcode, ButtonCode_t keynum, const char *pszC
 	return input->KeyEvent( eventcode, keynum, pszCurrentBinding );
 }
 
-void CHLClient::ExtraMouseSample( float frametime, bool active )
+void CHLClient::ExtraMouseSample( int sequence_number, float frametime, bool active )
 {
 	Assert( C_BaseEntity::IsAbsRecomputationsEnabled() );
 	Assert( C_BaseEntity::IsAbsQueriesValid() );
@@ -1427,7 +1427,7 @@ void CHLClient::ExtraMouseSample( float frametime, bool active )
 	C_BaseAnimating::AutoAllowBoneAccess boneaccess( true, false ); 
 
 	MDLCACHE_CRITICAL_SECTION();
-	input->ExtraMouseSample( frametime, active );
+	input->ExtraMouseSample( sequence_number, frametime, active );
 }
 
 void CHLClient::IN_SetSampleTime( float frametime )

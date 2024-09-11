@@ -2099,8 +2099,10 @@ void CL_ExtraMouseUpdate( float frametime )
 		return;
 #endif
 
+	int nextcommandnr = cl.lastoutgoingcommand + cl.chokedcommands + 1;
+
 	// Have client .dll create and store usercmd structure
-	g_ClientDLL->ExtraMouseSample( frametime, !cl.m_bPaused );
+	g_ClientDLL->ExtraMouseSample( nextcommandnr, frametime, !cl.m_bPaused );
 }
 
 /*
