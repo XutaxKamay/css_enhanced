@@ -1087,13 +1087,6 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 		// no crosshair for sniper rifles
 		bool bCrosshairVisible = crosshair.GetBool() && GetCSWpnData().m_WeaponType != WEAPONTYPE_SNIPER_RIFLE;
 
-		if ( !bCrosshairVisible 
-#if ALLOW_WEAPON_SPREAD_DISPLAY
-			&& !weapon_debug_spread_show.GetBool()
-#endif
-			)
-			 return;
-
 		float fHalfFov = DEG2RAD(pPlayer->GetFOV()) * 0.5f;
 
 		int iCrosshairDistance;
@@ -1207,20 +1200,21 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 		int iCenterX = ScreenWidth() / 2;
 		int iCenterY = ScreenHeight() / 2;
 
-		if ( bCrosshairVisible )
+		if ( cl_crosshair_picture.GetBool() )
 		{
-			if ( cl_crosshair_picture.GetBool() )
+			static auto pCrosshairMaterial	  = materials->FindMaterial( "crosshair/crosshair", TEXTURE_GROUP_OTHER );
+			static auto pCrosshairHitMaterial = materials->FindMaterial( "crosshair/crosshair_hit",
+																		 TEXTURE_GROUP_OTHER );
+
+			CMatRenderContextPtr pRenderContext( materials );
+
+			int nViewportX, nViewportY, nViewportWidth, nViewportHeight;
+			pRenderContext->GetViewport( nViewportX, nViewportY, nViewportWidth, nViewportHeight );
+
+			if ( bCrosshairVisible )
 			{
-				static auto pCrosshairMaterial = materials->FindMaterial( "crosshair/crosshair", TEXTURE_GROUP_OTHER );
-				static auto pCrosshairHitMaterial = materials->FindMaterial( "crosshair/crosshair_hit", TEXTURE_GROUP_OTHER );
-
-				CMatRenderContextPtr pRenderContext( materials );
-
 				CMaterialReference refCrosshair;
 				refCrosshair.Init( pCrosshairMaterial );
-
-				int nViewportX, nViewportY, nViewportWidth, nViewportHeight;
-				pRenderContext->GetViewport( nViewportX, nViewportY, nViewportWidth, nViewportHeight );
 
 				pRenderContext->DrawScreenSpaceRectangle( refCrosshair,
 														  nViewportWidth / 2
@@ -1235,41 +1229,44 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 														  nViewportY + nViewportHeight - 1,
 														  nViewportWidth,
 														  nViewportHeight );
-
-				static float flDisplayCurrentTime = 0.0f;
-				static float flDisplayTime		  = 1.0F;
-
-				if ( pPlayer->m_bHasHitPlayer )
-				{
-					flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
-					pPlayer->m_bHasHitPlayer = false;
-				}
-
-				if ( flDisplayCurrentTime >= gpGlobals->curtime && pCrosshairHitMaterial )
-				{
-					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
-
-					CMaterialReference refCrosshairHit;
-					refCrosshairHit.Init( pCrosshairHitMaterial );
-
-					refCrosshairHit->AlphaModulate( flAlpha );
-
-					pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
-															  nViewportWidth / 2
-																- pCrosshairHitMaterial->GetMappingWidth() / 2,
-															  nViewportHeight / 2
-																- pCrosshairHitMaterial->GetMappingHeight() / 2,
-															  pCrosshairHitMaterial->GetMappingWidth(),
-															  pCrosshairHitMaterial->GetMappingHeight(),
-															  nViewportX,
-															  nViewportY,
-															  nViewportX + nViewportWidth - 1,
-															  nViewportY + nViewportHeight - 1,
-															  nViewportWidth,
-															  nViewportHeight );
-				}
 			}
-			else
+
+			static float flDisplayCurrentTime = 0.0f;
+			static float flDisplayTime		  = 1.0F;
+
+			if ( pPlayer->m_bHasHitPlayer )
+			{
+				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
+				pPlayer->m_bHasHitPlayer = false;
+			}
+
+			if ( flDisplayCurrentTime >= gpGlobals->curtime && pCrosshairHitMaterial )
+			{
+				float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
+
+				CMaterialReference refCrosshairHit;
+				refCrosshairHit.Init( pCrosshairHitMaterial );
+
+				refCrosshairHit->AlphaModulate( flAlpha );
+
+				pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
+														  nViewportWidth / 2
+															- pCrosshairHitMaterial->GetMappingWidth() / 2,
+														  nViewportHeight / 2
+															- pCrosshairHitMaterial->GetMappingHeight() / 2,
+														  pCrosshairHitMaterial->GetMappingWidth(),
+														  pCrosshairHitMaterial->GetMappingHeight(),
+														  nViewportX,
+														  nViewportY,
+														  nViewportX + nViewportWidth - 1,
+														  nViewportY + nViewportHeight - 1,
+														  nViewportWidth,
+														  nViewportHeight );
+			}
+		}
+		else
+		{
+			if ( bCrosshairVisible )
 			{
 				// draw horizontal crosshair lines
 				int iInnerLeft	= iCenterX - iCrosshairDistance - iBarThickness / 2;
@@ -1300,50 +1297,50 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 					int y1 = y0 + iBarThickness;
 					DrawCrosshairRect( x0, y0, x1, y1, bAdditive );
 				}
+			}
 
-				static float flDisplayCurrentTime = 0.0f;
-				static float flDisplayTime		  = 1.0F;
+			static float flDisplayCurrentTime = 0.0f;
+			static float flDisplayTime		  = 1.0F;
 
-				if ( pPlayer->m_bHasHitPlayer )
+			if ( pPlayer->m_bHasHitPlayer )
+			{
+				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
+				pPlayer->m_bHasHitPlayer = false;
+			}
+
+			if ( flDisplayCurrentTime >= gpGlobals->curtime )
+			{
+				float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
+				int tocenter  = 15;
+				int initpos	  = 25;
+
+				initpos	 += iBarSize * 2;
+				tocenter += iBarSize * 2;
+
+				float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
+
+				vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
+
+				for ( int i = -1; i < 2; i++ )
 				{
-					flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
-					pPlayer->m_bHasHitPlayer = false;
-				}
-
-				if ( flDisplayCurrentTime >= gpGlobals->curtime )
-				{
-					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
-					int tocenter  = 15;
-					int initpos	  = 25;
-
-					initpos	 += iBarSize * 2;
-					tocenter += iBarSize * 2;
-
-					float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
-
-					vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
-
-					for ( int i = -1; i < 2; i++ )
-					{
-						tocenter += i;
-						initpos	 += i;
-						vgui::surface()->DrawLine( iCenterX - initpos,
-												   iCenterY - initpos,
-												   iCenterX - tocenter,
-												   iCenterY - tocenter );
-						vgui::surface()->DrawLine( iCenterX + initpos,
-												   iCenterY + initpos,
-												   iCenterX + tocenter,
-												   iCenterY + tocenter );
-						vgui::surface()->DrawLine( iCenterX - initpos,
-												   iCenterY + initpos,
-												   iCenterX - tocenter,
-												   iCenterY + tocenter );
-						vgui::surface()->DrawLine( iCenterX + initpos,
-												   iCenterY - initpos,
-												   iCenterX + tocenter,
-												   iCenterY - tocenter );
-					}
+					tocenter += i;
+					initpos	 += i;
+					vgui::surface()->DrawLine( iCenterX - initpos,
+											   iCenterY - initpos,
+											   iCenterX - tocenter,
+											   iCenterY - tocenter );
+					vgui::surface()->DrawLine( iCenterX + initpos,
+											   iCenterY + initpos,
+											   iCenterX + tocenter,
+											   iCenterY + tocenter );
+					vgui::surface()->DrawLine( iCenterX - initpos,
+											   iCenterY + initpos,
+											   iCenterX - tocenter,
+											   iCenterY + tocenter );
+					vgui::surface()->DrawLine( iCenterX + initpos,
+											   iCenterY - initpos,
+											   iCenterX + tocenter,
+											   iCenterY - tocenter );
 				}
 			}
 		}
