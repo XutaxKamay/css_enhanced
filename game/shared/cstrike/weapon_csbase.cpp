@@ -13,7 +13,7 @@
 #include "ammodef.h"
 #include "cs_gamerules.h"
 
-#define ALLOW_WEAPON_SPREAD_DISPLAY	0
+#define ALLOW_WEAPON_SPREAD_DISPLAY	1
 
 #if defined( CLIENT_DLL )
 
@@ -38,7 +38,7 @@
 #endif
 
 
-ConVar weapon_accuracy_model( "weapon_accuracy_model", "1", FCVAR_REPLICATED );
+ConVar weapon_accuracy_model( "weapon_accuracy_model", "0", FCVAR_REPLICATED );
 
 
 // ----------------------------------------------------------------------------- //
@@ -331,8 +331,8 @@ LINK_ENTITY_TO_CLASS( weapon_cs_base, CWeaponCSBase );
 	ConVar cl_crosshaircolor_b( "cl_crosshaircolor_b", "50", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 
 #if ALLOW_WEAPON_SPREAD_DISPLAY
-	ConVar weapon_debug_spread_show( "weapon_debug_spread_show", "0", FCVAR_CLIENTDLL | FCVAR_DEVELOPMENTONLY, "Enables display of weapon accuracy; 1: show accuracy box, 2: show box with recoil offset" );
-	ConVar weapon_debug_spread_gap( "weapon_debug_spread_gap", "0.67", FCVAR_CLIENTDLL | FCVAR_DEVELOPMENTONLY );
+	ConVar weapon_debug_spread_show( "weapon_debug_spread_show", "0", FCVAR_CLIENTDLL, "Enables display of weapon accuracy; 1: show accuracy box, 2: show box with recoil offset" );
+	ConVar weapon_debug_spread_gap( "weapon_debug_spread_gap", "0.67", FCVAR_CLIENTDLL );
 #endif
 
 	// [paquin] make sure crosshair scales independent of frame rate
@@ -1229,6 +1229,49 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				int y0 = iCenterY - iBarThickness / 2;
 				int y1 = y0 + iBarThickness;
 				DrawCrosshairRect( x0, y0, x1, y1, bAdditive );
+			}
+
+			static float flDisplayCurrentTime = 0.0f;
+			static float flDisplayTime		  = 1.0F;
+
+			if ( pPlayer->m_bHasHitPlayer )
+			{
+				flDisplayCurrentTime = gpGlobals->curtime + flDisplayTime;
+				pPlayer->m_bHasHitPlayer = false;
+			}
+
+			if ( flDisplayCurrentTime >= gpGlobals->curtime )
+			{
+				float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
+				int tocenter  = 10;
+				int initpos	  = 16;
+
+				initpos	 += iCrosshairDistance * 2;
+				tocenter += iCrosshairDistance * 2;
+
+				float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
+
+				vgui::surface()->DrawSetColor( r, g, b, int(flAlpha * 255.0f) );
+
+				for ( int i = -2; i < 2; i++ )
+				{
+					vgui::surface()->DrawLine( iCenterX - initpos - i,
+											   iCenterY - initpos - i,
+											   iCenterX - tocenter - i,
+											   iCenterY - tocenter - i );
+					vgui::surface()->DrawLine( iCenterX + initpos + i,
+											   iCenterY + initpos + i,
+											   iCenterX + tocenter + i,
+											   iCenterY + tocenter + i );
+					vgui::surface()->DrawLine( iCenterX + initpos + i,
+											   iCenterY - initpos - i,
+											   iCenterX + tocenter + i,
+											   iCenterY - tocenter - i );
+					vgui::surface()->DrawLine( iCenterX - initpos - i,
+											   iCenterY + initpos + i,
+											   iCenterX - tocenter - i,
+											   iCenterY + tocenter + i );
+				}
 			}
 		}
 

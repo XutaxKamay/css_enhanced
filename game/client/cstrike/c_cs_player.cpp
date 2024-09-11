@@ -2532,7 +2532,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						V_sprintf_safe( buffer_armor,
 										" and \x7"
 										"FF0000%i \x7"
-										"FFFFFFarmor.",
+										"FFFFFFarmor damage.",
 										armor_damages );
 					}
 					else
@@ -2544,12 +2544,14 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					hudChat->Printf( CHAT_FILTER_NONE,
 									 "\7FFFFFFYou hit \x7"
 									 "FF00FF%s\x7"
-									 "FFFFFF with: \x7"
+									 "FFFFFF with \x7"
 									 "FF0000%i \x7"
-									 "FFFFFFhealth%s",
+									 "FFFFFFhealth damage%s",
 									 player->GetPlayerName(),
 									 health_damages,
 									 buffer_armor );
+
+					m_bHasHitPlayer = true;
 				}
 			}
 		}

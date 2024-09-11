@@ -428,6 +428,7 @@ private:
 
 	QAngle m_angRenderAngles;
 	bool m_bIsInsideLagCompensationContext;
+	bool m_bHasHitPlayer;
 };
 
 C_CSPlayer* GetLocalOrInEyeCSPlayer( void );
