@@ -2623,7 +2623,7 @@ Runs all active servers
 ==================
 */
 
-void _Host_RunFrame_Input( float accumulated_extra_samples, bool bFinalTick )
+void _Host_RunFrame_Input( float frametime, bool bFinalTick )
 {
 	VPROF_BUDGET( "_Host_RunFrame_Input", _T("Input") );
 
@@ -2656,7 +2656,7 @@ void _Host_RunFrame_Input( float accumulated_extra_samples, bool bFinalTick )
 	g_HostTimes.EndFrameSegment( FRAME_SEGMENT_CMD_EXECUTE );
 
 	// Send any current movement commands to server and flush reliable buffer even if not moving yet.
-	CL_Move( accumulated_extra_samples, bFinalTick );
+	CL_Move( frametime, bFinalTick );
 
 #endif
 
@@ -3054,7 +3054,6 @@ void _Host_RunFrame (float time)
 {
 	MDLCACHE_COARSE_LOCK_(g_pMDLCache);
 	static double host_remainder = 0.0f;
-	double prevremainder;
     bool shouldrender;
 
 #if defined( RAD_TELEMETRY_ENABLED )
@@ -3104,11 +3103,6 @@ void _Host_RunFrame (float time)
 
 		shouldrender = !sv.IsDedicated();
 
-		// FIXME:  Could track remainder as fractional ticks instead of msec
-		prevremainder = host_remainder;
-		if ( prevremainder < 0 )
-			prevremainder = 0;
-
 	#if !defined(SWDS)
 		if ( !demoplayer->IsPlaybackPaused() )
 	#endif
@@ -3136,7 +3130,7 @@ void _Host_RunFrame (float time)
 			host_remainder -= numticks * host_state.interval_per_tick;
 		}
 
-        cl.m_ClockDriftMgr.m_nNumberOfTicks = numticks;
+        cl.GetClockDriftMgr().m_nNumberOfTicks = numticks;
 
 		host_nexttick = host_state.interval_per_tick - host_remainder;
 
@@ -3240,14 +3234,14 @@ void _Host_RunFrame (float time)
             g_ClientGlobalVariables.next_interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
 
 			// TODO_ENHANCED:
-			// Update the mouse as last so we can get the right viewangles while taking screenshot.
+			// Update the mouse as first so we can get the right viewangles while rendering.
 			// The mouse is always simulated for the current frame's time
 			// This makes updates smooth in every case
 			// continuous controllers affecting the view are also simulated this way
 			// but they have a cap applied by IN_SetSampleTime() so they are not also
 			// simulated during input gathering
 			g_ClientGlobalVariables.frametime = host_frametime;
-			CL_ExtraMouseUpdate( host_frametime );
+			CL_ExtraMovementUpdate( host_frametime );
 #endif
 			for ( int tick = 0; tick < numticks; tick++ )
             {
@@ -3300,8 +3294,7 @@ void _Host_RunFrame (float time)
 				//---------------------------------------------------------
 				// CL_RunPrediction( PREDICTION_NORMAL );
 
-				_Host_RunFrame_Input( prevremainder, bFinalTick );
-				prevremainder = 0;
+				_Host_RunFrame_Input( host_frametime, bFinalTick );
 
 				//-------------------
 				//
@@ -3436,14 +3429,14 @@ void _Host_RunFrame (float time)
 			g_ServerGlobalVariables.tickcount		  = sv.m_nTickCount;
 
 			// TODO_ENHANCED:
-			// Update the mouse as last so we can get the right viewangles while taking screenshot.
+			// Update the mouse as first so we can get the right viewangles while rendering.
 			// The mouse is always simulated for the current frame's time
 			// This makes updates smooth in every case
 			// continuous controllers affecting the view are also simulated this way
 			// but they have a cap applied by IN_SetSampleTime() so they are not also
 			// simulated during input gathering
 			g_ClientGlobalVariables.frametime = host_frametime;
-			CL_ExtraMouseUpdate( host_frametime );
+			CL_ExtraMovementUpdate( host_frametime );
 
 			// THREADED: Run Client
 			// -------------------
@@ -3518,8 +3511,7 @@ void _Host_RunFrame (float time)
 				bool bFinalTick = tick==(serverticks-1) ? true : false;
 				// Run prediction before inputs if fps is lower than tickrate
 				// CL_RunPrediction( PREDICTION_NORMAL );
-				_Host_RunFrame_Input( prevremainder, bFinalTick );
-				prevremainder = 0;
+				_Host_RunFrame_Input( host_frametime, bFinalTick );
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame(  Plat_FloatTime() );
 			}

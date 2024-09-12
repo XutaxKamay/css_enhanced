@@ -1016,124 +1016,155 @@ if active == 1 then we are 1) not playing back demos ( where our commands are ig
 ================
 */
 
-void CInput::ExtraMouseSample( int sequence_number, float frametime, bool active )
+void CInput::ExtraMovementSample( int number_of_ticks_this_frame, int current_command, float frametime, bool active )
 {
-	VPROF( "CInput::ExtraMouseSample" );
+	VPROF( "CInput::ExtraMovementSample" );
 
 	CUserCmd dummy;
 	CUserCmd* cmd;
 
-	static int old_sequence_number = 0;
-
-	// Be sure to call this only once per tick.
-	if ( old_sequence_number != sequence_number )
+	auto UpdateMovements = [&]()
 	{
-		cmd = &m_pCommands[sequence_number % MULTIPLAYER_BACKUP];
-		old_sequence_number = sequence_number;
+		cmd->Reset();
+
+		QAngle viewangles;
+		engine->GetViewAngles( viewangles );
+		QAngle originalViewangles = viewangles;
+
+		if ( active )
+		{
+			// Determine view angles
+			AdjustAngles ( frametime );
+
+			// Determine sideways movement
+			ComputeSideMove( cmd );
+
+			// Determine vertical movement
+			ComputeUpwardMove( cmd );
+
+			// Determine forward movement
+			ComputeForwardMove( cmd );
+
+			// Scale based on holding speed key or having too fast of a velocity based on client maximum
+			//  speed.
+			ScaleMovements( cmd );
+
+			// Allow mice and other controllers to add their inputs
+			ControllerMove( frametime, cmd );
+	#ifdef SIXENSE
+			g_pSixenseInput->SixenseFrame( frametime, cmd ); 
+
+			if( g_pSixenseInput->IsEnabled() )
+			{
+				g_pSixenseInput->SetView( frametime, cmd );
+			}
+	#endif
+		}
+		else
+		{
+			// need to run and reset mouse input so that there is no view pop when unpausing
+			if ( !m_fCameraInterceptingMouse && m_fMouseActive )
+			{
+				float mx, my;
+				GetAccumulatedMouseDeltasAndResetAccumulators( &mx, &my );
+				ResetMouse();
+			}
+		}
+
+		// Retreive view angles from engine ( could have been set in IN_AdjustAngles above )
+		engine->GetViewAngles( viewangles );
+
+		// Set button and flag bits, don't blow away state
+	#ifdef SIXENSE
+		if( g_pSixenseInput->IsEnabled() )
+		{
+			// Some buttons were set in SixenseUpdateKeys, so or in any real keypresses
+			cmd->buttons |= GetButtonBits( 0 );
+		}
+		else
+		{
+			cmd->buttons = GetButtonBits( 0 );
+		}
+	#else
+		cmd->buttons = GetButtonBits( 0 );
+	#endif
+
+		// Use new view angles if alive, otherwise user last angles we stored off.
+		if ( g_iAlive )
+		{
+			VectorCopy( viewangles, cmd->viewangles );
+			VectorCopy( viewangles, m_angPreviousViewAngles );
+		}
+		else
+		{
+			VectorCopy( m_angPreviousViewAngles, cmd->viewangles );
+		}
+
+		// Let the move manager override anything it wants to.
+		if ( g_pClientMode->CreateMove( frametime, cmd ) )
+		{
+			// Get current view angles after the client mode tweaks with it
+			engine->SetViewAngles( cmd->viewangles );
+			prediction->SetLocalViewAngles( cmd->viewangles );
+		}
+
+		// Let the headtracker override the view at the very end of the process so
+		// that vehicles and other stuff in g_pClientMode->CreateMove can override 
+		// first
+		if ( active && UseVR() )
+		{
+			C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+			if( pPlayer && !pPlayer->GetVehicle() )
+			{
+				QAngle curViewangles, newViewangles;
+				Vector curMotion, newMotion;
+				engine->GetViewAngles( curViewangles );
+				curMotion.Init ( 
+					cmd->forwardmove,
+					cmd->sidemove,
+					cmd->upmove );
+				g_ClientVirtualReality.OverridePlayerMotion ( frametime, originalViewangles, curViewangles, curMotion, &newViewangles, &newMotion );
+				engine->SetViewAngles( newViewangles );
+				cmd->forwardmove = newMotion[0];
+				cmd->sidemove = newMotion[1];
+				cmd->upmove = newMotion[2];
+
+				cmd->viewangles = newViewangles;
+				prediction->SetLocalViewAngles( cmd->viewangles );
+			}
+		}
+	};
+
+	// TODO_ENHANCED:
+	// 
+	// Be sure to set the usercmd once
+	// because CreateMove won't be able to adjust angles anyway since accumulators will be reset to zero.
+	// How ever when fps is lower than tickrate, this function is actually never called into the engine
+	// In order to use interval per tick instead of frametime.
+
+	if ( number_of_ticks_this_frame > 0 )
+	{
+		// Sometimes, when fps is too low or framerate suddently dropped,
+		// We need to do this to prevent CreateMove using old commands.
+		
+		// TODO_ENHANCED:
+		// We will need this eventually, 
+		// but since accumulators gets reset to zero, its actually better to let it like this.
+		// Maybe if the accumulators aren't zeros per number_of_ticks_this_frame,
+		// we could get more accurate viewangles changes.
+
+		// frametime /= number_of_ticks_this_frame;
+
+		for (int i = 0; i < number_of_ticks_this_frame; i++)
+		{
+			cmd = &m_pCommands[(current_command + i) % MULTIPLAYER_BACKUP];
+			UpdateMovements();
+		}
 	}
 	else
 	{
 		cmd = &dummy;
-	}
-
-	cmd->Reset();
-
-
-	QAngle viewangles;
-	engine->GetViewAngles( viewangles );
-	QAngle originalViewangles = viewangles;
-
-	if ( active )
-	{
-		// Determine view angles
-		AdjustAngles ( frametime );
-
-		// Determine sideways movement
-		ComputeSideMove( cmd );
-
-		// Determine vertical movement
-		ComputeUpwardMove( cmd );
-
-		// Determine forward movement
-		ComputeForwardMove( cmd );
-
-		// Scale based on holding speed key or having too fast of a velocity based on client maximum
-		//  speed.
-		ScaleMovements( cmd );
-
-		// Allow mice and other controllers to add their inputs
-		ControllerMove( frametime, cmd );
-#ifdef SIXENSE
-		g_pSixenseInput->SixenseFrame( frametime, cmd ); 
-
-		if( g_pSixenseInput->IsEnabled() )
-		{
-			g_pSixenseInput->SetView( frametime, cmd );
-		}
-#endif
-	}
-
-	// Retreive view angles from engine ( could have been set in IN_AdjustAngles above )
-	engine->GetViewAngles( viewangles );
-
-	// Set button and flag bits, don't blow away state
-#ifdef SIXENSE
-	if( g_pSixenseInput->IsEnabled() )
-	{
-		// Some buttons were set in SixenseUpdateKeys, so or in any real keypresses
-		cmd->buttons |= GetButtonBits( 0 );
-	}
-	else
-	{
-		cmd->buttons = GetButtonBits( 0 );
-	}
-#else
-	cmd->buttons = GetButtonBits( 0 );
-#endif
-
-	// Use new view angles if alive, otherwise user last angles we stored off.
-	if ( g_iAlive )
-	{
-		VectorCopy( viewangles, cmd->viewangles );
-		VectorCopy( viewangles, m_angPreviousViewAngles );
-	}
-	else
-	{
-		VectorCopy( m_angPreviousViewAngles, cmd->viewangles );
-	}
-
-	// Let the move manager override anything it wants to.
-	if ( g_pClientMode->CreateMove( frametime, cmd ) )
-	{
-		// Get current view angles after the client mode tweaks with it
-		engine->SetViewAngles( cmd->viewangles );
-		prediction->SetLocalViewAngles( cmd->viewangles );
-	}
-
-	// Let the headtracker override the view at the very end of the process so
-	// that vehicles and other stuff in g_pClientMode->CreateMove can override 
-	// first
-	if ( active && UseVR() )
-	{
-		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
-		if( pPlayer && !pPlayer->GetVehicle() )
-		{
-			QAngle curViewangles, newViewangles;
-			Vector curMotion, newMotion;
-			engine->GetViewAngles( curViewangles );
-			curMotion.Init ( 
-				cmd->forwardmove,
-				cmd->sidemove,
-				cmd->upmove );
-			g_ClientVirtualReality.OverridePlayerMotion ( frametime, originalViewangles, curViewangles, curMotion, &newViewangles, &newMotion );
-			engine->SetViewAngles( newViewangles );
-			cmd->forwardmove = newMotion[0];
-			cmd->sidemove = newMotion[1];
-			cmd->upmove = newMotion[2];
-
-			cmd->viewangles = newViewangles;
-			prediction->SetLocalViewAngles( cmd->viewangles );
-		}
+		UpdateMovements();
 	}
 
 }
@@ -1148,49 +1179,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	cmd->command_number = sequence_number;
 
 	QAngle viewangles;
-	engine->GetViewAngles( viewangles );
-	QAngle originalViewangles = viewangles;
-
-	if ( active || sv_noclipduringpause.GetInt() )
-	{
-		// Determine view angles
-		AdjustAngles ( input_sample_frametime );
-
-		// Determine sideways movement
-		ComputeSideMove( cmd );
-
-		// Determine vertical movement
-		ComputeUpwardMove( cmd );
-
-		// Determine forward movement
-		ComputeForwardMove( cmd );
-
-		// Scale based on holding speed key or having too fast of a velocity based on client maximum
-		//  speed.
-		ScaleMovements( cmd );
-
-		// Allow mice and other controllers to add their inputs
-		ControllerMove( input_sample_frametime, cmd );
-#ifdef SIXENSE
-		g_pSixenseInput->SixenseFrame( input_sample_frametime, cmd ); 
-
-		if( g_pSixenseInput->IsEnabled() )
-		{
-			g_pSixenseInput->SetView( input_sample_frametime, cmd );
-		}
-#endif
-	}
-	else
-	{
-		// need to run and reset mouse input so that there is no view pop when unpausing
-		if ( !m_fCameraInterceptingMouse && m_fMouseActive )
-		{
-			float mx, my;
-			GetAccumulatedMouseDeltasAndResetAccumulators( &mx, &my );
-			ResetMouse();
-		}
-	}
-	// Retreive view angles from engine ( could have been set in IN_AdjustAngles above )
 	engine->GetViewAngles( viewangles );
 
 	// Latch and clear impulse
@@ -1242,17 +1230,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		}
 	}
 
-	// Use new view angles if alive, otherwise user last angles we stored off.
-	if ( g_iAlive )
-	{
-		VectorCopy( viewangles, cmd->viewangles );
-		VectorCopy( viewangles, m_angPreviousViewAngles );
-	}
-	else
-	{
-		VectorCopy( m_angPreviousViewAngles, cmd->viewangles );
-	}
-
 	// Let the move manager override anything it wants to.
 	if ( g_pClientMode->CreateMove( input_sample_frametime, cmd ) )
 	{
@@ -1280,7 +1257,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 					cmd->forwardmove,
 					cmd->sidemove,
 					cmd->upmove );
-				g_ClientVirtualReality.OverridePlayerMotion ( input_sample_frametime, originalViewangles, curViewangles, curMotion, &newViewangles, &newMotion );
+				g_ClientVirtualReality.OverridePlayerMotion ( input_sample_frametime, viewangles, curViewangles, curMotion, &newViewangles, &newMotion );
 				engine->SetViewAngles( newViewangles );
 				cmd->forwardmove = newMotion[0];
 				cmd->sidemove = newMotion[1];
@@ -1294,6 +1271,17 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 				engine->SetViewAngles( cmd->viewangles );
 			}
 		}
+	}
+
+	// Use new view angles if alive, otherwise user last angles we stored off.
+	if ( g_iAlive )
+	{
+		VectorCopy( viewangles, cmd->viewangles );
+		VectorCopy( viewangles, m_angPreviousViewAngles );
+	}
+	else
+	{
+		VectorCopy( m_angPreviousViewAngles, cmd->viewangles );
 	}
 
 	m_flLastForwardMove = cmd->forwardmove;

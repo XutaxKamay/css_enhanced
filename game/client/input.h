@@ -47,7 +47,7 @@ public:
 	virtual		void		Shutdown_All( void );
 	virtual		int			GetButtonBits( int );
 	virtual		void		CreateMove ( int sequence_number, float input_sample_frametime, bool active );
-	virtual		void		ExtraMouseSample( int sequence_number, float frametime, bool active );
+	virtual		void		ExtraMovementSample( int number_of_ticks_this_frame, int current_command, float frametime, bool active );
 	virtual		bool		WriteUsercmdDeltaToBuffer( bf_write *buf, int from, int to, bool isnewcommand );
 	virtual		void		EncodeUserCmdToBuffer( bf_write& buf, int slot );
 	virtual		void		DecodeUserCmdFromBuffer( bf_read& buf, int slot );
