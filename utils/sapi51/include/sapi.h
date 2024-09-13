@@ -10633,7 +10633,7 @@ enum DISPID_SpeechWaveFormatEx
 	DISPID_SWFEAvgBytesPerSec	= DISPID_SWFESamplesPerSec + 1,
 	DISPID_SWFEBlockAlign	= DISPID_SWFEAvgBytesPerSec + 1,
 	DISPID_SWFEBitsPerSample	= DISPID_SWFEBlockAlign + 1,
-	DISPID_SWFEExtraData	= DISPID_SWFEBitsPerSample + 1
+	DISPID_SWFEExtraMovementSample + 1
     } 	DISPID_SpeechWaveFormatEx;
 
 typedef /* [hidden] */ 

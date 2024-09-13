@@ -653,7 +653,7 @@ public:
 								 		
 	// If the game is running faster than the tick_interval framerate, then we do extra mouse sampling to avoid jittery input
 	//  This code path is much like the normal move creation code, except no move is created
-	virtual void			ExtraMouseSample( int sequence_number, float frametime, bool active ) = 0;
+	virtual void			ExtraMovementSample( int number_of_ticks_this_frame, int current_command, float frametime, bool active ) = 0;
 
 	// Encode the delta (changes) between the CUserCmd in slot from vs the one in slot to.  The game code will have
 	//  matching logic to read the delta.

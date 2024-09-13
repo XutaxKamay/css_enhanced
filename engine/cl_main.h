@@ -158,7 +158,7 @@ void CL_RegisterResources ( void );
 // cl_input
 //
 void CL_Move( float accumulated_extra_samples, bool bFinalTick );
-void CL_ExtraMouseUpdate( float remainder );
+void CL_ExtraMovementUpdate( float remainder );
 
 void CL_ClearState (void);
 void CL_ReadPackets ( bool framefinished );        // Read packets from server and other sources (ping requests, etc.)
