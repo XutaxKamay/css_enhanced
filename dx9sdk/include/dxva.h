@@ -699,7 +699,7 @@ typedef enum _DXVA_SampleFormat {
     DXVA_SampleSubStream = 7
 } DXVA_SampleFormat;
 
-#define DXVA_ExtractSampleFormat(_sf) ((_sf) & (DXVA_SampleFormatMask))
+#define DXVA_ExtraMovementSampleFormatMask))
 
 #define DXVA_ExtractExtColorData(_sf, _Mask, _Shift) \
     (((_sf) >> (_Shift)) & (_Mask))

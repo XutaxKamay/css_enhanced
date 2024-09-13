@@ -50,7 +50,7 @@ inline float DecimateSamplePair(float input0, float input1, const float pCoeffic
 	return (input0 + input1);
 }
 
-static void ExtractFloatSamples( float *pOut, const short *pInputBuffer, int sampleCount, int stride )
+static void ExtraMovementSamples( float *pOut, const short *pInputBuffer, int sampleCount, int stride )
 {
 	for ( int i = 0; i < sampleCount; i++ )
 	{
@@ -59,7 +59,7 @@ static void ExtractFloatSamples( float *pOut, const short *pInputBuffer, int sam
 	}
 }
 
-static void ExtractShortSamples( short *pOut, const float *pInputBuffer, float scale, int sampleCount, int stride )
+static void ExtraMovementSamples( short *pOut, const float *pInputBuffer, float scale, int sampleCount, int stride )
 {
 	for ( int i = 0; i < sampleCount; i++ )
 	{
@@ -96,9 +96,9 @@ void DecimateSampleRateBy2_16( const short *pInputBuffer, short *pOutputBuffer, 
 	float *pTmpBuf = new float[sampleCount];
 	for ( int i = 0; i < channelCount; i++ )
 	{
-		ExtractFloatSamples( pTmpBuf, pInputBuffer+i, sampleCount, channelCount );
+		ExtraMovementSamples( pTmpBuf, pInputBuffer+i, sampleCount, channelCount );
 		DecimateSampleBlock( pTmpBuf, sampleCount );
-		ExtractShortSamples( pOutputBuffer+i, pTmpBuf, 0.5f * 32768.0f, sampleCount>>1, channelCount );
+		ExtraMovementSamples( pOutputBuffer+i, pTmpBuf, 0.5f * 32768.0f, sampleCount>>1, channelCount );
 	}
 	delete [] pTmpBuf;
 }

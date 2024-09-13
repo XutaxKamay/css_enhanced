@@ -6,6 +6,8 @@
 
 #include "cbase.h"
 #include "view.h"
+#include "cdll_client_int.h"
+#include "gamerules.h"
 #include "iviewrender.h"
 #include "iviewrender_beams.h"
 #include "view_shared.h"
@@ -150,7 +152,14 @@ static void CalcDemoViewOverride( Vector &origin, QAngle &angles )
 {
 	engine->SetViewAngles( s_DemoAngle );
 
-	input->ExtraMouseSample( 0, gpGlobals->absoluteframetime, true );
+	input->ExtraMovementSample( gpGlobals->tickcount, 0, gpGlobals->absoluteframetime, true );
+
+	static int iOldTickCount = 0;
+
+	if (iOldTickCount != gpGlobals->tickcount)
+	{
+		iOldTickCount = gpGlobals->tickcount;
+	}
 
 	engine->GetViewAngles( s_DemoAngle );
 

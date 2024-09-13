@@ -10,6 +10,7 @@
 #include "client.h"
 #include "client_pch.h"
 #include "clockdriftmgr.h"
+#include "host.h"
 #include "sound.h"
 #include <inetchannel.h>
 #include "checksum_engine.h"
@@ -593,7 +594,7 @@ void CL_ReadPackets ( bool bFinalTick )
 			// While clock correction is off, we have the old behavior of matching the client and server clocks.
 			if (CClockDriftMgr::IsClockCorrectionEnabled())
 			{
-				cl.m_ClockDriftMgr.IncrementCachedTickCount(bFinalTick);
+				cl.GetClockDriftMgr().IncrementCachedTickCount(bFinalTick);
 				g_ClientGlobalVariables.tickcount = cl.GetClientTickCount();
 				g_ClientGlobalVariables.curtime = cl.GetTime();
 			}
@@ -2081,7 +2082,7 @@ void CL_DecayLights (void)
 }
 
 
-void CL_ExtraMouseUpdate( float frametime )
+void CL_ExtraMovementUpdate( float frametime )
 {
 	// Not ready for commands yet.
 	if ( !cl.IsActive() )
@@ -2102,7 +2103,7 @@ void CL_ExtraMouseUpdate( float frametime )
 	int nextcommandnr = cl.lastoutgoingcommand + cl.chokedcommands + 1;
 
 	// Have client .dll create and store usercmd structure
-	g_ClientDLL->ExtraMouseSample( nextcommandnr, frametime, !cl.m_bPaused );
+	g_ClientDLL->ExtraMovementSample( cl.GetClockDriftMgr().m_nNumberOfTicks, nextcommandnr, frametime, !cl.m_bPaused );
 }
 
 /*
@@ -2159,7 +2160,7 @@ void CL_SendMove( void )
 	}
 }
 
-void CL_Move(float accumulated_extra_samples, bool bFinalTick )
+void CL_Move(float frametime, bool bFinalTick )
 {
 	if ( !cl.IsConnected() )
 		return;
@@ -2205,10 +2206,20 @@ void CL_Move(float accumulated_extra_samples, bool bFinalTick )
 
 		int nextcommandnr = cl.lastoutgoingcommand + cl.chokedcommands + 1;
 
-		// Have client .dll create and store usercmd structure
+		// TODO_ENHANCED:
+		// Sooo why do we ignore interval per tick overlap here?
+		// Because the mouse accumulators even in low fps are always reset to zero anyway after the first tick.
+		// Movements will be instead calculate inside CL_ExtraMovementSample with the correct frametime.
+
+		// Doing host_state.interval_per_tick - frametime was just to calculate the previous frametime, but it has issues:
+		// Before even if you had low fps, the mouse will only be updated only once even if CreateMove is called multiple times.
+		// So basically, no matter the frametime you had, the mouse will never update its angles anyway with the correct amount (multiple interval per ticks.);
+		// Because GetRawMouseAccumulators will always be zero, except with old behavior with GetCursorPos.
+		// So, instead the frametime has been divided by the number ticks been ran, so we get the right amount to adjust everytime.
+		// Technically it's even safe to remove now the calculation for movements since they'll calculated inside CL_ExtraMovementSample now.
 		g_ClientDLL->CreateMove( 
 			nextcommandnr, 
-			host_state.interval_per_tick - accumulated_extra_samples,
+			frametime,
 			!cl.IsPaused() );
 
 		// Store new usercmd to dem file
