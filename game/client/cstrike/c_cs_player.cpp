@@ -2540,8 +2540,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						buffer_armor[0] = 0;
 					}
 
-					auto realAP = max( player->GetHealth() - health_damages, 0 );
-					auto realHP = max( player->ArmorValue() - armor_damages, 0 );
+					auto realHP = max( player->GetHealth() - health_damages, 0 );
+					auto realAP = max( player->ArmorValue() - armor_damages, 0 );
 
 					hudChat->Printf( CHAT_FILTER_NONE,
 									 "\7FFFFFF\x7"
