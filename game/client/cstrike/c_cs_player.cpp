@@ -2516,7 +2516,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 			{
 				auto health_damages = event->GetInt( "dmg_health" );
 				auto armor_damages	= event->GetInt( "dmg_armor" );
-				auto hitgroup		= event->GetInt( "hitgroup" );
+				// auto hitgroup		= event->GetInt( "hitgroup" );
 
 				CLocalPlayerFilter filter;
 				EmitSound( filter, GetSoundSourceIndex(), "Player.Hitmark" );
@@ -2525,31 +2525,36 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				if ( hudChat )
 				{
-					char buffer_armor[256];
+					char buffer_armor[32];
 
 					if ( armor_damages > 0 )
 					{
 						V_sprintf_safe( buffer_armor,
-										" and \x7"
-										"FF0000%i \x7"
-										"FFFFFFarmor damage.",
+										" & \x7"
+										"00FFFF%i AP \x7"
+										"FFFFFF",
 										armor_damages );
 					}
 					else
 					{
-						buffer_armor[0] = '.';
-						buffer_armor[1] = 0;
+						buffer_armor[0] = 0;
 					}
 
+					auto realAP = max( player->GetHealth() - health_damages, 0 );
+					auto realHP = max( player->ArmorValue() - armor_damages, 0 );
+
 					hudChat->Printf( CHAT_FILTER_NONE,
-									 "\7FFFFFFYou hit \x7"
+									 "\7FFFFFF\x7"
 									 "FF00FF%s\x7"
-									 "FFFFFF with \x7"
-									 "FF0000%i \x7"
-									 "FFFFFFhealth damage%s",
+									 "FFFFFF => \x7"
+									 "FF0000%i HP \x7"
+									 "FFFFFF%s \7FFFFFF(\7FF0000%i HP \7FFFFFF- \x7"
+									 "00FFFF%i AP\7FFFFFF)",
 									 player->GetPlayerName(),
 									 health_damages,
-									 buffer_armor );
+									 buffer_armor,
+									 realHP,
+									 realAP );
 
 					m_bHasHitPlayer = true;
 				}
@@ -2954,8 +2959,8 @@ void C_CSPlayer::GetGlowEffectColor( float* r, float* g, float* b )
 
 	if ( cl_cs_render_glow_behind_walls.GetInt() == 1 )
 	{
-		m_bGlowOccluded	   = false;
-		m_bGlowNonOccluded = true;
+		m_bGlowOccluded	   = true;
+		m_bGlowNonOccluded = false;
 	}
 	else if ( cl_cs_render_glow_behind_walls.GetInt() == 2 )
 	{
