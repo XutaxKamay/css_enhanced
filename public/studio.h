@@ -28,7 +28,9 @@
 #include "localflexcontroller.h"
 #include "utlsymbol.h"
 
+#ifdef VPROF_ENABLED
 #define STUDIO_ENABLE_PERF_COUNTERS
+#endif
 
 #define STUDIO_SEQUENCE_ACTIVITY_LOOKUPS_ARE_SLOW 0 
 // If this is set to 1, then the activity->sequence mapping inside
