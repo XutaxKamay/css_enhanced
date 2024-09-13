@@ -2011,7 +2011,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	Vector adjOrigin = GetAbsOrigin() + Vector( 0, 0, m_flEstIkOffset );
 
 	// NOTE: For model scaling, we need to opt out of IK because it will mark the bones as already being calculated
-	if ( !IsModelScaled() )
+	if ( !IsModelScaled() && m_bUseIks )
 	{
 		// only allocate an ik block if the npc can use it
 		if ( !m_pIk && pStudioHdr->numikchains() > 0 )
