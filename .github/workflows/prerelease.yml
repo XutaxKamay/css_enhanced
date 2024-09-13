@@ -6,6 +6,27 @@ on:
       - "master"
 
 jobs:
+  build-windows-amd64:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build windows-amd64
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      shell: bash
+      run: |
+        git submodule init && git submodule update
+        ./waf configure -T release --prefix ./gamedata/css_enhanced/game
+        ./waf build install
+        cd ./gamedata/css_enhanced/game
+        7z a CSS_Enhanced_Windows_Development_Release.zip ./
+        mkdir -p ~/.ssh
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+        scp CSS_Enhanced_Windows_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
+
   build-linux-amd64:
     runs-on: ubuntu-latest
 
@@ -41,27 +62,6 @@ jobs:
         ssh-add - <<< "$SSH_KEY"
         ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
         scp CSS_Enhanced_Android_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
-
-  build-windows-amd64:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build windows-amd64
-      env:
-        SSH_KEY: ${{ secrets.SSH_KEY }}
-      shell: bash
-      run: |
-        git submodule init && git submodule update
-        ./waf configure -T release --prefix ./gamedata/css_enhanced/game
-        ./waf build install
-        cd ./gamedata/css_enhanced/game
-        7z a CSS_Enhanced_Windows_Development_Release.zip ./
-        mkdir -p ~/.ssh
-        eval $(ssh-agent)
-        ssh-add - <<< "$SSH_KEY"
-        ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
-        scp CSS_Enhanced_Windows_Development_Release.zip root@cssserv.xutaxkamay.com:/var/www/html
 
   build-macos-amd64:
     runs-on: macos-latest
