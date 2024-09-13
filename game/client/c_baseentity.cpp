@@ -6361,11 +6361,11 @@ void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool
 	if ( cl_interp_no_hermite.GetBool() )
 	{
 		type |= INTERPOLATE_LINEAR_ONLY;
-		DevMsg( "Linear only interpolation enabled for entity %i (varname: %s) !\n", index, watcher->GetDebugName());
+		DevMsg( 3, "Linear only interpolation enabled for entity %p (varname: %s) !\n", this, watcher->GetDebugName());
 	}
 	else
 	{
-		DevMsg( "Hermite interpolation enabled for entity: %i (varname: %s) !\n", index, watcher->GetDebugName());
+		DevMsg( 3, "Hermite interpolation enabled for entity: %p (varname: %s) !\n", this, watcher->GetDebugName());
 	}
 
 	for ( int i=0; i < m_VarMap.m_Entries.Count(); i++ )
