@@ -495,6 +495,12 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	FinishInterpolatingPlayer( player );
 
+	// This needs to be there because it cannot get an interpolated camera position.
+	// Technically this is movement data and needs to be seperated from PostThink.
+	VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-PostThinkVPhysics" );
+	player->PostThinkVPhysics();
+	VPROF_SCOPE_END();
+
 	ServiceEventQueue( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
