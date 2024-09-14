@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "cbase.h"
+#include "convar.h"
 #include "mp_shareddefs.h"
 #include "basemultiplayerplayer.h"
 
@@ -103,6 +104,8 @@ bool CBaseMultiplayerPlayer::SpeakConceptIfAllowed( int iConcept, const char *mo
 	return SpeakIfAllowed( g_pszMPConcepts[iConcept], modifiers, pszOutResponseChosen, bufsize, filter );
 }
 
+ConVar sv_deadtalk("sv_deadtalk", "1");
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -121,7 +124,7 @@ bool CBaseMultiplayerPlayer::CanHearAndReadChatFrom( CBasePlayer *pPlayer )
 		return false;
 
 	// can't hear dead players if we're alive
-	if ( pPlayer->m_lifeState != LIFE_ALIVE && m_lifeState == LIFE_ALIVE )
+	if ( ( pPlayer->m_lifeState != LIFE_ALIVE && m_lifeState == LIFE_ALIVE ) && !sv_deadtalk.GetBool() )
 		return false;
 
 	return true;
