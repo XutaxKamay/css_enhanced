@@ -1479,21 +1479,21 @@ bool IntersectRayWithOBB( const Ray_t &ray, const matrix3x4_t &matOBBToWorld,
 	Collision_ClearTrace( ray.m_Start + ray.m_StartOffset, ray.m_Delta, pTrace );
 
 	// Compute a bounding sphere around the bloated OBB
+	Vector vecOBBExtents;
+	VectorAdd( vecOBBMins, vecOBBMaxs, vecOBBExtents );
+	vecOBBExtents *= 0.5f;
+
 	Vector vecOBBCenter;
-	VectorAdd( vecOBBMins, vecOBBMaxs, vecOBBCenter );
-	vecOBBCenter *= 0.5f;
-	vecOBBCenter.x += matOBBToWorld[0][3];
-	vecOBBCenter.y += matOBBToWorld[1][3];
-	vecOBBCenter.z += matOBBToWorld[2][3];
+	VectorTransform( vecOBBExtents, matOBBToWorld, vecOBBCenter );
 
 	Vector vecOBBHalfDiagonal;
 	VectorSubtract( vecOBBMaxs, vecOBBMins, vecOBBHalfDiagonal );
 	vecOBBHalfDiagonal *= 0.5f;
 
-    // TODO_ENHANCED: make sphere hitboxes.
-	// float flRadius = vecOBBHalfDiagonal.Length() + ray.m_Extents.Length();
-	// if ( !IsRayIntersectingSphere( ray.m_Start, ray.m_Delta, vecOBBCenter, flRadius, flTolerance ) )
-	// 	return false;
+    // TODO_ENHANCED: should be fixed now.
+	float flRadius = vecOBBHalfDiagonal.Length() + ray.m_Extents.Length();
+	if ( !IsRayIntersectingSphere( ray.m_Start, ray.m_Delta, vecOBBCenter, flRadius, flTolerance ) )
+		return false;
 
 	// Ok, we passed the trivial reject, so lets do the dirty deed.
 	// Basically we're going to do the GJK thing explicitly. We'll shrink the ray down
