@@ -31,6 +31,10 @@ def configure(conf):
 	if game not in games.keys():
 		conf.fatal("Couldn't find game: ", game)
 
+	if conf.env.COMPILER_CC != 'msvc':
+		conf.options.with_pch = True
+		conf.load('pch')
+
 def build(bld):
 	game = vpc_parser.parse_vpcs( bld.env, games[bld.env.GAMES], '../..' )
 
@@ -78,6 +82,17 @@ def build(bld):
 	defines = game["defines"]
 
 	defines.remove('PROTECTED_THINGS_ENABLE')
+
+	if bld.env.COMPILER_CC != 'msvc':
+		bld(features='cxx pch',
+			target='client-precompiled-headers',
+			name='client-precompiled-headers',
+			headers='cbase.h',
+			includes = includes,
+			defines  = defines,
+			subsystem = bld.env.MSVC_SUBSYSTEM
+		)
+		libs += 'client-precompiled-headers'
 
 	bld.shlib(
 		source   = source,
