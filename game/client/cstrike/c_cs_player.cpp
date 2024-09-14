@@ -2525,36 +2525,19 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				if ( hudChat )
 				{
-					char buffer_armor[32];
-
-					if ( armor_damages > 0 )
-					{
-						V_sprintf_safe( buffer_armor,
-										" & \x7"
-										"00FFFF%i AP \x7"
-										"FFFFFF",
-										armor_damages );
-					}
-					else
-					{
-						buffer_armor[0] = 0;
-					}
-
-					auto realHP = max( player->GetHealth() - health_damages, 0 );
-					auto realAP = max( player->ArmorValue() - armor_damages, 0 );
-
 					hudChat->Printf( CHAT_FILTER_NONE,
 									 "\7FFFFFF\x7"
 									 "FF00FF%s\x7"
 									 "FFFFFF => \x7"
-									 "FF0000%i HP \x7"
-									 "FFFFFF%s \7FFFFFF(\7FF0000%i HP \7FFFFFF- \x7"
-									 "00FFFF%i AP\7FFFFFF)",
+									 "FF0000%i HP \7FFFFFF& \x7"
+									 "00FFFF %i AP "
+									 "\7FFFFFF(\7FF0000-%i HP \7FFFFFF& \x7"
+									 "00FFFF-%i AP\7FFFFFF)",
 									 player->GetPlayerName(),
+									 event->GetInt( "health" ),
+									 event->GetInt( "armor" ),
 									 health_damages,
-									 buffer_armor,
-									 realHP,
-									 realAP );
+									 armor_damages );
 
 					m_bHasHitPlayer = true;
 				}
