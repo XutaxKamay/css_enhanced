@@ -4620,10 +4620,6 @@ void CBasePlayer::PostThink()
 			m_Local.m_vecPunchAngle = RandomAngle( -25, 25 );
 			m_Local.m_vecPunchAngleVel.Init();
 		}
-
-		VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-PostThinkVPhysics" );
-		PostThinkVPhysics();
-		VPROF_SCOPE_END();
 	}
 
 #if !defined( NO_ENTITY_PREDICTION )
@@ -4631,6 +4627,10 @@ void CBasePlayer::PostThink()
 	SimulatePlayerSimulatedEntities();
 #endif
 
+    if ( GetCheckUntouch() )
+    {
+        PhysicsCheckForEntityUntouch();
+    }
 }
 
 // handles touching physics objects
