@@ -1942,7 +1942,16 @@ private:
 //--------------------------------------------------------------------------------------------------------------
 void CCSBotManager::OnBreakBreakable( IGameEvent *event )
 {
-	CheckAreasOverlappingBreakable collector( UTIL_EntityByIndex( event->GetInt( "entindex" ) ) );
+	auto ent = UTIL_EntityByIndex( event->GetInt( "entindex" ) );
+
+	if ( !ent )
+	{
+		// TODO_ENHANCED.
+		DevMsg("CCSBotManager::OnBreakBreakable bug\n");
+		return;
+	}
+
+	CheckAreasOverlappingBreakable collector( ent );
 	TheNavMesh->ForAllAreas( collector );
 
 	CCSBOTMANAGER_ITERATE_BOTS( OnBreakBreakable, event );
@@ -1952,7 +1961,16 @@ void CCSBotManager::OnBreakBreakable( IGameEvent *event )
 //--------------------------------------------------------------------------------------------------------------
 void CCSBotManager::OnBreakProp( IGameEvent *event )
 {
-	CheckAreasOverlappingBreakable collector( UTIL_EntityByIndex( event->GetInt( "entindex" ) ) );
+	auto ent = UTIL_EntityByIndex( event->GetInt( "entindex" ) );
+
+	if ( !ent )
+	{
+		// TODO_ENHANCED.
+		DevMsg("CCSBotManager::OnBreakProp bug\n");
+		return;
+	}
+
+	CheckAreasOverlappingBreakable collector( ent );
 	TheNavMesh->ForAllAreas( collector );
 
 	CCSBOTMANAGER_ITERATE_BOTS( OnBreakProp, event );
