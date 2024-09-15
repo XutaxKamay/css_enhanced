@@ -2378,6 +2378,11 @@ bool CL_ShouldLoadBackgroundLevel( const CCommand &args )
 		bIsTF2 = true;
 	}
 
+	if ( Q_stricmp( COM_GetModDirectory(), "cstrike" ) == 0 )
+	{
+		return false;
+	}
+
 	if ( bIsTF2 && IsPC() )
 		return false;
 
