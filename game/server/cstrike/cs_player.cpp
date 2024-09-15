@@ -1543,7 +1543,7 @@ void CCSPlayer::UpdateMouseoverHints()
 }
 
 #ifdef GLOWS_ENABLE
-ConVar sv_enable_cs_glows("sv_enable_cs_glows", "1");
+ConVar sv_cs_enable_glows("sv_cs_enable_glows", "1", FCVAR_NOTIFY);
 #endif
 
 void CCSPlayer::PostThink()
@@ -1605,7 +1605,7 @@ void CCSPlayer::PostThink()
 	}
 
 #ifdef GLOWS_ENABLE
-	if ( sv_enable_cs_glows.GetBool() )
+	if ( sv_cs_enable_glows.GetBool() )
 	{
 		AddGlowEffect();
 	}

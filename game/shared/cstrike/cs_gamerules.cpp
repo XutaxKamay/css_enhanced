@@ -178,6 +178,7 @@ ConVar ammo_57mm_max( "ammo_57mm_max", "100", FCVAR_REPLICATED );
 ConVar ammo_hegrenade_max( "ammo_hegrenade_max", "1", FCVAR_REPLICATED );
 ConVar ammo_flashbang_max( "ammo_flashbang_max", "2", FCVAR_REPLICATED );
 ConVar ammo_smokegrenade_max( "ammo_smokegrenade_max", "1", FCVAR_REPLICATED );
+ConVar sv_cs_noblock("sv_cs_noblock", "0", FCVAR_REPLICATED | FCVAR_NOTIFY,  "1) No block on players only\n2) No block on every objects");
 
 //ConVar mp_dynamicpricing( "mp_dynamicpricing", "0", FCVAR_REPLICATED, "Enables or Disables the dynamic weapon prices" );
 
@@ -4964,12 +4965,27 @@ float CCSGameRules::GetRoundElapsedTime()
 
 bool CCSGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
+	if ( sv_cs_noblock.GetInt() == 1 )
+	{
+		if ( collisionGroup0 >= COLLISION_GROUP_PLAYER && collisionGroup1 == COLLISION_GROUP_PLAYER )
+		{
+			return false;
+		}
+	}
+	else if ( sv_cs_noblock.GetInt() == 2 )
+	{
+		if ( collisionGroup0 >= COLLISION_GROUP_DEBRIS_TRIGGER && collisionGroup1 == COLLISION_GROUP_PLAYER )
+		{
+			return false;
+		}
+	}
+
 	if ( collisionGroup0 > collisionGroup1 )
 	{
 		// swap so that lowest is always first
 		::V_swap(collisionGroup0,collisionGroup1);
 	}
-	
+
 	//Don't stand on COLLISION_GROUP_WEAPONs
 	if( collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT &&
 		collisionGroup1 == COLLISION_GROUP_WEAPON )
