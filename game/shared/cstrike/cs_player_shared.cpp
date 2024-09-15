@@ -41,7 +41,7 @@
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
 
-ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED );
+ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
 const QAngle& CCSPlayer::GetRenderAngles()

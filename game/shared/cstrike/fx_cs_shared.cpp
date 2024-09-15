@@ -17,7 +17,7 @@
 #endif
 
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
-ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED );
+ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
 #ifdef CLIENT_DLL
 ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
