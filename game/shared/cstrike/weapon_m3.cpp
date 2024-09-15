@@ -40,6 +40,18 @@ public:
 
 	virtual CSWeaponID GetWeaponID( void ) const		{ return WEAPON_M3; }
 
+	virtual bool Deploy()
+	{
+		bool deployed = BaseClass::Deploy();
+
+		if ( deployed )
+		{
+			m_flPumpTime  = 0;
+			m_reloadState = 0;
+		}
+		return deployed;
+	}
+
 private:
 
 	CWeaponM3( const CWeaponM3 & );
