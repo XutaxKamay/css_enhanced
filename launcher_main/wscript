@@ -30,16 +30,31 @@ def build(bld):
 		source += ['launcher_main.rc']
 
 	install_path = bld.env.BINDIR
-	bld(
-		source   = source,
-		target   = PROJECT_NAME,
-		name     = PROJECT_NAME,
-		features = 'c cxx cxxprogram',
-		includes = includes,
-		defines  = defines,
-		use      = libs,
-		install_path = install_path,
-		subsystem = bld.env.MSVC_SUBSYSTEM,
-		idx      = bld.get_taskgen_count()
-	)
+
+	if 'cstrike' == bld.options.GAMES:
+		bld(
+			source   = source,
+			target   = 'css_enhanced',
+			name     = 'css_enhanced',
+			features = 'c cxx cxxprogram',
+			includes = includes,
+			defines  = defines + ['CSS_ENHANCED_EXECUTABLE'],
+			use      = libs,
+			install_path = install_path,
+			subsystem = bld.env.MSVC_SUBSYSTEM,
+			idx      = bld.get_taskgen_count()
+		)
+	else:
+		bld(
+			source   = source,
+			target   = PROJECT_NAME,
+			name     = PROJECT_NAME,
+			features = 'c cxx cxxprogram',
+			includes = includes,
+			defines  = defines,
+			use      = libs,
+			install_path = install_path,
+			subsystem = bld.env.MSVC_SUBSYSTEM,
+			idx      = bld.get_taskgen_count()
+		)
 

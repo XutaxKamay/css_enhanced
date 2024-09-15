@@ -4,6 +4,7 @@
 //
 //=====================================================================================//
 
+#include "tier1/strtools.h"
 #if defined( _WIN32 ) && !defined( _X360 )
 #include <windows.h>
 #include <stdio.h>
