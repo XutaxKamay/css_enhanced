@@ -1075,7 +1075,7 @@ void CInput::ExtraMovementSample( int number_of_ticks_this_frame, int current_co
 		engine->GetViewAngles( viewangles );
 
 		// Set button and flag bits, don't blow away state
-	#ifdef SIXENSE
+#ifdef SIXENSE
 		if( g_pSixenseInput->IsEnabled() )
 		{
 			// Some buttons were set in SixenseUpdateKeys, so or in any real keypresses
@@ -1085,9 +1085,9 @@ void CInput::ExtraMovementSample( int number_of_ticks_this_frame, int current_co
 		{
 			cmd->buttons = GetButtonBits( 0 );
 		}
-	#else
+#else
 		cmd->buttons = GetButtonBits( 0 );
-	#endif
+#endif
 
 		// Use new view angles if alive, otherwise user last angles we stored off.
 		if ( g_iAlive )
@@ -1104,7 +1104,16 @@ void CInput::ExtraMovementSample( int number_of_ticks_this_frame, int current_co
 		if ( g_pClientMode->CreateMove( frametime, cmd ) )
 		{
 			// Get current view angles after the client mode tweaks with it
+#ifdef SIXENSE
+			// Only set the engine angles if sixense is not enabled. It is done in SixenseInput::SetView otherwise.
+			if ( !g_pSixenseInput->IsEnabled() )
+			{
+				engine->SetViewAngles( cmd->viewangles );
+			}
+#else
 			engine->SetViewAngles( cmd->viewangles );
+
+#endif
 			prediction->SetLocalViewAngles( cmd->viewangles );
 		}
 
@@ -1227,49 +1236,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		else if ( cmd->forwardmove < 0 )
 		{
 			cmd->buttons |= IN_BACK;
-		}
-	}
-
-	// Let the move manager override anything it wants to.
-	if ( g_pClientMode->CreateMove( input_sample_frametime, cmd ) )
-	{
-		// Get current view angles after the client mode tweaks with it
-#ifdef SIXENSE
-		// Only set the engine angles if sixense is not enabled. It is done in SixenseInput::SetView otherwise.
-		if( !g_pSixenseInput->IsEnabled() )
-		{
-			engine->SetViewAngles( cmd->viewangles );
-		}
-#else
-		engine->SetViewAngles( cmd->viewangles );
-
-#endif
-
-		if ( UseVR() )
-		{
-			C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
-			if( pPlayer && !pPlayer->GetVehicle() )
-			{
-				QAngle curViewangles, newViewangles;
-				Vector curMotion, newMotion;
-				engine->GetViewAngles( curViewangles );
-				curMotion.Init ( 
-					cmd->forwardmove,
-					cmd->sidemove,
-					cmd->upmove );
-				g_ClientVirtualReality.OverridePlayerMotion ( input_sample_frametime, viewangles, curViewangles, curMotion, &newViewangles, &newMotion );
-				engine->SetViewAngles( newViewangles );
-				cmd->forwardmove = newMotion[0];
-				cmd->sidemove = newMotion[1];
-				cmd->upmove = newMotion[2];
-				cmd->viewangles = newViewangles;
-			}
-			else
-			{
-				Vector vPos;
-				g_ClientVirtualReality.GetTorsoRelativeAim( &vPos, &cmd->viewangles );
-				engine->SetViewAngles( cmd->viewangles );
-			}
 		}
 	}
 
