@@ -292,31 +292,31 @@ def build(bld):
 		idx      = bld.get_taskgen_count()
 	)
 	
-	bld.shlib(
-		source   = source_dx8,
-		target   = PROJECT_NAME + 'dx8',
-		name     = PROJECT_NAME + 'dx8',
-		features = 'c cxx',
-		includes = includes,
-		defines  = defines_dx8,
-		use      = libs,
-		install_path = install_path,
-		subsystem = bld.env.MSVC_SUBSYSTEM,
-		idx      = bld.get_taskgen_count()
-	)
+	# bld.shlib(
+	# 	source   = source_dx8,
+	# 	target   = PROJECT_NAME + 'dx8',
+	# 	name     = PROJECT_NAME + 'dx8',
+	# 	features = 'c cxx',
+	# 	includes = includes,
+	# 	defines  = defines_dx8,
+	# 	use      = libs,
+	# 	install_path = install_path,
+	# 	subsystem = bld.env.MSVC_SUBSYSTEM,
+	# 	idx      = bld.get_taskgen_count()
+	# )
 
-	bld.shlib(
-		source   = source_dx7,
-		target   = PROJECT_NAME + 'dx7',
-		name     = PROJECT_NAME + 'dx7',
-		features = 'c cxx',
-		includes = includes,
-		defines  = defines_dx7,
-		use      = libs,
-		install_path = install_path,
-		subsystem = bld.env.MSVC_SUBSYSTEM,
-		idx      = bld.get_taskgen_count()
-	)
+	# bld.shlib(
+	# 	source   = source_dx7,
+	# 	target   = PROJECT_NAME + 'dx7',
+	# 	name     = PROJECT_NAME + 'dx7',
+	# 	features = 'c cxx',
+	# 	includes = includes,
+	# 	defines  = defines_dx7,
+	# 	use      = libs,
+	# 	install_path = install_path,
+	# 	subsystem = bld.env.MSVC_SUBSYSTEM,
+	# 	idx      = bld.get_taskgen_count()
+	# )
 
 	# TODO_ENHANCED(xutaxkamay):
 	# bld.shlib(
