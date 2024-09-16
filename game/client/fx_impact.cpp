@@ -207,7 +207,7 @@ char const *GetImpactDecal( C_BaseEntity *pEntity, int iMaterial, int iDamageTyp
 //-----------------------------------------------------------------------------
 // Purpose: Perform custom effects based on the Decal index
 //-----------------------------------------------------------------------------
-static ConVar cl_new_impact_effects( "cl_new_impact_effects", "0" );
+static ConVar cl_new_impact_effects( "cl_new_impact_effects", "1" );
 
 struct ImpactEffect_t
 {
