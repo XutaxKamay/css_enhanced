@@ -4320,12 +4320,13 @@ void C_BaseEntity::CalcAbsolutePosition( )
 		return;
 	}
 
-    // TODO_ENHANCED: this should be safe to remove.
-	// if ( IsEffectActive(EF_BONEMERGE) )
-	// {
-	// 	MoveToAimEnt();
-	// 	return;
-	// }
+	// TODO_ENHANCED: this should be safe to remove.
+	// Not safe to remove this breaks C4 HUD.
+	if ( IsEffectActive(EF_BONEMERGE) )
+	{
+		MoveToAimEnt();
+		return;
+	}
 
 	// Construct the entity-to-world matrix
 	// Start with making an entity-to-parent matrix
