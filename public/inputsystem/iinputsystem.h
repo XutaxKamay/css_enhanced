@@ -120,7 +120,7 @@ public:
 	virtual void SetNovintPure( bool bPure ) = 0;
 
 	// read and clear accumulated raw input values
-	virtual bool GetRawMouseAccumulators( int& accumX, int& accumY ) = 0;
+	virtual bool GetRawMouseAccumulators( int& accumX, int& accumY, double frameSplit = 0.0 ) = 0;
 	virtual bool GetTouchAccumulators( int fingerId, float &dx, float &dy ) = 0;
 
 	// tell the input system that we're not a game, we're console text mode.
@@ -161,6 +161,11 @@ public:
 	}
 
 	virtual void StartTextInput() = 0;
+
+public:
+	virtual bool   QueryRawInput(int& rawAccumX, int& rawAccumY) = 0;
+	virtual void   SetAccumParam(float mouseSplitTime, float mouseSampleTime) = 0;
+	virtual double GetMouseSampleTime() = 0;
 };
 
 

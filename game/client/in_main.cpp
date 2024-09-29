@@ -17,6 +17,7 @@
 #include "const.h"
 #include "convar.h"
 #include "imovehelper.h"
+#include "inputsystem/iinputsystem.h"
 #include "ipredictionsystem.h"
 #include "studio.h"
 #include "util_shared.h"
@@ -646,7 +647,10 @@ float CInput::KeyState ( kbutton_t *key )
 
 void CInput::IN_SetSampleTime( float frametime )
 {
-	m_flKeyboardSampleTime = frametime;
+	m_flMouseSampleTime = m_flKeyboardSampleTime = frametime;
+
+	if (g_pInputSystem)
+		g_pInputSystem->SetAccumParam(m_flMouseSplitTime, m_flMouseSampleTime);
 }
 
 /*
@@ -956,6 +960,9 @@ ControllerMove
 */
 void CInput::ControllerMove( float frametime, CUserCmd *cmd )
 {
+
+	m_flMouseMoveFrameTime = frametime; // for m_rawinput 2
+
 	if ( IsPC() )
 	{
 		if ( !m_fCameraInterceptingMouse && m_fMouseActive )

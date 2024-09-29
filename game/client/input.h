@@ -131,7 +131,7 @@ private:
 	void		AdjustPitch( float speed, QAngle& viewangles );
 	virtual void AdjustYaw( float speed, QAngle& viewangles );
 	float		DetermineKeySpeed( float frametime );
-	void		GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my );
+	void		GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my, float frameTime = 0.f );
 	void		GetMouseDelta( float inmousex, float inmousey, float *pOutMouseX, float *pOutMouseY );
 	void		ScaleMouse( float *x, float *y );
 	void		ApplyMouse( QAngle& viewangles, CUserCmd *cmd, float mouse_x, float mouse_y );
@@ -270,6 +270,11 @@ private:
 #if defined( HL2_CLIENT_DLL )
 	CUtlVector< CEntityGroundContact > m_EntityGroundContact;
 #endif
+
+	// m_raw_input 2
+	double m_flMouseSplitTime;
+	double m_flMouseMoveFrameTime;
+	float m_flMouseSampleTime;
 };
 
 extern kbutton_t in_strafe;

@@ -104,6 +104,7 @@ public:
 	virtual void *GetHapticsInterfaceAddress() const { return NULL;}	
 #endif
 	bool GetRawMouseAccumulators( int& accumX, int& accumY );
+	bool GetRawMouseAccumulators( int& accumX, int& accumY, double frameSplit = 0.0 );
 	virtual bool GetTouchAccumulators( int fingerId, float &dx, float &dy );
 
 	virtual void SetConsoleTextMode( bool bConsoleTextMode );
@@ -483,6 +484,13 @@ public:
 private:
 	CSteamAPIContext m_SteamAPIContext;
 	bool m_bSkipControllerInitialization;
+	float m_flMouseSampleTime;
+	float m_flMouseSplitTime;
+
+public:
+	virtual bool   QueryRawInput(int& rawAccumX, int& rawAccumY) override;
+	virtual void   SetAccumParam(float mouseSplitTime, float mouseSampleTime);
+	virtual double GetMouseSampleTime() override;
 };
 
 #endif // INPUTSYSTEM_H

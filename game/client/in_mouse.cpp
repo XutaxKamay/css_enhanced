@@ -6,6 +6,8 @@
 // $Date:         $
 // $NoKeywords: $
 //===========================================================================//
+#include "particlemgr.h"
+#include "tier2/tier2.h"
 #if defined( WIN32 ) && !defined( _X360 )
 #define _WIN32_WINNT 0x0502
 #include <windows.h>
@@ -327,33 +329,65 @@ void CInput::ResetMouse( void )
 	SetMousePos( x, y );	
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: GetAccumulatedMouse -- the mouse can be sampled multiple times per frame and
 //  these results are accumulated each time. This function gets the accumulated mouse changes and resets the accumulators
 // Input  : *mx - 
 //			*my - 
 //-----------------------------------------------------------------------------
-void CInput::GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my )
+void CInput::GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my, float frameTime )
 {
+
+	// below is an altered version of GetAccumulatedMouseDeltasAndResetAccumulators by Haze1337
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L102
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L174
+
 	Assert( mx );
 	Assert( my );
 
-	*mx = m_flAccumulatedMouseXMovement;
-	*my = m_flAccumulatedMouseYMovement;
 
-	if ( m_rawinput.GetBool() )
+	int rawInput = m_rawinput.GetInt();
+
+	if (m_flMouseSampleTime > 0.0)
 	{
 		int rawMouseX, rawMouseY;
-		if ( inputsystem->GetRawMouseAccumulators(rawMouseX, rawMouseY) )
+		if(rawInput != 0)
 		{
-			*mx = (float)rawMouseX;
-			*my = (float)rawMouseY;
+			if (rawInput == 2 && frameTime > 0.0)
+			{
+				m_flMouseSampleTime -= MIN(m_flMouseSampleTime, frameTime);
+				if (g_pInputSystem)
+					g_pInputSystem->SetAccumParam(m_flMouseSplitTime, m_flMouseSampleTime);
+				g_pInputSystem->GetRawMouseAccumulators(rawMouseX, rawMouseY, Plat_FloatTime() - m_flMouseSampleTime);
+			}
+			else
+			{
+				g_pInputSystem->GetRawMouseAccumulators(rawMouseX, rawMouseY, 0.0);
+				m_flMouseSampleTime = 0.0;
+			}
 		}
+		else
+		{
+			rawMouseX = m_flAccumulatedMouseXMovement;
+			rawMouseY = m_flAccumulatedMouseYMovement;
+		}
+
+		m_flAccumulatedMouseXMovement = 0.f;
+		m_flAccumulatedMouseYMovement = 0.f;
+
+		*mx = (float)rawMouseX;
+		*my = (float)rawMouseY;
 	}
-	
-	m_flAccumulatedMouseXMovement = 0;
-	m_flAccumulatedMouseYMovement = 0;
+	else
+	{
+		*mx = 0.0;
+		*my = 0.0;
+	}
+
+	m_flMouseMoveFrameTime = 0.f;
+
+	if (g_pInputSystem)
+		g_pInputSystem->SetAccumParam(m_flMouseSplitTime, m_flMouseSampleTime);
 }
 
 //-----------------------------------------------------------------------------

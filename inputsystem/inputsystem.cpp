@@ -10,6 +10,7 @@
 #include "key_translation.h"
 #include "inputsystem/ButtonCode.h"
 #include "inputsystem/AnalogCode.h"
+#include "platform.h"
 #include "tier0/etwprof.h"
 #include "tier1/convar.h"
 #include "tier0/icommandline.h"
@@ -1316,6 +1317,9 @@ void CInputSystem::UpdateMousePositionState( InputState_t &state, short x, short
 //-----------------------------------------------------------------------------
 LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
+	if(uMsg == WM_INPUT) {
+		m_flMouseSampleTime = Plat_FloatTime();
+	}
 	if ( g_IsFullScreen )
 	{
 		#if defined( PLATFORM_WINDOWS ) // We use this even for SDL to handle mouse move.
@@ -1788,7 +1792,7 @@ LRESULT CInputSystem::WindowProc( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	}
 }
 
-bool CInputSystem::GetRawMouseAccumulators( int& accumX, int& accumY )
+bool CInputSystem::GetRawMouseAccumulators( int& accumX, int& accumY, double frameSplit )
 {
 #if defined( USE_SDL )
 
@@ -1799,11 +1803,66 @@ bool CInputSystem::GetRawMouseAccumulators( int& accumX, int& accumY )
 	}
 	return false;
 
-#else
+#elif defined ( NO_RAW_INPUT )
 
 	accumX = m_mouseRawAccumX;
 	accumY = m_mouseRawAccumY;
 	m_mouseRawAccumX = m_mouseRawAccumY = 0;
+	return m_bRawInputSupported;
+
+#else
+	// below is a slightly altered version of GetRawMouseAccumulators by Haze1337
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L42
+
+	MSG msg;
+	if (frameSplit != 0.0 && PeekMessageW(&msg, NULL, WM_INPUT, WM_INPUT, PM_REMOVE))
+	{
+		do
+		{
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		} while (PeekMessageW(&msg, NULL, WM_INPUT, WM_INPUT, PM_REMOVE));
+	}
+
+	double mouseSplitTime = m_flMouseSplitTime;
+	if (mouseSplitTime == 0.0)
+	{
+		mouseSplitTime = m_flMouseSplitTime - 0.01;
+		m_flMouseSplitTime = mouseSplitTime;
+	}
+
+	double mouseSampleTime = m_flMouseSampleTime;
+
+	if (abs(mouseSplitTime - mouseSampleTime) >= 0.000001)
+	{
+		if (frameSplit == 0.0 || frameSplit >= mouseSampleTime)
+		{
+			accumX = m_mouseRawAccumX;
+			accumY = m_mouseRawAccumY;
+			m_mouseRawAccumX = m_mouseRawAccumY = 0;
+
+			m_flMouseSplitTime = m_flMouseSampleTime;
+
+			return m_bRawInputSupported;
+		}
+		else if (frameSplit >= mouseSplitTime)
+		{
+			float splitSegment = (frameSplit - mouseSplitTime) / (mouseSampleTime - mouseSplitTime);
+
+			accumX = splitSegment * (m_mouseRawAccumX);
+			accumY = splitSegment * (m_mouseRawAccumY);
+
+			m_mouseRawAccumX -= accumX;
+			m_mouseRawAccumY -= accumY;
+
+			m_flMouseSplitTime = frameSplit;
+
+			return m_bRawInputSupported;
+		}
+	}
+
+	accumX = accumY = 0;
+
 	return m_bRawInputSupported;
 
 #endif
@@ -1837,4 +1896,20 @@ void CInputSystem::StartTextInput()
 #ifdef USE_SDL
 	SDL_StartTextInput();
 #endif
+}
+
+bool CInputSystem::QueryRawInput(int& rawAccumX, int& rawAccumY) {
+	rawAccumX = m_mouseRawAccumX;
+	rawAccumY = m_mouseRawAccumY;
+	return m_bRawInputSupported;
+}
+
+void CInputSystem::SetAccumParam(float mouseSplitTime, float mouseSampleTime) {
+	m_flMouseSampleTime = mouseSampleTime;
+	m_flMouseSplitTime = mouseSplitTime;
+}
+
+double CInputSystem::GetMouseSampleTime()  
+{
+	return m_flMouseSampleTime;
 }
