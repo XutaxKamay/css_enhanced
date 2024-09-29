@@ -337,6 +337,11 @@ void CInput::ResetMouse( void )
 //-----------------------------------------------------------------------------
 void CInput::GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my, float frameTime )
 {
+
+	// below is an altered version of GetAccumulatedMouseDeltasAndResetAccumulators by Haze1337
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L102
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L174
+
 	Assert( mx );
 	Assert( my );
 

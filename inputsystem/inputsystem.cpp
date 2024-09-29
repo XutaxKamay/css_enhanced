@@ -1811,6 +1811,8 @@ bool CInputSystem::GetRawMouseAccumulators( int& accumX, int& accumY, double fra
 	return m_bRawInputSupported;
 
 #else
+	// below is a slightly altered version of GetRawMouseAccumulators by Haze1337
+	// https://github.com/Haze1337/RawInput2/blob/2182828c6bf38f49216afa9c31c81b33346e14f5/RawInput2/main.cpp#L42
 
 	MSG msg;
 	if (frameSplit != 0.0 && PeekMessageW(&msg, NULL, WM_INPUT, WM_INPUT, PM_REMOVE))
