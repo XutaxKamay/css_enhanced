@@ -1902,9 +1902,9 @@ bool CInputSystem::QueryRawInput(int& rawAccumX, int& rawAccumY) {
 	return m_bRawInputSupported;
 }
 
-void CInputSystem::OnMouseInputObtained() 
-{
-	m_flMouseSampleTime = Plat_FloatTime();
+void CInputSystem::SetAccumParam(float mouseSplitTime, float mouseSampleTime) {
+	m_flMouseSampleTime = mouseSampleTime;
+	m_flMouseSplitTime = mouseSplitTime;
 }
 
 double CInputSystem::GetMouseSampleTime()  

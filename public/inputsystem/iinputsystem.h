@@ -163,8 +163,8 @@ public:
 	virtual void StartTextInput() = 0;
 
 public:
-	virtual bool  QueryRawInput(int& rawAccumX, int& rawAccumY) = 0;
-	virtual	void  OnMouseInputObtained() = 0;
+	virtual bool   QueryRawInput(int& rawAccumX, int& rawAccumY) = 0;
+	virtual void   SetAccumParam(float mouseSplitTime, float mouseSampleTime) = 0;
 	virtual double GetMouseSampleTime() = 0;
 };
 

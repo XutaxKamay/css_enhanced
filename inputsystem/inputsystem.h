@@ -488,8 +488,8 @@ private:
 	float m_flMouseSplitTime;
 
 public:
-	virtual bool QueryRawInput(int& rawAccumX, int& rawAccumY) override;
-	virtual	void  OnMouseInputObtained() override;
+	virtual bool   QueryRawInput(int& rawAccumX, int& rawAccumY) override;
+	virtual void   SetAccumParam(float mouseSplitTime, float mouseSampleTime);
 	virtual double GetMouseSampleTime() override;
 };
 

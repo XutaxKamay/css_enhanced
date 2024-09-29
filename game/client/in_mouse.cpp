@@ -340,24 +340,25 @@ void CInput::GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my
 	Assert( mx );
 	Assert( my );
 
-	double mouseSampleTime = m_flMouseMoveFrameTime;
 
 	int rawInput = m_rawinput.GetInt();
 
-	if (mouseSampleTime > 0.0)
+	if (m_flMouseSampleTime > 0.0)
 	{
 		int rawMouseX, rawMouseY;
 		if(rawInput != 0)
 		{
 			if (rawInput == 2 && frameTime > 0.0)
 			{
-				mouseSampleTime -= MIN(mouseSampleTime, frameTime);
-				g_pInputSystem->GetRawMouseAccumulators(rawMouseX, rawMouseY, Plat_FloatTime() - mouseSampleTime);
+				m_flMouseSampleTime -= MIN(m_flMouseSampleTime, frameTime);
+				if (g_pInputSystem)
+					g_pInputSystem->SetAccumParam(m_flMouseSplitTime, m_flMouseSampleTime);
+				g_pInputSystem->GetRawMouseAccumulators(rawMouseX, rawMouseY, Plat_FloatTime() - m_flMouseSampleTime);
 			}
 			else
 			{
 				g_pInputSystem->GetRawMouseAccumulators(rawMouseX, rawMouseY, 0.0);
-				mouseSampleTime = 0.0;
+				m_flMouseSampleTime = 0.0;
 			}
 		}
 		else
@@ -379,6 +380,9 @@ void CInput::GetAccumulatedMouseDeltasAndResetAccumulators( float *mx, float *my
 	}
 
 	m_flMouseMoveFrameTime = 0.f;
+
+	if (g_pInputSystem)
+		g_pInputSystem->SetAccumParam(m_flMouseSplitTime, m_flMouseSampleTime);
 }
 
 //-----------------------------------------------------------------------------
