@@ -1,6 +1,9 @@
 #include "cbase.h"
 #include "c_entityinput.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 //-----------------------------------------------------------------------------
 //			C_MultiInputVar implementation
 //

@@ -22,26 +22,29 @@ enum filter_t
 
 class C_BaseFilter : public C_BaseEntity
 {
-public:
 	DECLARE_CLASS(C_BaseFilter, C_BaseEntity);
-	DECLARE_NETWORKCLASS();
-	DECLARE_PREDICTABLE();
 
-	bool PassesFilter( C_BaseEntity *pCaller, C_BaseEntity *pEntity ) { return true; }
-	bool PassesDamageFilter( const CTakeDamageInfo &info ) { return false; }
+public:
+	DECLARE_DATADESC();
+	DECLARE_CLIENTCLASS();
+
+	C_BaseFilter();
+
+	bool PassesFilter( CBaseEntity *pCaller, CBaseEntity *pEntity );
+	bool PassesDamageFilter( const CTakeDamageInfo &info );
+
+	CNetworkVar(bool, m_bNegated);
 
 	// Inputs
-	void InputTestActivator( inputdata_t &inputdata ) { }
+	void InputTestActivator( inputdata_t &inputdata );
 
 	// Outputs
 	C_OutputEvent	m_OnPass;		// Fired when filter is passed
 	C_OutputEvent	m_OnFail;		// Fired when filter is failed
 
-	// Vars
-	CNetworkVar(bool, m_bNegated);
-
 protected:
-	virtual bool PassesFilterImpl( C_BaseEntity *pCaller, C_BaseEntity *pEntity );
+
+	virtual bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity );
 	virtual bool PassesDamageFilterImpl(const CTakeDamageInfo &info);
 };
 

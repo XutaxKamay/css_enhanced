@@ -1739,6 +1739,11 @@ public: // CSSENHANCED
 	void InputFireUser3( inputdata_t &inputdata );
 	void InputFireUser4( inputdata_t &inputdata );
 
+	bool NameMatchesComplex( const char *pszNameOrWildcard );
+	bool NameMatches( const char *pszNameOrWildcard );
+	bool ClassMatchesComplex( const char *pszClassOrWildcard );
+	bool ClassMatches( const char *pszClassOrWildcard );
+
 	float 	m_flLocalTime; // XYZ_TODO: Network this?
 	float 	m_flMoveDoneTime;
 	int		m_spawnflags;

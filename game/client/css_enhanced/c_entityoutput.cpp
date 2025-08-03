@@ -2,6 +2,9 @@
 #include "c_entityoutput.h"
 #include "predictable_entity.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 BEGIN_SIMPLE_DATADESC( C_EventAction )
 	DEFINE_FIELD( m_iTarget, FIELD_STRING ),
 	DEFINE_FIELD( m_iTargetInput, FIELD_STRING ),

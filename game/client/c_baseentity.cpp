@@ -6472,6 +6472,33 @@ int C_BaseEntity::GetCreationTick() const
 	return m_nCreationTick;
 }
 
+bool C_BaseEntity::NameMatchesComplex( const char *pszNameOrWildcard )
+{
+	if ( !Q_stricmp( "!player", pszNameOrWildcard) )
+		return IsPlayer();
+
+	return BaseEntityNamesMatch( pszNameOrWildcard, m_iName );
+}
+
+bool C_BaseEntity::NameMatches( const char *pszNameOrWildcard )
+{
+	if ( IDENT_STRINGS(m_iName, pszNameOrWildcard) )
+		return true;
+	return NameMatchesComplex( pszNameOrWildcard );
+}
+
+bool C_BaseEntity::ClassMatchesComplex( const char *pszClassOrWildcard )
+{
+	return BaseEntityNamesMatch( pszClassOrWildcard, m_iClassname );
+}
+
+bool C_BaseEntity::ClassMatches( string_t nameStr )
+{
+	if ( IDENT_STRINGS(m_iClassname, nameStr ) )
+		return true;
+	return ClassMatchesComplex( STRING(nameStr) );
+}
+
 //------------------------------------------------------------------------------
 void CC_CL_Find_Ent( const CCommand& args )
 {

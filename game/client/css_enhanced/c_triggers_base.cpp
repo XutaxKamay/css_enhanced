@@ -110,7 +110,14 @@ void RecvProxy_FilterName(const CRecvProxyData *pData, void *pStruct, void *pOut
 	Q_strncpy( entity->m_iFilterName, pData->m_Value.m_pString, MAX_PATH );
 
 	// Update the Filter
-	entity->m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(entity->m_iFilterName));
+	if ( entity->m_iFilterName[0] == 0 )
+	{
+		entity->m_hFilter = NULL;
+	}
+	else
+	{
+		entity->m_hFilter = static_cast< C_BaseFilter* >( UTIL_FindEntityByName( entity->m_iFilterName ) );
+	}
 }
 
 void RecvProxy_Target(const CRecvProxyData *pData, void *pStruct, void *pOut)
@@ -282,7 +289,14 @@ void C_BaseTrigger::UpdateFilter(void)
 	// before the client know about the filter entity
 	if (prediction->IsFirstTimePredicted() && m_hFilter.Get() == nullptr)
 	{
-		m_hFilter = static_cast<C_BaseFilter *>(UTIL_FindEntityByName(m_iFilterName));
+		if ( m_iFilterName[0] == 0 )
+		{
+			m_hFilter = NULL;
+		}
+		else
+		{
+			m_hFilter = static_cast< C_BaseFilter* >( UTIL_FindEntityByName( m_iFilterName ) );
+		}
 	}
 }
 
@@ -438,17 +452,31 @@ bool C_BaseTrigger::PassesTriggerFilters(CBaseEntity *pOther)
 		(HasSpawnFlags(SF_TRIGGER_ALLOW_NPCS) && (pOther->GetFlags() & FL_NPC)) ||
 		(HasSpawnFlags(SF_TRIGGER_ALLOW_PUSHABLES) && FClassnameIs(pOther, "func_pushable")) ||
 		(HasSpawnFlags(SF_TRIGGER_ALLOW_PHYSICS) && pOther->GetMoveType() == MOVETYPE_VPHYSICS))
+#if defined( HL2_EPISODIC ) || defined( TF_DLL )		
+		||
+		(	HasSpawnFlags(SF_TRIG_TOUCH_DEBRIS) && 
+			(pOther->GetCollisionGroup() == COLLISION_GROUP_DEBRIS ||
+			pOther->GetCollisionGroup() == COLLISION_GROUP_DEBRIS_TRIGGER || 
+			pOther->GetCollisionGroup() == COLLISION_GROUP_INTERACTIVE_DEBRIS)
+		)
+#endif
 	{
 		if (pOther->GetFlags() & FL_NPC)
 		{
-			if (HasSpawnFlags(SF_TRIGGER_ONLY_PLAYER_ALLY_NPCS))
+			C_AI_BaseNPC *pNPC = pOther->MyNPCPointer();
+
+			if ( HasSpawnFlags( SF_TRIGGER_ONLY_PLAYER_ALLY_NPCS ) )
 			{
-				return false;
+				if ( !pNPC /*|| !pNPC->IsPlayerAlly()*/ )
+				{
+					return false;
+				}
 			}
 
-			if (HasSpawnFlags(SF_TRIGGER_ONLY_NPCS_IN_VEHICLES))
+			if ( HasSpawnFlags( SF_TRIGGER_ONLY_NPCS_IN_VEHICLES ) )
 			{
-				return false;
+				if ( !pNPC /*|| !pNPC->IsInAVehicle()*/ )
+					return false;
 			}
 		}
 
@@ -471,7 +499,7 @@ bool C_BaseTrigger::PassesTriggerFilters(CBaseEntity *pOther)
 				if (pVehicle == NULL)
 					return false;
 
-				//XYZ_TODO: Check if exit anim is on
+				//TODO_ENHANCED: Check if exit anim is on
 				//if (pVehicle->IsPassengerExiting())
 					return false;
 			}

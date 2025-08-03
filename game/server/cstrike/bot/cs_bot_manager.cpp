@@ -1947,7 +1947,7 @@ void CCSBotManager::OnBreakBreakable( IGameEvent *event )
 	if ( !ent )
 	{
 		// TODO_ENHANCED.
-		DevMsg("CCSBotManager::OnBreakBreakable bug\n");
+		Warning("CCSBotManager::OnBreakBreakable bug\n");
 		return;
 	}
 
@@ -1966,7 +1966,7 @@ void CCSBotManager::OnBreakProp( IGameEvent *event )
 	if ( !ent )
 	{
 		// TODO_ENHANCED.
-		DevMsg("CCSBotManager::OnBreakProp bug\n");
+		Warning("CCSBotManager::OnBreakProp bug\n");
 		return;
 	}
 

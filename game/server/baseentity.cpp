@@ -2904,55 +2904,17 @@ bool CBaseEntity::PassesDamageFilter( const CTakeDamageInfo &info )
 	return true;
 }
 
-FORCEINLINE bool NamesMatch( const char *pszQuery, string_t nameToMatch )
-{
-	if ( nameToMatch == NULL_STRING )
-		return (!pszQuery || *pszQuery == 0 || *pszQuery == '*');
-
-	const char *pszNameToMatch = STRING(nameToMatch);
-
-	// If the pointers are identical, we're identical
-	if ( pszNameToMatch == pszQuery )
-		return true;
-
-	while ( *pszNameToMatch && *pszQuery )
-	{
-		unsigned char cName = *pszNameToMatch;
-		unsigned char cQuery = *pszQuery;
-		// simple ascii case conversion
-		if ( cName == cQuery )
-			;
-		else if ( cName - 'A' <= (unsigned char)'Z' - 'A' && cName - 'A' + 'a' == cQuery )
-			;
-		else if ( cName - 'a' <= (unsigned char)'z' - 'a' && cName - 'a' + 'A' == cQuery )
-			;
-		else
-			break;
-		++pszNameToMatch;
-		++pszQuery;
-	}
-
-	if ( *pszQuery == 0 && *pszNameToMatch == 0 )
-		return true;
-
-	// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
-	if ( *pszQuery == '*' )
-		return true;
-
-	return false;
-}
-
 bool CBaseEntity::NameMatchesComplex( const char *pszNameOrWildcard )
 {
 	if ( !Q_stricmp( "!player", pszNameOrWildcard) )
 		return IsPlayer();
 
-	return NamesMatch( pszNameOrWildcard, m_iName );
+	return BaseEntityNamesMatch( pszNameOrWildcard, m_iName );
 }
 
 bool CBaseEntity::ClassMatchesComplex( const char *pszClassOrWildcard )
 {
-	return NamesMatch( pszClassOrWildcard, m_iClassname );
+	return BaseEntityNamesMatch( pszClassOrWildcard, m_iClassname );
 }
 
 void CBaseEntity::MakeDormant( void )

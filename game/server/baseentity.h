@@ -781,7 +781,7 @@ private:
 	CServerNetworkProperty m_Network;
 
 public:
-//XYZ_TODO: network classname
+//TODO_ENHANCED: network classname
 	// members
 	string_t m_iClassname;  // identifier for entity creation and save/restore
 	string_t m_iGlobalname; // identifier for carrying entity across level transitions

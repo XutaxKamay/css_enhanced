@@ -529,7 +529,7 @@ private:
 
 #include "debugoverlay.h"
 
-// XYZ_TODO: Remove these on listen servers
+// TODO_ENHANCED: Remove these on listen servers
 
 void CL_TriggerMoved( IClientEntity *pTriggerEnt, bool accurateBboxTriggerChecks )
 {

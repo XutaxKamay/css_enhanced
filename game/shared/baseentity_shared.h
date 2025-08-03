@@ -306,4 +306,42 @@ inline bool IsEntityQAngleVelReasonable( const QAngle &q )
 
 extern bool CheckEmitReasonablePhysicsSpew();
 
+FORCEINLINE bool BaseEntityNamesMatch( const char *pszQuery, string_t nameToMatch )
+{
+	if ( nameToMatch == NULL_STRING )
+		return (!pszQuery || *pszQuery == 0 || *pszQuery == '*');
+
+	const char *pszNameToMatch = STRING(nameToMatch);
+
+	// If the pointers are identical, we're identical
+	if ( pszNameToMatch == pszQuery )
+		return true;
+
+	while ( *pszNameToMatch && *pszQuery )
+	{
+		unsigned char cName = *pszNameToMatch;
+		unsigned char cQuery = *pszQuery;
+		// simple ascii case conversion
+		if ( cName == cQuery )
+			;
+		else if ( cName - 'A' <= (unsigned char)'Z' - 'A' && cName - 'A' + 'a' == cQuery )
+			;
+		else if ( cName - 'a' <= (unsigned char)'z' - 'a' && cName - 'a' + 'A' == cQuery )
+			;
+		else
+			break;
+		++pszNameToMatch;
+		++pszQuery;
+	}
+
+	if ( *pszQuery == 0 && *pszNameToMatch == 0 )
+		return true;
+
+	// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
+	if ( *pszQuery == '*' )
+		return true;
+
+	return false;
+}
+
 #endif // BASEENTITY_SHARED_H

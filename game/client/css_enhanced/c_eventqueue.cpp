@@ -3,6 +3,9 @@
 #include "shared_classnames.h"
 #include "c_eventqueue.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 //-----------------------------------------------------------------------------
 //			CEventQueue implementation
 //

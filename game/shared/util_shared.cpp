@@ -1274,7 +1274,7 @@ CBaseEntity *UTIL_FindEntityProcedural( const char *szName, CBaseEntity *pSearch
 }
 
 /*
-	XYZ_TODO: use hashed entity names
+	TODO_ENHANCED: use hashed entity names
 */
 CBaseEntity* UTIL_FindEntityByName(const char* szName)
 {
