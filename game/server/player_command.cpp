@@ -339,12 +339,8 @@ void CPlayerMove::RunPostThink( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::RunPostThink" );
 
-	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
-
 	// Run post-think
 	player->PostThink();
-
-	lagcompensation->FinishLagCompensation( player );
 }
 
 void CommentarySystem_PePlayerRunCommand( CBasePlayer *player, CUserCmd *ucmd );
@@ -383,6 +379,8 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	StartCommand( player, ucmd );
 
 	g_pGameMovement->StartTrackPredictionErrors( player );
+
+	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
 
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable( ucmd->viewangles ) )
@@ -502,6 +500,8 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	VPROF_SCOPE_END();
 
 	ServiceEventQueue( player );
+
+	lagcompensation->FinishLagCompensation( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 

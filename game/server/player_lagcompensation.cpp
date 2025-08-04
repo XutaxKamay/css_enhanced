@@ -89,6 +89,7 @@ struct LagRecord
 //
 
 ConVar sv_unlag_debug( "sv_unlag_debug", "0" );
+ConVar sv_unlag_debug_entity( "sv_unlag_debug_entity", "-1" );
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -141,7 +142,6 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 	bool m_bNeedToRestore;
 
 	LagRecord m_RestoreData[MAX_EDICTS]; // entities data before we moved him back
-	LagRecord m_ChangeData[MAX_EDICTS];	 // entities data where we moved him back
 };
 
 static CLagCompensationManager g_LagCompensationManager( "CLagCompensationManager" );
@@ -262,7 +262,6 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	// NOTE: Put this here so that it won't show up in single player mode.
 	VPROF_BUDGET( "StartLagCompensation", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 	Q_memset( m_RestoreData, 0, sizeof( m_RestoreData ) );
-	Q_memset( m_ChangeData, 0, sizeof( m_ChangeData ) );
 
 	// Iterate all active entities
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
@@ -291,8 +290,45 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 			continue;
 		}
 
-		// Move other entity back in time
-		BacktrackEntity( pEntity, i, cmd );
+		// TODO_ENHANCED_URGENT:
+		// Physics on entities that collides player like moving platforms, funcs and moving triggers needs to be redone.
+		// Technically, Physics_RunThinkFunctions needs to be removed or drastically changed in order to ignore players collisions and make player collisions only happen in player command functions.
+		// For now we ignore other entities.
+		if (pEntity->IsPlayer())
+		{
+			// Move other entity back in time
+			BacktrackEntity( pEntity, i, cmd );
+		}
+
+		if ( sv_unlag_debug_entity.GetInt() == pEntity->entindex() && player->entindex() == 1 )
+		{
+			LagRecord* restore = &m_RestoreData[i];
+
+			auto origin = ( restore->m_fFlags & LC_ORIGIN_CHANGED ) ? restore->m_vecOrigin : pEntity->GetLocalOrigin();
+			auto angles = ( restore->m_fFlags & LC_ANGLES_CHANGED ) ? restore->m_vecAngles : pEntity->GetLocalAngles();
+			auto mins = ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMinsPreScaled : pEntity->CollisionProp()->OBBMinsPreScaled();
+			auto maxs = ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMaxsPreScaled : pEntity->CollisionProp()->OBBMaxsPreScaled();
+
+			debugoverlay->AddBoxOverlay( origin,
+										 mins,
+										 maxs,
+										 angles,
+										 0,
+										 0,
+										 255,
+										 128,
+										 gpGlobals->interval_per_tick * 2.0f );
+
+			debugoverlay->AddBoxOverlay( pEntity->GetLocalOrigin(),
+										 pEntity->CollisionProp()->OBBMinsPreScaled(),
+										 pEntity->CollisionProp()->OBBMaxsPreScaled(),
+										 pEntity->GetLocalAngles(),
+										 0,
+										 255,
+										 0,
+										 128,
+										 gpGlobals->interval_per_tick * 2.0f );
+		}
 	}
 }
 
@@ -396,7 +432,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	// See if this represents a change for the entity
 	int flags		   = 0;
 	LagRecord* restore = &m_RestoreData[loopindex];
-	LagRecord* change  = &m_ChangeData[loopindex];
 
 	QAngle angdiff = pEntity->GetLocalAngles() - ang;
 	Vector orgdiff = pEntity->GetLocalOrigin() - org;
@@ -410,7 +445,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		flags				 |= LC_ANGLES_CHANGED;
 		restore->m_vecAngles  = pEntity->GetLocalAngles();
 		pEntity->SetLocalAngles( ang );
-		change->m_vecAngles = ang;
 	}
 
 	// Use absolute equality here
@@ -423,9 +457,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		restore->m_vecMaxsPreScaled = pEntity->CollisionProp()->OBBMaxsPreScaled();
 
 		pEntity->SetSize( minsPreScaled, maxsPreScaled );
-
-		change->m_vecMinsPreScaled = minsPreScaled;
-		change->m_vecMaxsPreScaled = maxsPreScaled;
 	}
 
 	// Note, do origin at end since it causes a relink into the k/d tree
@@ -434,18 +465,12 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		flags				 |= LC_ORIGIN_CHANGED;
 		restore->m_vecOrigin  = pEntity->GetLocalOrigin();
 		pEntity->SetLocalOrigin( org );
-		change->m_vecOrigin = org;
 	}
 
 	auto pAnim = pEntity->GetBaseAnimating();
 
 	auto Finish = [&]()
 	{
-		if ( !flags )
-		{
-			return; // we didn't change anything
-		}
-
 		// Set lag compensated entity's times
 		pEntity->SetSimulationTime( flTargetSimTime );
 		pEntity->SetAnimTime( flTargetAnimTime );
@@ -461,7 +486,6 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		m_RestoreEntity.Set( loopindex ); // remember that we changed this entity
 		m_bNeedToRestore  = true;		  // we changed at least one entity
 		restore->m_fFlags = flags;		  // we need to restore these flags
-		change->m_fFlags  = flags;		  // we have changed these flags
 	};
 
 	// Somehow the client didn't care.
@@ -499,7 +523,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Can't lag compensate, no history for animation fpr client entity ( %i )\n", pEntity->entindex() );
+			DevMsg( "Can't lag compensate, no history for animation for client entity ( %i )\n", pEntity->entindex() );
 		}
 
 		Finish();
@@ -618,7 +642,6 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 		}
 
 		LagRecord* restore = &m_RestoreData[i];
-		LagRecord* change  = &m_ChangeData[i];
 
 		if ( restore->m_fFlags & LC_SIZE_CHANGED )
 		{
@@ -687,12 +710,14 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			}
 		}
 
+#ifdef CSTRIKE_DLL
 		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
 
 		if (csPlayer)
 		{
 			csPlayer->m_angRenderAngles = restore->m_angRenderAngles;
 		}
+#endif
 
 		pEntity->SetSimulationTime( restore->m_flSimulationTime );
 		pEntity->SetAnimTime( restore->m_flAnimTime );
