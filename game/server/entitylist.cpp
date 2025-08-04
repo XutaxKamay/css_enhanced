@@ -1639,7 +1639,7 @@ CON_COMMAND(report_simthinklist, "Lists all simulating/thinking entities")
 
 CFastEntityLookUp::CFastEntityLookUp()
 {
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( int i = 0; i < NUM_ENT_ENTRIES; i++ )
 	{
 		entities[i] = NULL;
 	}

@@ -231,9 +231,9 @@ void CLagCompensationManager::TrackEntities()
 		}
 
 #ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
+		auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
-		if (csPlayer)
+		if ( csPlayer )
 		{
 			record.m_angRenderAngles = csPlayer->GetRenderAngles();
 		}
@@ -292,9 +292,10 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 
 		// TODO_ENHANCED_URGENT:
 		// Physics on entities that collides player like moving platforms, funcs and moving triggers needs to be redone.
-		// Technically, Physics_RunThinkFunctions needs to be removed or drastically changed in order to ignore players collisions and make player collisions only happen in player command functions.
-		// For now we ignore other entities.
-		if (pEntity->IsPlayer())
+		// Technically, Physics_RunThinkFunctions needs to be removed or drastically changed in order to ignore players
+		// collisions and make player collisions only happen in player command functions. For now we ignore other
+		// entities.
+		if ( pEntity->IsPlayer() )
 		{
 			// Move other entity back in time
 			BacktrackEntity( pEntity, i, cmd );
@@ -306,18 +307,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 
 			auto origin = ( restore->m_fFlags & LC_ORIGIN_CHANGED ) ? restore->m_vecOrigin : pEntity->GetLocalOrigin();
 			auto angles = ( restore->m_fFlags & LC_ANGLES_CHANGED ) ? restore->m_vecAngles : pEntity->GetLocalAngles();
-			auto mins = ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMinsPreScaled : pEntity->CollisionProp()->OBBMinsPreScaled();
-			auto maxs = ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMaxsPreScaled : pEntity->CollisionProp()->OBBMaxsPreScaled();
+			auto mins	= ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMinsPreScaled :
+																	pEntity->CollisionProp()->OBBMinsPreScaled();
+			auto maxs	= ( restore->m_fFlags & LC_SIZE_CHANGED ) ? restore->m_vecMaxsPreScaled :
+																	pEntity->CollisionProp()->OBBMaxsPreScaled();
 
-			debugoverlay->AddBoxOverlay( origin,
-										 mins,
-										 maxs,
-										 angles,
-										 0,
-										 0,
-										 255,
-										 128,
-										 gpGlobals->interval_per_tick * 2.0f );
+			debugoverlay->AddBoxOverlay( origin, mins, maxs, angles, 0, 0, 255, 128, gpGlobals->interval_per_tick * 2.0f );
 
 			debugoverlay->AddBoxOverlay( pEntity->GetLocalOrigin(),
 										 pEntity->CollisionProp()->OBBMinsPreScaled(),
@@ -600,13 +595,13 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	}
 
 #ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
+	auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
-		if (csPlayer && foundAnim)
-		{
-			restore->m_angRenderAngles = csPlayer->GetRenderAngles();
-			csPlayer->m_angRenderAngles = recordAnim->m_angRenderAngles;
-		}
+	if ( csPlayer && foundAnim )
+	{
+		restore->m_angRenderAngles	= csPlayer->GetRenderAngles();
+		csPlayer->m_angRenderAngles = recordAnim->m_angRenderAngles;
+	}
 #endif
 
 	Finish();
@@ -711,9 +706,9 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 		}
 
 #ifdef CSTRIKE_DLL
-		auto csPlayer = dynamic_cast<CCSPlayer*>(pEntity);
+		auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
-		if (csPlayer)
+		if ( csPlayer )
 		{
 			csPlayer->m_angRenderAngles = restore->m_angRenderAngles;
 		}
