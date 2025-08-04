@@ -1,5 +1,7 @@
 # Counter-Strike: Source Enhanced
 
+Discord server: https://discord.gg/FdxhmZh6
+
 Started from a fork of: https://github.com/nillerusr/source-engine \
 A huge thanks to him for having port most of the valve project generator stuff to waf.
 
@@ -39,13 +41,16 @@ A lot! If you're curious you can look on the commit log, but here's the most int
 - Added new weapon, M82A1
 
 And more to come (TODO):
-- New weapons coming, thinking gluon gun & m82a1
+- Fix SSE ARM emulation, it seems to cause issues with animations (setupbones)
+- New weapons coming, thinking gluon gun
 - Shareable skins where you can use your own skins and other people will see them.
 - And much more to come ...
 - Replay
 - Source TV and recordings that can display the exact things that the player has seen on his screen by re-using lag compensation.
-- Hit indicator
+- A better hit indicator ... (first good todo, check cl_enable_hitmarks)
 - A timer
-- m_rawinput 2 that aligns the angles to a tick.
 - General bug fixes like edge bugs, surf ramp bugs ...
 - Sphere/cylinder hitboxes
+- Avatars
+- Clans
+- Crosshair outlines
