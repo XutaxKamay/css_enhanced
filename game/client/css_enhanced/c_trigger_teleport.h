@@ -10,7 +10,7 @@ class C_TriggerTeleport : public C_BaseTrigger
 {
 public:
 	DECLARE_CLASS( C_TriggerTeleport, C_BaseTrigger );
-    DECLARE_NETWORKCLASS();
+    DECLARE_CLIENTCLASS();
     DECLARE_PREDICTABLE();
 
 	virtual void Touch( CBaseEntity *pOther );

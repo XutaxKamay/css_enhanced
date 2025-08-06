@@ -38,7 +38,7 @@ enum
 class C_BaseTrigger : public C_BaseToggle
 {
 	DECLARE_CLASS(C_BaseTrigger, C_BaseToggle);
-	DECLARE_NETWORKCLASS();
+	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
 public:
 	C_BaseTrigger();
@@ -126,7 +126,7 @@ class C_TriggerMultiple : public C_BaseTrigger
 {
 public:
 	DECLARE_CLASS(C_TriggerMultiple, C_BaseTrigger);
-	DECLARE_NETWORKCLASS();
+	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
 
 	virtual void Spawn(void);

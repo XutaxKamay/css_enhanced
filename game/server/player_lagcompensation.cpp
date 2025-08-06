@@ -290,11 +290,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 			continue;
 		}
 
-		// TODO_ENHANCED_URGENT:
+		// TODO_ENHANCED:
 		// Physics on entities that collides player like moving platforms, funcs and moving triggers needs to be redone.
 		// Technically, Physics_RunThinkFunctions needs to be removed or drastically changed in order to ignore players
 		// collisions and make player collisions only happen in player command functions. For now we ignore other
 		// entities.
+		// If you'd like to lag compensate entities, I'd let you give a look on g_pPushedEntities.
 		if ( pEntity->IsPlayer() )
 		{
 			// Move other entity back in time
@@ -387,7 +388,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "No valid simulation in history for BacktrackPlayer client ( %i )\n", pEntity->entindex() );
+			DevMsg( "No valid simulation in history for BacktrackEntity client ( %i )\n", pEntity->entindex() );
 		}
 
 		return;

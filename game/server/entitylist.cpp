@@ -1655,6 +1655,10 @@ void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 	{
 		entities[index] = pEntity;
 	}
+	else
+	{
+		Error( "entity index is %i something is wrong.\n", index );
+	}
 }
 
 void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
@@ -1664,5 +1668,9 @@ void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 	if ( index >= 0 && index < NUM_ENT_ENTRIES )
 	{
 		entities[index] = NULL;
+	}
+	else
+	{
+		Error( "entity index is %i something is wrong.\n", index );
 	}
 }

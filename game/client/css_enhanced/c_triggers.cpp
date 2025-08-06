@@ -83,6 +83,9 @@ void C_TriggerMultiple::ActivateMultiTrigger(CBaseEntity *pActivator)
 		// called while C code is looping through area links...
 		SetTouch(NULL);
 		SetNextThink(gpGlobals->curtime + 0.1f);
-		SetThink(&C_TriggerMultiple::SUB_Remove);
+		// TODO_ENHANCED:
+		// Hourra there don't remove yourself, it causes issues with prediction and causes segv.
+		// Let the server remove the entity for ourselves
+		// SetThink(&C_TriggerMultiple::SUB_Remove);
 	}
 }

@@ -38,7 +38,7 @@ enum TOGGLE_STATE
 class C_BaseToggle : public C_BaseEntity
 {
 	DECLARE_CLASS(C_BaseToggle, C_BaseEntity);
-	DECLARE_NETWORKCLASS();
+	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
 public:
 	C_BaseToggle();

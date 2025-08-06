@@ -2115,6 +2115,7 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 
 ConVar cl_debug_duration( "cl_debug_duration", "60" );
 ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
+ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
 
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
@@ -2514,6 +2515,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 			if ( player && !player->IsLocalPlayer() )
 			{
+				m_bHasHitPlayer = true;
+
 				auto health_damages = event->GetInt( "dmg_health" );
 				auto armor_damages	= event->GetInt( "dmg_armor" );
 				// auto hitgroup		= event->GetInt( "hitgroup" );
@@ -2523,7 +2526,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				CHudChat* hudChat = ( CHudChat* )GET_HUDELEMENT( CHudChat );
 
-				if ( hudChat )
+				if ( hudChat && cl_enable_hitmarks_chat.GetBool() )
 				{
 					hudChat->Printf( CHAT_FILTER_NONE,
 									 "\7FFFFFF\x7"
@@ -2538,8 +2541,6 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 									 event->GetInt( "armor" ),
 									 health_damages,
 									 armor_damages );
-
-					m_bHasHitPlayer = true;
 				}
 			}
 		}

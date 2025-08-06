@@ -526,10 +526,6 @@ void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 	{
 		entities[index] = pEntity;
 	}
-	else
-	{
-		Assert(false);
-	}
 }
 
 void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
@@ -539,9 +535,5 @@ void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 	if ( index >= 0 && index < NUM_ENT_ENTRIES )
 	{
 		entities[index] = NULL;
-	}
-	else
-	{
-		Assert(false);
 	}
 }
