@@ -117,6 +117,9 @@ void CWeaponFamas::SecondaryAttack()
 
 float CWeaponFamas::GetInaccuracy() const
 {
+	if ( weapon_accuracy_noinaccuracy.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
 		float fAutoPenalty = m_bBurstMode ? 0.0f : 0.01f;

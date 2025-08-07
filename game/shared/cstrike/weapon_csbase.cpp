@@ -45,8 +45,9 @@
 #endif
 
 
-ConVar weapon_accuracy_model( "weapon_accuracy_model", "0", FCVAR_REPLICATED );
-
+ConVar weapon_accuracy_model( "weapon_accuracy_model", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "0) Original accuracy model\n1) Old accuracy model before Orange Box\n2) New accuracy model." );
+ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
+ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
 // ----------------------------------------------------------------------------- //
 // Global functions.
@@ -705,6 +706,9 @@ void CWeaponCSBase::ItemBusyFrame()
 
 float CWeaponCSBase::GetInaccuracy() const
 {
+	if ( weapon_accuracy_noinaccuracy.GetBool() )
+		return 0.0f;
+
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( !pPlayer )
 		return 0.0f;
@@ -725,6 +729,9 @@ float CWeaponCSBase::GetInaccuracy() const
 
 float CWeaponCSBase::GetSpread() const
 {
+	if ( weapon_accuracy_nospread.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 		return 0.0f;
 
@@ -1239,29 +1246,31 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
 				pPlayer->m_bHasHitPlayer = false;
 			}
-
-			if ( flDisplayCurrentTime >= gpGlobals->curtime && pCrosshairHitMaterial )
+			else
 			{
-				float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
+				if ( flDisplayCurrentTime >= gpGlobals->curtime && pCrosshairHitMaterial )
+				{
+					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
 
-				CMaterialReference refCrosshairHit;
-				refCrosshairHit.Init( pCrosshairHitMaterial );
+					CMaterialReference refCrosshairHit;
+					refCrosshairHit.Init( pCrosshairHitMaterial );
 
-				refCrosshairHit->AlphaModulate( flAlpha );
+					refCrosshairHit->AlphaModulate( flAlpha );
 
-				pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
-														  nViewportWidth / 2
-															- pCrosshairHitMaterial->GetMappingWidth() / 2,
-														  nViewportHeight / 2
-															- pCrosshairHitMaterial->GetMappingHeight() / 2,
-														  pCrosshairHitMaterial->GetMappingWidth(),
-														  pCrosshairHitMaterial->GetMappingHeight(),
-														  nViewportX,
-														  nViewportY,
-														  nViewportX + nViewportWidth - 1,
-														  nViewportY + nViewportHeight - 1,
-														  nViewportWidth,
-														  nViewportHeight );
+					pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
+															  nViewportWidth / 2
+																- pCrosshairHitMaterial->GetMappingWidth() / 2,
+															  nViewportHeight / 2
+																- pCrosshairHitMaterial->GetMappingHeight() / 2,
+															  pCrosshairHitMaterial->GetMappingWidth(),
+															  pCrosshairHitMaterial->GetMappingHeight(),
+															  nViewportX,
+															  nViewportY,
+															  nViewportX + nViewportWidth - 1,
+															  nViewportY + nViewportHeight - 1,
+															  nViewportWidth,
+															  nViewportHeight );
+				}
 			}
 		}
 		else
@@ -1307,40 +1316,42 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
 				pPlayer->m_bHasHitPlayer = false;
 			}
-
-			if ( flDisplayCurrentTime >= gpGlobals->curtime )
+			else
 			{
-				float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
-				int tocenter  = 15;
-				int initpos	  = 25;
-
-				initpos	 += iBarSize * 2;
-				tocenter += iBarSize * 2;
-
-				float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
-
-				vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
-
-				for ( int i = -1; i < 2; i++ )
+				if ( flDisplayCurrentTime >= gpGlobals->curtime )
 				{
-					tocenter += i;
-					initpos	 += i;
-					vgui::surface()->DrawLine( iCenterX - initpos,
-											   iCenterY - initpos,
-											   iCenterX - tocenter,
-											   iCenterY - tocenter );
-					vgui::surface()->DrawLine( iCenterX + initpos,
-											   iCenterY + initpos,
-											   iCenterX + tocenter,
-											   iCenterY + tocenter );
-					vgui::surface()->DrawLine( iCenterX - initpos,
-											   iCenterY + initpos,
-											   iCenterX - tocenter,
-											   iCenterY + tocenter );
-					vgui::surface()->DrawLine( iCenterX + initpos,
-											   iCenterY - initpos,
-											   iCenterX + tocenter,
-											   iCenterY - tocenter );
+					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
+					int tocenter  = 15;
+					int initpos	  = 25;
+
+					initpos	 += iBarSize * 2;
+					tocenter += iBarSize * 2;
+
+					float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
+
+					vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
+
+					for ( int i = -1; i < 2; i++ )
+					{
+						tocenter += i;
+						initpos	 += i;
+						vgui::surface()->DrawLine( iCenterX - initpos,
+												   iCenterY - initpos,
+												   iCenterX - tocenter,
+												   iCenterY - tocenter );
+						vgui::surface()->DrawLine( iCenterX + initpos,
+												   iCenterY + initpos,
+												   iCenterX + tocenter,
+												   iCenterY + tocenter );
+						vgui::surface()->DrawLine( iCenterX - initpos,
+												   iCenterY + initpos,
+												   iCenterX - tocenter,
+												   iCenterY + tocenter );
+						vgui::surface()->DrawLine( iCenterX + initpos,
+												   iCenterY - initpos,
+												   iCenterX + tocenter,
+												   iCenterY - tocenter );
+					}
 				}
 			}
 		}

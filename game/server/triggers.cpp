@@ -2157,7 +2157,7 @@ class CTriggerPush : public CBaseTrigger
 {
 public:
 	DECLARE_CLASS( CTriggerPush, CBaseTrigger );
-    DECLARE_NETWORKCLASS();
+    DECLARE_SERVERCLASS();
 
 	void Spawn( void );
 	void Activate( void );
@@ -2338,7 +2338,7 @@ class CTriggerTeleport : public CBaseTrigger
 {
 public:
 	DECLARE_CLASS( CTriggerTeleport, CBaseTrigger );
-	DECLARE_NETWORKCLASS();
+	DECLARE_SERVERCLASS();
 
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
@@ -2631,6 +2631,7 @@ class CTriggerGravity : public CBaseTrigger
 public:
 	DECLARE_CLASS( CTriggerGravity, CBaseTrigger );
 	DECLARE_DATADESC();
+	DECLARE_SERVERCLASS();
 
 	void Spawn( void );
 	void GravityTouch( CBaseEntity *pOther );
@@ -2643,6 +2644,10 @@ BEGIN_DATADESC( CTriggerGravity )
 	DEFINE_FUNCTION(GravityTouch),
 
 END_DATADESC()
+
+IMPLEMENT_SERVERCLASS_ST(CTriggerGravity, DT_TriggerGravity)
+	SendPropFloat( SENDINFO(m_flGravity) )
+END_SEND_TABLE();
 
 void CTriggerGravity::Spawn( void )
 {

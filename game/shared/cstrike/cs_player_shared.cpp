@@ -41,7 +41,6 @@
 #include "obstacle_pushaway.h"
 #include "props_shared.h"
 
-ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 #define	CS_MASK_SHOOT (MASK_SOLID|CONTENTS_DEBRIS)
 
 const QAngle& CCSPlayer::GetRenderAngles()
@@ -240,13 +239,13 @@ void UTIL_ClipTraceToPlayersHull(const Vector& vecAbsStart, const Vector& vecAbs
 	}
 }
 
-float CCSPlayer::GetBulletDiameter(int iBulletType)
+constexpr float MMToUnits(float&& mm)
 {
-    auto MMToUnits = [] (float&& mm)
-    {
-        return (mm / 10.f) / 1.905f;
-    };
-    
+	return mm / 19.05f;
+}
+
+float CCSPlayer::GetBulletDiameter(int iBulletType)
+{   
     if (IsAmmoType(iBulletType, BULLET_PLAYER_50AE))
     {
         return MMToUnits(13.8f);
@@ -446,7 +445,7 @@ inline void UTIL_TraceLineIgnoreTwoEntities(const Vector& vecAbsStart, const Vec
 }
 
 #ifdef CLIENT_DLL
-extern ConVar cl_debug_duration;
+extern ConVar cl_show_debug_duration;
 void CCSPlayer::DrawBullet(const Vector& src,
                     const Vector& endpos,
                     const Vector& mins,
@@ -508,12 +507,6 @@ void CCSPlayer::FireBullet(
 
 	if ( !pevAttacker )
 		pevAttacker = this;  // the default attacker is ourselves
-
-	if ( weapon_accuracy_nospread.GetBool() )
-	{
-		xSpread = 0.0f;
-		ySpread = 0.0f;
-	}
 
 	// add the spray
 	Vector vecDir = vecDirShooting + xSpread * vecRight + ySpread * vecUp;
@@ -671,7 +664,7 @@ void CCSPlayer::FireBullet(
 #ifdef CLIENT_DLL
 				if ( !m_pCurrentCommand->hasbeenpredicted )
 				{
-					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
+					lagPlayer->DrawClientHitboxes( cl_show_debug_duration.GetFloat(), true );
 				}
 #else
 				WritePlayerHitboxEvent( lagPlayer, "bullet_player_hitboxes" );
@@ -745,7 +738,7 @@ void CCSPlayer::FireBullet(
 							255,
 							0,
 							127,
-							cl_debug_duration.GetFloat() );
+							cl_show_debug_duration.GetFloat() );
 			}
 #else
 			IGameEvent* event = gameeventmanager->CreateEvent( "bullet_impact" );
@@ -770,7 +763,7 @@ void CCSPlayer::FireBullet(
 #ifdef CLIENT_DLL
 				if ( !m_pCurrentCommand->hasbeenpredicted )
 				{
-					lagPlayer->DrawClientHitboxes( cl_debug_duration.GetFloat(), true );
+					lagPlayer->DrawClientHitboxes( cl_show_debug_duration.GetFloat(), true );
 				}
 #else
 				WritePlayerHitboxEvent( lagPlayer, "bullet_hit_player" );

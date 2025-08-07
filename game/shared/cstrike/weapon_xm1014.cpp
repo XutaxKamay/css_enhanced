@@ -85,14 +85,20 @@ void CWeaponXM1014::Spawn()
 
 float CWeaponXM1014::GetInaccuracy() const
 {
+	if ( weapon_accuracy_noinaccuracy.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 		return 0.0f;
-	else
-		return BaseClass::GetInaccuracy();
+
+	return BaseClass::GetInaccuracy();
 }
 
 float CWeaponXM1014::GetSpread() const
 {
+	if ( weapon_accuracy_nospread.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 		return 0.0725f;
 

@@ -286,5 +286,7 @@ private:
 };
 
 extern ConVar weapon_accuracy_model;
+extern ConVar weapon_accuracy_noinaccuracy;
+extern ConVar weapon_accuracy_nospread;
 
 #endif // WEAPON_CSBASE_H

@@ -17,7 +17,6 @@
 #endif
 
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
-ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
 #ifdef CLIENT_DLL
 ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
@@ -122,11 +121,6 @@ void FX_FireBullets(
 	float flSoundTime
 	)
 {
-    if (weapon_accuracy_noinaccuracy.GetBool())
-    {
-        fInaccuracy = 0.0f;
-    }
-
 	bool bDoEffects = true;
 
 #ifdef CLIENT_DLL
@@ -365,15 +359,6 @@ void FX_FireBullets(
 		float fRadius1 = RandomFloat( 0.0f, fSpread );
 		float x1	   = fRadius1 * cosf( fTheta1 );
 		float y1	   = fRadius1 * sinf( fTheta1 );
-
-		// Always straight for the first bullet;
-		if ( weapon_accuracy_noinaccuracy.GetBool() && iBullet == 0 )
-		{
-			x0 = 0.0f;
-			y0 = 0.0f;
-			x1 = 0.0f;
-			y1 = 0.0f;
-		}
 
 		pPlayer->FireBullet( iBullet,
 							 vOrigin,

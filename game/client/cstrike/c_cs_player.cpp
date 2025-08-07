@@ -93,6 +93,9 @@ extern ConVar	spec_freeze_distance_max;
 ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT);
 ConVar cl_showimpacts("cl_showimpacts", "0");
 ConVar cl_showfirebullethitboxes("cl_showfirebullethitboxes", "0");
+ConVar cl_show_debug_duration( "cl_show_debug_duration", "60" );
+ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
+ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
 
 ConVar cl_left_hand_ik( "cl_left_hand_ik", "0", 0, "Attach player's left hand to rifle with IK." );
 
@@ -2113,10 +2116,6 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 		BaseClass::FireEvent( origin, angles, event, options );
 }
 
-ConVar cl_debug_duration( "cl_debug_duration", "60" );
-ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
-ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
-
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
 	static ConVarRef cl_showfirebullethitboxes( "cl_showfirebullethitboxes" );
@@ -2481,7 +2480,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 			Vector mins( -flBulletRadius );
 			Vector maxs( flBulletRadius );
 
-			DrawBullet( src, dst, mins, maxs, 0, 0, 255, 127, cl_debug_duration.GetFloat() );
+			DrawBullet( src, dst, mins, maxs, 0, 0, 255, 127, cl_show_debug_duration.GetFloat() );
 
 			// If both happens to be on the same frame, let it be.
 			if ( debug_screenshot_bullet_position.GetBool() )
@@ -2492,7 +2491,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 	}
 	else if ( FStrEq( event->GetName(), "bullet_hit_player" ) && shouldShowImpacts )
 	{
-		ShowEventHitboxes( cl_debug_duration.GetFloat() );
+		ShowEventHitboxes( cl_show_debug_duration.GetFloat() );
 
 		// If both happens to be on the same frame, let it be.
 		if ( debug_screenshot_bullet_position.GetBool() )
@@ -2502,7 +2501,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 	}
 	else if ( FStrEq( event->GetName(), "bullet_player_hitboxes" ) && shouldShowFireBulletHitboxes )
 	{
-		ShowEventHitboxes( cl_debug_duration.GetFloat() );
+		ShowEventHitboxes( cl_show_debug_duration.GetFloat() );
 	}
 	else if ( cl_enable_hitmarks.GetBool() && FStrEq( event->GetName(), "player_hurt" ) )
 	{

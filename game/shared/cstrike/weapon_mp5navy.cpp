@@ -88,6 +88,9 @@ bool CWeaponMP5Navy::Reload( )
 
 float CWeaponMP5Navy::GetInaccuracy() const
 {
+	if ( weapon_accuracy_noinaccuracy.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
 		CCSPlayer *pPlayer = GetPlayerOwner();

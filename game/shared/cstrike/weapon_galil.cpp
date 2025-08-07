@@ -62,6 +62,9 @@ CWeaponGalil::CWeaponGalil()
 
 float CWeaponGalil::GetInaccuracy() const
 {
+	if ( weapon_accuracy_noinaccuracy.GetBool() )
+		return 0.0f;
+
 	if ( weapon_accuracy_model.GetInt() == 1 )
 	{
 		CCSPlayer *pPlayer = GetPlayerOwner();
