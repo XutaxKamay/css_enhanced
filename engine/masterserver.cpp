@@ -30,9 +30,7 @@ extern ConVar sv_lan;
 
 static char g_MasterServers[][64] =
 {
-	"185.192.97.130:27010",
-	"168.138.92.21:27016",
-	"135.125.188.162:27010"
+	"cssserv.xutaxkamay.com:27010",
 };
 
 #ifdef DEDICATED

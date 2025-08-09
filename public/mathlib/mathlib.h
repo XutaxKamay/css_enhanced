@@ -1188,24 +1188,7 @@ inline float SimpleSplineRemapValClamped( float val, float A, float B, float C, 
 
 FORCEINLINE int RoundFloatToInt(float f)
 {
-#if defined(__i386__) || defined(_M_IX86) || defined( PLATFORM_WINDOWS_PC64 ) || defined(__x86_64__)
-	return _mm_cvtss_si32(_mm_load_ss(&f));
-#elif defined( _X360 )
-#ifdef Assert
-	Assert( IsFPUControlWordSet() );
-#endif
-	union
-	{
-		double flResult;
-		int pResult[2];
-	};
-	flResult = __fctiw( f );
-	return pResult[1];
-#elif defined (__arm__) ||  defined (__aarch64__)
-        return (int)(f + 0.5f);
-#else
-#error Unknown architecture
-#endif
+	return static_cast<int32_t>(std::lroundf(f));
 }
 
 FORCEINLINE unsigned char RoundFloatToByte(float f)
@@ -1219,57 +1202,7 @@ FORCEINLINE unsigned char RoundFloatToByte(float f)
 
 FORCEINLINE unsigned long RoundFloatToUnsignedLong(float f)
 {
-#if defined( _X360 )
-#ifdef Assert
-	Assert( IsFPUControlWordSet() );
-#endif
-	union
-	{
-		double flResult;
-		int pIntResult[2];
-		unsigned long pResult[2];
-	};
-	flResult = __fctiw( f );
-	Assert( pIntResult[1] >= 0 );
-	return pResult[1];
-#else  // !X360
-#if defined(__arm__) || defined(__aarch64__)
-        return (unsigned long)(f + 0.5f);
-#elif defined( PLATFORM_WINDOWS_PC64 )
-	uint nRet = ( uint ) f;
-	if ( nRet & 1 )
-	{
-		if ( ( f - floor( f ) >= 0.5 ) )
-		{
-			nRet++;
-		}
-	}
-	else
-	{
-		if ( ( f - floor( f ) > 0.5 ) )
-		{
-			nRet++;
-		}
-	}
-	return nRet;
-#else // PLATFORM_WINDOWS_PC64
-	unsigned char nResult[8];
-
-	#if defined( _WIN32 )
-		__asm
-		{
-			fld f
-			fistp       qword ptr nResult
-		}
-	#elif POSIX
-		__asm __volatile__ (
-			"fistpl %0;": "=m" (nResult): "t" (f) : "st"
-		);
-	#endif
-
-		return *((unsigned long*)nResult);
-#endif // PLATFORM_WINDOWS_PC64
-#endif // !X360
+	return static_cast<unsigned long>(std::lroundf( f ));
 }
 
 FORCEINLINE bool IsIntegralValue( float flValue, float flTolerance = 0.001f )

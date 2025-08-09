@@ -473,6 +473,7 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 		{
 			CAnimationLayer &pLayer = m_AnimOverlay[layer[i]];
 			// UNDONE: Is it correct to use overlay weight for IK too?
+			// TODO_ENHANCED: this have issues on ARM servers....
 			boneSetup.AccumulatePose( pos, q, pLayer.m_nSequence, pLayer.m_flCycle, pLayer.m_flWeight, gpGlobals->curtime, m_pIk );
 		}
 	}
@@ -480,7 +481,6 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
-		m_iIKCounter++;
 		auto_ik.Init( pStudioHdr, GetRenderAngles(), GetAbsOrigin(), gpGlobals->curtime, m_iIKCounter, boneMask );
 		boneSetup.CalcAutoplaySequences( pos, q, gpGlobals->curtime, &auto_ik );
 	}

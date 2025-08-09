@@ -59,6 +59,7 @@
 #include "BaseGamesPage.h"
 #include "InternetGames.h"
 #include "FavoriteGames.h"
+#include "SpectateGames.h"
 //#include "SpectateGames.h"
 #include "LanGames.h"
 #include "HistoryGames.h"
