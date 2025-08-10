@@ -489,12 +489,12 @@ void CBaseGamesPage::CreateFilters()
 	m_pFilter = new ToggleButton(this, "Filter", "#ServerBrowser_Filters");
 	m_pFilterString = new Label(this, "FilterString", "");
 	
-	if ( Q_stricmp( COM_GetModDirectory(), "cstrike" ) == 0 )
-	{
-		m_pFilter->SetSelected( false );
-		m_bFiltersVisible = false;
-	}
-	else
+	// if ( Q_stricmp( COM_GetModDirectory(), "cstrike" ) == 0 )
+	// {
+	// 	m_pFilter->SetSelected( false );
+	// 	m_bFiltersVisible = false;
+	// }
+	// else
 	{
 		m_pFilter->SetSelected( true );
 		m_bFiltersVisible = true;
@@ -2064,26 +2064,6 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 
 	newgameserver_t *pServerItem = &server;
 
-	// check filters
-	bool removeItem = false;
-#if 0
-	if ( !CheckPrimaryFilters( server ) )
-	{
-		// server has been filtered at a primary level
-		// remove from lists
-		//pServer->m_bDoNotRefresh = true;
-
-		// remove from UI list
-		//removeItem = true;
-		return;
-	}
-	else if (!CheckSecondaryFilters( server ))
-	{
-		// we still ping this server in the future; however it is removed from UI list
-		return;
-	}
-#endif
-
 	// new entry or update entry
 	KeyValues* kv = nullptr;
 
@@ -2145,6 +2125,16 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 	else
 	{
 		UpdateKV();
+	}
+
+	for ( iListID = m_pGameList->FirstItem(); iListID != m_pGameList->InvalidItemID(); iListID = m_pGameList->NextItem( iListID ) )
+	{
+		kv = m_pGameList->GetItem( iListID );
+
+		if ( !CheckSecondaryFilters( server ) )
+		{
+			m_pGameList->SetItemVisible( iListID, false );
+		}
 	}
 
 	PrepareQuickListMap( &server, iListID );
