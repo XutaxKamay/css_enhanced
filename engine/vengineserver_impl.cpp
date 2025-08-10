@@ -1596,6 +1596,12 @@ public:
 		return sv.GetPlayerInfo( (ent_num-1), pinfo );
 	}
 
+	player_info_t* GetPlayerInfoRaw( int ent_num )
+	{
+		// Entity numbers are offset by 1 from the player numbers
+		return sv.GetPlayerInfoRaw( (ent_num-1) );
+	}
+
 	bool IsClientFullyAuthenticated( edict_t *pEdict )
 	{
 		int entnum = NUM_FOR_EDICT( pEdict );

@@ -43,7 +43,7 @@ public:
 	virtual void	GetNetStats( float &avgIn, float &avgOut ) = 0; // total net in/out in bytes/sec
 	virtual int		GetNumPlayers() = 0;
 	virtual	bool	GetPlayerInfo( int nClientIndex, player_info_t *pinfo ) = 0;
-
+	virtual	player_info_t*	GetPlayerInfoRaw( int nClientIndex ) = 0;
 	virtual bool	IsActive( void ) const = 0;	
 	virtual bool	IsLoading( void ) const = 0;
 	virtual bool	IsDedicated( void ) const = 0;

@@ -8,6 +8,7 @@
 #include "player.h"
 #include "player_resource.h"
 #include <coordsize.h>
+#include "cdll_int.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -99,6 +100,13 @@ void CPlayerResource::UpdatePlayerData( void )
 		
 		if ( pPlayer && pPlayer->IsConnected() )
 		{
+			auto pi = engine->GetPlayerInfoRaw( pPlayer->entindex() );
+
+			if (pi)
+			{
+				pi->score = pPlayer->FragCount();
+			}
+
 			m_iScore.Set( i, pPlayer->FragCount() );
 			m_iDeaths.Set( i, pPlayer->DeathCount() );
 			m_bConnected.Set( i, 1 );

@@ -2017,7 +2017,7 @@ void CBaseGamesPage::OnViewGameInfo()
 	StopRefresh();
 
 	// join the game
-	//ServerBrowserDialog().OpenGameInfoDialog(this, serverID);
+	ServerBrowserDialog().OpenGameInfoDialog(this, &m_serversInfo[serverID]);
 }
 
 //-----------------------------------------------------------------------------
@@ -2060,6 +2060,8 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 {
 	Assert( server.m_NetAdr.GetIPHostByteOrder() != 0 );
 
+	ServerBrowserDialog().ServerResponded( server );
+
 	newgameserver_t *pServerItem = &server;
 
 	// check filters
@@ -2082,42 +2084,68 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 	}
 #endif
 
-	// new entry
-	KeyValues *kv = new KeyValues("Server");
+	// new entry or update entry
+	KeyValues* kv = nullptr;
 
-	kv->SetString("name", pServerItem->m_szServerName);
-	kv->SetString("map", pServerItem->m_szMap);
-	kv->SetString("GameDir", pServerItem->m_szGameDir);
-	kv->SetString("GameDesc", pServerItem->m_szGameDescription);
-	kv->SetInt("password", pServerItem->m_bPassword ? m_nImageIndexPassword : 0);
-	kv->SetInt("bots", pServerItem->m_nBotPlayers);
+	int iListID;
 
-	kv->SetInt("secure", 0);
+	for ( iListID = m_pGameList->FirstItem(); iListID != m_pGameList->InvalidItemID(); iListID = m_pGameList->NextItem( iListID ) )
+	{
+		kv = m_pGameList->GetItem( iListID );
 
-	kv->SetString( "IPAddr", pServerItem->m_NetAdr.ToString() );
+		if ( kv && V_stricmp( kv->GetString( "IPAddr" ), pServerItem->m_NetAdr.ToString() ) == 0 )
+		{
+			break;
+		}
+	}
 
-	int nAdjustedForBotsPlayers = max( 0, pServerItem->m_nPlayers - pServerItem->m_nBotPlayers );
+	auto UpdateKV = [&]()
+	{
+		kv->SetString("name", pServerItem->m_szServerName);
+		kv->SetString("map", pServerItem->m_szMap);
+		kv->SetString("GameDir", pServerItem->m_szGameDir);
+		kv->SetString("GameDesc", pServerItem->m_szGameDescription);
+		kv->SetInt("password", pServerItem->m_bPassword ? m_nImageIndexPassword : 0);
+		kv->SetInt("bots", pServerItem->m_nBotPlayers);
 
-	char buf[32];
-	Q_snprintf(buf, sizeof(buf), "%d / %d", nAdjustedForBotsPlayers, pServerItem->m_nMaxPlayers );
-	kv->SetString("Players", buf);
+		kv->SetInt("secure", 0);
 
-	kv->SetInt("PlayerCount", nAdjustedForBotsPlayers );
-	kv->SetInt("MaxPlayerCount", pServerItem->m_nMaxPlayers );
+		kv->SetString( "IPAddr", pServerItem->m_NetAdr.ToString() );
 
-	kv->SetInt("Ping", pServerItem->m_nPing);
+		int nAdjustedForBotsPlayers = max( 0, pServerItem->m_nPlayers - pServerItem->m_nBotPlayers );
 
-	kv->SetString("Tags", pServerItem->m_szGameTags);
+		char buf[32];
+		Q_snprintf(buf, sizeof(buf), "%d / %d", nAdjustedForBotsPlayers, pServerItem->m_nMaxPlayers );
+		kv->SetString("Players", buf);
 
-	kv->SetInt("Replay", 0);
+		kv->SetInt("PlayerCount", nAdjustedForBotsPlayers );
+		kv->SetInt("MaxPlayerCount", pServerItem->m_nMaxPlayers );
 
-	int iServerIndex = m_serversInfo.AddToTail( server );
+		kv->SetInt("Ping", pServerItem->m_nPing);
 
-	// new server, add to list
-	int iListID = m_pGameList->AddItem(kv, iServerIndex, false, false);
+		kv->SetString("Tags", pServerItem->m_szGameTags);
 
-	m_pGameList->SetItemVisible( iListID, true );
-	kv->deleteThis();
+		kv->SetInt("Replay", 0);
+	};
+
+	if ( kv == nullptr )
+	{
+		kv = new KeyValues( "Server" );
+
+		UpdateKV();
+
+		int iServerIndex = m_serversInfo.AddToTail( server );
+
+		// new server, add to list
+		iListID = m_pGameList->AddItem(kv, iServerIndex, false, false);
+
+		m_pGameList->SetItemVisible( iListID, true );
+		kv->deleteThis();
+	}
+	else
+	{
+		UpdateKV();
+	}
 
 	PrepareQuickListMap( &server, iListID );
 	UpdateStatus();

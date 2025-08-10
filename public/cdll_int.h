@@ -93,6 +93,11 @@ typedef struct player_info_s
 	CRC32_t			customFiles[MAX_CUSTOM_FILES];
 	// this counter increases each time the server downloaded a new file
 	unsigned char	filesDownloaded;
+	// player score
+	int 			score;
+	// player time connected
+	float			time_connected;
+
 } player_info_t;
 
 

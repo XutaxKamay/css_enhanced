@@ -378,6 +378,7 @@ public:
 
 	// Fill in the player info structure for the specified player index (name, model, etc.)
 	virtual bool GetPlayerInfo( int ent_num, player_info_t *pinfo ) = 0;
+	virtual player_info_t* GetPlayerInfoRaw( int ent_num ) = 0;
 
 	// Returns true if this client has been fully authenticated by Steam
 	virtual bool IsClientFullyAuthenticated( edict_t *pEdict ) = 0;

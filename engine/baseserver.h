@@ -79,6 +79,7 @@ public: // IServer implementation
 	virtual void	GetNetStats( float &avgIn, float &avgOut );
 	virtual int		GetNumPlayers();
 	virtual	bool	GetPlayerInfo( int nClientIndex, player_info_t *pinfo );
+	virtual	player_info_t*	GetPlayerInfoRaw( int nClientIndex );
 	virtual float	GetCPUUsage( void ) { return m_fCPUPercent; }
 		
 	virtual bool	IsActive( void ) const { return m_State >= ss_active; }	

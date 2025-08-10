@@ -86,6 +86,8 @@ public:
 	{
 		return &m_CurrentConnection;
 	}
+	
+	void ServerResponded( newgameserver_t &server );
 
 private:
 

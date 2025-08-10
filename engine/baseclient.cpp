@@ -66,6 +66,7 @@ CBaseClient::CBaseClient()
 	m_bReportFakeClient = true;
 	m_iTracing = 0;
 	m_bPlayerNameLocked = false;
+	m_flTimeConnected = 0.0f;
 }
 
 CBaseClient::~CBaseClient()
@@ -113,6 +114,8 @@ bool CBaseClient::FillUserInfo( player_info_s &userInfo )
 		userInfo.customFiles[i] = m_nCustomFiles[i].crc;
 
 	userInfo.filesDownloaded = m_nFilesDownloaded;
+	userInfo.score = 0;
+	userInfo.time_connected = m_flTimeConnected;
 
 	return true;
 }
@@ -586,6 +589,8 @@ void CBaseClient::Connect( const char * szName, int nUserID, INetChannel *pNetCh
 	m_clientChallenge = clientChallenge;
 
 	m_nSignonState = SIGNONSTATE_CONNECTED;
+
+	m_flTimeConnected = host_time;
 
 	if ( bFakePlayer )
 	{

@@ -271,7 +271,8 @@ public:
 	// Time when we should send next world state update ( datagram )
 	double         m_fNextMessageTime;   
 	// Default time to wait for next message
-	float          m_fSnapshotInterval;  
+	float          m_fSnapshotInterval;
+	float          m_flTimeConnected;  
 
 	enum
 	{

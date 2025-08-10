@@ -352,6 +352,7 @@ def build(bld):
 		'../common',
 		'audio',
 		'../public/engine/audio/',
+		'../public/engine',
 		'audio/'
 	]
 

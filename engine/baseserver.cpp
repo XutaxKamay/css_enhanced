@@ -664,7 +664,7 @@ bool CBaseServer::ValidInfoChallenge( netadr_t & adr, const char *nugget )
 
 bool CBaseServer::ProcessConnectionlessPacket(netpacket_t * packet)
 {
-	master->ProcessConnectionlessPacket( packet );
+	master->ProcessConnectionlessPacket( packet, this );
 
 	bf_read msg = packet->message;	// handy shortcut 
 
@@ -909,6 +909,15 @@ bool CBaseServer::GetPlayerInfo( int nClientIndex, player_info_t *pinfo )
 	return true;
 }
 
+player_info_t* CBaseServer::GetPlayerInfoRaw( int nClientIndex )
+{
+	if ( nClientIndex < 0 || !GetUserInfoTable() || nClientIndex >= GetUserInfoTable()->GetNumStrings() )
+	{
+		return nullptr;
+	}
+
+	return (player_info_t*) GetUserInfoTable()->GetStringUserData( nClientIndex, NULL );
+}
 
 void CBaseServer::UserInfoChanged( int nClientIndex )
 {

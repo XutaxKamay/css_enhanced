@@ -23,6 +23,9 @@
 
 #include "engine/iserversinfo.h"
 
+struct netpacket_s;
+class CBaseServer;
+
 //-----------------------------------------------------------------------------
 // Purpose: Implements a master server interface.
 //-----------------------------------------------------------------------------
@@ -50,7 +53,7 @@ public:
 	// Force a heartbeat to be issued right away
 	virtual void Heartbeat_f( void ) = 0;
 
-	virtual void ProcessConnectionlessPacket( netpacket_t *packet ) = 0;
+	virtual void ProcessConnectionlessPacket( struct netpacket_s *packet, CBaseServer* baseServer ) = 0;
 
 	virtual void RunFrame( void ) = 0;
 };

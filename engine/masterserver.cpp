@@ -19,6 +19,8 @@
 #include "eiface.h"
 #include "server.h"
 #include "utlmap.h"
+#include "edict.h"
+#include "cdll_int.h"
 
 extern ConVar sv_tags;
 extern ConVar sv_lan;
@@ -79,7 +81,7 @@ public:
 	void RespondToHeartbeatChallenge( netadr_t &from, bf_read &msg );
 	void PingServer( netadr_t &svadr );
 
-	void ProcessConnectionlessPacket( netpacket_t *packet );
+	void ProcessConnectionlessPacket( struct netpacket_s *packet, CBaseServer* baseServer );
 
 	void AddMaster_f( const CCommand &args );
 	void Heartbeat_f( void );
@@ -87,8 +89,8 @@ public:
 	void RunFrame();
 	void RetryServersInfoRequest();
 
-	void ReplyInfo( const netadr_t &adr, uint sequence );
-	newgameserver_t &ProcessInfo( bf_read &buf );
+	void ReplyInfo( const netadr_t &adr, uint sequence, CBaseServer* baseServer );
+	newgameserver_t ProcessInfo( bf_read &buf );
 
 	// SeversInfo
 	void RequestInternetServerList( const char *gamedir, IServerListResponse *response );
@@ -103,8 +105,6 @@ private:
 
 	bool m_bInitialized;
 	bool m_bRefreshing;
-
-	int m_iServersResponded;
 
 	double m_flStartRequestTime;
 	double m_flRetryRequestTime;
@@ -139,7 +139,6 @@ CMaster::CMaster( void )
 	m_pMasterAddresses	= NULL;
 	m_bNoMasters		= false;
 	m_bInitialized = false;
-	m_iServersResponded = 0;
 
 	m_serverListResponse = NULL;
 	SetDefLessFunc( m_serverAddresses );
@@ -169,15 +168,6 @@ void CMaster::RunFrame()
 		return;
 	}
 
-	if( m_iServersResponded > 0 &&
-			m_iServersResponded >= m_serverAddresses.Count() &&
-			m_flMasterRequestTime < Plat_FloatTime() - MASTER_RESPONSE_TIMEOUT )
-	{
-		StopRefresh();
-		m_serverListResponse->RefreshComplete( NServerResponse::nServerResponded );
-		return;
-	}
-
 	if( m_flRetryRequestTime < Plat_FloatTime() - RETRY_INFO_REQUEST_TIME )
 	{
 		m_flRetryRequestTime = Plat_FloatTime();
@@ -188,8 +178,7 @@ void CMaster::RunFrame()
 			return;
 		}
 
-		if( m_iServersResponded < m_serverAddresses.Count() )
-			RetryServersInfoRequest();
+		RetryServersInfoRequest();
 	}
 }
 
@@ -198,37 +187,34 @@ void CMaster::StopRefresh()
 	if( !m_bRefreshing )
 		return;
 
-	m_iServersResponded = 0;
 	m_bRefreshing = false;
-	m_serverAddresses.RemoveAll();
-	m_serversRequestTime.RemoveAll();
 }
 
-void CMaster::ReplyInfo( const netadr_t &adr, uint sequence )
+void CMaster::ReplyInfo( const netadr_t &adr, uint sequence, CBaseServer* baseServer )
 {
 	static char gamedir[MAX_OSPATH];
 	Q_FileBase( com_gamedir, gamedir, sizeof( gamedir ) );
 
-	CUtlBuffer buf;
-	buf.EnsureCapacity( 2048 );
+	ALIGN4 char	msg_buffer[0x10000] ALIGN4_POST;
+	bf_write buf(msg_buffer, sizeof(msg_buffer));
 
-	buf.PutUnsignedInt( LittleDWord( CONNECTIONLESS_HEADER ) );
-	buf.PutUnsignedChar( S2C_INFOREPLY );
+	buf.WriteLong( CONNECTIONLESS_HEADER );
+	buf.WriteChar( S2C_INFOREPLY );
 
-	buf.PutUnsignedInt(sequence);
-	buf.PutUnsignedChar( PROTOCOL_VERSION ); // Hardcoded protocol version number
-	buf.PutString( sv.GetName() );
-	buf.PutString( sv.GetMapName() );
-	buf.PutString( gamedir );
-	buf.PutString( serverGameDLL->GetGameDescription() );
+	buf.WriteVarInt32( sequence );
+	buf.WriteByte( PROTOCOL_VERSION ); // Hardcoded protocol version number
+	buf.WriteString( sv.GetName() );
+	buf.WriteString( sv.GetMapName() );
+	buf.WriteString( gamedir );
+	buf.WriteString( serverGameDLL->GetGameDescription() );
 
 	// player info
-	buf.PutUnsignedChar( sv.GetNumClients() );
-	buf.PutUnsignedChar( sv.GetMaxClients() );
-	buf.PutUnsignedChar( sv.GetNumFakeClients() );
+	buf.WriteByte( sv.GetNumClients() );
+	buf.WriteByte( sv.GetMaxClients() );
+	buf.WriteByte( sv.GetNumFakeClients() );
 
 	// Password?
-	buf.PutUnsignedChar( sv.GetPassword() != NULL ? 1 : 0 );
+	buf.WriteOneBit( sv.GetPassword() != NULL ? 1 : 0 );
 
 	// Write a byte with some flags that describe what is to follow.
 	const char *pchTags = sv_tags.GetString();
@@ -237,18 +223,56 @@ void CMaster::ReplyInfo( const netadr_t &adr, uint sequence )
 	if ( pchTags && pchTags[0] != '\0' )
 		nFlags |= S2A_EXTRA_DATA_HAS_GAMETAG_DATA;
 
-	buf.PutUnsignedInt( nFlags );
+	buf.WriteSignedVarInt32( nFlags );
 
 	if ( nFlags & S2A_EXTRA_DATA_HAS_GAMETAG_DATA )
-		buf.PutString( pchTags );
+		buf.WriteString( pchTags );
 
-	NET_SendPacket( NULL, NS_SERVER, adr, (unsigned char *)buf.Base(), buf.TellPut() );
+	buf.WriteFloat( host_state.interval_per_tick );
+	buf.WriteFloat( host_time );
+
+	int player_count = 0;
+
+	if ( baseServer )
+	{
+		for ( int i = 0; i < baseServer->GetUserInfoTable()->GetNumStrings(); i++ )
+		{
+			player_info_t player_info;
+
+			if ( !baseServer->GetPlayerInfo( i, &player_info ) )
+			{
+				continue;
+			}
+
+			player_count++;
+		}
+	}
+
+	buf.WriteSignedVarInt32( player_count );
+
+	if ( baseServer )
+	{
+		for ( int i = 0; i < baseServer->GetUserInfoTable()->GetNumStrings(); i++ )
+		{
+			player_info_t player_info;
+
+			if ( !baseServer->GetPlayerInfo( i, &player_info ) )
+			{
+				continue;
+			}
+
+			buf.WriteFloat( player_info.time_connected );
+			buf.WriteSignedVarInt32( player_info.score );
+			buf.WriteString( player_info.name );
+		}
+	}
+
+	NET_SendPacket( NULL, NS_SERVER, adr, (unsigned char *)buf.GetData(), buf.GetNumBytesWritten() );
 }
 
-newgameserver_t &CMaster::ProcessInfo(bf_read &buf)
+newgameserver_t CMaster::ProcessInfo(bf_read &buf)
 {
-	static newgameserver_t s;
-	memset( &s, 0, sizeof(s) );
+	newgameserver_t s {};
 
 	s.m_nProtocolVersion = buf.ReadByte();
 
@@ -264,18 +288,35 @@ newgameserver_t &CMaster::ProcessInfo(bf_read &buf)
 	s.m_nBotPlayers = buf.ReadByte();
 
 	// Password?
-	s.m_bPassword = buf.ReadByte();
-	s.m_iFlags = buf.ReadLong();
+	s.m_bPassword = buf.ReadOneBit();
+	s.m_iFlags = buf.ReadSignedVarInt32();
 
 	if( s.m_iFlags & S2A_EXTRA_DATA_HAS_GAMETAG_DATA )
 	{
 		buf.ReadString( s.m_szGameTags, sizeof(s.m_szGameTags) );
 	}
 
+	s.m_flTickInterval = buf.ReadFloat();
+	s.m_flHostTime = buf.ReadFloat();
+
+	// TODO_ENHANCED: Check if this has security issues...
+	auto player_count = buf.ReadSignedVarInt32();
+
+	for ( int i = 0; i < player_count; i++ )
+	{
+		newgameserver_t::player_info pi;
+
+		pi.time_connected = buf.ReadFloat();
+		pi.score		  = buf.ReadSignedVarInt32();
+		buf.ReadString( pi.name, sizeof( pi.name ) );
+
+		s.m_PlayerInfo.push_back( pi );
+	}
+
 	return s;
 }
 
-void CMaster::ProcessConnectionlessPacket( netpacket_t *packet )
+void CMaster::ProcessConnectionlessPacket( netpacket_t *packet, CBaseServer* baseServer )
 {
 	static ALIGN4 char string[2048] ALIGN4_POST;    // Buffer for sending heartbeat
 
@@ -296,9 +337,6 @@ void CMaster::ProcessConnectionlessPacket( netpacket_t *packet )
 		}
 		case M2C_QUERY:
 		{
-			if( !m_bRefreshing )
-				break;
-
 			ip = msg.ReadLong();
 			port = msg.ReadShort();
 
@@ -324,35 +362,25 @@ void CMaster::ProcessConnectionlessPacket( netpacket_t *packet )
 		}
 		case C2S_INFOREQUEST:
 		{
-			ReplyInfo(packet->from, msg.ReadLong());
+			ReplyInfo( packet->from, msg.ReadLong(), baseServer );
 			break;
 		}
 		case S2C_INFOREPLY:
 		{
-			if( !m_bRefreshing )
-				break;
-
-			uint sequence = msg.ReadLong();
-			newgameserver_t &s = ProcessInfo( msg );
+			auto sequence = msg.ReadVarInt32();
+			newgameserver_t s = ProcessInfo( msg );
 
 			unsigned short index = m_serverAddresses.Find(packet->from);
 			unsigned short rindex = m_serversRequestTime.Find(sequence);
 
 			if( index == m_serverAddresses.InvalidIndex() ||
 				rindex == m_serversRequestTime.InvalidIndex() )
-				break;
-
-			double requestTime = m_serversRequestTime[rindex];
-
-			if( m_serverAddresses[index] ) // shit happens
 				return;
 
-			m_serverAddresses[index] = true;
+			double requestTime = m_serversRequestTime[rindex];
 			s.m_nPing = (Plat_FloatTime()-requestTime)*1000.0;
 			s.m_NetAdr = packet->from;
 			m_serverListResponse->ServerResponded( s );
-
-			m_iServersResponded++;
 			break;
 		}
 	}

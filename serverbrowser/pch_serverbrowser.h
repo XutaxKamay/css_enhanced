@@ -68,6 +68,7 @@
 #include "vgui_controls/PanelListPanel.h"
 
 #include "replay/ienginereplay.h"
+#include "engine/master.h"
 
 extern bool GameSupportsReplay();
 extern bool IsReplayServer( newgameserver_t &server );

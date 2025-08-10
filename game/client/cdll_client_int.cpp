@@ -247,6 +247,8 @@ BEGIN_BYTESWAP_DATADESC( player_info_s )
 #endif
 	DEFINE_ARRAY( customFiles, FIELD_INTEGER, MAX_CUSTOM_FILES ),
 	DEFINE_FIELD( filesDownloaded, FIELD_INTEGER ),
+	DEFINE_FIELD( score, FIELD_INTEGER ),
+	DEFINE_FIELD( time_connected, FIELD_FLOAT ),
 END_BYTESWAP_DATADESC()
 
 static bool g_bRequestCacheUsedMaterials = false;

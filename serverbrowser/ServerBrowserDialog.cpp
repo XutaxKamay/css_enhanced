@@ -443,7 +443,8 @@ CDialogGameInfo *CServerBrowserDialog::OpenGameInfoDialog( IGameList *gameList, 
 	CDialogGameInfo *gameDialog = new CDialogGameInfo( NULL, pServer->m_NetAdr.GetIPHostByteOrder(), 0, pServer->m_NetAdr.GetPort(), gameList->GetConnectCode() );
 	gameDialog->SetParent(GetVParent());
 	gameDialog->AddActionSignalTarget(this);
-	gameDialog->Run( "Test" /*pServer->GetName()*/ );
+	gameDialog->Run( pServer->m_szServerName );
+	gameDialog->ServerResponded( *pServer );
 	int i = m_GameInfoDialogs.AddToTail();
 	m_GameInfoDialogs[i] = gameDialog;
 	return gameDialog;
@@ -720,4 +721,17 @@ void CServerBrowserDialog::OnKeyCodePressed( vgui::KeyCode code )
 	}
 
 	BaseClass::OnKeyCodePressed( code );
+}
+
+void CServerBrowserDialog::ServerResponded( newgameserver_t& server )
+{
+	for ( int i = 0; i < m_GameInfoDialogs.Count(); i++ )
+	{
+		auto&& dlg = m_GameInfoDialogs[i];
+
+		if ( dlg )
+		{
+			dlg->ServerResponded( server );
+		}
+	}
 }

@@ -10,6 +10,11 @@
 #pragma once
 #endif
 
+#include <vector>
+
+#include "netadr.h"
+#include "cdll_int.h"
+
 #define MAX_GAME_DESCRIPTION 8192
 #define MAX_SERVER_NAME 2048
 
@@ -24,6 +29,13 @@ class newgameserver_t
 {
 public:
 	newgameserver_t() = default;
+
+	struct player_info
+	{
+		int score;
+		float time_connected;
+		char name[MAX_PLAYER_NAME_LENGTH];
+	};
 
 	netadr_t m_NetAdr;								///< IP/Query Port/Connection Port for this server
 	int m_nPing;											///< current ping time in milliseconds
@@ -41,6 +53,9 @@ public:
 	bool m_bPassword;										///< true if this server needs a password to join
 
 	int m_iFlags;
+	float m_flTickInterval;
+	float m_flHostTime;
+	std::vector< player_info > m_PlayerInfo;
 
 	/// Game server name
 	char m_szServerName[MAX_SERVER_NAME];
@@ -90,6 +105,7 @@ public:
 	virtual void RequestInternetServerList( const char *gamedir, IServerListResponse *response ) = 0;
 	virtual void RequestLANServerList( const char *gamedir, IServerListResponse *response ) = 0;
 	virtual void StopRefresh() = 0;
+	virtual void RequestServerInfo( const netadr_t &adr ) = 0;
 
 	//virtual HServerQuery PingServer( uint32 unIP, uint16 usPort, ISteamMatchmakingPingResponse *pRequestServersResponse ) = 0; 
 	//virtual HServerQuery PlayerDetails( uint32 unIP, uint16 usPort, ISteamMatchmakingPlayersResponse *pRequestServersResponse ) = 0;
