@@ -281,10 +281,12 @@ void CBaseGamesPage::PerformLayout()
 
 	if (SupportsItem(IGameList::GETNEWLIST))
 	{
+		// m_pRefreshQuick->SetVisible(true);
 		m_pRefreshAll->SetText("#ServerBrowser_RefreshAll");
 	}
 	else
 	{
+		// m_pRefreshQuick->SetVisible(false);
 		m_pRefreshAll->SetText("#ServerBrowser_Refresh");
 	}
 
@@ -312,8 +314,17 @@ void CBaseGamesPage::PerformLayout()
 		m_pRefreshAll->SetText( "#ServerBrowser_StopRefreshingList" );
 	}
 
+	m_pRefreshQuick->SetEnabled( false );
 	m_pRefreshQuick->SetVisible( false );
-	m_pFilter->SetVisible(false);
+
+	// if (m_pGameList->GetItemCount() > 0)
+	// {
+	// 	m_pRefreshQuick->SetEnabled(true);
+	// }
+	// else
+	// {
+	// 	m_pRefreshQuick->SetEnabled(false);
+	// }
 
 	Repaint();
 }
@@ -897,7 +908,7 @@ void CBaseGamesPage::UpdateFilterAndQuickListVisibility()
 	int wide, tall;
 	GetSize( wide, tall );
 
-	int w = 640; int h = 384;
+	int w = 624; int h = 278;
 
 	w = IsProportional() ? vgui::scheme()->GetProportionalScaledValue(w) : w;
 	h = IsProportional() ? vgui::scheme()->GetProportionalScaledValue(h) : h;
