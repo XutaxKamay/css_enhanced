@@ -164,6 +164,7 @@ CBaseGamesPage::CBaseGamesPage( vgui::Panel *parent, const char *name, EPageType
 
 	m_pQuickList = new PanelListPanel(this, "quicklist");
 	m_pQuickList->SetFirstColumnWidth( 0 );
+	m_pQuickList->SetVisible( false );
 
 	m_pAddToFavoritesButton = new vgui::Button( this, "AddToFavoritesButton", "" );
 	m_pAddToFavoritesButton->SetEnabled( false );
@@ -393,14 +394,38 @@ void CBaseGamesPage::PrepareQuickListMap( newgameserver_t *server, int iListID )
 	//Add the map to our list of panels.
 	if ( m_pQuickList )
 	{
-		serverping_t serverping;
 		const char *pFriendlyName = CloneString( szFriendlyName );
 		const char *pOriginalName = CloneString( szMapName );
 
 		char path[ 512 ];
 		Q_snprintf( path, sizeof( path ), "maps/%s.bsp", szMapName );
 
-		CQuickListPanel *pQuickListPanel = new CQuickListPanel( m_pQuickList, "QuickListPanel");
+		CQuickListPanel *pQuickListPanel = nullptr;
+		bool bFound = false;
+
+		for ( int iQuickListID = m_pQuickList->FirstItem(); iQuickListID != m_pQuickList->InvalidItemID();
+			  iQuickListID	   = m_pQuickList->NextItem( iQuickListID ) )
+		{
+			pQuickListPanel = ( CQuickListPanel* )m_pQuickList->GetItemPanel( iQuickListID );
+
+			if ( pQuickListPanel && pQuickListPanel->GetListID() == iListID )
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if ( !bFound )
+		{
+			pQuickListPanel = new CQuickListPanel( m_pQuickList, "QuickListPanel" );
+
+			serverping_t serverping;
+			serverping.iPanelIndex = m_pQuickList->AddItem( NULL, pQuickListPanel );
+
+			serverping.m_nPing = server->m_nPing;
+
+			m_vecServersFound.AddToTail( serverping );
+		}
 
 		if ( pQuickListPanel )
 		{
@@ -412,16 +437,10 @@ void CBaseGamesPage::PrepareQuickListMap( newgameserver_t *server, int iListID )
 			pQuickListPanel->SetVisible( true );
 			pQuickListPanel->SetRefreshing();
 			pQuickListPanel->SetServerInfo( m_pGameList->GetItem( iListID ), iListID, 1 );
-
-			serverping.iPanelIndex = m_pQuickList->AddItem( NULL, pQuickListPanel );
-
-			serverping.m_nPing = server->m_nPing;
-
-			m_vecServersFound.AddToTail( serverping );
-			m_vecServersFound.Sort( ServerPingSortFunc );
 		}
-
 	}
+
+	m_vecServersFound.Sort( ServerPingSortFunc );
 
 	//Now make sure that list is sorted.
 	CUtlVector<int> *pPanelSort = m_pQuickList->GetSortedVector();
@@ -489,12 +508,12 @@ void CBaseGamesPage::CreateFilters()
 	m_pFilter = new ToggleButton(this, "Filter", "#ServerBrowser_Filters");
 	m_pFilterString = new Label(this, "FilterString", "");
 	
-	// if ( Q_stricmp( COM_GetModDirectory(), "cstrike" ) == 0 )
-	// {
-	// 	m_pFilter->SetSelected( false );
-	// 	m_bFiltersVisible = false;
-	// }
-	// else
+	if ( Q_stricmp( COM_GetModDirectory(), "cstrike" ) == 0 )
+	{
+		m_pFilter->SetSelected( false );
+		m_bFiltersVisible = false;
+	}
+	else
 	{
 		m_pFilter->SetSelected( true );
 		m_bFiltersVisible = true;
@@ -2068,6 +2087,7 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 	KeyValues* kv = nullptr;
 
 	int iListID;
+	bool bFound = false;
 
 	for ( iListID = m_pGameList->FirstItem(); iListID != m_pGameList->InvalidItemID(); iListID = m_pGameList->NextItem( iListID ) )
 	{
@@ -2075,6 +2095,7 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 
 		if ( kv && V_stricmp( kv->GetString( "IPAddr" ), pServerItem->m_NetAdr.ToString() ) == 0 )
 		{
+			bFound = true;
 			break;
 		}
 	}
@@ -2108,7 +2129,7 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 		kv->SetInt("Replay", 0);
 	};
 
-	if ( kv == nullptr )
+	if ( !bFound )
 	{
 		kv = new KeyValues( "Server" );
 
@@ -2127,6 +2148,8 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 		UpdateKV();
 	}
 
+	PrepareQuickListMap( &server, iListID );
+
 	for ( iListID = m_pGameList->FirstItem(); iListID != m_pGameList->InvalidItemID(); iListID = m_pGameList->NextItem( iListID ) )
 	{
 		kv = m_pGameList->GetItem( iListID );
@@ -2137,7 +2160,6 @@ void CBaseGamesPage::ServerResponded( newgameserver_t &server )
 		}
 	}
 
-	PrepareQuickListMap( &server, iListID );
 	UpdateStatus();
 	m_iServerRefreshCount++;
 }

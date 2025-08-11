@@ -72,7 +72,7 @@ CServerBrowserDialog::CServerBrowserDialog(vgui::Panel *parent) : Frame(parent, 
 
 	LoadUserData();
 
-	m_pInternetGames = new CInternetGames(this);
+	m_pInternetGames = new CCustomGames(this);
 	m_pFavorites = new CFavoriteGames(this);
 	m_pHistory = new CHistoryGames(this);
 	m_pSpectateGames = new CSpectateGames(this);

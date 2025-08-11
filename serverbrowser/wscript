@@ -22,7 +22,7 @@ def build(bld):
 	source = [
 		'BaseGamesPage.cpp',
 #		'BlacklistedServers.cpp',
-#		'CustomGames.cpp',
+		'CustomGames.cpp',
 		'DialogAddServer.cpp',
 		'DialogGameInfo.cpp',
 		'DialogServerPassword.cpp',

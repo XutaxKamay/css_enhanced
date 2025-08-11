@@ -47,8 +47,8 @@ public:
 	virtual void	UpdateDerivedLayouts( void ) OVERRIDE;
 	virtual void	OnLoadFilter(KeyValues *filter) OVERRIDE;
 	virtual void	OnSaveFilter(KeyValues *filter) OVERRIDE;
-	bool	CheckTagFilter( gameserveritem_t &server ) OVERRIDE;
-	bool	CheckWorkshopFilter( gameserveritem_t &server ) OVERRIDE;
+	bool	CheckTagFilter( newgameserver_t &server ) OVERRIDE;
+	bool	CheckWorkshopFilter( newgameserver_t &server ) OVERRIDE;
 	virtual void	SetRefreshing(bool state) OVERRIDE;
 	virtual void	ServerResponded( int iServer, gameserveritem_t *pServerItem ) OVERRIDE;
 

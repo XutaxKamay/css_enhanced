@@ -121,7 +121,7 @@ private:
 	// property sheet
 	vgui::PropertySheet *m_pTabPanel;
 
-	CInternetGames *m_pInternetGames;
+	CCustomGames *m_pInternetGames;
 	CSpectateGames *m_pSpectateGames;
 	CLanGames *m_pLanGames;
 	CFavoriteGames *m_pFavorites;

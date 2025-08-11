@@ -60,6 +60,7 @@
 #include "InternetGames.h"
 #include "FavoriteGames.h"
 #include "SpectateGames.h"
+#include "CustomGames.h"
 //#include "SpectateGames.h"
 #include "LanGames.h"
 #include "HistoryGames.h"

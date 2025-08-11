@@ -199,7 +199,7 @@ void CCustomGames::OnLoadFilter(KeyValues *filter)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CCustomGames::CheckTagFilter( gameserveritem_t &server )
+bool CCustomGames::CheckTagFilter( newgameserver_t &server )
 {
 	bool bRetVal = true;
 
@@ -227,7 +227,7 @@ bool CCustomGames::CheckTagFilter( gameserveritem_t &server )
 //-----------------------------------------------------------------------------
 // Purpose: Checks the workshop filtering setting, taking into account workshop filtering might be disabled
 //-----------------------------------------------------------------------------
-bool CCustomGames::CheckWorkshopFilter( gameserveritem_t &server )
+bool CCustomGames::CheckWorkshopFilter( newgameserver_t &server )
 {
 	eWorkshopMode workshopMode = WorkshopMode();
 	const char szWorkshopPrefix[] = "workshop/";
@@ -326,8 +326,8 @@ void CCustomGames::RecalculateCommonTags( void )
 	for ( int i = 0; i < iCount; i++ )
 	{
 		int serverID = m_pGameList->GetItemUserData( i );
-		gameserveritem_t *pServer = GetServer( serverID ); 
-		if ( pServer && pServer->m_szGameTags && pServer->m_szGameTags[0] )
+		auto *pServer = GetServer( serverID ); 
+		if ( pServer && pServer->m_szGameTags[0] )
 		{
 			CUtlVector<char*> TagList;
 			V_SplitString( pServer->m_szGameTags, ",", TagList );
