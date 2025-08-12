@@ -21,7 +21,7 @@ To compile for CS:S Enhanced a command line can look like so:
 ## How to play:
 
 - Compile the game as above.
-- Run the game with hl2_launcher(.exe) -game cstrike.
+- Run the game with css_enhanced(.exe).
 - I have my own server at cssserv.xutaxkamay.com, when it isn't down.
 
 ## What was enhanced:
@@ -53,4 +53,3 @@ And more to come (TODO):
 - Sphere/cylinder hitboxes
 - Avatars
 - Clans
-- Crosshair outlines
