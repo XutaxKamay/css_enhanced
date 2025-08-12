@@ -428,7 +428,8 @@ private:
 
 	QAngle m_angRenderAngles;
 	bool m_bIsInsideLagCompensationContext;
-	bool m_bHasHitPlayer;
+	float m_flHitMarkerDisplayCurrentTime;
+	bool m_bHitMark;
 };
 
 C_CSPlayer* GetLocalOrInEyeCSPlayer( void );

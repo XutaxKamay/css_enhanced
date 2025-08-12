@@ -1549,7 +1549,7 @@ void *CGame::GetMainWindow( void )
 
 void *CGame::GetMainDeviceWindow( void )
 {
-#if defined( DX_TO_GL_ABSTRACTION ) && defined( USE_SDL )
+#if defined( USE_SDL )
 	return (void*)m_pSDLWindow;
 #else
 	return (void*)m_hWindow;

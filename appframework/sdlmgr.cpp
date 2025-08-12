@@ -709,6 +709,7 @@ void CSDLMgr::Shutdown()
 {
 	SDLAPP_FUNC;
 
+#if defined( DX_TO_GL_ABSTRACTION )
 	if (gGL && m_readFBO)
 #ifdef TOGLES
 		gGL->glDeleteFramebuffers(1, &m_readFBO);
@@ -716,6 +717,7 @@ void CSDLMgr::Shutdown()
 		gGL->glDeleteFramebuffersEXT(1, &m_readFBO);
 #endif
 	m_readFBO = 0;
+#endif
 
 	if ( m_Window )
 	{

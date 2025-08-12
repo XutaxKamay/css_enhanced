@@ -776,6 +776,8 @@ C_CSPlayer::C_CSPlayer() :
 	ListenForGameEvent( "player_hurt" );
 
 	m_bIsInsideLagCompensationContext = false;
+	m_flHitMarkerDisplayCurrentTime = 0.0f;
+	m_bHitMark = false;
 }
 
 
@@ -2514,7 +2516,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 			if ( player && !player->IsLocalPlayer() )
 			{
-				m_bHasHitPlayer = true;
+				m_bHitMark = true;
 
 				auto health_damages = event->GetInt( "dmg_health" );
 				auto armor_damages	= event->GetInt( "dmg_armor" );

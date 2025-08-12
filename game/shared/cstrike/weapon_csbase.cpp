@@ -1022,6 +1022,10 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 	//-----------------------------------------------------------------------------
 	void CWeaponCSBase::DrawCrosshair()
 	{
+		static ConVar cl_crosshairoutline( "cl_crosshairoutline", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
+
+		bool bCrosshairOutline = cl_crosshairoutline.GetBool();
+
 		if ( !crosshair.GetInt() )
 			return;
 
@@ -1037,6 +1041,19 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 
 		if ( !pPlayer )
 			return;
+
+		auto&& flHitMarkDisplayCurrentTime = pPlayer->m_flHitMarkerDisplayCurrentTime;
+		auto flTimeBase					   = gpGlobals->curtime;
+		auto&& bHitMark					   = pPlayer->m_bHitMark;
+
+		static ConVar cl_hitmark_duration( "cl_hitmark_duration", "1.0" );
+		auto flHitMarkDuration = cl_hitmark_duration.GetFloat();
+
+		if ( bHitMark )
+		{
+			flHitMarkDisplayCurrentTime = flTimeBase + flHitMarkDuration;
+			bHitMark = false;
+		}
 
 		// localplayer must be owner if not in Spec mode
 		Assert( (pPlayer == GetPlayerOwner()) || ( pPlayer->GetObserverMode()==OBS_MODE_IN_EYE) );
@@ -1091,8 +1108,10 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 		if ( pPlayer->HasShield() && pPlayer->IsShieldDrawn() == true )
 			 return;
 
+		static ConVar cl_crosshair_always_visible( "cl_crosshair_always_visible", "0", FCVAR_CHEAT | FCVAR_CLIENTDLL );
+
 		// no crosshair for sniper rifles
-		bool bCrosshairVisible = crosshair.GetBool() && GetCSWpnData().m_WeaponType != WEAPONTYPE_SNIPER_RIFLE;
+		bool bCrosshairVisible = crosshair.GetBool() && (GetCSWpnData().m_WeaponType != WEAPONTYPE_SNIPER_RIFLE || cl_crosshair_always_visible.GetBool());
 
 		float fHalfFov = DEG2RAD(pPlayer->GetFOV()) * 0.5f;
 
@@ -1238,39 +1257,33 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 														  nViewportHeight );
 			}
 
-			static float flDisplayCurrentTime = 0.0f;
-			static float flDisplayTime		  = 1.0F;
+			if ( flHitMarkDisplayCurrentTime >= flTimeBase && pCrosshairHitMaterial )
+			{
+				float flAlpha = ( flHitMarkDisplayCurrentTime - flTimeBase ) / flHitMarkDuration;
 
-			if ( pPlayer->m_bHasHitPlayer )
-			{
-				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
-				pPlayer->m_bHasHitPlayer = false;
-			}
-			else
-			{
-				if ( flDisplayCurrentTime >= gpGlobals->curtime && pCrosshairHitMaterial )
+				if ( flAlpha <= 0.0f )
 				{
-					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
-
-					CMaterialReference refCrosshairHit;
-					refCrosshairHit.Init( pCrosshairHitMaterial );
-
-					refCrosshairHit->AlphaModulate( flAlpha );
-
-					pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
-															  nViewportWidth / 2
-																- pCrosshairHitMaterial->GetMappingWidth() / 2,
-															  nViewportHeight / 2
-																- pCrosshairHitMaterial->GetMappingHeight() / 2,
-															  pCrosshairHitMaterial->GetMappingWidth(),
-															  pCrosshairHitMaterial->GetMappingHeight(),
-															  nViewportX,
-															  nViewportY,
-															  nViewportX + nViewportWidth - 1,
-															  nViewportY + nViewportHeight - 1,
-															  nViewportWidth,
-															  nViewportHeight );
+					flHitMarkDisplayCurrentTime = 0.0f;
 				}
+
+				CMaterialReference refCrosshairHit;
+				refCrosshairHit.Init( pCrosshairHitMaterial );
+
+				refCrosshairHit->AlphaModulate( flAlpha );
+
+				pRenderContext->DrawScreenSpaceRectangle( refCrosshairHit,
+															nViewportWidth / 2
+															- pCrosshairHitMaterial->GetMappingWidth() / 2,
+															nViewportHeight / 2
+															- pCrosshairHitMaterial->GetMappingHeight() / 2,
+															pCrosshairHitMaterial->GetMappingWidth(),
+															pCrosshairHitMaterial->GetMappingHeight(),
+															nViewportX,
+															nViewportY,
+															nViewportX + nViewportWidth - 1,
+															nViewportY + nViewportHeight - 1,
+															nViewportWidth,
+															nViewportHeight );
 			}
 		}
 		else
@@ -1284,8 +1297,6 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				int iOuterRight = iInnerRight + iBarSize;
 				int y0			= iCenterY - iBarThickness / 2;
 				int y1			= y0 + iBarThickness;
-				DrawCrosshairRect( iOuterLeft, y0, iInnerLeft, y1, bAdditive );
-				DrawCrosshairRect( iInnerRight, y0, iOuterRight, y1, bAdditive );
 
 				// draw vertical crosshair lines
 				int iInnerTop	 = iCenterY - iCrosshairDistance - iBarThickness / 2;
@@ -1294,11 +1305,42 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				int iOuterBottom = iInnerBottom + iBarSize;
 				int x0			 = iCenterX - iBarThickness / 2;
 				int x1			 = x0 + iBarThickness;
+
+				auto bShouldDrawOutline = bCrosshairOutline;
+
+				// Outline: Draw larger black rectangles
+				if ( bShouldDrawOutline )
+				{
+					vgui::surface()->DrawSetColor( 0, 0, 0, 255 );
+
+					// Draw horizontal bars outline
+					DrawCrosshairRect( iOuterLeft - 1, y0 - 1, iInnerLeft + 1, y1 + 1, false );
+					DrawCrosshairRect( iInnerRight - 1, y0 - 1, iOuterRight + 1, y1 + 1, false );
+
+					// Draw vertical bars outline
+					DrawCrosshairRect( x0 - 1, iOuterTop - 1, x1 + 1, iInnerTop + 1, false );
+					DrawCrosshairRect( x0 - 1, iInnerBottom - 1, x1 + 1, iOuterBottom + 1, false );
+				}
+
+				auto bShouldDrawDot = cl_crosshairdot.GetBool();
+
+				// Draw dot outline
+				if ( bShouldDrawOutline && bShouldDrawDot )
+				{
+					vgui::surface()->DrawSetColor( 0, 0, 0, 255 );
+					DrawCrosshairRect( x0 - 1, y0 - 1, x1 + 1, y1 + 1, false );
+				}
+
+				vgui::surface()->DrawSetColor( r, g, b, alpha );
+
+				DrawCrosshairRect( iOuterLeft, y0, iInnerLeft, y1, bAdditive );
+				DrawCrosshairRect( iInnerRight, y0, iOuterRight, y1, bAdditive );
+
 				DrawCrosshairRect( x0, iOuterTop, x1, iInnerTop, bAdditive );
 				DrawCrosshairRect( x0, iInnerBottom, x1, iOuterBottom, bAdditive );
 
 				// draw dot
-				if ( cl_crosshairdot.GetBool() )
+				if ( bShouldDrawDot )
 				{
 					int x0 = iCenterX - iBarThickness / 2;
 					int x1 = x0 + iBarThickness;
@@ -1308,50 +1350,45 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 				}
 			}
 
-			static float flDisplayCurrentTime = 0.0f;
-			static float flDisplayTime		  = 1.0F;
+			if ( flHitMarkDisplayCurrentTime >= flTimeBase )
+			{
+				float flAlpha = ( flHitMarkDisplayCurrentTime - flTimeBase ) / flHitMarkDuration;
 
-			if ( pPlayer->m_bHasHitPlayer )
-			{
-				flDisplayCurrentTime	 = gpGlobals->curtime + flDisplayTime;
-				pPlayer->m_bHasHitPlayer = false;
-			}
-			else
-			{
-				if ( flDisplayCurrentTime >= gpGlobals->curtime )
+				if ( flAlpha <= 0.0f )
 				{
-					float flAlpha = ( flDisplayCurrentTime - gpGlobals->curtime ) / flDisplayTime;
-					int tocenter  = 15;
-					int initpos	  = 25;
+					flHitMarkDisplayCurrentTime = 0.0f;
+				}
 
-					initpos	 += iBarSize * 2;
-					tocenter += iBarSize * 2;
+				int tocenter  = 15;
+				int initpos	  = 25;
 
-					float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
+				initpos	 += iBarSize * 2;
+				tocenter += iBarSize * 2;
 
-					vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
+				float oldAlphaMultiplier = vgui::surface()->DrawGetAlphaMultiplier();
 
-					for ( int i = -1; i < 2; i++ )
-					{
-						tocenter += i;
-						initpos	 += i;
-						vgui::surface()->DrawLine( iCenterX - initpos,
-												   iCenterY - initpos,
-												   iCenterX - tocenter,
-												   iCenterY - tocenter );
-						vgui::surface()->DrawLine( iCenterX + initpos,
-												   iCenterY + initpos,
-												   iCenterX + tocenter,
-												   iCenterY + tocenter );
-						vgui::surface()->DrawLine( iCenterX - initpos,
-												   iCenterY + initpos,
-												   iCenterX - tocenter,
-												   iCenterY + tocenter );
-						vgui::surface()->DrawLine( iCenterX + initpos,
-												   iCenterY - initpos,
-												   iCenterX + tocenter,
-												   iCenterY - tocenter );
-					}
+				vgui::surface()->DrawSetColor( r, g, b, int( flAlpha * 255.0f ) );
+
+				for ( int i = -1; i < 2; i++ )
+				{
+					tocenter += i;
+					initpos	 += i;
+					vgui::surface()->DrawLine( iCenterX - initpos,
+												iCenterY - initpos,
+												iCenterX - tocenter,
+												iCenterY - tocenter );
+					vgui::surface()->DrawLine( iCenterX + initpos,
+												iCenterY + initpos,
+												iCenterX + tocenter,
+												iCenterY + tocenter );
+					vgui::surface()->DrawLine( iCenterX - initpos,
+												iCenterY + initpos,
+												iCenterX - tocenter,
+												iCenterY + tocenter );
+					vgui::surface()->DrawLine( iCenterX + initpos,
+												iCenterY - initpos,
+												iCenterX + tocenter,
+												iCenterY - tocenter );
 				}
 			}
 		}
