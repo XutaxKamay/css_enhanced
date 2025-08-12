@@ -1188,7 +1188,7 @@ inline float SimpleSplineRemapValClamped( float val, float A, float B, float C, 
 
 FORCEINLINE int RoundFloatToInt(float f)
 {
-	return static_cast<int32_t>(std::lroundf(f));
+	return static_cast<int32_t>(lroundf(f));
 }
 
 FORCEINLINE unsigned char RoundFloatToByte(float f)
@@ -1202,7 +1202,7 @@ FORCEINLINE unsigned char RoundFloatToByte(float f)
 
 FORCEINLINE unsigned long RoundFloatToUnsignedLong(float f)
 {
-	return static_cast<unsigned long>(std::lroundf( f ));
+	return static_cast<unsigned long>(lroundf( f ));
 }
 
 FORCEINLINE bool IsIntegralValue( float flValue, float flTolerance = 0.001f )
