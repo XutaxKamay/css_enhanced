@@ -547,7 +547,7 @@ def configure(conf):
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
 			'/GF',
 			'/Gy',
-			'/fp:fast',
+			'/fp:precise',
 			'/Zc:forScope',
 			'/Zc:wchar_t',
 			'/GR',
@@ -579,6 +579,11 @@ def configure(conf):
 			'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/',
 			'/STACK:0x10000000'
 		]
+
+	# Causes issues with AddSequenceLayers for pLayer->start != end, those are a lot of times, sadly, NaN values which is undefined behavior.
+	# We might want precision too.
+	if conf.env.DEST_OS != 'win32':
+		cflags += ['-fno-finite-math-only', '-fno-fast-math', '-ftrapping-math']
 
 	# And here C++ flags starts to be treated separately
 	cxxflags = list(cflags)
