@@ -2769,7 +2769,7 @@ public:
 		return v4OurPnt.DistToSqr( lineDelta );
 	}
 
-};
+} ALIGN16_POST;
 
 /// form 4 cross products
 inline FourVectors operator ^(const FourVectors &a, const FourVectors &b)

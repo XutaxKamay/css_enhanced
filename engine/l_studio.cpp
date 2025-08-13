@@ -40,7 +40,9 @@
 #include "materialsystem/materialsystem_config.h"
 #include "materialsystem/itexture.h"
 #include "IHammer.h"
-#if defined( _WIN32 ) && !defined( _X360 )
+#if defined(__arm__) || defined(__aarch64__)
+#include "sse2neon.h"
+#elif !defined( _X360 )
 #include <xmmintrin.h>
 #endif
 #include "staticpropmgr.h"
@@ -3429,7 +3431,6 @@ void CModelRender::ComputeModelVertexLightingOld( mstudiomodel_t *pModel,
 	{
 		if ( vertData )
 		{
-#ifdef _WIN32
 			if (bHasSSE)
 			{
 				// hint the next vertex
@@ -3438,7 +3439,6 @@ void CModelRender::ComputeModelVertexLightingOld( mstudiomodel_t *pModel,
 				_mm_prefetch( (char*)&pFatVerts[i+1], _MM_HINT_T0 );
 #endif
 		}
-#endif
 
 			VectorTransform( pFatVerts[i].m_vecPosition, matrix, worldPos );
 			VectorRotate( pFatVerts[i].m_vecNormal, matrix, worldNormal );

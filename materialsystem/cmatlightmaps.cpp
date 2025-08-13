@@ -921,7 +921,7 @@ struct ALIGN128 CPixelWriterStoreGather
 		kWordsPerRow = 32,
 	};
 
-	ALIGN128 uint32 m_data[kRows][kWordsPerRow]; // four rows of bgra data, aligned to 4 cache lines. dwords so memcpy works better.
+	ALIGN128 uint32 m_data[kRows][kWordsPerRow] ALIGN128_POST; // four rows of bgra data, aligned to 4 cache lines. dwords so memcpy works better.
 	int m_wordsGathered;
 	int m_bytesBetweenWriterRows; // the number of bytes spacing the maps inside the writer from each other
 								// if we weren't gathering, we'd SkipBytes this many between the base map, bump1, etc.
@@ -1030,7 +1030,7 @@ struct ALIGN128 CPixelWriterStoreGather
 	// parameter: space between bump pages in the pixelwriter
 	CPixelWriterStoreGather(int writerSizeBytes) : m_wordsGathered(0), m_bytesBetweenWriterRows(writerSizeBytes) {};
 
-};
+} ALIGN128_POST;
 }
 
 

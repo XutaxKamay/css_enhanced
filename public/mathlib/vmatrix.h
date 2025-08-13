@@ -1167,7 +1167,7 @@ inline void MatrixTransformPlane( const VMatrix &src, const cplane_t &inPlane, c
 //-----------------------------------------------------------------------------
 // Matrix multiply
 //-----------------------------------------------------------------------------
-typedef ALIGN16 float VMatrixRaw_t[4];
+typedef ALIGN16 float VMatrixRaw_t[4] ALIGN16_POST;
 
 //-----------------------------------------------------------------------------
 // Matrix/vector multiply

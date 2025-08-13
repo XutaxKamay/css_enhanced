@@ -66,7 +66,7 @@ void R_LightAmbient_4D( const Vector& normal, Vector4D* pLightBoxColor, Vector &
 	VectorMA( lv, normal[2]*normal[2], normal[2] > 0.f ? pLightBoxColor[4].AsVector3D() : pLightBoxColor[5].AsVector3D(), lv );
 }
 
-#if defined( _WIN32 ) && !defined( _X360 )
+#if !defined( _X360 )
 void R_LightAmbient_4D( const FourVectors& normal, Vector4D* pLightBoxColor, FourVectors &lv )
 {
 //	VPROF( "R_LightAmbient" );
@@ -406,7 +406,7 @@ float FASTCALL R_WorldLightDistanceFalloff( const LightDesc_t *wl, const Vector&
 	return R_WorldLightDistanceFalloffFunctionTable::functions[flags](wl, delta);
 }
 
-#if defined( _WIN32 ) && !defined( _X360 )
+#if !defined( _X360 )
 fltx4 FASTCALL R_WorldLightDistanceFalloff( const LightDesc_t *wl, const FourVectors &delta )
 {
 	// !!speed!!: lights could store m_Attenuation2,m_Attenuation1, and m_Range^2 copies in replicated SSE format.

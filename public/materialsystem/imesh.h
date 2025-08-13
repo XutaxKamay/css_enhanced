@@ -1309,7 +1309,7 @@ inline void CVertexBuilder::Fast4VerticesSSE(
 			movntps [edi + 80+96], xmm5
 
 	}
-#elif defined(__arm__) || defined(PLATFORM_WINDOWS_PC64)
+#elif defined(__arm__) || defined(PLATFORM_64BITS)
 	const void *pReadA = &vtx_a;
 	const void *pReadB = &vtx_b;
 	const void *pReadC = &vtx_c;

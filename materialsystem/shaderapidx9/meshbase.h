@@ -109,7 +109,7 @@ inline void ComputeVertexDesc( unsigned char * pBuffer, VertexFormat_t vertexFor
 	int i;
 	int *pVertexSizesToSet[64];
 	int nVertexSizesToSet = 0;
-	static ALIGN32 ModelVertexDX8_t temp[4];
+	static ALIGN32 ModelVertexDX8_t temp[4] ALIGN32_POST;
 	float *dummyData = (float*)&temp; // should be larger than any CMeshBuilder command can set.
 
 	// Determine which vertex compression type this format specifies (affects element sizes/decls):

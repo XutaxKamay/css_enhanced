@@ -23,7 +23,7 @@
 static fltx4 Four_MagicNumbers = { MAGIC_NUMBER, MAGIC_NUMBER, MAGIC_NUMBER, MAGIC_NUMBER };
 
 
-static ALIGN16 int32 idx_mask[4]= {0xffff, 0xffff, 0xffff, 0xffff};
+static ALIGN16 int32 idx_mask[4] ALIGN16_POST = {0xffff, 0xffff, 0xffff, 0xffff};
 
 #define MASK255 (*((fltx4 *)(& idx_mask )))
 

@@ -1117,7 +1117,7 @@ public:
 
 private:
 	uint8 pad[128-sizeof(CThreadFastMutex)];
-};
+} ALIGN128_POST;
 
 #else
 #ifdef _PS3
@@ -1174,7 +1174,7 @@ public:
 
 private:
 	uint8 pad[128-sizeof(CThreadFastMutex)];
-};
+} ALIGN128_POST;
 
 #endif
 

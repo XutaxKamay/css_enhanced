@@ -61,7 +61,7 @@ struct MessageMapItem_t
 	const char *name;
 	// VC6 aligns this to 16-bytes.  Since some of the code has been compiled with VC6,
 	// we need to enforce the alignment on later compilers to remain compatible.
-	ALIGN16 MessageFunc_t func;
+	ALIGN16 MessageFunc_t func ALIGN16_POST;
 
 	int numParams;
 

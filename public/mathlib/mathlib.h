@@ -1231,7 +1231,7 @@ FORCEINLINE int Float2Int( float a )
 inline int Floor2Int( float a )
 {
 	int RetVal;
-#if defined( __i386__ )
+#if true
 	// Convert to int and back, compare, subtract one if too big
 	__m128 a128 = _mm_set_ss(a);
 	RetVal = _mm_cvtss_si32(a128);
@@ -1288,7 +1288,7 @@ inline float ClampToMsec( float in )
 inline int Ceil2Int( float a )
 {
    int RetVal;
-#if defined( __i386__ )
+#if true
    // Convert to int and back, compare, add one if too small
    __m128 a128 = _mm_load_ss(&a);
    RetVal = _mm_cvtss_si32(a128);

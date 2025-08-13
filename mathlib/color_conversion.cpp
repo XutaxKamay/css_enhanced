@@ -35,7 +35,7 @@ static float	g_Mathlib_LinearToGamma[256];	// linear (0..1) to gamma (0..1)
 // onto SIMD registers easily if needed (used by SSE version of lightmaps)
 // TODO: move this into the one DLL that actually uses it, instead of statically
 // linking it everywhere via mathlib.
-ALIGN128 float	power2_n[256] = 			// 2**(index - 128) / 255
+ALIGN128 float	power2_n[256] ALIGN128_POST = 			// 2**(index - 128) / 255
 { 
 	1.152445441982634800E-041, 2.304890883965269600E-041, 4.609781767930539200E-041, 9.219563535861078400E-041, 
 	1.843912707172215700E-040, 3.687825414344431300E-040, 7.375650828688862700E-040, 1.475130165737772500E-039,
