@@ -1391,13 +1391,9 @@ bool COM_BufferToBufferCompress_ZSTD(void* dest,
 	Assert( destLen );
 	Assert( source );
 
-// #define ZSTD_GENERATE_TRAINING_SET
+	static ConVar zstd_generate_training_set("zstd_generate_training_set", "0");
+	static int nZStdTrainingSetCount = 0;
 
-#ifdef ZSTD_GENERATE_TRAINING_SET
-static int zstdTrainingSetCount = 0;
-#endif
-
-#ifdef ZSTD_GENERATE_TRAINING_SET 
     char fileName[64];
 #ifdef SWDS
     const auto strContext = "dedicated";
@@ -1405,14 +1401,20 @@ static int zstdTrainingSetCount = 0;
     const auto strContext = "client";
 #endif
 
-    V_sprintf_safe(fileName, "css_zstd_training_set/%s_%i.bin", strContext, zstdTrainingSetCount++);
-    CUtlBuffer buffer;
-    buffer.CopyBuffer(source, sourceLen);
-    static std::once_flag flag;
-    std::call_once(flag, [&]{g_pFileSystem->CreateDirHierarchy("css_zstd_training_set", "DEFAULT_WRITE_PATH");});
-    g_pFileSystem->WriteFile(fileName, NULL, buffer);
-#endif
-    
+	if ( zstd_generate_training_set.GetBool() )
+	{
+		V_sprintf_safe( fileName, "css_zstd_training_set/%s_%i.bin", strContext, nZStdTrainingSetCount++ );
+		CUtlBuffer buffer;
+		buffer.CopyBuffer( source, sourceLen );
+		static std::once_flag flag;
+		std::call_once( flag,
+						[&]
+						{
+							g_pFileSystem->CreateDirHierarchy( "css_zstd_training_set", "DEFAULT_WRITE_PATH" );
+						} );
+		g_pFileSystem->WriteFile( fileName, NULL, buffer );
+	}
+
 	// Check if we need to use a temporary buffer
 	unsigned nMaxCompressedSize = COM_GetIdealDestinationCompressionBufferSize_ZSTD( sourceLen );
 	unsigned compressedLen = *destLen;
