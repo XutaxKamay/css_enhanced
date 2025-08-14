@@ -43,6 +43,13 @@
 #include <signal.h>
 #endif
 
+#ifdef _WIN32
+// TODO_ENHANCED: zstd static library needs a rebuild ...
+extern "C" void ___chkstk_ms( void )
+{
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------

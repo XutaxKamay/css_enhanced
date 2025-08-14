@@ -83,7 +83,7 @@ double Plat_FloatTime()
 		return g_FakeBenchmarkTime;
 	}
 
-	auto elapsed = std::chrono::duration< double >( clock::now() - g_StdClockStart );
+	auto elapsed = std::chrono::duration< double >( stdclock::now() - g_StdClockStart );
 
 	return elapsed.count();
 }
