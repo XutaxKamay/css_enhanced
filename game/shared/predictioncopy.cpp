@@ -271,7 +271,7 @@ void CPredictionCopy::DescribeShort( difftype_t dt, short *outvalue, const short
 		ReportFieldsDiffer( "short differs (net %i pred %i) diff(%i)\n", (int)(invalue[i]), (int)(outvalue[i]), (int)(outvalue[i] - invalue[i]) );
 	}
 
-	DescribeFields( dt, "short (%i)\n", (int)(outvalue[0]) );
+	DescribeFields( dt, "short (%i - %i) = %i\n", (int)(outvalue[0]), (int)(invalue[0]), (int)(outvalue[0]) - (int)(invalue[0]) );
 }
 
 void CPredictionCopy::WatchShort( difftype_t dt, short *outvalue, const short *invalue, int count )
@@ -279,7 +279,7 @@ void CPredictionCopy::WatchShort( difftype_t dt, short *outvalue, const short *i
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "short (%i)", (int)(outvalue[0]) );
+	WatchMsg( "short (%i - %i) = %i\n", (int)(outvalue[0]), (int)(invalue[0]), (int)(outvalue[0]) - (int)(invalue[0]) );
 }
 
 #if defined( CLIENT_DLL )
@@ -298,30 +298,49 @@ void CPredictionCopy::DescribeInt( difftype_t dt, int *outvalue, const int *inva
 		ReportFieldsDiffer( "int differs (net %i pred %i) diff(%i)\n", invalue[i], outvalue[i], outvalue[i] - invalue[i] );
 	}
 
-#if defined( CLIENT_DLL )
-	bool described = false;
+	bool isModel = false;
+	char shortfilein[ 512 ] = "UNKNOWN";
+	char shortfileout[ 512 ] = "UNKNOWN";
+
 	if ( m_pCurrentField->flags & FTYPEDESC_MODELINDEX )
 	{
 		int modelindex = outvalue[0];
-		model_t const *m = modelinfo->GetModel( modelindex );
+		auto m = modelinfo->GetModel( modelindex );
 		if ( m )
 		{
-			described = true;
-			char shortfile[ 512 ];
-			shortfile[ 0 ] = 0;
-			Q_FileBase( modelinfo->GetModelName( m ), shortfile, sizeof( shortfile ) );
+			isModel = true;
+			shortfileout[ 0 ] = 0;
+			Q_FileBase( modelinfo->GetModelName( m ), shortfileout, sizeof( shortfileout ) );
+		}
 
-			DescribeFields( dt, "integer (%i->%s)\n", outvalue[0], shortfile );
+		modelindex = invalue[0];
+		m = modelinfo->GetModel( modelindex );
+		if ( m )
+		{
+			isModel = true;
+			shortfilein[ 0 ] = 0;
+			Q_FileBase( modelinfo->GetModelName( m ), shortfilein, sizeof( shortfilein ) );
 		}
 	}
 
-	if ( !described )
+	if ( isModel )
 	{
-		DescribeFields( dt, "integer (%i)\n", outvalue[0] );
+		DescribeFields( dt,
+						"integer (%i:%i)(%s:%s) = %i\n",
+						outvalue[0],
+						invalue[0],
+						shortfileout,
+						shortfilein,
+						outvalue[0] - invalue[0] );
 	}
-#else
-	DescribeFields( dt, "integer (%i)\n", outvalue[0] );
-#endif
+	else
+	{
+		DescribeFields( dt,
+						"integer (%i - %i) = %i\n",
+						outvalue[0],
+						invalue[0],
+						outvalue[0] - invalue[0] );
+	}
 }
 
 void CPredictionCopy::WatchInt( difftype_t dt, int *outvalue, const int *invalue, int count )
@@ -329,30 +348,44 @@ void CPredictionCopy::WatchInt( difftype_t dt, int *outvalue, const int *invalue
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-#if defined( CLIENT_DLL )
-	bool described = false;
+	bool isModel = false;
+	char shortfilein[ 512 ] = "UNKNOWN";
+	char shortfileout[ 512 ] = "UNKNOWN";
+
 	if ( m_pCurrentField->flags & FTYPEDESC_MODELINDEX )
 	{
 		int modelindex = outvalue[0];
-		model_t const *m = modelinfo->GetModel( modelindex );
+		auto m = modelinfo->GetModel( modelindex );
 		if ( m )
 		{
-			described = true;
-			char shortfile[ 512 ];
-			shortfile[ 0 ] = 0;
-			Q_FileBase( modelinfo->GetModelName( m ), shortfile, sizeof( shortfile ) );
+			isModel = true;
+			shortfileout[ 0 ] = 0;
+			Q_FileBase( modelinfo->GetModelName( m ), shortfileout, sizeof( shortfileout ) );
+		}
 
-			WatchMsg( "integer (%i->%s)", outvalue[0], shortfile );
+		modelindex = invalue[0];
+		m = modelinfo->GetModel( modelindex );
+		if ( m )
+		{
+			isModel = true;
+			shortfilein[ 0 ] = 0;
+			Q_FileBase( modelinfo->GetModelName( m ), shortfilein, sizeof( shortfilein ) );
 		}
 	}
 
-	if ( !described )
+	if ( isModel )
 	{
-		WatchMsg( "integer (%i)", outvalue[0] );
+		WatchMsg( "integer (%i:%i)(%s:%s) = %i\n",
+				  outvalue[0],
+				  invalue[0],
+				  shortfileout,
+				  shortfilein,
+				  outvalue[0] - invalue[0] );
 	}
-#else
-	WatchMsg( "integer (%i)", outvalue[0] );
-#endif
+	else
+	{
+		WatchMsg( "integer (%i - %i) = %i\n", outvalue[0], invalue[0], outvalue[0] - invalue[0] );
+	}
 }
 
 void CPredictionCopy::DescribeBool( difftype_t dt, bool *outvalue, const bool *invalue, int count )
@@ -366,7 +399,7 @@ void CPredictionCopy::DescribeBool( difftype_t dt, bool *outvalue, const bool *i
 		ReportFieldsDiffer( "bool differs (net %s pred %s)\n", (invalue[i]) ? "true" : "false", (outvalue[i]) ? "true" : "false" );
 	}
 
-	DescribeFields( dt, "bool (%s)\n", (outvalue[0]) ? "true" : "false" );
+	DescribeFields( dt, "bool (%s - %s)\n", (outvalue[0]) ? "true" : "false", (invalue[0]) ? "true" : "false" );
 }
 
 
@@ -375,7 +408,7 @@ void CPredictionCopy::WatchBool( difftype_t dt, bool *outvalue, const bool *inva
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "bool (%s)", (outvalue[0]) ? "true" : "false" );
+	WatchMsg( "bool (%s - %s)\n", (outvalue[0]) ? "true" : "false", (invalue[0]) ? "true" : "false" );
 }
 
 void CPredictionCopy::DescribeFloat( difftype_t dt, float *outvalue, const float *invalue, int count )
@@ -389,7 +422,7 @@ void CPredictionCopy::DescribeFloat( difftype_t dt, float *outvalue, const float
 		ReportFieldsDiffer( "float differs (net %f pred %f) diff(%f)\n", invalue[ i ], outvalue[ i ], outvalue[ i ] - invalue[ i ] );
 	}
 
-	DescribeFields( dt, "float (%f)\n", outvalue[ 0 ] );
+	DescribeFields( dt, "float (%f - %f) = %f\n", outvalue[ 0 ], invalue[0], outvalue[ 0 ] - invalue[0] );
 }
 
 void CPredictionCopy::WatchFloat( difftype_t dt, float *outvalue, const float *invalue, int count )
@@ -397,7 +430,7 @@ void CPredictionCopy::WatchFloat( difftype_t dt, float *outvalue, const float *i
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "float (%f)", outvalue[ 0 ] );
+	WatchMsg( "float (%f - %f) = %f\n", outvalue[ 0 ], invalue[0], outvalue[ 0 ] - invalue[0] );
 }
 
 void CPredictionCopy::DescribeString( difftype_t dt, char *outstring, const char *instring )
@@ -410,7 +443,7 @@ void CPredictionCopy::DescribeString( difftype_t dt, char *outstring, const char
 		ReportFieldsDiffer( "string differs (net %s pred %s)\n", instring, outstring );
 	}
 
-	DescribeFields( dt, "string (%s)\n", outstring );
+	DescribeFields( dt, "string (%s:%s)\n", outstring, instring );
 }
 
 void CPredictionCopy::WatchString( difftype_t dt, char *outstring, const char *instring )
@@ -418,7 +451,7 @@ void CPredictionCopy::WatchString( difftype_t dt, char *outstring, const char *i
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "string (%s)", outstring );
+	WatchMsg( "string (%s:%s)\n", outstring, instring );
 }
 
 void CPredictionCopy::DescribeVector( difftype_t dt, Vector& outValue, const Vector &inValue )
@@ -426,18 +459,27 @@ void CPredictionCopy::DescribeVector( difftype_t dt, Vector& outValue, const Vec
 	if ( !m_bErrorCheck )
 		return;
 
+	Vector delta = outValue - inValue;
+
 	if ( dt == DIFFERS )
 	{
-		Vector delta = outValue - inValue;
-
 		ReportFieldsDiffer( "vec differs (net %f %f %f - pred %f %f %f) delta(%f %f %f)\n", 
 			inValue.x, inValue.y, inValue.z,
 			outValue.x, outValue.y, outValue.z,
 			delta.x, delta.y, delta.z );
 	}
 
-	DescribeFields( dt, "vector (%f %f %f)\n", 
-				outValue.x, outValue.y, outValue.z );
+	DescribeFields( dt,
+					"vector (%f %f %f : %f %f %f) + %f %f %f\n",
+					outValue.x,
+					outValue.y,
+					outValue.z,
+					inValue.x,
+					inValue.y,
+					inValue.z,
+					delta.x,
+					delta.y,
+					delta.z );
 }
 
 void CPredictionCopy::DescribeVector( difftype_t dt, Vector* outValue, const Vector *inValue, int count )
@@ -445,19 +487,28 @@ void CPredictionCopy::DescribeVector( difftype_t dt, Vector* outValue, const Vec
 	if ( !m_bErrorCheck )
 		return;
 
+	int i = 0;
+	Vector delta = outValue[ i ] - inValue[ i ];
+
 	if ( dt == DIFFERS )
 	{
-		int i = 0;
-		Vector delta = outValue[ i ] - inValue[ i ];
-
 		ReportFieldsDiffer( "vec[] differs (1st diff) (net %f %f %f - pred %f %f %f) delta(%f %f %f)\n", 
 			inValue[i].x, inValue[i].y, inValue[i].z,
 			outValue[i].x, outValue[i].y, outValue[i].z,
 			delta.x, delta.y, delta.z );
 	}
 
-	DescribeFields( dt, "vector (%f %f %f)\n", 
-					outValue[0].x, outValue[0].y, outValue[0].z );
+	DescribeFields( dt,
+					"vector (%f %f %f - %f %f %f) = %f %f %f\n",
+					outValue[i].x,
+					outValue[i].y,
+					outValue[i].z,
+					inValue[i].x,
+					inValue[i].y,
+					inValue[i].z,
+					delta.x,
+					delta.y,
+					delta.z );
 }
 
 void CPredictionCopy::WatchVector( difftype_t dt, Vector& outValue, const Vector &inValue )
@@ -465,7 +516,18 @@ void CPredictionCopy::WatchVector( difftype_t dt, Vector& outValue, const Vector
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "vector (%f %f %f)", outValue.x, outValue.y, outValue.z );
+	Vector delta = outValue - inValue;
+
+	WatchMsg( "vector (%f %f %f : %f %f %f) + %f %f %f\n",
+			  outValue.x,
+			  outValue.y,
+			  outValue.z,
+			  inValue.x,
+			  inValue.y,
+			  inValue.z,
+			  delta.x,
+			  delta.y,
+			  delta.z );
 }
 
 void CPredictionCopy::WatchVector( difftype_t dt, Vector* outValue, const Vector *inValue, int count )
@@ -473,7 +535,19 @@ void CPredictionCopy::WatchVector( difftype_t dt, Vector* outValue, const Vector
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "vector (%f %f %f)", outValue[0].x, outValue[0].y, outValue[0].z );
+	int i = 0;
+	Vector delta = outValue[ i ] - inValue[ i ];
+
+	WatchMsg( "vector (%f %f %f - %f %f %f) = %f %f %f\n",
+			  outValue[i].x,
+			  outValue[i].y,
+			  outValue[i].z,
+			  inValue[i].x,
+			  inValue[i].y,
+			  inValue[i].z,
+			  delta.x,
+			  delta.y,
+			  delta.z );
 }
 
 
@@ -483,23 +557,35 @@ void CPredictionCopy::DescribeQuaternion( difftype_t dt, Quaternion& outValue, c
 	if ( !m_bErrorCheck )
 		return;
 
+	Quaternion delta;
+	
+	for ( int i = 0; i < 4; i++ )
+	{
+		delta[i] = outValue[i] - inValue[i];
+	}
+
 	if ( dt == DIFFERS )
 	{
-		Quaternion delta;
-		
-		for ( int i = 0; i < 4; i++ )
-		{
-			delta[i] = outValue[i] - inValue[i];
-		}
-
 		ReportFieldsDiffer( "quaternion differs (net %f %f %f %f - pred %f %f %f %f) delta(%f %f %f %f)\n", 
 			inValue[0], inValue[1], inValue[2], inValue[3],
 			outValue[0], outValue[1], outValue[2], outValue[3],
 			delta[0], delta[1], delta[2], delta[3] );
 	}
 
-	DescribeFields( dt, "quaternion (%f %f %f %f)\n", 
-				outValue[0], outValue[1], outValue[2], outValue[3] );
+	DescribeFields( dt,
+					"quaternion (%f %f %f %f - %f %f %f %f) = %f %f %f %f\n",
+					outValue[0],
+					outValue[1],
+					outValue[2],
+					outValue[3],
+					inValue[0],
+					inValue[1],
+					inValue[2],
+					inValue[3],
+					delta[0],
+					delta[1],
+					delta[2],
+					delta[3] );
 }
 
 void CPredictionCopy::DescribeQuaternion( difftype_t dt, Quaternion* outValue, const Quaternion *inValue, int count )
@@ -507,24 +593,36 @@ void CPredictionCopy::DescribeQuaternion( difftype_t dt, Quaternion* outValue, c
 	if ( !m_bErrorCheck )
 		return;
 
+	int i = 0;
+	Quaternion delta;
+
+	for ( int j = 0; j < 4; j++ )
+	{
+		delta[i] = outValue[i][j] - inValue[i][j];
+	}
+
 	if ( dt == DIFFERS )
 	{
-		int i = 0;
-		Quaternion delta;
-
-		for ( int j = 0; j < 4; j++ )
-		{
-			delta[i] = outValue[i][j] - inValue[i][j];
-		}
-
 		ReportFieldsDiffer( "quaternion[] differs (1st diff) (net %f %f %f %f - pred %f %f %f %f) delta(%f %f %f %f)\n", 
 			(float)inValue[i][0], (float)inValue[i][1], (float)inValue[i][2], (float)inValue[i][3],
 			(float)outValue[i][0], (float)outValue[i][1], (float)outValue[i][2], (float)outValue[i][3],
 			delta[0], delta[1], delta[2], delta[3] );
 	}
 
-	DescribeFields( dt, "quaternion (%f %f %f %f)\n", 
-					(float)outValue[0][0], (float)outValue[0][1], (float)outValue[0][2], (float)outValue[0][3] );
+	DescribeFields( dt,
+					"quaternion (%f %f %f %f - %f %f %f %f)\n",
+					( float )outValue[i][0],
+					( float )outValue[i][1],
+					( float )outValue[i][2],
+					( float )outValue[i][3],
+					( float )inValue[i][0],
+					( float )inValue[i][1],
+					( float )inValue[i][2],
+					( float )inValue[i][3],
+					delta[0],
+					delta[1],
+					delta[2],
+					delta[3] );
 }
 
 void CPredictionCopy::WatchQuaternion( difftype_t dt, Quaternion& outValue, const Quaternion &inValue )
@@ -532,7 +630,26 @@ void CPredictionCopy::WatchQuaternion( difftype_t dt, Quaternion& outValue, cons
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "quaternion (%f %f %f %f)", (float)outValue[0], (float)outValue[1], (float)outValue[2], (float)outValue[3] );
+	Quaternion delta;
+	
+	for ( int i = 0; i < 4; i++ )
+	{
+		delta[i] = outValue[i] - inValue[i];
+	}
+
+	WatchMsg( "quaternion (%f %f %f %f - %f %f %f %f) = %f %f %f %f\n",
+			  outValue[0],
+			  outValue[1],
+			  outValue[2],
+			  outValue[3],
+			  inValue[0],
+			  inValue[1],
+			  inValue[2],
+			  inValue[3],
+			  delta[0],
+			  delta[1],
+			  delta[2],
+			  delta[3] );
 }
 
 void CPredictionCopy::WatchQuaternion( difftype_t dt, Quaternion* outValue, const Quaternion *inValue, int count )
@@ -540,7 +657,27 @@ void CPredictionCopy::WatchQuaternion( difftype_t dt, Quaternion* outValue, cons
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-	WatchMsg( "quaternion (%f %f %f %f)", outValue[0][0], outValue[0][1], outValue[0][2], outValue[0][3] );
+	int i = 0;
+	Quaternion delta;
+
+	for ( int j = 0; j < 4; j++ )
+	{
+		delta[i] = outValue[i][j] - inValue[i][j];
+	}
+
+	WatchMsg( "quaternion (%f %f %f %f - %f %f %f %f)\n",
+			  ( float )outValue[i][0],
+			  ( float )outValue[i][1],
+			  ( float )outValue[i][2],
+			  ( float )outValue[i][3],
+			  ( float )inValue[i][0],
+			  ( float )inValue[i][1],
+			  ( float )inValue[i][2],
+			  ( float )inValue[i][3],
+			  delta[0],
+			  delta[1],
+			  delta[2],
+			  delta[3] );
 }
 
 
@@ -556,27 +693,31 @@ void CPredictionCopy::DescribeEHandle( difftype_t dt, EHANDLE *outvalue, EHANDLE
 		ReportFieldsDiffer( "EHandles differ (net) 0x%p (pred) 0x%p\n", (void const *)invalue[ i ].Get(), (void *)outvalue[ i ].Get() );
 	}
 
-#if defined( CLIENT_DLL )
-	C_BaseEntity *ent = outvalue[0].Get();
-	if ( ent )
+	CBaseEntity *entOut = outvalue[0].Get();
+	CBaseEntity *entIn = invalue[0].Get();
+
+	const char* outclassname = "NULL";
+	const char* inclassname = "NULL";
+
+	if ( entOut )
 	{
-		const char *classname = ent->GetClassname();
-		if ( !classname[0] )
+		outclassname = entOut->GetClassname();
+		if ( !outclassname[0] )
 		{
-			classname = typeid( *ent ).name();
+			outclassname = typeid( *entOut ).name();
 		}
-
-		DescribeFields( dt, "EHandle (0x%p->%s)", (void *)outvalue[ 0 ], classname );
 	}
-	else
+
+	if ( entIn )
 	{
-		DescribeFields( dt, "EHandle (NULL)" );
+		inclassname = entIn->GetClassname();
+		if ( !inclassname[0] )
+		{
+			inclassname = typeid( *entIn ).name();
+		}
 	}
 
-#else
-	DescribeFields( dt, "EHandle (0x%p)", (void *)outvalue[ 0 ] );
-#endif
-
+	DescribeFields( dt, "EHandle (0x%p:0x%p)->(%s:%s)", (void *)outvalue[ 0 ], (void *)invalue[ 0 ], outclassname, inclassname );
 }
 
 void CPredictionCopy::WatchEHandle( difftype_t dt, EHANDLE *outvalue, EHANDLE const *invalue, int count )
@@ -584,26 +725,31 @@ void CPredictionCopy::WatchEHandle( difftype_t dt, EHANDLE *outvalue, EHANDLE co
 	if ( m_pWatchField != m_pCurrentField )
 		return;
 
-#if defined( CLIENT_DLL )
-	C_BaseEntity *ent = outvalue[0].Get();
-	if ( ent )
+	CBaseEntity *entOut = outvalue[0].Get();
+	CBaseEntity *entIn = invalue[0].Get();
+
+	const char* outclassname = "NULL";
+	const char* inclassname = "NULL";
+
+	if ( entOut )
 	{
-		const char *classname = ent->GetClassname();
-		if ( !classname[0] )
+		outclassname = entOut->GetClassname();
+		if ( !outclassname[0] )
 		{
-			classname = typeid( *ent ).name();
+			outclassname = typeid( *entOut ).name();
 		}
-
-		WatchMsg( "EHandle (0x%p->%s)", (void *)outvalue[ 0 ], classname );
 	}
-	else
+
+	if ( entIn )
 	{
-		WatchMsg( "EHandle (NULL)" );
+		inclassname = entIn->GetClassname();
+		if ( !inclassname[0] )
+		{
+			inclassname = typeid( *entIn ).name();
+		}
 	}
 
-#else
-	WatchMsg( "EHandle (0x%p)", (void *)outvalue[ 0 ] );
-#endif
+	WatchMsg( "EHandle (0x%p:0x%p)->(%s:%s)", (void *)outvalue[ 0 ], (void *)invalue[ 0 ], outclassname, inclassname );
 
 }
 

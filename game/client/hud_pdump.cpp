@@ -46,6 +46,10 @@ CPDumpPanel::CPDumpPanel( const char *pElementName ) :
 	SetParent( pParent );
 
 	SetProportional( false );
+
+	m_FontSmall = vgui::surface()->CreateFont();
+	m_FontMedium = vgui::surface()->CreateFont();
+	m_FontBig = vgui::surface()->CreateFont();
 }
 
 CPDumpPanel::~CPDumpPanel()
@@ -62,6 +66,10 @@ void CPDumpPanel::ApplySettings( KeyValues *inResourceData )
 	int x, y;
 	vgui::surface()->GetScreenSize( x, y );
 	SetBounds( 0, 0, x, y );
+
+	vgui::surface()->SetFontGlyphSet( m_FontSmall, "Verdana", 11, 0, 0, 0, 0 );
+	vgui::surface()->SetFontGlyphSet( m_FontMedium, "Verdana", 12, 0, 0, 0, 0 );
+	vgui::surface()->SetFontGlyphSet( m_FontBig, "Verdana", 13, 0, 0, 0, 0 );
 }
 
 void CPDumpPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
@@ -74,6 +82,10 @@ void CPDumpPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
 	int x, y;
 	vgui::surface()->GetScreenSize( x, y );
 	SetBounds( 0, 0, x, y );
+
+	vgui::surface()->SetFontGlyphSet( m_FontSmall, "Verdana", 11, 0, 0, 0, 0 );
+	vgui::surface()->SetFontGlyphSet( m_FontMedium, "Verdana", 12, 0, 0, 0, 0 );
+	vgui::surface()->SetFontGlyphSet( m_FontBig, "Verdana", 13, 0, 0, 0, 0 );
 }
 
 //-----------------------------------------------------------------------------
@@ -268,14 +280,10 @@ void CPDumpPanel::Paint()
 
 	// Now output the strings
 	int x[5];
-	x[0] = 20;
-	int columnwidth = 500;
-	int numcols = ScreenWidth() / columnwidth;
+	int columnwidth = 700;
 	int i;
 
-	numcols = clamp( numcols, 1, 5 );
-
-	for ( i = 0; i < numcols; i++ )
+	for ( i = 0; i < 5; i++ )
 	{
 		if ( i == 0 )
 		{
@@ -292,10 +300,10 @@ void CPDumpPanel::Paint()
 	int fonttallMedium = vgui::surface()->GetFontTall( m_FontMedium );
 	int fonttallBig = vgui::surface()->GetFontTall( m_FontBig );
 
-	char currentclass[ 128 ];
+	char currentclass[ DUMP_CLASSNAME_SIZE ];
 	currentclass[ 0 ] = 0;
 
-	int starty = 60;
+	int starty = 20;
 	int y = starty;
 
 	int col = 0;
@@ -317,12 +325,12 @@ void CPDumpPanel::Paint()
 		classprefix[ 0 ] = 0;
 	}
 
-	char sz[ 512 ];
-	wchar_t szconverted[ 1024 ];
+	char sz[ 1024 ];
+	wchar_t szconverted[ 2048 ];
 
 	surface()->DrawSetTextFont( m_FontBig );
 	surface()->DrawSetTextColor( Color( 255, 255, 255, 255 ) );
-	surface()->DrawSetTextPos( x[ col ] - 10, y - fonttallBig - 2 );
+	surface()->DrawSetTextPos( x[ col ] - 20, y - fonttallBig - 2 );
 	Q_snprintf( sz, sizeof( sz ), "entity # %i: %s%s%s", ent->entindex(), classprefix, classname, classextra );
 	g_pVGuiLocalize->ConvertANSIToUnicode( sz, szconverted, sizeof(szconverted)  );
 	surface()->DrawPrintText( szconverted, wcslen( szconverted ) );
@@ -337,7 +345,7 @@ void CPDumpPanel::Paint()
 
 			surface()->DrawSetTextFont( m_FontMedium );
 			surface()->DrawSetTextColor( Color( 0, 255, 100, 255 ) );
-			surface()->DrawSetTextPos( x[ col ] - 10, y );
+			surface()->DrawSetTextPos( x[ col ] - 20, y );
 			Q_snprintf( sz, sizeof( sz ), "%s", slot->classname );
 			g_pVGuiLocalize->ConvertANSIToUnicode( sz, szconverted, sizeof(szconverted)  );
 			surface()->DrawPrintText( szconverted, wcslen( szconverted ) );
@@ -363,8 +371,6 @@ void CPDumpPanel::Paint()
 		{
 			y = starty;
 			col++;
-			if ( col >= numcols )
-				break;
 		}
 	}
 

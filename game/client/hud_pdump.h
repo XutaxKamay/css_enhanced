@@ -26,7 +26,7 @@ public:
 	enum
 	{
 		DUMP_CLASSNAME_SIZE = 128,
-		DUMP_STRING_SIZE = 128,
+		DUMP_STRING_SIZE = 512,
 	};
 
 	CPDumpPanel( const char *pElementName );
@@ -68,9 +68,9 @@ private:
 
 	EHANDLE			m_hDumpEntity;
 
-	CPanelAnimationVar( vgui::HFont, m_FontSmall, "ItemFont", "DefaultVerySmall" );
-	CPanelAnimationVar( vgui::HFont, m_FontMedium, "LabelFont", "DefaultSmall" );
-	CPanelAnimationVar( vgui::HFont, m_FontBig, "TitleFont", "Trebuchet24" );
+	vgui::HFont m_FontSmall;
+	vgui::HFont m_FontMedium;
+	vgui::HFont m_FontBig;
 };
 
 CPDumpPanel *GetPDumpPanel();
