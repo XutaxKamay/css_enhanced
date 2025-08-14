@@ -389,6 +389,7 @@ CCSPlayer::CCSPlayer()
 	m_bIsVIP = false;
 	m_iClass = (int)CS_CLASS_NONE;
 	m_angEyeAngles.Init();
+	m_angRenderAngles.Init();
 
 	SetViewOffset( VEC_VIEW_SCALED( this ) );
 

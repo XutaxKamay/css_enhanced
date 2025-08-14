@@ -2307,5 +2307,27 @@ inline bool Vector::IsLengthLessThan( float val ) const
 	return LengthSqr() < val*val;
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Convert angles to -180 t 180 range
+// Input  : angles - 
+//-----------------------------------------------------------------------------
+inline void NormalizeAngles( QAngle& angles )
+{
+	int i;
+	
+	// Normalize angles to -180 to 180 range
+	for ( i = 0; i < 3; i++ )
+	{
+		if ( angles[i] > 180.0 )
+		{
+			angles[i] -= 360.0;
+		}
+		else if ( angles[i] < -180.0 )
+		{
+			angles[i] += 360.0;
+		}
+	}
+}
+
 #endif
 

@@ -56,6 +56,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+ConVar sv_supress_punchangle( "sv_supress_punchangle", "0", FCVAR_REPLICATED, "1) Supress punch angle.\n2) Supress with punch angle velocity." );
+
 #if defined(GAME_DLL) && !defined(_XBOX)
 	extern ConVar sv_pushaway_max_force;
 	extern ConVar sv_pushaway_force;
@@ -1424,12 +1426,12 @@ void CBasePlayer::ViewPunchReset( float tolerance )
 	if ( tolerance != 0 )
 	{
 		tolerance *= tolerance;	// square
-		float check = m_Local.m_vecPunchAngleVel->LengthSqr() + m_Local.m_vecPunchAngle->LengthSqr();
+		float check = GetPunchAngleVel().LengthSqr() + GetPunchAngle().LengthSqr();
 		if ( check > tolerance )
 			return;
 	}
-	m_Local.m_vecPunchAngle = vec3_angle;
-	m_Local.m_vecPunchAngleVel = vec3_angle;
+	SetPunchAngle( vec3_angle );
+	SetPunchAngleVel( vec3_angle );
 }
 
 #if defined( CLIENT_DLL )
@@ -1617,7 +1619,7 @@ void CBasePlayer::CalcPlayerView( Vector& eyeOrigin, QAngle& eyeAngles, float& f
 	CalcViewRoll( eyeAngles );
 
 	// Apply punch angle
-	VectorAdd( eyeAngles, m_Local.m_vecPunchAngle, eyeAngles );
+	VectorAdd( eyeAngles, GetPunchAngle(), eyeAngles );
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() )
@@ -1673,7 +1675,7 @@ void CBasePlayer::CalcVehicleView(
 	CalcViewRoll( eyeAngles );
 
 	// Apply punch angle
-	VectorAdd( eyeAngles, m_Local.m_vecPunchAngle, eyeAngles );
+	VectorAdd( eyeAngles, GetPunchAngle(), eyeAngles );
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() )
@@ -2060,6 +2062,179 @@ const Vector &CBasePlayer::GetPreviouslyPredictedOrigin() const
 	return m_vecPreviouslyPredictedOrigin;
 }
 
+const QAngle& CBasePlayer::GetPunchAngle()
+{
+	if ( sv_supress_punchangle.GetBool() )
+	{
+		return vec3_angle;
+	}
+
+	return m_Local.m_vecPunchAngle.Get();
+}
+
+void CBasePlayer::SetPunchAngle( const QAngle &punchAngle )
+{
+	m_Local.m_vecPunchAngle = punchAngle;
+
+#ifndef CLIENT_DLL
+	if ( IsAlive() )
+	{
+		int index = entindex();
+
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && i != index && pPlayer->GetObserverTarget() == this && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+			{
+				pPlayer->SetPunchAngle( punchAngle );
+			}
+		}
+	}
+#endif
+}
+
+const QAngle& CBasePlayer::GetPunchAngleVel()
+{
+	if ( sv_supress_punchangle.GetInt() > 1 )
+	{
+		return vec3_angle;
+	}
+
+	return m_Local.m_vecPunchAngleVel.Get();
+}
+
+
+void CBasePlayer::SetPunchAngleVel( const QAngle &punchAngleVel )
+{
+	m_Local.m_vecPunchAngleVel = punchAngleVel;
+
+#ifndef CLIENT_DLL
+	if ( IsAlive() )
+	{
+		int index = entindex();
+
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && i != index && pPlayer->GetObserverTarget() == this && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+			{
+				pPlayer->SetPunchAngleVel( punchAngleVel );
+			}
+		}
+	}
+#endif
+}
+
+void CBasePlayer::StartInterpolatingCommand( void )
+{
+	m_pInterpolationCommandContext->Start( this );
+}
+
+void CBasePlayer::InterpolateCommand( void )
+{
+	m_pInterpolationCommandContext->Interpolate( this );
+}
+
+void CBasePlayer::FinishInterpolatingCommand( void )
+{
+	m_pInterpolationCommandContext->Finish( this );
+}
+
+// TODO_ENHANCED: move punch angle code (PrimaryAttack/ViewPunch)
+
+void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )
+{
+	auto&& pData = &data[BEFORE_MOVEMENT];
+
+	// pData->m_angLocalRotation = player->GetLocalAngles();
+	pData->m_vecLocalOrigin = player->GetLocalOrigin();
+	// pData->m_vecPunchAngle	  = player->GetPunchAngle();
+	// pData->m_vecPunchAngleVel = player->GetPunchAngleVel();
+	pData->m_vecViewOffset = player->GetViewOffset();
+}
+
+void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
+{
+	auto&& pDataBefore	= &data[BEFORE_MOVEMENT];
+	auto&& pDataApplied = &data[APPLIED];
+	auto&& pDataAfter	= &data[AFTER_MOVEMENT];
+
+	// pDataAfter->m_angLocalRotation = player->GetLocalAngles();
+	pDataAfter->m_vecLocalOrigin = player->GetLocalOrigin();
+	// pDataAfter->m_vecPunchAngle	   = player->GetPunchAngle();
+	// pDataAfter->m_vecPunchAngleVel = player->GetPunchAngleVel();
+	pDataAfter->m_vecViewOffset = player->GetViewOffset();
+
+	auto lerp = player->GetCurrentCommand()->interpolated_amount;
+
+	// pDataApplied->m_angLocalRotation = Lerp( lerp, pDataAfter->m_angLocalRotation, pDataBefore->m_angLocalRotation );
+	pDataApplied->m_vecLocalOrigin = Lerp( lerp, pDataAfter->m_vecLocalOrigin, pDataBefore->m_vecLocalOrigin );
+	// pDataApplied->m_vecPunchAngle	 = Lerp( lerp, pDataAfter->m_vecPunchAngle, pDataBefore->m_vecPunchAngle );
+	// pDataApplied->m_vecPunchAngleVel = Lerp( lerp, pDataAfter->m_vecPunchAngleVel, pDataBefore->m_vecPunchAngleVel );
+	pDataApplied->m_vecViewOffset = Lerp( lerp, pDataAfter->m_vecViewOffset, pDataBefore->m_vecViewOffset );
+
+	// player->SetLocalAngles( pDataApplied->m_angLocalRotation );
+	player->SetLocalOrigin( pDataApplied->m_vecLocalOrigin );
+	// player->SetPunchAngle( pDataApplied->m_vecPunchAngle );
+	// player->SetPunchAngleVel( pDataApplied->m_vecPunchAngleVel );
+	player->SetViewOffset( pDataApplied->m_vecViewOffset );
+}
+
+void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
+{
+	auto&& pDataApplied = &data[APPLIED];
+	auto&& pDataAfter	= &data[AFTER_MOVEMENT];
+
+	// TODO_ENHANCED: If this warns, this is bad, it means something that should be inside game movement / before
+	// interpolation must be moved.
+
+	auto WarnCoords = [&]< typename T >( const char* name, const T& newValue, const T& originalValue )
+	{
+		const char* szCurrentHost;
+
+#ifdef CLIENT_DLL
+		szCurrentHost = "client";
+#else
+		szCurrentHost = "server";
+#endif
+
+		if ( newValue != originalValue )
+		{
+			char buffer[0x10000];
+			V_sprintf_safe( buffer,
+							"Bad code in %s overriding values that should be moved before interpolating player %s with "
+							"netvar %s => new: %f %f %f, applied: %f %f %f\n",
+							szCurrentHost,
+							player->GetPlayerName(),
+							name,
+							newValue.x,
+							newValue.y,
+							newValue.z,
+							originalValue.x,
+							originalValue.y,
+							originalValue.z );
+
+			Warning( "%s", buffer );
+			engine->Con_NPrintf( 0, "%s", buffer );
+		}
+
+		return;
+	};
+
+	// WarnCoords( "m_angLocalRotation", player->GetLocalAngles(), pDataApplied->m_angLocalRotation );
+	WarnCoords( "m_vecLocalOrigin", player->GetLocalOrigin(), pDataApplied->m_vecLocalOrigin );
+	// WarnCoords( "m_vecPunchAngle", player->GetPunchAngle(), pDataApplied->m_vecPunchAngle );
+	// WarnCoords( "m_vecPunchAngleVel", player->GetPunchAngleVel(), pDataApplied->m_vecPunchAngleVel );
+	WarnCoords( "m_vecViewOffset", player->GetViewOffset(), pDataApplied->m_vecViewOffset );
+
+	// player->SetLocalAngles( pDataAfter->m_angLocalRotation );
+	player->SetLocalOrigin( pDataAfter->m_vecLocalOrigin );
+	// player->SetPunchAngle( pDataAfter->m_vecPunchAngle );
+	// player->SetPunchAngleVel( pDataAfter->m_vecPunchAngleVel );
+	player->SetViewOffset( pDataAfter->m_vecViewOffset );
+}
 
 bool fogparams_t::operator !=( const fogparams_t& other ) const
 {

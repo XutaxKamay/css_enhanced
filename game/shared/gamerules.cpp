@@ -192,8 +192,8 @@ CBaseEntity *CGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 	pPlayer->SetLocalOrigin( pSpawnSpot->GetAbsOrigin() + Vector(0,0,1) );
 	pPlayer->SetAbsVelocity( vec3_origin );
 	pPlayer->SetLocalAngles( pSpawnSpot->GetLocalAngles() );
-	pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-	pPlayer->m_Local.m_vecPunchAngleVel = vec3_angle;
+	pPlayer->SetPunchAngle( vec3_angle );
+	pPlayer->SetPunchAngleVel( vec3_angle );
 	pPlayer->SnapEyeAngles( pSpawnSpot->GetLocalAngles() );
 
 	return pSpawnSpot;

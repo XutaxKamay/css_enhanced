@@ -1055,7 +1055,7 @@ void CGameMovement::CheckParameters( void )
 	if ( !IsDead() )
 	{
 		v_angle = mv->m_vecAngles;
-		v_angle = v_angle + player->m_Local.m_vecPunchAngle;
+		v_angle = v_angle + player->GetPunchAngle();
 
 		// Now adjust roll angle
 		if ( player->GetMoveType() != MOVETYPE_ISOMETRIC  &&
@@ -1212,34 +1212,40 @@ void CGameMovement::FinishMove( void )
 //-----------------------------------------------------------------------------
 void CGameMovement::DecayPunchAngle( void )
 {
-	if ( player->m_Local.m_vecPunchAngle->LengthSqr() > 0.001 || player->m_Local.m_vecPunchAngleVel->LengthSqr() > 0.001 )
+	auto vPunchAngle = player->GetPunchAngle();
+	auto vPunchAngleVel = player->GetPunchAngleVel();
+
+	if ( vPunchAngle.LengthSqr() > 0.001 || vPunchAngleVel.LengthSqr() > 0.001 )
 	{
-		player->m_Local.m_vecPunchAngle += player->m_Local.m_vecPunchAngleVel * gpGlobals->frametime;
+		vPunchAngle += vPunchAngleVel * gpGlobals->frametime;
 		float damping = 1 - (PUNCH_DAMPING * gpGlobals->frametime);
 		
 		if ( damping < 0 )
 		{
 			damping = 0;
 		}
-		player->m_Local.m_vecPunchAngleVel *= damping;
+		vPunchAngleVel *= damping;
 		 
 		// torsional spring
 		// UNDONE: Per-axis spring constant?
 		float springForceMagnitude = PUNCH_SPRING_CONSTANT * gpGlobals->frametime;
 		springForceMagnitude = clamp(springForceMagnitude, 0.f, 2.f );
-		player->m_Local.m_vecPunchAngleVel -= player->m_Local.m_vecPunchAngle * springForceMagnitude;
+		vPunchAngleVel -= vPunchAngle * springForceMagnitude;
 
 		// don't wrap around
-		player->m_Local.m_vecPunchAngle.Init( 
-			clamp(player->m_Local.m_vecPunchAngle->x, -89.f, 89.f ), 
-			clamp(player->m_Local.m_vecPunchAngle->y, -179.f, 179.f ),
-			clamp(player->m_Local.m_vecPunchAngle->z, -89.f, 89.f ) );
+		vPunchAngle = QAngle( 
+			clamp(vPunchAngle.x, -89.f, 89.f ), 
+			clamp(vPunchAngle.y, -179.f, 179.f ),
+			clamp(vPunchAngle.z, -89.f, 89.f ) );
 	}
 	else
 	{
-		player->m_Local.m_vecPunchAngle.Init( 0, 0, 0 );
-		player->m_Local.m_vecPunchAngleVel.Init( 0, 0, 0 );
+		vPunchAngle = vec3_angle;
+		vPunchAngleVel = vec3_angle;
 	}
+
+	player->SetPunchAngle( vPunchAngle );
+	player->SetPunchAngleVel( vPunchAngleVel );
 }
 
 //-----------------------------------------------------------------------------
@@ -3978,12 +3984,17 @@ void CGameMovement::PlayerRoughLandingEffects( float fvol )
 		//
 		// Knock the screen around a little bit, temporary effect.
 		//
-		player->m_Local.m_vecPunchAngle.Set( ROLL, player->m_Local.m_flFallVelocity * 0.013 );
 
-		if ( player->m_Local.m_vecPunchAngle[PITCH] > 8 )
+		auto vPunchAngle = player->GetPunchAngle();
+
+		vPunchAngle.z = player->m_Local.m_flFallVelocity * 0.013;
+
+		if ( vPunchAngle.x > 8 )
 		{
-			player->m_Local.m_vecPunchAngle.Set( PITCH, 8 );
+			vPunchAngle.x = 8;
 		}
+
+		player->SetPunchAngle( vPunchAngle );
 
 #if !defined( CLIENT_DLL )
 		player->RumbleEffect( ( fvol > 0.85f ) ? ( RUMBLE_FALL_LONG ) : ( RUMBLE_FALL_SHORT ), 0, RUMBLE_FLAGS_NONE );

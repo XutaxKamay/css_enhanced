@@ -327,6 +327,9 @@ public:
 	const QAngle& GetPunchAngle();
 	void SetPunchAngle( const QAngle &angle );
 
+	const QAngle& GetPunchAngleVel();
+	void SetPunchAngleVel( const QAngle &angle );
+
 	float					GetWaterJumpTime() const;
 	void					SetWaterJumpTime( float flWaterJumpTime );
 	float					GetSwimSoundTime( void ) const;
@@ -399,6 +402,14 @@ public:
 	void					SetFiredWeapon( bool bFlag ) { m_bFiredWeapon = bFlag; }
 
 	virtual bool			CanUseFirstPersonCommand( void ){ return true; }
+
+	void					StartInterpolatingCommand( void );
+	void					InterpolateCommand( void );
+	void					FinishInterpolatingCommand( void );
+	CUserCmd *				GetCurrentCommand( void )	{ return m_pCurrentCommand; }
+
+	BasePlayerInterpolationCommandContext	m_DefaultInterpolationCommandContext;
+	BasePlayerInterpolationCommandContext* 	m_pInterpolationCommandContext;
 	
 protected:
 	fogparams_t				m_CurrentFog;

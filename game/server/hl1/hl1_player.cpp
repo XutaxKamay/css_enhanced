@@ -970,7 +970,9 @@ int	CHL1_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 	}
 
-	m_Local.m_vecPunchAngle.SetX( -2 );
+	auto vPunchAngle = GetPunchAngle();
+	vPunchAngle.x	 = -2;
+	SetPunchAngle( vPunchAngle );
 
 	if (fTookDamage && !ftrivial && fmajor && flHealthPrev >= 75) 
 	{

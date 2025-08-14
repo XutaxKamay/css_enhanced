@@ -1196,7 +1196,7 @@ Vector C_Portal_Player::GetAutoaimVector( float flDelta )
 {
 	// Never autoaim a predicted weapon (for now)
 	Vector	forward;
-	AngleVectors( EyeAngles() + m_Local.m_vecPunchAngle, &forward );
+	AngleVectors( EyeAngles() + GetPunchAngle(), &forward );
 	return	forward;
 }
 

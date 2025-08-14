@@ -52,22 +52,9 @@ protected:
 	void			RunPreThink( CBasePlayer *player );
 	void			RunThink (CBasePlayer *ent, double frametime );
 	void			RunPostThink( CBasePlayer *player );
-	void 			StartInterpolatingPlayer( CBasePlayer* player );
-	void 			FinishInterpolatingPlayer( CBasePlayer* player );
+	void			InterpolateCommand( CBasePlayer* player );
+	void			FinishInterpolatingCommand( CBasePlayer* player );
 
-	// TODO_ENHANCED: checks if this affects vehicles properly too! It should.
-	enum INTERPOLATION_CONTEXT
-	{
-		BEFORE_MOVEMENT,
-		AFTER_MOVEMENT,
-		INTERPOLATION_CONTEXT_MAX
-	};
-
-	struct InterpolationContext
-	{
-		Vector m_vecLocalOrigin;
-		Vector m_vecViewOffset;
-	} InterpolationContexts[INTERPOLATION_CONTEXT_MAX];
 };
 
 

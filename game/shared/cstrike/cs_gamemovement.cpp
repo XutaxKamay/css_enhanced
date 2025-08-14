@@ -259,7 +259,7 @@ void CCSGameMovement::CheckParameters( void )
 	if ( !IsDead() )
 	{
 		v_angle = mv->m_vecAngles;
-		v_angle = v_angle + player->m_Local.m_vecPunchAngle;
+		v_angle = v_angle + player->GetPunchAngle();
 
 		// Now adjust roll angle
 		if ( player->GetMoveType() != MOVETYPE_ISOMETRIC  &&
@@ -781,20 +781,16 @@ void CCSGameMovement::DecayPunchAngle( void )
 {
 	float	len;
 
-	Vector vPunchAngle;
+	auto vPunchAngle = Vector( m_pCSPlayer->GetPunchAngle().x,
+							   m_pCSPlayer->GetPunchAngle().y,
+							   m_pCSPlayer->GetPunchAngle().z );
 
-	vPunchAngle.x = m_pCSPlayer->m_Local.m_vecPunchAngle->x;
-	vPunchAngle.y = m_pCSPlayer->m_Local.m_vecPunchAngle->y;
-	vPunchAngle.z = m_pCSPlayer->m_Local.m_vecPunchAngle->z;
-	
 	len = VectorNormalize ( vPunchAngle );
 	len -= (10.0 + len * 0.5) * gpGlobals->frametime;
 	len = MAX( len, 0.0 );
 	VectorScale ( vPunchAngle, len, vPunchAngle );
 
-	m_pCSPlayer->m_Local.m_vecPunchAngle.Set( 0, vPunchAngle.x );
-	m_pCSPlayer->m_Local.m_vecPunchAngle.Set( 1, vPunchAngle.y );
-	m_pCSPlayer->m_Local.m_vecPunchAngle.Set( 2, vPunchAngle.z );
+	m_pCSPlayer->SetPunchAngle( QAngle( vPunchAngle.x, vPunchAngle.y, vPunchAngle.z ) );
 }
 
 

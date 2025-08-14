@@ -4704,8 +4704,8 @@ ConVar cl_autohelp(
 
 		// Move the player to the place it said.
 		pPlayer->Teleport( &pSpawnSpot->GetAbsOrigin(), &pSpawnSpot->GetLocalAngles(), &vec3_origin );
-		pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
-		
+		pPlayer->SetPunchAngle( vec3_angle );
+
 		return pSpawnSpot;
 	}
 	

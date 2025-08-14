@@ -776,8 +776,7 @@ void CPrediction::StartCommand( C_BasePlayer *player, CUserCmd *cmd )
 	C_BaseEntity::SetPredictionRandomSeed( cmd );
 	C_BaseEntity::SetPredictionPlayer( player );
 
-	InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset	= player->GetViewOffset();
-	InterpolationContexts[BEFORE_MOVEMENT].m_vecLocalOrigin = player->GetLocalOrigin();
+	player->StartInterpolatingCommand();
 #endif
 }
 
@@ -845,37 +844,23 @@ void CPrediction::RunThink (C_BasePlayer *player, double frametime )
 #endif
 }
 
-void CPrediction::StartInterpolatingPlayer( C_BasePlayer *player )
+void CPrediction::InterpolateCommand( C_BasePlayer *player )
 {
 #if !defined( NO_ENTITY_PREDICTION )
-	VPROF( "CPrediction::StartInterpolatingPlayer" );
+	VPROF( "CPrediction::InterpolateCommand" );
 
 	// Let's interpolate the local player, this is similar to lag compensation,
 	// except it isn't since local player is always predicted. (except if user didn't want to for some reasons)
-	InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset  = player->GetViewOffset();
-	InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin = player->GetLocalOrigin();
-
-	auto pCmd = player->m_pCurrentCommand;
-
-	Vector vecNewLocalOrigin = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecLocalOrigin,
-										   InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin,
-										   pCmd->interpolated_amount );
-	Vector vecNewViewOffset	 = VectorLerp( InterpolationContexts[BEFORE_MOVEMENT].m_vecViewOffset,
-										   InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset,
-										   pCmd->interpolated_amount );
-
-	player->SetLocalOrigin( vecNewLocalOrigin );
-	player->SetViewOffset( vecNewViewOffset );
+	player->InterpolateCommand();
 #endif
 }
 
-void CPrediction::FinishInterpolatingPlayer( C_BasePlayer* player )
+void CPrediction::FinishInterpolatingCommand( C_BasePlayer* player )
 {
 #if !defined( NO_ENTITY_PREDICTION )
-	VPROF( "CPrediction::FinishInterpolatingPlayer" );
+	VPROF( "CPrediction::FinishInterpolatingCommand" );
 
-	player->SetLocalOrigin( InterpolationContexts[AFTER_MOVEMENT].m_vecLocalOrigin );
-	player->SetViewOffset( InterpolationContexts[AFTER_MOVEMENT].m_vecViewOffset );
+	player->FinishInterpolatingCommand();
 #endif
 }
 
@@ -1030,11 +1015,11 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
     moveHelper->ProcessImpacts();
 
-	StartInterpolatingPlayer( player );
+	InterpolateCommand( player );
 
 	RunPostThink( player );
 
-	FinishInterpolatingPlayer( player );
+	FinishInterpolatingCommand( player );
 
     ServiceEventQueue( player );
 

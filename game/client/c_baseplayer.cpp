@@ -414,7 +414,9 @@ LINK_ENTITY_TO_CLASS( player, C_BasePlayer );
 C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset" )
 {
 	AddVar( &m_vecViewOffset, &m_iv_vecViewOffset, LATCH_SIMULATION_VAR );
-	
+	AddVar( &m_Local.m_vecPunchAngle.m_Value, &m_Local.m_iv_vecPunchAngle, LATCH_SIMULATION_VAR );
+	AddVar( &m_Local.m_vecPunchAngleVel.m_Value, &m_Local.m_iv_vecPunchAngleVel, LATCH_SIMULATION_VAR );
+
 #ifdef _DEBUG																
 	m_vecLadderNormal.Init();
 	m_vecOldViewAngles.Init();
@@ -449,6 +451,8 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	m_nForceVisionFilterFlags = 0;
 
 	ListenForGameEvent( "base_player_teleported" );
+
+	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
 }
 
 //-----------------------------------------------------------------------------
@@ -2200,7 +2204,7 @@ Vector C_BasePlayer::GetAutoaimVector( float flScale )
 {
 	// Never autoaim a predicted weapon (for now)
 	Vector	forward;
-	AngleVectors( GetAbsAngles() + m_Local.m_vecPunchAngle, &forward );
+	AngleVectors( GetAbsAngles() + GetPunchAngle(), &forward );
 	return	forward;
 }
 
@@ -2337,18 +2341,6 @@ void C_BasePlayer::PhysicsSimulate( void )
 		MoveHelper() );
 #endif
 }
-
-const QAngle& C_BasePlayer::GetPunchAngle()
-{
-	return m_Local.m_vecPunchAngle.Get();
-}
-
-
-void C_BasePlayer::SetPunchAngle( const QAngle &angle )
-{
-	m_Local.m_vecPunchAngle = angle;
-}
-
 
 float C_BasePlayer::GetWaterJumpTime() const
 {

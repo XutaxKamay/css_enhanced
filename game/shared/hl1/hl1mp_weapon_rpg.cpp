@@ -1014,7 +1014,7 @@ void CWeaponRPG::UpdateSpot( void )
 	Vector	muzzlePos = pPlayer->Weapon_ShootPosition();
 	
 	Vector	forward;
-	AngleVectors( pPlayer->EyeAngles() + pPlayer->m_Local.m_vecPunchAngle, &forward );
+	AngleVectors( pPlayer->EyeAngles() + pPlayer->GetPunchAngle(), &forward );
 
 	Vector	endPos = muzzlePos + ( forward * MAX_TRACE_LENGTH );
 

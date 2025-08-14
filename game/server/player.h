@@ -603,6 +603,9 @@ public:
 	const QAngle& GetPunchAngle();
 	void SetPunchAngle( const QAngle &punchAngle );
 
+	const QAngle& GetPunchAngleVel();
+	void SetPunchAngleVel( const QAngle &punchAngleVel );
+
 	virtual void DoMuzzleFlash();
 
 	const char *GetLastKnownPlaceName( void ) const	{ return m_szLastPlaceName; }	// return the last nav place name the player occupied
@@ -1212,6 +1215,14 @@ private:
 
 public:
 	virtual unsigned int PlayerSolidMask( bool brushOnly = false ) const;	// returns the solid mask for the given player, so bots can have a more-restrictive set
+
+public:
+	void StartInterpolatingCommand( void );
+	void InterpolateCommand( void );
+	void FinishInterpolatingCommand( void );
+
+	BasePlayerInterpolationCommandContext	m_DefaultInterpolationCommandContext;
+	BasePlayerInterpolationCommandContext* 	m_pInterpolationCommandContext;
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;

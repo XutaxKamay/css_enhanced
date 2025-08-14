@@ -53,9 +53,46 @@ enum stepsoundtimes_t
 
 void CopySoundNameWithModifierToken( char *pchDest, const char *pchSource, int nMaxLenInChars, const char *pchToken );
 
-// Shared header file for players
+// TODO_ENHANCED: checks if this affects vehicles properly too! It should.
 #if defined( CLIENT_DLL )
 #define CBasePlayer C_BasePlayer
+#endif
+
+class CBasePlayer;
+
+struct BasePlayerInterpolationCommandContext
+{
+	enum
+	{
+		BEFORE_MOVEMENT,
+		APPLIED,
+		AFTER_MOVEMENT,
+		MAX
+	};
+
+	virtual void Start( CBasePlayer* player );
+	virtual void Interpolate( CBasePlayer* player );
+	virtual void Finish( CBasePlayer* player );
+
+	// TODO_ENHANCED:
+	// check if GetLocalAngles is used for camera. (if not can be ignored)
+	// Every variables that are possibly interpolated and used by the camera
+	// We need also to move punchangle code after game movement, but before interpolating.
+	// Basically, there shouldn't be any networked variables being set in PostThink that affects player's camera.
+	struct Data
+	{
+		QAngle m_angLocalRotation;
+		Vector m_vecLocalOrigin;
+		Vector m_vecViewOffset;
+		QAngle m_vecPunchAngle;
+		QAngle m_vecPunchAngleVel;
+	};
+
+	Data data[MAX];
+};
+
+// Shared header file for players
+#if defined( CLIENT_DLL )
 #include "c_baseplayer.h"
 #else
 #include "player.h"

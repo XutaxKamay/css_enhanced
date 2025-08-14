@@ -5,7 +5,7 @@
 // $NoKeywords: $
 //=============================================================================//
 
-//========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright ï¿½ 1996-2001, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
 //
@@ -124,7 +124,9 @@ bool CHL1GameMovement::CheckJumpButton( void )
 			( m_pHL1Player->m_Local.m_flDucktime > 0 ) &&
 			mv->m_vecVelocity.Length() > 50 )
 		{
-			m_pHL1Player->m_Local.m_vecPunchAngle.Set( PITCH, -5 );
+			auto vPunchAngle = m_pHL1Player->GetPunchAngle();
+			vPunchAngle.x	 = -5;
+			m_pHL1Player->SetPunchAngle( vPunchAngle );
 
 			mv->m_vecVelocity = m_vecForward * PLAYER_LONGJUMP_SPEED * 1.6;
 			mv->m_vecVelocity.z = sqrt(2 * 800 * 56.0);

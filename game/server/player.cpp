@@ -637,6 +637,8 @@ CBasePlayer::CBasePlayer( )
 
 	m_flLastUserCommandTime = 0.f;
 	m_flMovementTimeForUserCmdProcessingRemaining = 0.0f;
+
+	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -725,24 +727,6 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 	}
 
 	return BaseClass::ShouldTransmit( pInfo );
-}
-
-static void NormalizeAngles( QAngle& angles )
-{
-	int i;
-
-	// Normalize angles to -180 to 180 range
-	for ( i = 0; i < 3; i++ )
-	{
-		if ( angles[i] > 180.0 )
-		{
-			angles[i] -= 360.0;
-		}
-		else if ( angles[i] < -180.0 )
-		{
-			angles[i] += 360.0;
-		}
-	}
 }
 
 bool CBasePlayer::WantsLagCompensationOnEntity( const CBaseEntity *pEntity, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits )
@@ -1374,7 +1358,9 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			flPunch = RandomFloat( -5, -7 );
 	}
 
-	m_Local.m_vecPunchAngle.SetX( flPunch );
+	auto vPunchAngle = GetPunchAngle();
+	vPunchAngle.x	 = flPunch;
+	SetPunchAngle( vPunchAngle );
 
 	if (fTookDamage && !ftrivial && fmajor && flHealthPrev >= 75) 
 	{
@@ -4616,9 +4602,9 @@ void CBasePlayer::PostThink()
 		if ( m_bForceOrigin )
 		{
 			SetLocalOrigin( m_vForcedOrigin );
-			SetLocalAngles( m_Local.m_vecPunchAngle );
-			m_Local.m_vecPunchAngle = RandomAngle( -25, 25 );
-			m_Local.m_vecPunchAngleVel.Init();
+			SetLocalAngles( GetPunchAngle() );
+			SetPunchAngle( RandomAngle( -25, 25 ) );
+			SetPunchAngleVel( vec3_angle );
 		}
 	}
 
@@ -6954,7 +6940,7 @@ void CBasePlayer::GetAutoaimVector( autoaim_params_t &params )
 	if ( ( ShouldAutoaim() == false ) || ( params.m_fScale == AUTOAIM_SCALE_DIRECT_ONLY ) )
 	{
 		Vector	forward;
-		AngleVectors( EyeAngles() + m_Local.m_vecPunchAngle, &forward );
+		AngleVectors( EyeAngles() + GetPunchAngle(), &forward );
 
 		params.m_vecAutoAimDir = forward;
 		params.m_hAutoAimEntity.Set(NULL);
@@ -7002,7 +6988,7 @@ void CBasePlayer::GetAutoaimVector( autoaim_params_t &params )
 	{
 		// always use non-sticky autoaim
 		m_vecAutoAim = angles * 0.9f;
-		AngleVectors( EyeAngles() + m_Local.m_vecPunchAngle + m_vecAutoAim, &forward );
+		AngleVectors( EyeAngles() + GetPunchAngle() + m_vecAutoAim, &forward );
 	}
 
 	params.m_vecAutoAimDir = forward;
@@ -7066,7 +7052,7 @@ QAngle CBasePlayer::AutoaimDeflection( Vector &vecSrc, autoaim_params_t &params 
 	}
 
 	eyeAngles = EyeAngles();
-	AngleVectors( eyeAngles + m_Local.m_vecPunchAngle + m_vecAutoAim, &v_forward, &v_right, &v_up );
+	AngleVectors( eyeAngles + GetPunchAngle() + m_vecAutoAim, &v_forward, &v_right, &v_up );
 
 	// try all possible entities
 	bestdir = v_forward;
@@ -7238,7 +7224,7 @@ QAngle CBasePlayer::AutoaimDeflection( Vector &vecSrc, autoaim_params_t &params 
 			}
 			else
 			{
-				bestang -= EyeAngles() - m_Local.m_vecPunchAngle;
+				bestang -= EyeAngles() - GetPunchAngle();
 			}
 
 			m_fOnTarget = true;
@@ -8531,33 +8517,6 @@ void CBasePlayer::ModifyOrAppendPlayerCriteria( AI_CriteriaSet& set )
 	set.AppendCriteria( "playerspeed", UTIL_VarArgs( "%.3f", GetAbsVelocity().Length() ) );
 
 	AppendContextToCriteria( set, "player" );
-}
-
-
-const QAngle& CBasePlayer::GetPunchAngle()
-{
-	return m_Local.m_vecPunchAngle.Get();
-}
-
-
-void CBasePlayer::SetPunchAngle( const QAngle &punchAngle )
-{
-	m_Local.m_vecPunchAngle = punchAngle;
-
-	if ( IsAlive() )
-	{
-		int index = entindex();
-
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-		{
-			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-
-			if ( pPlayer && i != index && pPlayer->GetObserverTarget() == this && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
-			{
-				pPlayer->SetPunchAngle( punchAngle );
-			}
-		}
-	}
 }
 
 //-----------------------------------------------------------------------------

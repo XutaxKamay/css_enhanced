@@ -127,8 +127,13 @@ void CGrenadeEnergy::GrenadeEnergyTouch( CBaseEntity *pOther )
 		{
 			CBasePlayer *pPlayer = ( CBasePlayer * )pOther;
 			float		flKick	 = 120 * flLifeLeft;
-			pPlayer->m_Local.m_vecPunchAngle.SetX( flKick * (random->RandomInt(0,1) == 1) ? -1 : 1 );
-			pPlayer->m_Local.m_vecPunchAngle.SetY( flKick * (random->RandomInt(0,1) == 1) ? -1 : 1 );
+
+			auto vPunchAngle = pPlayer->GetPunchAngle();
+
+			vPunchAngle.x = ( flKick * ( random->RandomInt( 0, 1 ) == 1 ) ? -1 : 1 );
+			vPunchAngle.y = ( flKick * ( random->RandomInt( 0, 1 ) == 1 ) ? -1 : 1 );
+
+			pPlayer->SetPunchAngle( vPunchAngle );
 		}
 		float flDamage = m_flDamage * flLifeLeft;
 		if (flDamage < 1) 

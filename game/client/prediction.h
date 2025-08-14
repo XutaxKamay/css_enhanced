@@ -97,8 +97,8 @@ protected:
 	// Helpers to call pre and post think for player, and to call think if a think function is set
 	void			RunPreThink( C_BasePlayer *player );
 	void			RunThink (C_BasePlayer *ent, double frametime );
-	void 			StartInterpolatingPlayer( C_BasePlayer* player );
-	void 			FinishInterpolatingPlayer( C_BasePlayer* player );
+	void			InterpolateCommand( C_BasePlayer* player );
+	void			FinishInterpolatingCommand( C_BasePlayer* player );
 	void			RunPostThink( C_BasePlayer *player );
     void 			CheckMovingGround( CBasePlayer *player, double frametime );
 private:
@@ -182,20 +182,6 @@ private:
 
 	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
 	CUtlVector<EventQueueForHistory> m_eventQueueHistory[MULTIPLAYER_BACKUP];
-
-	// TODO_ENHANCED: checks if this affects vehicles properly too! It should.
-	enum INTERPOLATION_CONTEXT
-	{
-		BEFORE_MOVEMENT,
-		AFTER_MOVEMENT,
-		INTERPOLATION_CONTEXT_MAX
-	};
-
-	struct InterpolationContext
-	{
-		Vector m_vecLocalOrigin;
-		Vector m_vecViewOffset;
-	} InterpolationContexts[INTERPOLATION_CONTEXT_MAX];
 };
  
 extern CPrediction *prediction;
