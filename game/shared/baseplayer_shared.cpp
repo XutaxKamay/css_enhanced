@@ -2182,6 +2182,38 @@ void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
 	player->SetViewOffset( pDataApplied->m_vecViewOffset );
 }
 
+template < typename T >
+inline static void WarnCoords( const char* name, const T& newValue, const T& originalValue, CBasePlayer* player )
+{
+	const char* szCurrentHost;
+
+#ifdef CLIENT_DLL
+	szCurrentHost = "client";
+#else
+	szCurrentHost = "server";
+#endif
+
+	if ( newValue != originalValue )
+	{
+		char buffer[0x10000];
+		V_sprintf_safe( buffer,
+						"Bad code in %s overriding values that should be moved before interpolating player %s with "
+						"netvar %s => new: %f %f %f, applied: %f %f %f\n",
+						szCurrentHost,
+						player->GetPlayerName(),
+						name,
+						newValue.x,
+						newValue.y,
+						newValue.z,
+						originalValue.x,
+						originalValue.y,
+						originalValue.z );
+
+		Warning( "%s", buffer );
+		engine->Con_NPrintf( 0, "%s", buffer );
+	}
+}
+
 void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
 {
 	auto&& pDataApplied = &data[APPLIED];
@@ -2190,44 +2222,11 @@ void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
 	// TODO_ENHANCED: If this warns, this is bad, it means something that should be inside game movement / before
 	// interpolation must be moved.
 
-	auto WarnCoords = [&]< typename T >( const char* name, const T& newValue, const T& originalValue )
-	{
-		const char* szCurrentHost;
-
-#ifdef CLIENT_DLL
-		szCurrentHost = "client";
-#else
-		szCurrentHost = "server";
-#endif
-
-		if ( newValue != originalValue )
-		{
-			char buffer[0x10000];
-			V_sprintf_safe( buffer,
-							"Bad code in %s overriding values that should be moved before interpolating player %s with "
-							"netvar %s => new: %f %f %f, applied: %f %f %f\n",
-							szCurrentHost,
-							player->GetPlayerName(),
-							name,
-							newValue.x,
-							newValue.y,
-							newValue.z,
-							originalValue.x,
-							originalValue.y,
-							originalValue.z );
-
-			Warning( "%s", buffer );
-			engine->Con_NPrintf( 0, "%s", buffer );
-		}
-
-		return;
-	};
-
 	// WarnCoords( "m_angLocalRotation", player->GetLocalAngles(), pDataApplied->m_angLocalRotation );
-	WarnCoords( "m_vecLocalOrigin", player->GetLocalOrigin(), pDataApplied->m_vecLocalOrigin );
+	WarnCoords( "m_vecLocalOrigin", player->GetLocalOrigin(), pDataApplied->m_vecLocalOrigin, player );
 	// WarnCoords( "m_vecPunchAngle", player->GetPunchAngle(), pDataApplied->m_vecPunchAngle );
 	// WarnCoords( "m_vecPunchAngleVel", player->GetPunchAngleVel(), pDataApplied->m_vecPunchAngleVel );
-	WarnCoords( "m_vecViewOffset", player->GetViewOffset(), pDataApplied->m_vecViewOffset );
+	WarnCoords( "m_vecViewOffset", player->GetViewOffset(), pDataApplied->m_vecViewOffset, player );
 
 	// player->SetLocalAngles( pDataAfter->m_angLocalRotation );
 	player->SetLocalOrigin( pDataAfter->m_vecLocalOrigin );
