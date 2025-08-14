@@ -531,7 +531,7 @@ void CHLTVServer::StartMaster(CGameClient *client)
 	// set default user settings
 	m_MasterClient->m_ConVars->SetString( "name", tv_name.GetString() );
 	m_MasterClient->m_ConVars->SetString( "cl_team", "1" );
-	m_MasterClient->m_ConVars->SetString( "rate", "30000" );
+	m_MasterClient->m_ConVars->SetString( "rate",  V_STRINGIFY(DEFAULT_RATE) );
 	m_MasterClient->m_ConVars->SetString( "cl_updaterate", "22" );
 	m_MasterClient->m_ConVars->SetString( "cl_interp_ratio", "1.0" );
 	m_MasterClient->m_ConVars->SetString( "cl_predict", "0" );

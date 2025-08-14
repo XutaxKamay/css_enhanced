@@ -21,7 +21,7 @@
 // Flow control bytes per second limits
 #define MAX_RATE		(67108864)
 #define MIN_RATE		1000
-#define DEFAULT_RATE	67108864
+#define DEFAULT_RATE	67108863
 
 #define SIGNON_TIME_OUT				300.0f  // signon disconnect timeout
 
