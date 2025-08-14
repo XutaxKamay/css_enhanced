@@ -429,8 +429,8 @@ enum Collision_Group_t
 #define MAX_AREA_PORTAL_STATE_BYTES 24
 
 // user message max payload size (note, this value is used by the engine, so MODs cannot change it)
-#define MAX_USER_MSG_DATA 255
-#define MAX_ENTITY_MSG_DATA 255
+#define MAX_USER_MSG_DATA 16383
+#define MAX_ENTITY_MSG_DATA 16383
 
 #define SOURCE_MT
 #ifdef SOURCE_MT

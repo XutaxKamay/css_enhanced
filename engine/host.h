@@ -83,7 +83,7 @@ void Host_Error (PRINTF_FORMAT_STRING const char *error, ...) FMTFUNCTION( 1, 2 
 void Host_EndGame (bool bShowMainMenu, PRINTF_FORMAT_STRING const char *message, ...) FMTFUNCTION( 2, 3 );
 
 // user message
-#define MAX_USER_MSG_DATA 255
+#define MAX_USER_MSG_DATA 16383
 
 // build info
 // day counter from Sep 30 2003
