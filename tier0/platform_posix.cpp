@@ -11,6 +11,7 @@
 #include "tier0/dbg.h"
 #include <algorithm>
 #include <vector>
+#include <chrono>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -238,6 +239,9 @@ static FORCEINLINE void TestTimeSystem( void )
 
 #endif // USE_RDTSC_FOR_FLOATTIME
 
+using stdclock								   = std::chrono::steady_clock;
+static const stdclock::time_point g_StdClockStart = stdclock::now();
+
 double Plat_FloatTime()
 {
 	if ( g_bBenchmarkMode )
@@ -245,63 +249,10 @@ double Plat_FloatTime()
 		g_FakeBenchmarkTime += g_FakeBenchmarkTimeInc;
 		return g_FakeBenchmarkTime;
 	}
-	
-#ifdef OSX
-	// OSX
-	static uint64 start_time = 0;
-	static mach_timebase_info_data_t    sTimebaseInfo;
-	static double conversion = 0.0;
-	
-	if ( !start_time )
-	{
-		start_time = mach_absolute_time();
-		mach_timebase_info(&sTimebaseInfo);
-		conversion = 1e-9 * (double) sTimebaseInfo.numer / (double) sTimebaseInfo.denom;
-	}
-	
-	uint64 now = mach_absolute_time();
-	
-	return ( now - start_time ) * conversion;
-#else
-	// Linux
-	static struct timespec start_time = { 0, 0 };
-	static bool bInitialized = false;	
 
-	if ( !bInitialized )
-	{
-		bInitialized = true;
-		clock_gettime( CLOCK_MONOTONIC, &start_time );
-	}
+	auto elapsed = std::chrono::duration< double >( stdclock::now() - g_StdClockStart );
 
-	struct timespec now;
-	clock_gettime( CLOCK_MONOTONIC, &now );
-	
-	return ( now.tv_sec - start_time.tv_sec ) + ( now.tv_nsec * 1e-9 );
-
-#ifdef USE_RDTSC_FOR_FLOATTIME
-	if ( ! s_bTimeInitted )
-	{
-		InitTimeSystem();
-		TestTimeSystem();
-	}
-	if ( s_bUseRDTSC )
-	{
-		uint64 nTicks = Plat_Rdtsc() - s_nRDTSCBase;
-		return ( (double) nTicks) * s_flRDTSCScale;
-	}
-	else
-	{
-		struct timeval  tp;
-	        gettimeofday( &tp, NULL );
-
-		if (VCRGetMode() == VCR_Disabled)
-			return (( tp.tv_sec - s_nSecBase ) + tp.tv_usec / 1000000.0 );
-		
-		return VCRHook_Sys_FloatTime( ( tp.tv_sec - s_nSecBase ) + tp.tv_usec / 1000000.0 );
-	}
-#endif // USE_RDTSC_FOR_FLOATTIME
-
-#endif
+	return elapsed.count();
 }
 
 unsigned int Plat_MSTime()
@@ -326,7 +277,8 @@ unsigned int Plat_MSTime()
 	else
 #endif // USE_RDTSC_FOR_FLOATTIME
 	{
-		return ( uint )( Plat_FloatTime() * 1000 );
+		auto elapsed = std::chrono::duration_cast< std::chrono::milliseconds >( stdclock::now() - g_StdClockStart );
+		return elapsed.count();
 	}
 }
 
@@ -352,7 +304,8 @@ uint64 Plat_USTime()
 	else
 #endif // USE_RDTSC_FOR_FLOATTIME
 	{
-		return ( uint64 )( Plat_FloatTime() * 1000000 );
+		auto elapsed = std::chrono::duration_cast< std::chrono::microseconds >( stdclock::now() - g_StdClockStart );
+		return elapsed.count();
 	}
 }
 

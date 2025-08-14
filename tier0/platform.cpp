@@ -8,6 +8,8 @@
 #include "pch_tier0.h"
 #include <time.h>
 
+#include <chrono>
+
 #if defined(_WIN32) && !defined(_X360)
 #include <errno.h>
 #endif
@@ -70,23 +72,20 @@ void Plat_SetBenchmarkMode( bool bBenchmark )
 	g_bBenchmarkMode = bBenchmark;
 }
 
+using stdclock								   = std::chrono::steady_clock;
+static const stdclock::time_point g_StdClockStart = stdclock::now();
+
 double Plat_FloatTime()
 {
-	if (! s_bTimeInitted )
-		InitTime();
 	if ( g_bBenchmarkMode )
 	{
 		g_FakeBenchmarkTime += g_FakeBenchmarkTimeInc;
 		return g_FakeBenchmarkTime;
 	}
 
-	LARGE_INTEGER CurrentTime;
+	auto elapsed = std::chrono::duration< double >( clock::now() - g_StdClockStart );
 
-	QueryPerformanceCounter( &CurrentTime );
-
-	double fRawSeconds = (double)( CurrentTime.QuadPart - g_ClockStart.QuadPart ) * g_PerformanceCounterToS;
-
-	return fRawSeconds;
+	return elapsed.count();
 }
 
 uint32 Plat_MSTime()
@@ -99,11 +98,8 @@ uint32 Plat_MSTime()
 		return (uint32)(g_FakeBenchmarkTime * 1000.0);
 	}
 
-	LARGE_INTEGER CurrentTime;
-
-	QueryPerformanceCounter( &CurrentTime );
-
-	return (uint32) ( ( CurrentTime.QuadPart - g_ClockStart.QuadPart ) * g_PerformanceCounterToMS );
+	auto elapsed = std::chrono::duration_cast< std::chrono::milliseconds >( stdclock::now() - g_StdClockStart );
+	return elapsed.count();
 }
 
 uint64 Plat_USTime()
@@ -116,11 +112,8 @@ uint64 Plat_USTime()
 		return (uint64)(g_FakeBenchmarkTime * 1e6);
 	}
 
-	LARGE_INTEGER CurrentTime;
-
-	QueryPerformanceCounter( &CurrentTime );
-
-	return (uint64) ( ( CurrentTime.QuadPart - g_ClockStart.QuadPart ) * g_PerformanceCounterToUS );
+	auto elapsed = std::chrono::duration_cast< std::chrono::microseconds >( stdclock::now() - g_StdClockStart );
+	return elapsed.count();
 }
 
 void GetCurrentDate( int *pDay, int *pMonth, int *pYear )
