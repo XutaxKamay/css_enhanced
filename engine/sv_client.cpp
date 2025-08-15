@@ -162,6 +162,14 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 
 	m_LastMovementTick = sv.m_nTickCount; 
 
+	if ( hltv && hltv->m_DemoRecorder.IsRecording() )
+	{
+		// TODO_ENHANCED: HACK, writing edict index as sequence number
+		hltv->m_DemoRecorder.m_DemoFile.WriteUserCmdWithEdictIndex( edict->m_EdictIndex,
+																	( const char* )msg->m_DataIn.m_pData,
+																	msg->m_DataIn.m_nDataBytes,
+																	sv.m_nTickCount );
+	}
 
 	int totalcmds =msg->m_nBackupCommands + msg->m_nNewCommands;
 

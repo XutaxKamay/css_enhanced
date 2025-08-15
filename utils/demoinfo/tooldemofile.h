@@ -45,6 +45,7 @@ public:
 	int		ReadNetworkDataTables( CUtlBuffer *buf ); // if buf is NULL, skip it
 	
 	int		ReadUserCmd( char *buffer, int &size );
+	int		ReadUserCmdWithEdictIndex( char *buffer, int &size );
 
 	demoheader_t *ReadDemoHeader();
 

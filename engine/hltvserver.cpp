@@ -1951,10 +1951,18 @@ void CHLTVServer::ReadCompleteDemoFile()
 			break;
 		case dem_usercmd:
 			{
-				char bufferIn[256];
+				char bufferIn[0x10000];
 				int  length = sizeof( bufferIn );
 				m_DemoFile.ReadUserCmd( bufferIn, length );
-				// MOTODO HLTV must store user commands too
+				// TODO_ENHANCED: do something with this?
+			}
+			break;
+		case dem_usercmd_edictindex:
+			{
+				char bufferIn[0x10000];
+				int  length = sizeof( bufferIn );
+				m_DemoFile.ReadUserCmdWithEdictIndex( bufferIn, length );
+				// TODO_ENHANCED: do something with this?
 			}
 			break;
 		case dem_signon:

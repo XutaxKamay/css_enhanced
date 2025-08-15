@@ -185,6 +185,12 @@ void ParseSmoothingInfo( CToolDemoFile &demoFile, CUtlVector< demosmoothing_t >&
 					
 				}
 				break;
+			case dem_usercmd_edictindex:
+				{
+					demoFile.ReadUserCmd( NULL, dummy );
+					
+				}
+				break;
 			default:
 				{
 					swallowmessages = false;

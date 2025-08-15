@@ -139,6 +139,23 @@ int CToolDemoFile::ReadUserCmd( char *buffer, int &size )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : discard - 
+//-----------------------------------------------------------------------------
+int CToolDemoFile::ReadUserCmdWithEdictIndex( char *buffer, int &size )
+{
+	Assert( m_hDemoFile != FILESYSTEM_INVALID_HANDLE );
+
+	int edict_index;
+	
+	g_pFileSystem->Read( &edict_index, sizeof( int ), m_hDemoFile );
+	
+	size = ReadRawData( buffer, size );
+
+	return edict_index;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Rewind from the current spot by the time stamp, byte code and frame counter offsets
 //-----------------------------------------------------------------------------
 void CToolDemoFile::SeekTo( int position )

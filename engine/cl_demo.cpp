@@ -1019,6 +1019,11 @@ bool CDemoPlayer::ParseAheadForInterval( int curtick, int intervalticks )
 					m_DemoFile.ReadUserCmd( NULL, dummy );
 				}
 				break;
+			case dem_usercmd_edictindex:
+				{
+					m_DemoFile.ReadUserCmdWithEdictIndex( NULL, dummy );
+				}
+				break;
 			case dem_stringtables:
 				{
 					m_DemoFile.ReadStringTables( NULL );
@@ -1281,7 +1286,7 @@ netpacket_t *CDemoPlayer::ReadPacket( void )
 					Msg( "%d dem_usercmd\n", tick );
 				}
 
-				char buffer[256];
+				char buffer[0x10000];
 				int  length = sizeof(buffer);
 				int outgoing_sequence = m_DemoFile.ReadUserCmd( buffer, length );
 
@@ -1294,6 +1299,23 @@ netpacket_t *CDemoPlayer::ReadPacket( void )
 				//  correctly during playback
 				cl.lastoutgoingcommand = outgoing_sequence;
 				
+			}
+			break;
+		case dem_usercmd_edictindex:
+			{
+				if ( demo_debug.GetBool() )
+				{
+					Msg( "%d dem_usercmd_edictindex\n", tick );
+				}
+
+				char buffer[0x10000];
+				int  length = sizeof(buffer);
+				int edict_index = m_DemoFile.ReadUserCmdWithEdictIndex( buffer, length );
+
+				// put it into a bitbuffer 
+				bf_read msg( "CDemo::ReadUserCmdWithEdictIndex", buffer, length );
+
+				// TODO_ENHANCED: do something with it?
 			}
 			break;
 		default:

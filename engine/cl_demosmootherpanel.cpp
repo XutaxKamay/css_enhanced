@@ -2567,7 +2567,11 @@ void CDemoSmootherPanel::ParseSmoothingInfo( CDemoFile &demoFile, CSmoothingCont
 			case dem_usercmd:
 				{
 					demoFile.ReadUserCmd( NULL, dummy );
-					
+				}
+				break;
+			case dem_usercmd_edictindex:
+				{
+					demoFile.ReadUserCmdWithEdictIndex( NULL, dummy );
 				}
 				break;
 			default:

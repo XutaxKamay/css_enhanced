@@ -70,6 +70,9 @@ public:
 	void	WriteUserCmd( int cmdnumber, const char *buffer, unsigned char bytes, int tick );
 	int		ReadUserCmd( char *buffer, int &size );
 
+	void	WriteUserCmdWithEdictIndex( int edictIndex, const char *buffer, unsigned char bytes, int tick );
+	int		ReadUserCmdWithEdictIndex( char *buffer, int &size );
+
 	void	WriteDemoHeader();
 	demoheader_t *ReadDemoHeader();
 

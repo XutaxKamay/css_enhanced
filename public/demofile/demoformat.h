@@ -34,6 +34,7 @@ enum
 	dem_consolecmd,
 	// user input command
 	dem_usercmd,
+	dem_usercmd_edictindex,
 	// network data tables
 	dem_datatables,
 	// end of time.

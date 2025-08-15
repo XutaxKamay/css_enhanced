@@ -320,6 +320,38 @@ int CDemoFile::ReadUserCmd( char *buffer, int &size )
 	return outgoing_sequence;
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : cmdnumber - 
+//-----------------------------------------------------------------------------
+void CDemoFile::WriteUserCmdWithEdictIndex( int edictIndex, const char *buffer, unsigned char bytes, int tick )
+{
+	DemoFileDbg( "WriteUserCmdWithEdictIndex()\n" );
+	if ( !m_pBuffer || !m_pBuffer->IsValid() )
+		return;
+
+	WriteCmdHeader( dem_usercmd_edictindex, tick );
+
+	m_pBuffer->PutInt( edictIndex );
+
+	WriteRawData( buffer, bytes );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : discard - 
+//-----------------------------------------------------------------------------
+int CDemoFile::ReadUserCmdWithEdictIndex( char *buffer, int &size )
+{
+	int edict_index;
+	
+	Assert( m_pBuffer && m_pBuffer->IsValid() );
+	edict_index = m_pBuffer->GetInt();
+
+	size = ReadRawData( buffer, size );
+	return edict_index;
+}
+
 //
 // Purpose: Rewind from the current spot by the time stamp, byte code and frame counter offsets
 //-----------------------------------------------------------------------------
