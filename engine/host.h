@@ -148,11 +148,7 @@ extern int	host_frameticks;
 extern int	host_currentframetick;
 
 // PERFORMANCE INFO
-#define MIN_FPS         0.1         // Host minimum fps value for maxfps.
-#define MAX_FPS         100000000.0 // Upper limit for maxfps.
-
-#define MAX_FRAMETIME	0.1
-#define MIN_FRAMETIME	0.001
+#define MAX_FPS         100000.0    // Upper limit for maxfps.
 
 #define TIME_TO_TICKS( dt )		( (int)( 0.5f + (float)(dt) / host_state.interval_per_tick ) )
 #define TICKS_TO_TIME( dt )		( host_state.interval_per_tick * (float)(dt) )

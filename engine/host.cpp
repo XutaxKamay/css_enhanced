@@ -145,6 +145,10 @@ extern ConVar cl_logofile;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// TODO_ENHANCED: clamping this causes speedhack
+constexpr double MAX_FRAMETIME = 1.0;
+constexpr double MIN_FRAMETIME = 1.0/MAX_FPS;
+
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------
