@@ -4409,19 +4409,11 @@ void CDODPlayer::Stats_BombDetonated()
 void CDODPlayer::NoteWeaponFired()
 {
 	Assert( m_pCurrentCommand );
-	if( m_pCurrentCommand )
-	{
-		m_iLastWeaponFireUsercmd = m_pCurrentCommand->command_number;
-	}
+	m_iLastWeaponFireUsercmd = TIME_TO_TICKS( GetTimeBase() );
 }
 
 bool CDODPlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
-	// No need to lag compensate at all if we're not attacking in this command and
-	// we haven't attacked recently.
-	if ( !( pCmd->buttons & IN_ATTACK ) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5) )
-		return false;
-
 	return BaseClass::WantsLagCompensationOnEntity( pPlayer, pCmd, pEntityTransmitBits );
 }
 

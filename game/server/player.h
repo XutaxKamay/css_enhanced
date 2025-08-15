@@ -737,7 +737,6 @@ public:
 	virtual int GetBotType( void ) const;			// return a unique int representing the type of bot instance this is
 
 	bool	IsPredictingWeapons( void ) const; 
-	int		CurrentCommandNumber() const;
 	const CUserCmd *GetCurrentUserCommand() const;
 
 	int		GetFOV( void );														// Get the current FOV value
@@ -1299,12 +1298,6 @@ inline CUserCmd const *CBasePlayer::GetLastUserCommand( void )
 inline bool CBasePlayer::IsPredictingWeapons( void ) const 
 {
 	return m_bPredictWeapons;
-}
-
-inline int CBasePlayer::CurrentCommandNumber() const
-{
-	Assert( m_pCurrentCommand );
-	return m_pCurrentCommand->command_number;
 }
 
 inline const CUserCmd *CBasePlayer::GetCurrentUserCommand() const

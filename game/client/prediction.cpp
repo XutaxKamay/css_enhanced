@@ -1256,7 +1256,6 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 	
 	ctx->needsprocessing = true;
 	ctx->cmd = *cmd;
-	ctx->command_number = current_command;
 
 	IPredictionSystem::SuppressEvents( !IsFirstTimePredicted() );
 

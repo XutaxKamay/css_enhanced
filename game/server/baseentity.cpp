@@ -5810,11 +5810,10 @@ CBaseEntity *CBaseEntity::CreatePredictedEntityByName( const char *classname, co
 
 	CBaseEntity *ent = NULL;
 
-	int command_number = player->CurrentCommandNumber();
 	int player_index = player->entindex() - 1;
 
 	CPredictableId testId;
-	testId.Init( player_index, command_number, classname, module, line );
+	testId.Init( player_index, TIME_TO_TICKS( player->GetTimeBase() ), classname, module, line );
 
 	ent = CreateEntityByName( classname );
 	// No factory???

@@ -35,16 +35,6 @@
 //-----------------------------------------------------------------------------
 void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 {
-	if ( to->command_number != ( from->command_number + 1 ) )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteUBitLong( to->command_number, 32 );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-	}
-
 	if ( to->viewangles[ 0 ] != from->viewangles[ 0 ] )
 	{
 		buf->WriteOneBit( 1 );
@@ -234,16 +224,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 {
 	// Assume no change
 	*move = *from;
-
-	if ( buf->ReadOneBit() )
-	{
-		move->command_number = buf->ReadUBitLong( 32 );
-	}
-	else
-	{
-		// Assume steady increment
-		move->command_number = from->command_number + 1;
-	}
 
 	// Read direction
 	if ( buf->ReadOneBit() )

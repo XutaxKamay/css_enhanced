@@ -24,7 +24,6 @@ public:
 
 	void Reset()
 	{
-		command_number = 0;
 		viewangles.Init();
 		forwardmove = 0.0f;
 		sidemove = 0.0f;
@@ -40,7 +39,6 @@ public:
 		if ( this == &src )
 			return *this;
 
-		command_number		= src.command_number;
 		viewangles			= src.viewangles;
 		forwardmove			= src.forwardmove;
 		sidemove			= src.sidemove;
@@ -51,9 +49,6 @@ public:
 		weaponsubtype		= src.weaponsubtype;
 		return *this;
 	}
-
-	// For matching server and client commands for debugging
-	int		command_number;
 	
 	// Player instantaneous view angles.
 	QAngle	viewangles;     

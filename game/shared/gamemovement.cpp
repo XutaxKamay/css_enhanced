@@ -694,7 +694,7 @@ bool CGameMovement::CheckInterval( IntervalType_t type )
 
 	if ( g_bMovementOptimizations )
 	{
-		return (player->CurrentCommandNumber() + player->entindex()) % tickInterval == 0;
+		return (player->m_nTickBase + player->entindex()) % tickInterval == 0;
 	}
 	else
 	{
@@ -2503,7 +2503,7 @@ bool CGameMovement::CheckJumpButton( void )
 
 	FinishGravity();
 
-	CheckV( player->CurrentCommandNumber(), "CheckJump", mv->m_vecVelocity );
+	CheckV( player->m_nTickBase, "CheckJump", mv->m_vecVelocity );
 
 	mv->m_outJumpVel.z += mv->m_vecVelocity[2] - startz;
 	mv->m_outStepHeight += 0.15f;

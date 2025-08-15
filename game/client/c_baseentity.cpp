@@ -4848,14 +4848,12 @@ C_BaseEntity *C_BaseEntity::CreatePredictedEntityByName( const char *classname, 
 
 	C_BaseEntity *ent = NULL;
 
-	// What's my birthday (should match server)
-	int command_number	= player->m_pCurrentCommand->command_number;
 	// Who's my daddy?
 	int player_index	= player->entindex() - 1;
 
 	// Create id/context
 	CPredictableId testId;
-	testId.Init( player_index, command_number, classname, module, line );
+	testId.Init( player_index, player->m_nTickBase, classname, module, line );
 
 	// If repredicting, should be able to find the entity in the previously created list
 	if ( !prediction->IsFirstTimePredicted() )
@@ -4889,7 +4887,6 @@ C_BaseEntity *C_BaseEntity::CreatePredictedEntityByName( const char *classname, 
 	// Get a context (mostly for debugging purposes)
 	PredictionContext *context			= new PredictionContext;
 	context->m_bActive					= true;
-	context->m_nCreationCommandNumber	= command_number;
 	context->m_nCreationLineNumber		= line;
 	context->m_pszCreationModule		= module;
 

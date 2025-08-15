@@ -1102,7 +1102,6 @@ void CCSBot::BuildUserCmd( CUserCmd& cmd, const QAngle& viewangles, float forwar
 			buttons &= ~IN_SPEED;
 		}
 
-		cmd.command_number = gpGlobals->tickcount;
 		cmd.forwardmove = forwardmove;
 		cmd.sidemove = sidemove;
 		cmd.upmove = upmove;

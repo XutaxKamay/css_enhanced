@@ -743,7 +743,6 @@ template < class PlayerType >
 inline void CBot< PlayerType >::BuildUserCmd( CUserCmd& cmd, const QAngle& viewangles, float forwardmove, float sidemove, float upmove, int buttons, byte impulse )
 {
 	Q_memset( &cmd, 0, sizeof( cmd ) );
-	cmd.command_number = gpGlobals->tickcount;
 	cmd.forwardmove = forwardmove;
 	cmd.sidemove = sidemove;
 	cmd.upmove = upmove;

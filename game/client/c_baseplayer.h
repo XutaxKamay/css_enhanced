@@ -50,7 +50,6 @@ public:
 	bool			needsprocessing;
 
 	CUserCmd		cmd;
-	int				command_number;
 };
 
 class C_PredictionError
@@ -320,8 +319,6 @@ public:
 
 	C_CommandContext		*GetCommandContext();
 
-	// Get the command number associated with the current usercmd we're running (if in predicted code).
-	int CurrentCommandNumber() const;
 	const CUserCmd *GetCurrentUserCommand() const;
 
 	const QAngle& GetPunchAngle();
@@ -708,12 +705,6 @@ inline int C_BasePlayer::GetImpulse( void ) const
 inline C_CommandContext* C_BasePlayer::GetCommandContext()
 {
 	return &m_CommandContext;
-}
-
-inline int CBasePlayer::CurrentCommandNumber() const
-{
-	Assert( m_pCurrentCommand );
-	return m_pCurrentCommand->command_number;
 }
 
 inline const CUserCmd *CBasePlayer::GetCurrentUserCommand() const

@@ -1185,8 +1185,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	CUserCmd *cmd = &m_pCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 	CVerifiedUserCmd *pVerified = &m_pVerifiedCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 
-	cmd->command_number = sequence_number;
-
 	QAngle viewangles;
 	engine->GetViewAngles( viewangles );
 
@@ -1423,14 +1421,7 @@ CUserCmd *CInput::GetUserCmd( int sequence_number )
 {
 	Assert( m_pCommands );
 
-	CUserCmd *usercmd = &m_pCommands[ sequence_number % MULTIPLAYER_BACKUP ];
-
-	if ( usercmd->command_number != sequence_number )
-	{
-		return NULL;	// usercmd was overwritten by newer command
-	}
-
-	return usercmd;
+	return &m_pCommands[ sequence_number % MULTIPLAYER_BACKUP ];
 }
 
 //-----------------------------------------------------------------------------

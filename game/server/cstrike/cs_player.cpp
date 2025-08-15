@@ -651,7 +651,6 @@ void CCSPlayer::RunPlayerMove( const QAngle& viewangles, float forwardmove, floa
 	if ( -bot_mimic.GetInt() == entindex() )
 	{
 		CUserCmd lastCmd = *GetLastUserCommand();
-		lastCmd.command_number = cmd.command_number;
 		SetLastUserCommand( lastCmd );
 	}
 	else
@@ -4109,10 +4108,7 @@ void CCSPlayer::ApplyDeafnessEffect()
 void CCSPlayer::NoteWeaponFired()
 {
 	Assert( m_pCurrentCommand );
-	if( m_pCurrentCommand )
-	{
-		m_iLastWeaponFireUsercmd = m_pCurrentCommand->command_number;
-	}
+	m_iLastWeaponFireUsercmd = TIME_TO_TICKS( GetTimeBase() );
 }
 
 

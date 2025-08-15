@@ -559,7 +559,6 @@ inline void _NextBot_BuildUserCommand( CUserCmd *cmd, const QAngle &viewangles, 
 {
 	Q_memset( cmd, 0, sizeof( CUserCmd ) );
 
-	cmd->command_number = gpGlobals->tickcount;
 	cmd->forwardmove = forwardmove;
 	cmd->sidemove = sidemove;
 	cmd->upmove = upmove;

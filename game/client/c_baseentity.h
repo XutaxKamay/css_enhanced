@@ -150,7 +150,7 @@ struct PredictionContext
 		m_hServerEntity				= NULL;
 	}
 
-	// The command_number of the usercmd which created this entity
+	// The tickbase which created this entity
 	bool						m_bActive;
 	int							m_nCreationCommandNumber;
 	char const					*m_pszCreationModule;

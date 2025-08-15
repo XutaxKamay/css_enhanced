@@ -9183,7 +9183,6 @@ void CPlayerInfo::RunPlayerMove( CBotCmd *ucmd )
 		Assert( m_pParent );
 		CUserCmd cmd;
 		cmd.buttons = ucmd->buttons;
-		cmd.command_number = ucmd->command_number;
 		cmd.forwardmove = ucmd->forwardmove;
 		cmd.impulse = ucmd->impulse;
 		cmd.sidemove = ucmd->sidemove;
@@ -9221,7 +9220,6 @@ void CPlayerInfo::SetLastUserCommand( const CBotCmd &ucmd )
 		Assert( m_pParent );
 		CUserCmd cmd;
 		cmd.buttons = ucmd.buttons;
-		cmd.command_number = ucmd.command_number;
 		cmd.forwardmove = ucmd.forwardmove;
 		cmd.impulse = ucmd.impulse;
 		cmd.sidemove = ucmd.sidemove;
@@ -9242,7 +9240,6 @@ CBotCmd CPlayerInfo::GetLastUserCommand()
 	if ( ucmd )
 	{
 		cmd.buttons = ucmd->buttons;
-		cmd.command_number = ucmd->command_number;
 		cmd.forwardmove = ucmd->forwardmove;
 		cmd.impulse = ucmd->impulse;
 		cmd.sidemove = ucmd->sidemove;

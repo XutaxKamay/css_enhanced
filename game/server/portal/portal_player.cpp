@@ -876,21 +876,13 @@ void CPortal_Player::FireBullets ( const FireBulletsInfo_t &info )
 void CPortal_Player::NoteWeaponFired( void )
 {
 	Assert( m_pCurrentCommand );
-	if( m_pCurrentCommand )
-	{
-		m_iLastWeaponFireUsercmd = m_pCurrentCommand->command_number;
-	}
+	m_iLastWeaponFireUsercmd = TIME_TO_TICKS( GetTimeBase() );
 }
 
 extern ConVar sv_maxunlag;
 
 bool CPortal_Player::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
-	// No need to lag compensate at all if we're not attacking in this command and
-	// we haven't attacked recently.
-	if ( !( pCmd->buttons & IN_ATTACK ) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5) )
-		return false;
-
 	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
 	if ( pEntityTransmitBits && !pEntityTransmitBits->Get( pPlayer->entindex() ) )
 		return false;
