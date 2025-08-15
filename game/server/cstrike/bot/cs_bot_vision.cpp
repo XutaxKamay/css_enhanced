@@ -1209,7 +1209,7 @@ CCSPlayer *CCSBot::FindMostDangerousThreat( void )
 		CCSPlayer *enemy;
 		float range;
 	}
-	threat[ MAX_THREATS ];
+	threat[ MAX_THREATS ], tmp_threat[ MAX_THREATS ];
 	int threatCount = 0;
 
 	int prevIndex = m_enemyQueueIndex - 1;
@@ -1386,9 +1386,12 @@ CCSPlayer *CCSBot::FindMostDangerousThreat( void )
 							break;
 					}
 
+					for( int k=0; k<threatCount; k++ )
+						tmp_threat[k] = threat[k];
+
 					// shift lower half down a notch
-					for( int k=threatCount-1; k>=j; --k )
-						threat[k+1] = threat[k];
+					for( int k=j; k<threatCount; k++ )
+						threat[k+1] = tmp_threat[k];
 
 					// insert threat into sorted list
 					threat[j].enemy = player;
@@ -1454,9 +1457,10 @@ CCSPlayer *CCSBot::FindMostDangerousThreat( void )
 		{
 			// find the area the player/bot is standing on
 			CNavArea *area;
-			CCSBot *bot = dynamic_cast<CCSBot *>(threat[i].enemy);
-			if (bot && bot->IsBot())
+			auto player = threat[i].enemy;
+			if (player && player->IsBot())
 			{
+				CCSBot *bot = static_cast<CCSBot *>(threat[i].enemy);
 				area = bot->GetLastKnownArea();
 			}
 			else

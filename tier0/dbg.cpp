@@ -170,6 +170,9 @@ void CDbgLogger::Write(const char *data)
 	}
 	else if( iMsg < MAX_MSGS )
 	{
+		static CThreadMutex mutex;
+		AUTO_LOCK( mutex );
+
 		pMsgs[iMsg] = new char[len+8];
 		memcpy(pMsgs[iMsg], data, len);
 		pMsgs[iMsg][len] = 0;
