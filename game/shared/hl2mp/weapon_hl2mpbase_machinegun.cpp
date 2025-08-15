@@ -139,7 +139,7 @@ void CHL2MPMachineGun::DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, f
 	#define	KICK_MIN_Z			0.1f	//Degrees
 
 	QAngle vecScratch;
-	int iSeed = CBaseEntity::GetPredictionRandomSeed() & 255;
+	int iSeed = CBaseEntity::GetPredictionRandomSeed();
 	
 	//Find how far into our accuracy degradation we are
 	float duration	= ( fireDurationTime > slideLimitTime ) ? slideLimitTime : fireDurationTime;

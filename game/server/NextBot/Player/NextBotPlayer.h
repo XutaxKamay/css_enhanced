@@ -567,8 +567,6 @@ inline void _NextBot_BuildUserCommand( CUserCmd *cmd, const QAngle &viewangles, 
 	cmd->impulse = impulse;
 
 	VectorCopy( viewangles, cmd->viewangles );
-
-	cmd->random_seed = random->RandomInt( 0, 0x7fffffff );
 }
 
 

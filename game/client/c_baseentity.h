@@ -1226,7 +1226,7 @@ protected:
 public:
 	// Accessors for above
 	static int						GetPredictionRandomSeed( void );
-	static void						SetPredictionRandomSeed( const CUserCmd *cmd );
+	static void						SetPredictionRandomSeed( int randomSeed );
 	static C_BasePlayer				*GetPredictionPlayer( void );
 	static void						SetPredictionPlayer( C_BasePlayer *player );
 	static void						CheckCLInterpChanged();

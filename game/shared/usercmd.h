@@ -74,7 +74,6 @@ public:
 		impulse = 0;
 		weaponselect = 0;
 		weaponsubtype = 0;
-		random_seed = 0;
 		mousedx = 0;
 		mousedy = 0;
 
@@ -106,7 +105,6 @@ public:
 		impulse				= src.impulse;
 		weaponselect		= src.weaponselect;
 		weaponsubtype		= src.weaponsubtype;
-		random_seed			= src.random_seed;
 		mousedx				= src.mousedx;
 		mousedy				= src.mousedy;
 
@@ -144,7 +142,6 @@ public:
 		CRC32_ProcessBuffer( &crc, &impulse, sizeof( impulse ) );        
 		CRC32_ProcessBuffer( &crc, &weaponselect, sizeof( weaponselect ) );	
 		CRC32_ProcessBuffer( &crc, &weaponsubtype, sizeof( weaponsubtype ) );
-		CRC32_ProcessBuffer( &crc, &random_seed, sizeof( random_seed ) );
 		CRC32_ProcessBuffer( &crc, simulationdata, sizeof( simulationdata ) );
 		CRC32_ProcessBuffer( &crc, &debug_hitboxes, sizeof( debug_hitboxes ) );
 		CRC32_ProcessBuffer( &crc, &interpolated_amount, sizeof( interpolated_amount ) );
@@ -178,8 +175,6 @@ public:
 	// Current weapon id
 	int		weaponselect;	
 	int		weaponsubtype;
-
-	int		random_seed;	// For shared random functions
 
 	short	mousedx;		// mouse accum in x from create move
 	short	mousedy;		// mouse accum in y from create move

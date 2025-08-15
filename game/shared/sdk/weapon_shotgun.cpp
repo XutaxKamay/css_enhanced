@@ -114,7 +114,7 @@ void CWeaponShotgun::PrimaryAttack()
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(), 
 		GetWeaponID(),
 		Primary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255, // wrap it for network traffic so it's the same between client and server
+		CBaseEntity::GetPredictionRandomSeed(), // wrap it for network traffic so it's the same between client and server
 		0.0675 );
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0)

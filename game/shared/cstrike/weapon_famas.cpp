@@ -176,7 +176,7 @@ void CWeaponFamas::FireRemaining()
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(),
 		GetWeaponID(),
 		Secondary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255,
+		CBaseEntity::GetPredictionRandomSeed(),
 		GetInaccuracy(),
 		GetSpread(),
 		m_fNextBurstShot);

@@ -9245,7 +9245,6 @@ CBotCmd CPlayerInfo::GetLastUserCommand()
 		cmd.command_number = ucmd->command_number;
 		cmd.forwardmove = ucmd->forwardmove;
 		cmd.impulse = ucmd->impulse;
-		cmd.random_seed = ucmd->random_seed;
 		cmd.sidemove = ucmd->sidemove;
 		cmd.upmove = ucmd->upmove;
 		cmd.viewangles = ucmd->viewangles;

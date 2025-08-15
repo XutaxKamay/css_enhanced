@@ -751,7 +751,6 @@ inline void CBot< PlayerType >::BuildUserCmd( CUserCmd& cmd, const QAngle& viewa
 	cmd.impulse = impulse;
 
 	VectorCopy( viewangles, cmd.viewangles );
-	cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 }
 
 //--------------------------------------------------------------------------------------------------------------

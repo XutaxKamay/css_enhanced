@@ -77,6 +77,7 @@ extern bool ParseKeyvalue( void *pObject, typedescription_t *pFields, int iNumFi
 extern bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, char *szValue, int iMaxLen );
 
 bool CBaseEntity::m_bAllowPrecache = false;
+int  CBaseEntity::m_nPredictionRandomSeed = -1;
 
 // Set default max values for entities based on the existing constants from elsewhere
 float k_flMaxEntityPosCoord = MAX_COORD_FLOAT;
@@ -650,15 +651,9 @@ bool CBaseEntity::ShouldCollide( int collisionGroup, int contentsMask ) const
 // Purpose: 
 // Input  : seed - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::SetPredictionRandomSeed( const CUserCmd *cmd )
+void CBaseEntity::SetPredictionRandomSeed( int randomSeed )
 {
-	if ( !cmd )
-	{
-		m_nPredictionRandomSeed = -1;
-		return;
-	}
-
-	m_nPredictionRandomSeed = ( cmd->random_seed );
+	m_nPredictionRandomSeed = randomSeed;
 }
 
 
@@ -1705,7 +1700,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 	int iSeed = 0;
 	if ( IsPlayer() )
 	{
-		iSeed = CBaseEntity::GetPredictionRandomSeed() & 255;
+		iSeed = CBaseEntity::GetPredictionRandomSeed();
 	}
 
 #if defined( HL2MP ) && defined( GAME_DLL )

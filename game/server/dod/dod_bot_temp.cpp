@@ -173,7 +173,6 @@ static void RunPlayerMove( CDODPlayer *fakeclient, const QAngle& viewangles, flo
 		cmd.upmove = upmove;
 		cmd.buttons = buttons;
 		cmd.impulse = impulse;
-		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 
 	if( bot_crouch.GetInt() )

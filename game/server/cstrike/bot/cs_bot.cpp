@@ -1110,7 +1110,6 @@ void CCSBot::BuildUserCmd( CUserCmd& cmd, const QAngle& viewangles, float forwar
 		cmd.impulse = impulse;
 
 		VectorCopy( viewangles, cmd.viewangles );
-		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 }
 

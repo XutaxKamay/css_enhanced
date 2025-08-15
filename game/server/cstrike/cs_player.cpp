@@ -642,7 +642,6 @@ void CCSPlayer::RunPlayerMove( const QAngle& viewangles, float forwardmove, floa
 		cmd.impulse = impulse;
 
 		VectorCopy( viewangles, cmd.viewangles );
-		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 
 	MoveHelperServer()->SetHost( this );

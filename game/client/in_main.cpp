@@ -1252,8 +1252,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 	m_flLastForwardMove = cmd->forwardmove;
 
-	cmd->random_seed = MD5_PseudoRandom( sequence_number ) & 0x7fffffff;
-
 	HLTVCamera()->CreateMove( cmd );
 #if defined( REPLAY_ENABLED )
 	ReplayCamera()->CreateMove( cmd );

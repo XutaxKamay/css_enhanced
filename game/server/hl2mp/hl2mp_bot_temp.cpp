@@ -180,7 +180,6 @@ static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, 
 		cmd.upmove = upmove;
 		cmd.buttons = buttons;
 		cmd.impulse = impulse;
-		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 
 	if( bot_crouch.GetInt() )

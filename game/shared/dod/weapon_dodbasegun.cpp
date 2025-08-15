@@ -173,7 +173,7 @@ bool CWeaponDODBaseGun::DODBaseGunFire()
 		pPlayer->EyeAngles() + pPlayer->GetPunchAngle(),
 		GetWeaponID(),
 		Primary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255,
+		CBaseEntity::GetPredictionRandomSeed(),
 		GetWeaponAccuracy( pPlayer->GetAbsVelocity().Length2D() ) );
 
 	DoFireEffects();

@@ -216,7 +216,7 @@ void CWeaponElite::PrimaryAttack()
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(),
 		GetWeaponID(),
 		FiringLeft() ? Secondary_Mode : Primary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255,
+		CBaseEntity::GetPredictionRandomSeed(),
 		GetInaccuracy(),
 		GetSpread());
 		

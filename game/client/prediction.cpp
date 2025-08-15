@@ -34,6 +34,8 @@
 #include "c_basehlplayer.h"
 #endif
 
+#include "checksum_md5.h"
+
 #include "tier0/vprof.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -773,7 +775,7 @@ void CPrediction::StartCommand( C_BasePlayer *player, CUserCmd *cmd )
 	CPredictableId::ResetInstanceCounters();
 
 	player->m_pCurrentCommand = cmd;
-	C_BaseEntity::SetPredictionRandomSeed( cmd );
+	C_BaseEntity::SetPredictionRandomSeed( static_cast<int>( MD5_PseudoRandom( player->m_nTickBase ) ) );
 	C_BaseEntity::SetPredictionPlayer( player );
 
 	player->StartInterpolatingCommand();
@@ -788,10 +790,6 @@ void CPrediction::FinishCommand( C_BasePlayer *player )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::FinishCommand" );
-
-	// player->m_pCurrentCommand = NULL;
-	//C_BaseEntity::SetPredictionRandomSeed( NULL );
-	//C_BaseEntity::SetPredictionPlayer( NULL );
 #endif
 }
 

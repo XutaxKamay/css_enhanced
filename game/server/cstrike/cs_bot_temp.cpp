@@ -184,7 +184,6 @@ static void RunPlayerMove( CCSPlayer *fakeclient, const QAngle& viewangles, floa
 		cmd.upmove = upmove;
 		cmd.buttons = buttons;
 		cmd.impulse = impulse;
-		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 
 	MoveHelperServer()->SetHost( fakeclient );

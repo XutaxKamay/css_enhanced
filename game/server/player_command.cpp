@@ -20,6 +20,7 @@
 #include "tier0/vprof.h"
 #include "util.h"
 #include "util_shared.h"
+#include "checksum_md5.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -53,7 +54,7 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 #endif
 
 	player->m_pCurrentCommand = cmd;
-	CBaseEntity::SetPredictionRandomSeed( cmd );
+	CBaseEntity::SetPredictionRandomSeed( static_cast<int>( MD5_PseudoRandom( player->m_nTickBase ) ) );
 	CBaseEntity::SetPredictionPlayer( player );
 
 	player->StartInterpolatingCommand();
@@ -86,10 +87,6 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 void CPlayerMove::FinishCommand( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::FinishCommand" );
-
-	// player->m_pCurrentCommand = NULL;
-	// CBaseEntity::SetPredictionRandomSeed( NULL );
-	// CBaseEntity::SetPredictionPlayer( NULL );
 }
 
 //-----------------------------------------------------------------------------

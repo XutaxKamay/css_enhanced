@@ -299,8 +299,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		}
 	}
 
-	move->random_seed = MD5_PseudoRandom( move->command_number ) & 0x7fffffff;
-
 	auto highestEntityIndex = buf->ReadUBitLong( 11 );
 
 	highestEntityIndex = MIN(MAX_EDICTS - 1, highestEntityIndex);

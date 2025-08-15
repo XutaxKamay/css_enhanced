@@ -135,7 +135,7 @@ void CWeaponMP5::PrimaryAttack( void )
 		pPlayer->EyeAngles() + pPlayer->GetPunchAngle(),
 		GetWeaponID(),
 		bPrimaryMode?Primary_Mode:Secondary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255,
+		CBaseEntity::GetPredictionRandomSeed(),
 		flSpread );
 
 	pPlayer->DoMuzzleFlash();

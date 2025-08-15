@@ -1806,7 +1806,7 @@ private:
 public:
 	// Accessors for above
 	static int						GetPredictionRandomSeed( void );
-	static void						SetPredictionRandomSeed( const CUserCmd *cmd );
+	static void						SetPredictionRandomSeed( int randomSeed );
 	static CBasePlayer				*GetPredictionPlayer( void );
 	static void						SetPredictionPlayer( CBasePlayer *player );
 

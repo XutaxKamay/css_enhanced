@@ -322,7 +322,7 @@ void CWeaponUSP::PrimaryAttack()
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(),
 		GetWeaponID(),
 		m_weaponMode,
-		CBaseEntity::GetPredictionRandomSeed() & 255,
+		CBaseEntity::GetPredictionRandomSeed(),
 		GetInaccuracy(),
 		GetSpread());
 

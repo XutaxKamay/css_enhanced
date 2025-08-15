@@ -231,7 +231,7 @@ void CWeaponGlock::PrimaryAttack()
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(), 
 		GetWeaponID(),
 		Primary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255, // wrap it for network traffic so it's the same between client and server
+		CBaseEntity::GetPredictionRandomSeed(), // wrap it for network traffic so it's the same between client and server
 		GetInaccuracy(),
 		GetSpread(),
 		gpGlobals->curtime);
@@ -298,7 +298,7 @@ void CWeaponGlock::FireRemaining( float fSpread )
 		pPlayer->EyeAngles() + 2.0f * pPlayer->GetPunchAngle(), 
 		GetWeaponID(),
 		Secondary_Mode,
-		CBaseEntity::GetPredictionRandomSeed() & 255, // wrap it for network traffic so it's the same between client and server
+		CBaseEntity::GetPredictionRandomSeed(), // wrap it for network traffic so it's the same between client and server
 		fInaccuracy,
 		GetSpread(),
 		m_fNextBurstShot);
