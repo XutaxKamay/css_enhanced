@@ -382,6 +382,8 @@ void CCSWeaponInfo::Parse( KeyValues *pKeyValuesData, const char *szWeaponName )
 	m_flTimeToIdleAfterFire	= pKeyValuesData->GetFloat( "TimeToIdle", 2 );
 	m_flIdleInterval	= pKeyValuesData->GetFloat( "IdleInterval", 20 );
 
+	m_bIsFirstBulletStraight = pKeyValuesData->GetInt( "IsFirstBulletStraight", 0 ) >= 1 ? true : false;
+
 	// Figure out what team can have this weapon.
 	m_iTeam = TEAM_UNASSIGNED;
 	const char *pTeam = pKeyValuesData->GetString( "Team", NULL );

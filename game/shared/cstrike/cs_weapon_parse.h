@@ -173,6 +173,7 @@ public:
 	// Delay until the next idle animation after shooting.
 	float	m_flTimeToIdleAfterFire;
 	float	m_flIdleInterval;
+	bool	m_bIsFirstBulletStraight;
    
 	int		GetWeaponPrice( void ) const;
 	int		GetDefaultPrice( void );

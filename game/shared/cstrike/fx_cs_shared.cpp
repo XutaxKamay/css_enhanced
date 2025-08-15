@@ -352,13 +352,25 @@ void FX_FireBullets(
             gpGlobals->client_taking_screenshot = true;
         }
 #endif
+		float flSpreadX;
+		float flSpreadY;
 
-		RandomSeed( iSeed + iBullet ); // init random system with this seed
+		if ( pWeaponInfo->m_bIsFirstBulletStraight && iBullet == 0 && fInaccuracy == 0.0 )
+		{
+			flSpreadX = 0;
+			flSpreadY = 0;
+		}
+		else
+		{
+			RandomSeed( iSeed + iBullet + 1 ); // init random system with this seed
 
-		float fTheta1  = RandomFloat( 0.0f, 2.0f * M_PI );
-		float fRadius1 = RandomFloat( 0.0f, fSpread );
-		float x1	   = fRadius1 * cosf( fTheta1 );
-		float y1	   = fRadius1 * sinf( fTheta1 );
+			float fTheta1  = RandomFloat( 0.0f, 2.0f * M_PI );
+			float fRadius1 = RandomFloat( 0.0f, fSpread );
+			float x1	   = fRadius1 * cosf( fTheta1 );
+			float y1	   = fRadius1 * sinf( fTheta1 );
+			flSpreadX	   = x0 + x1;
+			flSpreadY	   = y0 + y1;
+		}
 
 		pPlayer->FireBullet( iBullet,
 							 vOrigin,
@@ -370,8 +382,8 @@ void FX_FireBullets(
 							 flRangeModifier,
 							 pPlayer,
 							 bDoEffects,
-							 x0 + x1,
-							 y0 + y1 );
+							 flSpreadX,
+							 flSpreadY );
 	}
 
 	EndGroupingSounds();

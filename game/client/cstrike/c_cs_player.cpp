@@ -2147,7 +2147,6 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				const auto nAttackerTickBase = event->GetInt( "tickbase" );
 				const auto pStudioHdr		 = player->GetModelPtr();
 				const auto numhitboxes		 = event->GetInt( "num_hitboxes" );
-				const auto parent_index		 = event->GetInt( "parent_index", -1 );
 
 				QAngle angles[MAXSTUDIOBONES];
 				Vector positions[MAXSTUDIOBONES];

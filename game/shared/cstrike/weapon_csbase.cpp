@@ -45,7 +45,7 @@
 #endif
 
 
-ConVar weapon_accuracy_model( "weapon_accuracy_model", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "0) Original accuracy model\n1) Old accuracy model before Orange Box\n2) New accuracy model." );
+ConVar weapon_accuracy_model( "weapon_accuracy_model", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "0) Original accuracy model\n1) Old accuracy model before Orange Box\n2) New accuracy model." );
 ConVar weapon_accuracy_noinaccuracy( "weapon_accuracy_noinaccuracy", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 ConVar weapon_accuracy_nospread( "weapon_accuracy_nospread", "0", FCVAR_REPLICATED | FCVAR_NOTIFY );
 
