@@ -842,17 +842,31 @@ void C_BaseAnimating::UseClientSideAnimation()
 	m_bClientSideAnimation = true;
 }
 
+void C_BaseAnimating::UpdateRelevantInterpolatedVars()
+{
+	MDLCACHE_CRITICAL_SECTION();
+	// Remove any interpolated vars that need to be removed.
+	if ( !IsMarkedForDeletion() && !GetPredictable() && !IsClientCreated() && GetModelPtr() && GetModelPtr()->SequencesAvailable() )
+	{
+		AddBaseAnimatingInterpolatedVars();
+	}			
+	else
+	{
+		RemoveBaseAnimatingInterpolatedVars();
+	}
+}
+
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	// AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR );
-	// AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR );
+	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR, true );
+	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR, true );
 
 	int flags = LATCH_ANIMATION_VAR;
 	if ( m_bClientSideAnimation )
 		flags |= EXCLUDE_AUTO_INTERPOLATE;
 		
-	// AddVar( &m_flCycle, &m_iv_flCycle, flags );
-	// AddVar( &m_nSequence, &m_iv_Sequence, flags );
+	AddVar( &m_flCycle, &m_iv_flCycle, flags, true );
+	AddVar( &m_nSequence, &m_iv_Sequence, flags, true );
 }
 
 void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
@@ -1118,6 +1132,7 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 	for ( i = 0; i < hdr->GetNumPoseParameters() ; i++ )
 	{
 		const mstudioposeparamdesc_t &Pose = hdr->pPoseParameter( i );
+		m_iv_flPoseParameter.SetLooping( Pose.loop != 0.0f, i );
 		// Note:  We can't do this since if we get a DATA_UPDATE_CREATED (i.e., new entity) with both a new model and some valid pose parameters this will slam the 
 		//  pose parameters to zero and if the model goes dormant the pose parameter field will never be set to the true value.  We shouldn't have to zero these out
 		//  as they are under the control of the server and should be properly set
@@ -1134,6 +1149,7 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 	for ( i = 0; i < boneControllerCount ; i++ )
 	{
 		bool loop = (hdr->pBonecontroller( i )->type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR)) != 0;
+		m_iv_flEncodedController.SetLooping( loop, i );
 		SetBoneController( i, 0.0 );
 	}
 
@@ -1152,7 +1168,7 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 		AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
 	}
 
-	if (m_bClientSideAnimation)
+	if ( m_bClientSideAnimation )
 	{
 		// Most entities clear out their sequences when they change models on the server, but 
 		// not all entities network down their m_nSequence (like multiplayer game player entities), 
@@ -1173,6 +1189,8 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 			ResetSequenceInfo();
 		}
 	}
+
+	UpdateRelevantInterpolatedVars();
 		
 	return hdr;
 }
@@ -4274,6 +4292,15 @@ bool C_BaseAnimating::Interpolate( float flCurrentTime )
 	float flOldCycle = GetCycle();
     int nChangeFlags = 0;
 
+	// if ( !m_bClientSideAnimation )
+	{
+		// TODO_ENHANCED: this should be okay and lag compensated now.
+		m_iv_flCycle.SetLooping( IsSequenceLooping( GetSequence() ) );
+	}
+	// else
+	{
+	}
+
 	int bNoMoreChanges;
 	int retVal = BaseInterpolatePart1( flCurrentTime, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
 	if ( retVal == INTERPOLATE_STOP )
@@ -4538,6 +4565,21 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 			ClientSideAnimationChanged();
 		}
     }
+
+	// TODO_ENHANCED: breaks lag comp.
+	// // reset prev cycle if new sequence
+	// if (m_nNewSequenceParity != m_nPrevNewSequenceParity)
+	// {
+	// 	// It's important not to call Reset() on a static prop, because if we call
+	// 	// Reset(), then the entity will stay in the interpolated entities list
+	// 	// forever, wasting CPU.
+	// 	MDLCACHE_CRITICAL_SECTION();
+	// 	CStudioHdr *hdr = GetModelPtr();
+	// 	if ( hdr && !( hdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP ) )
+	// 	{
+	// 		m_iv_flCycle.Reset();
+	// 	}
+	// }
 }
 
 //-----------------------------------------------------------------------------

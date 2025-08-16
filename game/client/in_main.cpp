@@ -1283,8 +1283,17 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
+		// If predictable, we just give the simulation time.
+		if ( pEntity->GetPredictable() )
+		{
+			cmd->simulationdata[i].sim_time	 = pEntity->m_flSimulationTime;
+			cmd->simulationdata[i].anim_time = pEntity->m_flAnimTime;
+		}
+		else
+		{
+			cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
+			cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
+		}
 	}
 
 #ifdef CSTRIKE_DLL

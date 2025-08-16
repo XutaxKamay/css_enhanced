@@ -482,6 +482,7 @@ private:
 
 	void							DelayedInitModelEffects( void );
 
+	void							UpdateRelevantInterpolatedVars();
 	void							AddBaseAnimatingInterpolatedVars();
 	void							RemoveBaseAnimatingInterpolatedVars();
 

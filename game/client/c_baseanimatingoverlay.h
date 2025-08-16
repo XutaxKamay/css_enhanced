@@ -36,8 +36,9 @@ public:
 	virtual void	GetRenderBounds( Vector& theMins, Vector& theMaxs );
 
 	// model specific
-	virtual void	AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
+	virtual void AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
 	virtual void DoAnimationEvents( CStudioHdr *pStudioHdr );
+	virtual bool Interpolate( float currentTime );
 
 	enum
 	{

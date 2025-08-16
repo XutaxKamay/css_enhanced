@@ -845,6 +845,16 @@ inline bool CInterpolatedVarArrayBase<Type, IS_ARRAY>::GetInterpolationInfo(
 			pInfo->frac = ( targettime - older_change_time ) / ( newer_change_time - older_change_time );
 			pInfo->frac = MIN( pInfo->frac, 2.0f );
 
+			if ( (m_fType & INTERPOLATE_LINEAR_ONLY) && !CInterpolationContext::IsExtrapolationAllowed() )
+			{
+				pInfo->frac = MIN( pInfo->frac, 1.0f );
+				pInfo->frac = MAX( pInfo->frac, 0.0f );
+			}
+			else
+			{
+				pInfo->frac = MIN( pInfo->frac, 2.0f );
+			}
+
 			int oldestindex = i+1;
 														    
 			if ( !(m_fType & INTERPOLATE_LINEAR_ONLY) && varHistory.IsIdxValid(oldestindex) )

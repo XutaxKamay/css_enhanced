@@ -848,7 +848,7 @@ C_BaseEntity::C_BaseEntity() :
 	// Needed for lag compensation
 	AddVar( &m_flInterpolatedSimulationTime, &m_iv_flSimulationTime, LATCH_SIMULATION_VAR );
 	// TODO_ENHANCED: For now, animations aren't interpolated!
-	// AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
+	AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
 
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
@@ -2512,7 +2512,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 
 	bool bPredictable = GetPredictable();
 
-	if ( !bPredictable )
+	// if ( !bPredictable )
 	{
 		// Store simulation time for lag compensation.
 		// These should be only set if it's not created by client or isn't a predictable,
@@ -6339,9 +6339,9 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 }
 #endif // TF_CLIENT_DLL
 
-ConVar cl_interp_no_hermite( "cl_interp_no_hermite",
+ConVar cl_interp_linear_only( "cl_interp_linear_only",
 							 "1",
-							 FCVAR_NOT_CONNECTED,
+							 FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE,
 							 "This fixes lag compensation and game screen not respecting camera's at the expense of "
 							 "maybe more unsmooth game play. (maybe)" );
 
@@ -6355,7 +6355,7 @@ void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool
 	// It's possible to have hermite interpolation in lag compensation,
 	// but it would require some extra flags being sent to the server.
 
-	if ( cl_interp_no_hermite.GetBool() )
+	if ( cl_interp_linear_only.GetBool() )
 	{
 		type |= INTERPOLATE_LINEAR_ONLY;
 		DevMsg( 3, "Linear only interpolation enabled for entity %p (varname: %s) !\n", this, watcher->GetDebugName());

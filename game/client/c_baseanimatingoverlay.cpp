@@ -79,15 +79,13 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	
 	int diff = len - pVec->Count();
 
-	
-
 	if ( diff == 0 )
 		return;
 
 	// remove all entries
 	for ( int i=0; i < pVec->Count(); i++ )
 	{
-		// pEnt->RemoveVar( &pVec->Element( i ) );
+		pEnt->RemoveVar( &pVec->Element( i ) );
 	}
 
 	// adjust vector sizes
@@ -107,7 +105,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	{
 		IInterpolatedVar *pWatcher = &pVecIV->Element( i );
 		pWatcher->SetDebugName( s_m_iv_AnimOverlayNames[i] );
-		// pEnt->AddVar( &pVec->Element( i ), pWatcher, LATCH_ANIMATION_VAR );
+		pEnt->AddVar( &pVec->Element( i ), pWatcher, LATCH_ANIMATION_VAR, true );
 	}
 	// FIXME: need to set historical values of nOrder in pVecIV to MAX_OVERLAY
 	
@@ -370,4 +368,15 @@ CStudioHdr *C_BaseAnimatingOverlay::OnNewModel()
 	}
 
 	return hdr;
+}
+
+bool C_BaseAnimatingOverlay::Interpolate( float currentTime )
+{
+	// TODO_ENHANCED: Cheap interpolation, this is wrong technically. FIXME.
+	for ( int i = 0; i < m_iv_AnimOverlay.Count(); i++ )
+	{
+		m_iv_AnimOverlay[i].SetLooping( IsSequenceLooping( m_AnimOverlay[i].m_nSequence ) );
+	}
+
+	return BaseClass::Interpolate( currentTime );
 }

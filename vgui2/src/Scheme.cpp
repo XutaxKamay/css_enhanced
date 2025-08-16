@@ -927,7 +927,7 @@ void CScheme::ReloadFontGlyphs()
 					// add the new set
 					g_pSurface->SetFontGlyphSet(
 						m_FontAliases[i]._font,
-						fontdata->GetString( "name" ), 
+						fontdata->GetString( "name", "Verdana" ), 
 						tall, 
 						fontdata->GetInt( "weight" ), 
 						blur,
@@ -941,7 +941,7 @@ void CScheme::ReloadFontGlyphs()
 					// add the new set
 					g_pSurface->SetFontGlyphSet(
 						m_FontAliases[i]._font,
-						fontdata->GetString( "name" ), 
+						fontdata->GetString( "name", "Verdana" ), 
 						tall, 
 						fontdata->GetInt( "weight" ), 
 						blur,

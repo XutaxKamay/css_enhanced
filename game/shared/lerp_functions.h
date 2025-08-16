@@ -10,6 +10,7 @@
 #pragma once
 #endif
 
+#include "rangecheckedvar.h"
 
 template <class T>
 inline T LoopingLerp( float flPercent, T flFrom, T flTo )

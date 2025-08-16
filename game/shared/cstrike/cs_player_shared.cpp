@@ -659,7 +659,7 @@ void CCSPlayer::FireBullet(
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
 			CBasePlayer* lagPlayer = UTIL_PlayerByIndex( i );
-			if ( lagPlayer && lagPlayer != this )
+			if ( lagPlayer && lagPlayer != this && lagPlayer->IsAlive() )
 			{
 #ifdef CLIENT_DLL
 				if ( !m_pCurrentCommand->hasbeenpredicted )

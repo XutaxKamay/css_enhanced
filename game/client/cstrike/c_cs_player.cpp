@@ -747,7 +747,7 @@ C_CSPlayer::C_CSPlayer() :
 	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
 
 	// TODO_ENHANCED:: interpolation on m_angRenderAngles later
-	// AddVar( &m_angRenderAngles, &m_iv_angRenderAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_angRenderAngles, &m_iv_angRenderAngles, LATCH_SIMULATION_VAR );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;

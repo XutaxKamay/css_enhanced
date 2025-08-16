@@ -925,7 +925,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	VPROF( "CPrediction::RunCommand" );
 #if defined( _DEBUG )
 	char sz[ 32 ];
-	Q_snprintf( sz, sizeof( sz ), "runcommand%04d", ucmd->command_number );
+	Q_snprintf( sz, sizeof( sz ), "runcommand%04d", player->m_nTickBase );
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
     #endif
 
