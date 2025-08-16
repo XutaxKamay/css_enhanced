@@ -6339,21 +6339,12 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 }
 #endif // TF_CLIENT_DLL
 
-ConVar cl_interp_linear_only( "cl_interp_linear_only",
-							 "1",
-							 FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE,
-							 "This fixes lag compensation and game screen not respecting camera's at the expense of "
-							 "maybe more unsmooth game play. (maybe)" );
+ConVar cl_interp_linear_only( "cl_interp_linear_only", "1", FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE | FCVAR_USERINFO );
 
 void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool bSetup )
 {
 	// Only add it if it hasn't been added yet.
 	bool bAddIt = true;
-
-	// TODO_ENHANCED:
-	// This is needed to get the perfect lag compensation for origin.
-	// It's possible to have hermite interpolation in lag compensation,
-	// but it would require some extra flags being sent to the server.
 
 	if ( cl_interp_linear_only.GetBool() )
 	{

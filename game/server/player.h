@@ -878,6 +878,7 @@ public:
 	int						m_nUpdateRate;		// user snapshot rate cl_updaterate
 	bool					m_bLagCompensation;	// user wants lag compenstation
 	bool					m_bPredictWeapons; //  user has client side predicted weapons
+	bool					m_bUseLinearInterpolationOnly; // user uses linear intorp only
 	
 	float		GetDeathTime( void ) { return m_flDeathTime; }
 

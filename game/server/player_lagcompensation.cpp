@@ -48,6 +48,8 @@ struct LayerRecord
 	float m_flWeight;
 	int m_nOrder;
 	int m_fFlags;
+	float m_flLayerAnimtime;
+	float m_flLayerFadeOuttime;
 };
 
 struct LagRecord
@@ -81,38 +83,74 @@ struct LagRecord
 ConVar sv_unlag_debug( "sv_unlag_debug", "0" );
 ConVar sv_unlag_debug_entity( "sv_unlag_debug_entity", "-1" );
 
-// TODO_ENHANCED we could make it really better by copying this code into a shared code header...
 inline LayerRecord LoopingLerp( float flPercent, LayerRecord& from, LayerRecord& to )
 {
 	LayerRecord output;
 
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = LoopingLerp( flPercent, (float)from.m_flCycle, (float)to.m_flCycle );
+	// Sequence and order settings always come from target state
+	output.m_nSequence	 = to.m_nSequence;
+	output.m_nOrder		 = to.m_nOrder;
 	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
+	output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+	output.m_fFlags		 = to.m_fFlags;
+	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
+	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
 
-	// TODO_ENHANCED: this will be probably required if we put MaintainSequenceTransitions in server SetupBones for the sequence transitioner.
-	// output.m_flLayerAnimtime = to.m_flLayerAnimtime;
-	// output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+	// Unified cycle handling for both sequence transitions and same sequences
+	float cycleDelta = to.m_flCycle - from.m_flCycle;
+	if ( abs( cycleDelta ) > 0.5f )
+	{
+		// Compensate for animation loop wrapping
+		float wrappedCycle = ( cycleDelta > 0 ) ? to.m_flCycle - 1.0f : to.m_flCycle + 1.0f;
+		float blended	   = from.m_flCycle + flPercent * ( wrappedCycle - from.m_flCycle );
+		output.m_flCycle   = fmodf( blended + 1.0f, 1.0f ); // Normalize [0,1)
+	}
+	else
+	{
+		// Normal interpolation
+		output.m_flCycle = Lerp( flPercent, from.m_flCycle, to.m_flCycle );
+	}
+
 	return output;
 }
 
-inline LayerRecord Lerp( float flPercent, const LayerRecord& from, const LayerRecord& to )
+inline LayerRecord Lerp( float flPercent, LayerRecord& from, LayerRecord& to )
+{
+	return LoopingLerp( flPercent, from, to );
+}
+
+inline LayerRecord LoopingLerp_Hermite( float flPercent, LayerRecord& prev, LayerRecord& from, LayerRecord& to )
 {
 	LayerRecord output;
 
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = Lerp( flPercent, from.m_flCycle, to.m_flCycle );
+	// Sequence and order settings
+	output.m_nSequence	 = to.m_nSequence;
+	output.m_nOrder		 = to.m_nOrder;
 	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
+	output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+	output.m_fFlags		 = to.m_fFlags;
+	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
+	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
 
-	// output.m_flLayerAnimtime = to.m_flLayerAnimtime;
-	// output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+	// Sequence transition handling
+	if ( from.m_nSequence != to.m_nSequence )
+	{
+		// Transition handling
+		const float baseCycle = to.m_flPrevCycle;
+		output.m_flCycle	  = baseCycle + flPercent * ( to.m_flCycle - baseCycle );
+	}
+	else
+	{
+		// Original Hermite implementation for same sequences
+		output.m_flCycle = LoopingLerp_Hermite( flPercent, prev.m_flCycle, from.m_flCycle, to.m_flCycle );
+	}
+
 	return output;
+}
+
+inline LayerRecord Lerp_Hermite( float flPercent, LayerRecord& prev, LayerRecord& from, LayerRecord& to )
+{
+	return LoopingLerp_Hermite( flPercent, prev, from, to );
 }
 
 inline void Lerp_Clamp( LayerRecord &val )
@@ -122,9 +160,8 @@ inline void Lerp_Clamp( LayerRecord &val )
 	Lerp_Clamp( val.m_flPrevCycle );
 	Lerp_Clamp( val.m_flWeight );
 	Lerp_Clamp( val.m_nOrder );
-	Lerp_Clamp( val.m_fFlags );
-	// Lerp_Clamp( val.m_flLayerAnimtime );
-	// Lerp_Clamp( val.m_flLayerFadeOuttime );
+	Lerp_Clamp( val.m_flLayerAnimtime );
+	Lerp_Clamp( val.m_flLayerFadeOuttime );
 }
 
 inline bool operator==( LayerRecord& lr1, LayerRecord& lr2 )
@@ -132,9 +169,29 @@ inline bool operator==( LayerRecord& lr1, LayerRecord& lr2 )
 	return false;
 }
 
+inline static float LinearInterpOnlyFrac( float targettime, float newer_change_time, float older_change_time )
+{
+	float frac;
+
+	float dt = newer_change_time - older_change_time;
+
+	if ( dt > 0.0001f )
+	{
+		frac = ( targettime - older_change_time ) / ( newer_change_time - older_change_time );
+		frac = MIN( frac, 1.0f );
+		frac = MAX( frac, 0.0f );
+	}
+	else
+	{
+		frac = 0;
+	}
+
+	return frac;
+}
+
 // TODO_ENHANCED: Taken from interpolatedvar.h, we might need hermite interpolation one day ...
 template < typename T >
-inline static T Interpolate( float frac, T& start, T& end, bool bLooping = false  )
+inline static T Interpolate( float frac, T& start, T& end, bool bLooping = false )
 {
 	Assert( frac >= 0.0f && frac <= 1.0f );
 
@@ -169,25 +226,50 @@ inline static T Interpolate( float frac, T& start, T& end, bool bLooping = false
 	return out;
 }
 
-inline static float InterpolateCalcFrac( float targettime, float newer_change_time, float older_change_time )
-{
-	float frac;
+// template < typename T >
+// inline void TimeFixup_Hermite( T& fixup,
+// 							   T& prev,
+// 							   T& start,
+// 							   T& end,
+// 							   float flStartTime,
+// 							   float flPrevTime,
+// 							   bool bLooping = false )
+// {
+// 	float dt2 = flStartTime - flPrevTime;
 
-	float dt = newer_change_time - older_change_time;
+// 	if ( fabs( dt1 - dt2 ) > 0.0001f && dt2 > 0.0001f )
+// 	{
+// 		float frac = dt1 / dt2;
 
-	if ( dt > 0.0001f )
-	{
-		frac = ( targettime - older_change_time ) / ( newer_change_time - older_change_time );
-		frac = MIN( frac, 1.0f );
-		frac = MAX( frac, 0.0f );
-	}
-	else
-	{
-		frac = 0;
-	}
+// 		if ( bLooping )
+// 		{
+// 			fixup = LoopingLerp( 1 - frac, prev, start );
+// 		}
+// 		else
+// 		{
+// 			fixup = Lerp( 1 - frac, prev, start );
+// 		}
 
-	return frac;
-}
+// 		prev = fixup;
+// 	}
+// }
+
+// template < typename T >
+// inline static T Interpolate_Hermite( float flStartTime,
+// 									 float flPrevTime,
+// 									 float flEndTime,
+// 									 T& prev,
+// 									 T& start,
+// 									 T& end,
+// 									 bool bLooping = false )
+// {
+// 	T fixup;
+// 	TimeFixup_Hermite( fixup, prev, start, end );
+
+// 	Lerp_Clamp( out );
+
+// 	return out;
+// }
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -240,6 +322,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 	bool m_bNeedToRestore;
 
 	LagRecord m_RestoreData[MAX_EDICTS]; // entities data before we moved him back
+	CBasePlayer* m_LagPlayer;
 };
 
 static CLagCompensationManager g_LagCompensationManager( "CLagCompensationManager" );
@@ -318,12 +401,14 @@ void CLagCompensationManager::TrackEntities()
 
 				if ( currentLayer )
 				{
-					record.m_layerRecords[layerIndex].m_flCycle		= currentLayer->m_flCycle;
-					record.m_layerRecords[layerIndex].m_nOrder		= currentLayer->m_nOrder;
-					record.m_layerRecords[layerIndex].m_nSequence	= currentLayer->m_nSequence;
-					record.m_layerRecords[layerIndex].m_flWeight	= currentLayer->m_flWeight;
-					record.m_layerRecords[layerIndex].m_fFlags		= currentLayer->m_fFlags;
-					record.m_layerRecords[layerIndex].m_flPrevCycle = currentLayer->m_flPrevCycle;
+					record.m_layerRecords[layerIndex].m_flCycle			   = currentLayer->m_flCycle;
+					record.m_layerRecords[layerIndex].m_nOrder			   = currentLayer->m_nOrder;
+					record.m_layerRecords[layerIndex].m_nSequence		   = currentLayer->m_nSequence;
+					record.m_layerRecords[layerIndex].m_flWeight		   = currentLayer->m_flWeight;
+					record.m_layerRecords[layerIndex].m_fFlags			   = currentLayer->m_fFlags;
+					record.m_layerRecords[layerIndex].m_flPrevCycle		   = currentLayer->m_flPrevCycle;
+					record.m_layerRecords[layerIndex].m_flLayerAnimtime	   = currentLayer->m_flLayerAnimtime;
+					record.m_layerRecords[layerIndex].m_flLayerFadeOuttime = currentLayer->m_flLayerFadeOuttime;
 				}
 			}
 		}
@@ -344,6 +429,8 @@ void CLagCompensationManager::TrackEntities()
 // Called during player movement to set up/restore after lag compensation
 void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCmd* cmd )
 {
+	m_LagPlayer = player;
+
 	// Assume no entities need to be restored
 	m_RestoreEntity.ClearAll();
 	m_bNeedToRestore = false;
@@ -433,11 +520,14 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 	LagRecord* nextRecordSim = NULL;
 	LagRecord* recordSim = NULL;
+	LagRecord* prevRecordSim = NULL;
 	LagRecord* nextRecordAnim = NULL;
 	LagRecord* recordAnim = NULL;
+	LagRecord* prevRecordAnim = NULL;
 
 	float flTargetSimTime  = cmd->simulationdata[loopindex].sim_time;
 	float flTargetAnimTime = cmd->simulationdata[loopindex].anim_time;
+	auto bUseLinearInterpolationOnly = m_LagPlayer->m_bUseLinearInterpolationOnly;
 
 	// Somehow the client didn't care.
 	if ( flTargetSimTime == 0 )
@@ -474,6 +564,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 		{
 			foundSim	  = true;
 			nextRecordSim = track->Get( i - 1 );
+			prevRecordSim = track->Get( i + 1 );
 			break;
 		}
 	}
@@ -529,12 +620,14 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 			if ( currentLayer )
 			{
-				restore->m_layerRecords[layerIndex].m_flCycle	  = currentLayer->m_flCycle;
-				restore->m_layerRecords[layerIndex].m_nOrder	  = currentLayer->m_nOrder;
-				restore->m_layerRecords[layerIndex].m_nSequence	  = currentLayer->m_nSequence;
-				restore->m_layerRecords[layerIndex].m_flWeight	  = currentLayer->m_flWeight;
-				restore->m_layerRecords[layerIndex].m_fFlags	  = currentLayer->m_fFlags;
-				restore->m_layerRecords[layerIndex].m_flPrevCycle = currentLayer->m_flPrevCycle;
+				restore->m_layerRecords[layerIndex].m_flCycle			 = currentLayer->m_flCycle;
+				restore->m_layerRecords[layerIndex].m_nOrder			 = currentLayer->m_nOrder;
+				restore->m_layerRecords[layerIndex].m_nSequence			 = currentLayer->m_nSequence;
+				restore->m_layerRecords[layerIndex].m_flWeight			 = currentLayer->m_flWeight;
+				restore->m_layerRecords[layerIndex].m_fFlags			 = currentLayer->m_fFlags;
+				restore->m_layerRecords[layerIndex].m_flPrevCycle		 = currentLayer->m_flPrevCycle;
+				restore->m_layerRecords[layerIndex].m_flLayerAnimtime	 = currentLayer->m_flLayerAnimtime;
+				restore->m_layerRecords[layerIndex].m_flLayerFadeOuttime = currentLayer->m_flLayerFadeOuttime;
 			}
 		}
 	}
@@ -563,7 +656,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	// Now interpolate entity.
 	if ( nextRecordSim && ( nextRecordSim->m_flSimulationTime > recordSim->m_flSimulationTime ) )
 	{
-		auto fracSim = InterpolateCalcFrac( flTargetSimTime,
+		auto fracSim = LinearInterpOnlyFrac( flTargetSimTime,
 											nextRecordSim->m_flSimulationTime,
 											recordSim->m_flSimulationTime );
 
@@ -685,7 +778,7 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 	// Now interpolate entity animation.
 	if ( nextRecordAnim && ( nextRecordAnim->m_flAnimTime > recordAnim->m_flAnimTime ) )
 	{
-		auto fracAnim = InterpolateCalcFrac( flTargetAnimTime, nextRecordAnim->m_flAnimTime, recordAnim->m_flAnimTime );
+		auto fracAnim = LinearInterpOnlyFrac( flTargetAnimTime, nextRecordAnim->m_flAnimTime, recordAnim->m_flAnimTime );
 
 		auto newSequence = Interpolate( fracAnim, recordAnim->m_masterSequence, nextRecordAnim->m_masterSequence );
 		auto newCycle	 = Interpolate( fracAnim,
@@ -738,12 +831,14 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 					  nextRecordAnim->m_layerRecords[layerIndex],
 					  pAnimOverlay->IsSequenceLooping( nextRecordAnim->m_layerRecords[layerIndex].m_nSequence ) );
 
-					currentLayer->m_flCycle		= newAnimLayer.m_flCycle;
-					currentLayer->m_nOrder		= newAnimLayer.m_nOrder;
-					currentLayer->m_nSequence	= newAnimLayer.m_nSequence;
-					currentLayer->m_flWeight	= newAnimLayer.m_flWeight;
-					currentLayer->m_fFlags		= newAnimLayer.m_fFlags;
-					currentLayer->m_flPrevCycle = newAnimLayer.m_flPrevCycle;
+					currentLayer->m_flCycle			   = newAnimLayer.m_flCycle;
+					currentLayer->m_nOrder			   = newAnimLayer.m_nOrder;
+					currentLayer->m_nSequence		   = newAnimLayer.m_nSequence;
+					currentLayer->m_flWeight		   = newAnimLayer.m_flWeight;
+					currentLayer->m_fFlags			   = newAnimLayer.m_fFlags;
+					currentLayer->m_flPrevCycle		   = newAnimLayer.m_flPrevCycle;
+					currentLayer->m_flLayerAnimtime	   = newAnimLayer.m_flLayerAnimtime;
+					currentLayer->m_flLayerFadeOuttime = newAnimLayer.m_flLayerFadeOuttime;
 				}
 			}
 		}
@@ -778,12 +873,14 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 				if ( currentLayer )
 				{
-					currentLayer->m_flCycle		= recordAnim->m_layerRecords[layerIndex].m_flCycle;
-					currentLayer->m_nOrder		= recordAnim->m_layerRecords[layerIndex].m_nOrder;
-					currentLayer->m_nSequence	= recordAnim->m_layerRecords[layerIndex].m_nSequence;
-					currentLayer->m_flWeight	= recordAnim->m_layerRecords[layerIndex].m_flWeight;
-					currentLayer->m_fFlags		= recordAnim->m_layerRecords[layerIndex].m_fFlags;
-					currentLayer->m_flPrevCycle = recordAnim->m_layerRecords[layerIndex].m_flPrevCycle;
+					currentLayer->m_flCycle			   = recordAnim->m_layerRecords[layerIndex].m_flCycle;
+					currentLayer->m_nOrder			   = recordAnim->m_layerRecords[layerIndex].m_nOrder;
+					currentLayer->m_nSequence		   = recordAnim->m_layerRecords[layerIndex].m_nSequence;
+					currentLayer->m_flWeight		   = recordAnim->m_layerRecords[layerIndex].m_flWeight;
+					currentLayer->m_fFlags			   = recordAnim->m_layerRecords[layerIndex].m_fFlags;
+					currentLayer->m_flPrevCycle		   = recordAnim->m_layerRecords[layerIndex].m_flPrevCycle;
+					currentLayer->m_flLayerAnimtime	   = recordAnim->m_layerRecords[layerIndex].m_flLayerAnimtime;
+					currentLayer->m_flLayerFadeOuttime = recordAnim->m_layerRecords[layerIndex].m_flLayerFadeOuttime;
 				}
 			}
 		}
@@ -862,12 +959,14 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 				if ( currentLayer )
 				{
-					currentLayer->m_flCycle		= restore->m_layerRecords[layerIndex].m_flCycle;
-					currentLayer->m_nOrder		= restore->m_layerRecords[layerIndex].m_nOrder;
-					currentLayer->m_nSequence	= restore->m_layerRecords[layerIndex].m_nSequence;
-					currentLayer->m_flWeight	= restore->m_layerRecords[layerIndex].m_flWeight;
-					currentLayer->m_fFlags		= restore->m_layerRecords[layerIndex].m_fFlags;
-					currentLayer->m_flPrevCycle = restore->m_layerRecords[layerIndex].m_flPrevCycle;
+					currentLayer->m_flCycle			   = restore->m_layerRecords[layerIndex].m_flCycle;
+					currentLayer->m_nOrder			   = restore->m_layerRecords[layerIndex].m_nOrder;
+					currentLayer->m_nSequence		   = restore->m_layerRecords[layerIndex].m_nSequence;
+					currentLayer->m_flWeight		   = restore->m_layerRecords[layerIndex].m_flWeight;
+					currentLayer->m_fFlags			   = restore->m_layerRecords[layerIndex].m_fFlags;
+					currentLayer->m_flPrevCycle		   = restore->m_layerRecords[layerIndex].m_flPrevCycle;
+					currentLayer->m_flLayerAnimtime	   = restore->m_layerRecords[layerIndex].m_flLayerAnimtime;
+					currentLayer->m_flLayerFadeOuttime = restore->m_layerRecords[layerIndex].m_flLayerFadeOuttime;
 				}
 			}
 		}

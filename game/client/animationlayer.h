@@ -121,69 +121,75 @@ inline float C_AnimationLayer::GetFadeout( float flCurTime )
 	return s;
 }
 
+
 inline C_AnimationLayer LoopingLerp( float flPercent, C_AnimationLayer& from, C_AnimationLayer& to )
 {
 	C_AnimationLayer output;
 
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = LoopingLerp( flPercent, (float)from.m_flCycle, (float)to.m_flCycle );
+	// Sequence and order settings always come from target state
+	output.m_nSequence	 = to.m_nSequence;
+	output.m_nOrder		 = to.m_nOrder;
 	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
-
-	output.m_flLayerAnimtime = to.m_flLayerAnimtime;
+	output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+	output.m_fFlags		 = to.m_fFlags;
+	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
 	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+
+	// Unified cycle handling for both sequence transitions and same sequences
+	float cycleDelta = to.m_flCycle - from.m_flCycle;
+	if ( abs( cycleDelta ) > 0.5f )
+	{
+		// Compensate for animation loop wrapping
+		float wrappedCycle = ( cycleDelta > 0 ) ? to.m_flCycle - 1.0f : to.m_flCycle + 1.0f;
+		float blended	   = from.m_flCycle + flPercent * ( wrappedCycle - from.m_flCycle );
+		output.m_flCycle   = fmodf( blended + 1.0f, 1.0f ); // Normalize [0,1)
+	}
+	else
+	{
+		// Normal interpolation
+		output.m_flCycle = Lerp( flPercent, from.m_flCycle, to.m_flCycle );
+	}
+
 	return output;
 }
 
-inline C_AnimationLayer Lerp( float flPercent, const C_AnimationLayer& from, const C_AnimationLayer& to )
+inline C_AnimationLayer Lerp( float flPercent, C_AnimationLayer& from, C_AnimationLayer& to )
 {
-	C_AnimationLayer output;
-
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = Lerp( flPercent, from.m_flCycle, to.m_flCycle );
-	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
-
-	output.m_flLayerAnimtime = to.m_flLayerAnimtime;
-	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
-	return output;
+	return LoopingLerp( flPercent, from, to );
 }
 
 inline C_AnimationLayer LoopingLerp_Hermite( float flPercent, C_AnimationLayer& prev, C_AnimationLayer& from, C_AnimationLayer& to )
 {
 	C_AnimationLayer output;
 
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = LoopingLerp_Hermite( flPercent, (float)prev.m_flCycle, (float)from.m_flCycle, (float)to.m_flCycle );
+	// Sequence and order settings
+	output.m_nSequence	 = to.m_nSequence;
+	output.m_nOrder		 = to.m_nOrder;
 	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
-
-	output.m_flLayerAnimtime = to.m_flLayerAnimtime;
+	output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+	output.m_fFlags		 = to.m_fFlags;
+	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
 	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+
+	// Sequence transition handling (unchanged from original)
+	if ( from.m_nSequence != to.m_nSequence )
+	{
+		// Transition handling
+		const float baseCycle = to.m_flPrevCycle;
+		output.m_flCycle	  = baseCycle + flPercent * ( to.m_flCycle - baseCycle );
+	}
+	else
+	{
+		// Original Hermite implementation for same sequences
+		output.m_flCycle = LoopingLerp_Hermite( flPercent, prev.m_flCycle, from.m_flCycle, to.m_flCycle );
+	}
+
 	return output;
 }
 
-// YWB:  Specialization for interpolating euler angles via quaternions...
-inline C_AnimationLayer Lerp_Hermite( float flPercent, const C_AnimationLayer& prev, const C_AnimationLayer& from, const C_AnimationLayer& to )
+inline C_AnimationLayer Lerp_Hermite( float flPercent, C_AnimationLayer& prev, C_AnimationLayer& from, C_AnimationLayer& to )
 {
-	C_AnimationLayer output;
-
-	output.m_nSequence = to.m_nSequence;
-	output.m_flCycle = Lerp_Hermite( flPercent, prev.m_flCycle, from.m_flCycle, to.m_flCycle );
-	output.m_flPrevCycle = to.m_flPrevCycle;
-	output.m_flWeight = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
-	output.m_nOrder = to.m_nOrder;
-	output.m_fFlags = to.m_fFlags;
-
-	output.m_flLayerAnimtime = to.m_flLayerAnimtime;
-	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
-	return output;
+	return LoopingLerp_Hermite( flPercent, prev, from, to );
 }
 
 inline void Lerp_Clamp( C_AnimationLayer &val )
@@ -193,7 +199,6 @@ inline void Lerp_Clamp( C_AnimationLayer &val )
 	Lerp_Clamp( val.m_flPrevCycle );
 	Lerp_Clamp( val.m_flWeight );
 	Lerp_Clamp( val.m_nOrder );
-	Lerp_Clamp( val.m_fFlags );
 	Lerp_Clamp( val.m_flLayerAnimtime );
 	Lerp_Clamp( val.m_flLayerFadeOuttime );
 }

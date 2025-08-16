@@ -372,11 +372,5 @@ CStudioHdr *C_BaseAnimatingOverlay::OnNewModel()
 
 bool C_BaseAnimatingOverlay::Interpolate( float currentTime )
 {
-	// TODO_ENHANCED: Cheap interpolation, this is wrong technically. FIXME.
-	for ( int i = 0; i < m_iv_AnimOverlay.Count(); i++ )
-	{
-		m_iv_AnimOverlay[i].SetLooping( IsSequenceLooping( m_AnimOverlay[i].m_nSequence ) );
-	}
-
 	return BaseClass::Interpolate( currentTime );
 }
