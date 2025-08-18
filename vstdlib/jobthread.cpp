@@ -930,20 +930,6 @@ bool CThreadPool::Start( const ThreadPoolStartParams_t &startParams, const char 
 		return true;
 	}
 
-	int nStackSize = startParams.nStackSize;
-
-	if ( nStackSize < 0 )
-	{
-		if ( startParams.bIOThreads )
-		{
-			nStackSize = IO_STACKSIZE;
-		}
-		else
-		{
-			nStackSize = COMPUTATION_STACKSIZE;
-		}
-	}
-
 	int priority = startParams.iThreadPriority;
 
 	if ( priority == SHRT_MIN )
@@ -984,7 +970,7 @@ bool CThreadPool::Start( const ThreadPoolStartParams_t &startParams, const char 
 		m_Threads[iThread] = new CJobThread( this, iThread );
 		m_IdleEvents[iThread] = &m_Threads[iThread]->GetIdleEvent();
 		m_Threads[iThread]->SetName( CFmtStr( "%s%d", pszName, iThread ) );
-		m_Threads[iThread]->Start( nStackSize );
+		m_Threads[iThread]->Start();
 		m_Threads[iThread]->GetIdleEvent().Wait();
 #ifdef WIN32
 		ThreadSetPriority( (ThreadHandle_t)m_Threads[iThread]->GetThreadHandle(), priority );
