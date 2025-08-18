@@ -651,7 +651,7 @@ void CBaseFileSystem::InitAsync()
 
 		static CBreakThread breakThread;
 		breakThread.SetName( "DebugBreakThread" );
-		breakThread.Start( 1024 );
+		breakThread.Start();
 	}
 
 	if ( CommandLine()->FindParm( "-noasync" ) )
