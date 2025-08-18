@@ -125,7 +125,7 @@ INLINE_ON_PS3 bool CThread::Start( ThreadPriorityEnum_t nPriority )
 		0x40000000, // what stack size you want? yes
 		(LPTHREAD_START_ROUTINE)GetThreadProc(),
 		new ThreadInit_t(init),
-		STACK_SIZE_PARAM_IS_A_RESERVATION,
+		0,
 		(LPDWORD)&m_threadId );
 
 	if( nPriority != TP_PRIORITY_DEFAULT )

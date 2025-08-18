@@ -384,10 +384,5 @@ CStudioHdr *C_BaseAnimatingOverlay::OnNewModel()
 
 bool C_BaseAnimatingOverlay::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
-	for ( int i=0; i < m_AnimOverlay.Count(); i++ )
-	{
-		m_iv_AnimOverlay[i].SetLooping( IsSequenceLooping( m_AnimOverlay[i].m_nSequence ) );
-	}
-
 	return BaseClass::Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 }

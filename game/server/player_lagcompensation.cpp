@@ -87,13 +87,23 @@ inline LayerRecord LoopingLerp( float flPercent, LayerRecord& from, LayerRecord&
 
 	output.m_nSequence			= to.m_nSequence;
 	output.m_nOrder				= to.m_nOrder;
-	output.m_flPrevCycle		= to.m_flPrevCycle;
-	output.m_flWeight			= Lerp( flPercent, from.m_flWeight, to.m_flWeight );
 	output.m_fFlags				= to.m_fFlags;
 	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
 	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+	output.m_flCycle			= LoopingLerp( flPercent, from.m_flCycle, to.m_flCycle );
 
-	output.m_flCycle = LoopingLerp( flPercent, from.m_flCycle, to.m_flCycle );
+	// If sequences changes, we need to set them directly in order to avoid artifacts at the expense of not being
+	// exactly all the time smooth, and it is okay.
+	if ( from.m_nSequence == to.m_nSequence )
+	{
+		output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+		output.m_flPrevCycle = from.m_flPrevCycle;
+	}
+	else
+	{
+		output.m_flWeight	 = to.m_flWeight;
+		output.m_flPrevCycle = to.m_flPrevCycle;
+	}
 
 	return output;
 }
@@ -109,20 +119,25 @@ inline LayerRecord LoopingLerp_Hermite( float flPercent, LayerRecord& prev, Laye
 
 	output.m_nSequence			= to.m_nSequence;
 	output.m_nOrder				= to.m_nOrder;
-	output.m_flPrevCycle		= to.m_flPrevCycle;
-	output.m_flWeight			= Lerp( flPercent, from.m_flWeight, to.m_flWeight );
 	output.m_fFlags				= to.m_fFlags;
 	output.m_flLayerAnimtime	= to.m_flLayerAnimtime;
 	output.m_flLayerFadeOuttime = to.m_flLayerFadeOuttime;
+	output.m_flCycle			= LoopingLerp_Hermite( flPercent, prev.m_flCycle, from.m_flCycle, to.m_flCycle );
 
-	output.m_flCycle = LoopingLerp_Hermite( flPercent, prev.m_flCycle, from.m_flCycle, to.m_flCycle );
+	// If sequences changes, we need to set them directly in order to avoid artifacts at the expense of not being
+	// exactly all the time smooth, and it is okay.
+	if ( from.m_nSequence == to.m_nSequence )
+	{
+		output.m_flWeight	 = Lerp( flPercent, from.m_flWeight, to.m_flWeight );
+		output.m_flPrevCycle = from.m_flPrevCycle;
+	}
+	else
+	{
+		output.m_flWeight	 = to.m_flWeight;
+		output.m_flPrevCycle = to.m_flPrevCycle;
+	}
 
 	return output;
-}
-
-inline LayerRecord Lerp_Hermite( float flPercent, LayerRecord& prev, LayerRecord& from, LayerRecord& to )
-{
-	return LoopingLerp_Hermite( flPercent, prev, from, to );
 }
 
 inline void Lerp_Clamp( LayerRecord& val )
@@ -699,11 +714,9 @@ inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int 
 
 				if ( pCurrentLayer )
 				{
-					auto newAnimLayer = Interpolate_Linear(
-					  frac,
-					  recordAnim->m_LayerRecords[layerIndex],
-					  nextRecordAnim->m_LayerRecords[layerIndex],
-					  pAnimOverlay->IsSequenceLooping( recordAnim->m_LayerRecords[layerIndex].m_nSequence ) );
+					auto newAnimLayer = Interpolate_Linear( frac,
+															recordAnim->m_LayerRecords[layerIndex],
+															nextRecordAnim->m_LayerRecords[layerIndex] );
 
 					pCurrentLayer->m_flCycle			= newAnimLayer.m_flCycle;
 					pCurrentLayer->m_nOrder				= newAnimLayer.m_nOrder;
