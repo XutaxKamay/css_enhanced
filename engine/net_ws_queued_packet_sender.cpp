@@ -88,7 +88,7 @@ bool CQueuedPacketSender::Start( unsigned nBytesStack )
 {
 	Shutdown();
 
-	if ( CThread::Start( nBytesStack ) )
+	if ( CThread::Start() )
 	{
 		// Ahhh the perfect cross-platformness of the threads library.
 #ifdef IS_WINDOWS_PC
