@@ -452,6 +452,9 @@ void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Q
 
 	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
 
+	// TODO_ENHANCED
+	// MaintainSequenceTransitions( boneSetup, GetCycle(), gpGlobals->curtime, pos, q );
+
 	// sort the layers
 	int layer[MAX_OVERLAYS] = {};
 	int i;

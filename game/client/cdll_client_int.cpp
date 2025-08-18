@@ -2288,7 +2288,6 @@ void CHLClient::FrameStageNotify( ClientFrameStage_t curStage )
 			// disabled all recomputations while we update entities
 			C_BaseEntity::EnableAbsRecomputations( false );
 			C_BaseEntity::SetAbsQueriesValid( false );
-			Interpolation_SetLastPacketTimeStamp( engine->GetLastTimeStamp() );
 			partition->SuppressLists( PARTITION_ALL_CLIENT_EDICTS, true );
 
 			PREDICTION_STARTTRACKVALUE( "netupdate" );
@@ -2329,7 +2328,6 @@ void CHLClient::FrameStageNotify( ClientFrameStage_t curStage )
 			// Mark the frame as open for client fx additions
 			SetFXCreationAllowed( true );
 			SetBeamCreationAllowed( true );
-			C_BaseEntity::CheckCLInterpChanged();
 		}
 		break;
 	}

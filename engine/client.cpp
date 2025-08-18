@@ -633,27 +633,19 @@ float CClientState::GetClientInterpAmount()
 		return 0.0f;
 	}
 
-	// we need client cvar cl_interp_ratio
-	static const ConVar *s_cl_interp_ratio = NULL;
-	if ( !s_cl_interp_ratio )
+	static const ConVar *s_cl_interpolation_amount = NULL;
+	if ( !s_cl_interpolation_amount )
 	{
-		s_cl_interp_ratio = g_pCVar->FindVar( "cl_interp_ratio" );
-		if ( !s_cl_interp_ratio )
-			return 0.1f;
+		constexpr auto g_DefaultTicksToInterpolate = 10;
+		s_cl_interpolation_amount = g_pCVar->FindVar( "cl_interpolation_amount" );
+		if ( !s_cl_interpolation_amount )
+			return TICKS_TO_TIME( g_DefaultTicksToInterpolate );
 	}
-	static const ConVar *s_cl_interp = NULL;
-	if ( !s_cl_interp )
-	{
-		s_cl_interp = g_pCVar->FindVar( "cl_interp" );
-		if ( !s_cl_interp )
-			return 0.1f;
-	}
-		
-	float flInterpRatio = s_cl_interp_ratio->GetFloat();
-	float flInterp = s_cl_interp->GetFloat();
+
+	float flInterp = TICKS_TO_TIME( s_cl_interpolation_amount->GetInt() );
 
 	//#define FIXME_INTERP_RATIO
-	return max( flInterpRatio / cl_updaterate->GetFloat(), flInterp );
+	return flInterp;
 }
 
 //-----------------------------------------------------------------------------

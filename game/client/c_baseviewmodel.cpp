@@ -143,16 +143,16 @@ void C_BaseViewModel::FireEvent( const Vector& origin, const QAngle& angles, int
 	}
 }
 
-bool C_BaseViewModel::Interpolate( float currentTime )
+bool C_BaseViewModel::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
 	// Make sure we reset our animation information if we've switch sequences
 	UpdateAnimationParity();
 
-	bool bret = BaseClass::Interpolate( currentTime );
+	bool bret = BaseClass::Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 
 	// Hack to extrapolate cycle counter for view model
-	float elapsed_time = currentTime - m_flAnimTime;
+	float elapsed_time = gpGlobals->curtime - m_flAnimTime;
 	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 
 	// Predicted viewmodels have fixed up interval
@@ -164,7 +164,7 @@ bool C_BaseViewModel::Interpolate( float currentTime )
 		// Adjust for interpolated partial frame
 		if ( !engine->IsPaused() )
 		{
-			elapsed_time += ( gpGlobals->interpolation_amount * TICK_INTERVAL );
+			elapsed_time += ( gpGlobals->interpolation_amount_frac * TICK_INTERVAL );
 		}
 	}
 

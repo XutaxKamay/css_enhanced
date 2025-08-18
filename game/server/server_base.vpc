@@ -431,6 +431,7 @@ $Project
 		$File	"item_world.cpp"
 		$File	"items.h"
 		$File	"$SRCDIR\public\ivoiceserver.h"
+		$File	"$SRCDIR\game\shared\interpolatedvar.cpp"
 		$File	"$SRCDIR\public\keyframe\keyframe.h"
 		$File	"lightglow.cpp"
 		$File	"lights.cpp"

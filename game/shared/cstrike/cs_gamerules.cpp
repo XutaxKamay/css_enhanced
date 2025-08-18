@@ -5848,8 +5848,7 @@ static ConVar sv_competitive_minspec( "sv_competitive_minspec",
 	fps_max minimum 59 (0 works too)\n \
 	cl_detailfade minimum 400\n \
 	cl_detaildist minimum 1200\n \
-	cl_interp_ratio = minimum 1 maximum 2\n \
-	cl_interp = minimum 0 maximum 0.031\n \
+	cl_interpolation_amount = minimum 0 maximum 10\n \
 	"
 #ifdef CLIENT_DLL
 									 ,sv_competitive_minspec_changed_f
@@ -5863,8 +5862,7 @@ ENABLE_COMPETITIVE_CONVAR( r_staticprop_lod, -1, 3 );		// force r_staticprop_lod
 ENABLE_COMPETITIVE_CONVAR( fps_max, 59, FLT_MAX, 1, 0 );	// force fps_max above 59. One additional value (0) works
 ENABLE_COMPETITIVE_CONVAR( cl_detailfade, 400 );			// force cl_detailfade above 400.
 ENABLE_COMPETITIVE_CONVAR( cl_detaildist, 1200 );			// force cl_detaildist above 1200.
-ENABLE_COMPETITIVE_CONVAR( cl_interp_ratio, 1, 2 );			// force cl_interp_ratio from 1 to 2
-ENABLE_COMPETITIVE_CONVAR( cl_interp, 0, 0.031 );		// force cl_interp from 0.0152 to 0.031
+ENABLE_COMPETITIVE_CONVAR( cl_interpolation_amount, 0, 10 );// force cl_interp from 0 to 10
 
 // Stubs for replay client code
 const char *GetMapDisplayName( const char *pMapName )

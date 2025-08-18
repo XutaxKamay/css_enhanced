@@ -533,7 +533,6 @@ void CHLTVServer::StartMaster(CGameClient *client)
 	m_MasterClient->m_ConVars->SetString( "cl_team", "1" );
 	m_MasterClient->m_ConVars->SetString( "rate",  V_STRINGIFY(DEFAULT_RATE) );
 	m_MasterClient->m_ConVars->SetString( "cl_updaterate", "22" );
-	m_MasterClient->m_ConVars->SetString( "cl_interp_ratio", "1.0" );
 	m_MasterClient->m_ConVars->SetString( "cl_predict", "0" );
 
 	m_nViewEntity = m_MasterClient->GetPlayerSlot() + 1;

@@ -54,8 +54,6 @@ public:
 
 private:
 
-	void Interp_Copy( VarMapping_t *pDest, CBaseEntity *pSourceEntity, VarMapping_t *pSrc );
-
 	float m_flFadeOutStart;
 };
 
@@ -67,25 +65,6 @@ C_LowViolenceHostageDeathModel::C_LowViolenceHostageDeathModel()
 //-----------------------------------------------------------------------------
 C_LowViolenceHostageDeathModel::~C_LowViolenceHostageDeathModel()
 {
-}
-
-//-----------------------------------------------------------------------------
-void C_LowViolenceHostageDeathModel::Interp_Copy( VarMapping_t *pDest, CBaseEntity *pSourceEntity, VarMapping_t *pSrc )
-{
-	if ( !pDest || !pSrc )
-		return;
-
-	if ( pDest->m_Entries.Count() != pSrc->m_Entries.Count() )
-	{
-		Assert( false );
-		return;
-	}
-
-	int c = pDest->m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		pDest->m_Entries[ i ].watcher->Copy( pSrc->m_Entries[i].watcher );
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -135,7 +114,7 @@ bool C_LowViolenceHostageDeathModel::SetupLowViolenceModel( C_CHostage *pHostage
 		}
 	}
 
-	Interp_Reset( GetVarMapping() );
+	ResetLatched();
 	return true;
 }
 

@@ -21,7 +21,6 @@ void RecvProxy_IntToMoveParent( const CRecvProxyData *pData, void *pStruct, void
 void RecvProxy_IntToColor32( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_IntSubOne( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_ShortSubOne( const CRecvProxyData *pData, void *pStruct, void *pOut );
-void RecvProxy_InterpolationAmountChanged( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_IntToModelIndex16_BackCompatible( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_IntToModelIndex32_BackCompatible( const CRecvProxyData *pData, void *pStruct, void *pOut );
 

@@ -562,6 +562,7 @@ void CCSPlayer::FireBullet(
 
 			event->SetFloat( "simtime", lagPlayer->GetSimulationTime() );
 			event->SetFloat( "animtime", lagPlayer->GetAnimTime() );
+			event->SetFloat( "interpamount", m_pCurrentCommand->interpolated_amount_frac );
 
 			Vector positions[MAXSTUDIOBONES];
 			QAngle angles[MAXSTUDIOBONES];

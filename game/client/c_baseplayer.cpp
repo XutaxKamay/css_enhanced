@@ -411,11 +411,11 @@ LINK_ENTITY_TO_CLASS( player, C_BasePlayer );
 // -------------------------------------------------------------------------------- //
 // Functions.
 // -------------------------------------------------------------------------------- //
-C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset" )
+C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset", &m_vecViewOffset, LATCH_SIMULATION_VAR )
 {
-	AddVar( &m_vecViewOffset, &m_iv_vecViewOffset, LATCH_SIMULATION_VAR );
-	AddVar( &m_Local.m_vecPunchAngle.m_Value, &m_Local.m_iv_vecPunchAngle, LATCH_SIMULATION_VAR );
-	AddVar( &m_Local.m_vecPunchAngleVel.m_Value, &m_Local.m_iv_vecPunchAngleVel, LATCH_SIMULATION_VAR );
+	AddVar( &m_iv_vecViewOffset );
+	AddVar( &m_Local.m_iv_vecPunchAngle );
+	AddVar( &m_Local.m_iv_vecPunchAngleVel );
 
 #ifdef _DEBUG																
 	m_vecLadderNormal.Init();
@@ -2428,7 +2428,7 @@ float C_BasePlayer::GetFOV( void )
 			{
 				// m_flFOVTime was set to a predicted time in the future, because the FOV change was predicted.
 				deltaTime = (float)( GetFinalPredictedTime() - m_flFOVTime );
-				deltaTime += ( gpGlobals->interpolation_amount * TICK_INTERVAL );
+				deltaTime += ( gpGlobals->interpolation_amount_frac * TICK_INTERVAL );
 				deltaTime /= m_Local.m_flFOVRate;
 			}
 #endif
@@ -2616,7 +2616,7 @@ void C_BasePlayer::ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOu
 	// blow the cached prev bones
 	InvalidateBoneCache();
 	// reset root position to flTime
-	Interpolate( gpGlobals->curtime + curtimeOffset );
+	Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 
 	// force cycle back by boneDt
 	m_flCycle = fmod( 10 + cycle + m_flPlaybackRate * curtimeOffset, 1.0f );

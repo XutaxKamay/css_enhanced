@@ -87,7 +87,7 @@ public:
 		entitygroundcontact.RemoveAll();
 #endif
 
-        interpolated_amount = 0.0f;
+        interpolated_amount_frac = 0.0f;
 	}
 
 	CUserCmd& operator =( const CUserCmd& src )
@@ -117,7 +117,7 @@ public:
 		entitygroundcontact			= src.entitygroundcontact;
 #endif
 
-        interpolated_amount = src.interpolated_amount;
+        interpolated_amount_frac = src.interpolated_amount_frac;
 		return *this;
 	}
 
@@ -141,7 +141,7 @@ public:
 		CRC32_ProcessBuffer( &crc, &weaponsubtype, sizeof( weaponsubtype ) );
 		CRC32_ProcessBuffer( &crc, simulationdata, sizeof( simulationdata ) );
 		CRC32_ProcessBuffer( &crc, &debug_hitboxes, sizeof( debug_hitboxes ) );
-		CRC32_ProcessBuffer( &crc, &interpolated_amount, sizeof( interpolated_amount ) );
+		CRC32_ProcessBuffer( &crc, &interpolated_amount_frac, sizeof( interpolated_amount_frac ) );
 		CRC32_Final( &crc );
 
 		return crc;
@@ -190,7 +190,7 @@ public:
 	uint8 debug_hitboxes;
 
 	// TODO_ENHANCED: check README_ENHANCED in host.cpp!
-	float interpolated_amount;
+	float interpolated_amount_frac;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

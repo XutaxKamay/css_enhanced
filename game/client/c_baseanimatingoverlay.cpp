@@ -22,6 +22,13 @@
 
 extern ConVar r_sequence_debug;
 
+inline std::string std::to_string( C_AnimationLayer& obj )
+{
+	return "cycle: " + std::to_string( obj.m_flCycle ) + ", sequence: " + std::to_string( obj.m_nSequence )
+		   + ", weight: " + std::to_string( obj.m_flWeight ) + ", flags: " + std::to_string( obj.m_fFlags )
+		   + ", order: " + std::to_string( obj.m_nOrder );
+}
+
 C_BaseAnimatingOverlay::C_BaseAnimatingOverlay()
 {
 	// FIXME: where does this initialization go now?
@@ -83,9 +90,10 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 		return;
 
 	// remove all entries
-	for ( int i=0; i < pVec->Count(); i++ )
+	for ( int i = 0; i < pVecIV->Count(); i++ )
 	{
-		pEnt->RemoveVar( &pVec->Element( i ) );
+		pVecIV->Element( i ).Disable();
+		pEnt->RemoveVar( &pVecIV->Element( i ) );
 	}
 
 	// adjust vector sizes
@@ -101,11 +109,15 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	}
 
 	// Rebind all the variables in the ent's list.
-	for ( int i=0; i < len; i++ )
+	for ( int i = 0; i < len; i++ )
 	{
-		IInterpolatedVar *pWatcher = &pVecIV->Element( i );
+		IInterpolatedVar* pWatcher = &pVecIV->Element( i );
 		pWatcher->SetDebugName( s_m_iv_AnimOverlayNames[i] );
-		pEnt->AddVar( &pVec->Element( i ), pWatcher, LATCH_ANIMATION_VAR, true );
+		pWatcher->SetReferenceData( &pVec->Element( i ) );
+		pWatcher->SetType( LATCH_ANIMATION_VAR );
+		pWatcher->Enable();
+		pWatcher->EnableInterpolation();
+		pEnt->AddVar( pWatcher );
 	}
 	// FIXME: need to set historical values of nOrder in pVecIV to MAX_OVERLAY
 	
@@ -370,7 +382,12 @@ CStudioHdr *C_BaseAnimatingOverlay::OnNewModel()
 	return hdr;
 }
 
-bool C_BaseAnimatingOverlay::Interpolate( float currentTime )
+bool C_BaseAnimatingOverlay::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
-	return BaseClass::Interpolate( currentTime );
+	for ( int i=0; i < m_AnimOverlay.Count(); i++ )
+	{
+		m_iv_AnimOverlay[i].SetLooping( IsSequenceLooping( m_AnimOverlay[i].m_nSequence ) );
+	}
+
+	return BaseClass::Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 }

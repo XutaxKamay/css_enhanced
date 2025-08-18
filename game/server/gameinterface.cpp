@@ -90,6 +90,7 @@
 #include "tier3/tier3.h"
 #include "serverbenchmark_base.h"
 #include "querycache.h"
+#include "ilagcompensationmanager.h"
 
 
 #ifdef TF_DLL

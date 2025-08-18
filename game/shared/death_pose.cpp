@@ -9,6 +9,8 @@
 
 #ifdef CLIENT_DLL
 
+extern int GetClientInterpolationAmountInTicks();
+
 void GetRagdollCurSequenceWithDeathPose( C_BaseAnimating *entity, matrix3x4_t *curBones, float flTime, int activity, int frame )
 {
 	// blow the cached prev bones
@@ -16,7 +18,7 @@ void GetRagdollCurSequenceWithDeathPose( C_BaseAnimating *entity, matrix3x4_t *c
 
 	Vector vPrevOrigin = entity->GetAbsOrigin();
 
-	entity->Interpolate( flTime );
+	entity->Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 	
 	if ( activity != ACT_INVALID )
 	{
@@ -47,7 +49,7 @@ void GetRagdollCurSequenceWithDeathPose( C_BaseAnimating *entity, matrix3x4_t *c
 		entity->SetSequence( iTempSequence );
 		entity->SetCycle( flTempCycle );
 
-		entity->Interpolate( gpGlobals->curtime );
+		entity->Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 
 		entity->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
 	}

@@ -123,21 +123,6 @@ void RecvProxy_IntToMoveParent( const CRecvProxyData *pData, void *pStruct, void
 	RecvProxy_IntToEHandle( pData, pStruct, (CBaseHandle*)pHandle );
 }
 
-
-void RecvProxy_InterpolationAmountChanged( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	// m_bSimulatedEveryTick & m_bAnimatedEveryTick are boolean
-	if ( *((bool*)pOut) != (pData->m_Value.m_Int != 0) )
-	{
-		// Have the regular proxy store the data.
-		RecvProxy_Int32ToInt8( pData, pStruct, pOut );
-
-		C_BaseEntity *pEntity = (C_BaseEntity *) pStruct;
-		pEntity->Interp_UpdateInterpolationAmounts( pEntity->GetVarMapping() );
-	}
-}
-
-
 //-----------------------------------------------------------------------------
 // Purpose: Decodes a time value
 // Input  : *pStruct - ( C_BaseEntity * ) used to flag animtime is changine

@@ -16,6 +16,7 @@
 #include "view.h"
 #include "physics_saverestore.h"
 #include "vphysics/constraints.h"
+#include "cdll_bounded_cvars.h"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -427,14 +428,19 @@ END_RECV_TABLE()
 
 
 C_ServerRagdoll::C_ServerRagdoll( void ) :
-	m_iv_ragPos("C_ServerRagdoll::m_iv_ragPos"),
-	m_iv_ragAngles("C_ServerRagdoll::m_iv_ragAngles")
+	m_iv_ragPos("C_ServerRagdoll::m_iv_ragPos", m_ragPos, LATCH_SIMULATION_VAR),
+	m_iv_ragAngles("C_ServerRagdoll::m_iv_ragAngles", m_ragAngles, LATCH_SIMULATION_VAR)
 {
 	m_elementCount = 0;
 	m_flLastBoneChangeTime = -FLT_MAX;
 
-	AddVar( m_ragPos, &m_iv_ragPos, LATCH_SIMULATION_VAR  );
-	AddVar( m_ragAngles, &m_iv_ragAngles, LATCH_SIMULATION_VAR );
+	for ( size_t i = 0; i < RAGDOLL_MAX_ELEMENTS; i++ )
+	{
+		m_iv_ragPos[i].Disable();
+		AddVar( &m_iv_ragPos[i] );
+		m_iv_ragAngles[i].Disable();
+		AddVar( &m_iv_ragAngles[i] );
+	}
 
 	m_flBlendWeight = 0.0f;
 	m_flBlendWeightCurrent = 0.0f;
@@ -446,10 +452,14 @@ void C_ServerRagdoll::PostDataUpdate( DataUpdateType_t updateType )
 {
 	BaseClass::PostDataUpdate( updateType );
 
-	m_iv_ragPos.NoteChanged( gpGlobals->curtime, true );
-	m_iv_ragAngles.NoteChanged( gpGlobals->curtime, true );
+	for ( size_t i = 0; i < RAGDOLL_MAX_ELEMENTS; i++ )
+	{
+		m_iv_ragPos[i].Push();
+		m_iv_ragAngles[i].Push();
+	}
+
 	// this is the local client time at which this update becomes stale
-	m_flLastBoneChangeTime = gpGlobals->curtime + GetInterpolationAmount(m_iv_ragPos.GetType());
+	m_flLastBoneChangeTime = gpGlobals->curtime + TICKS_TO_TIME( GetClientInterpolationAmountInTicks() );
 }
 
 float C_ServerRagdoll::LastBoneChangedTime()
@@ -495,8 +505,12 @@ CStudioHdr *C_ServerRagdoll::OnNewModel( void )
 		{
 			m_elementCount = RagdollExtractBoneIndices( m_boneIndex, hdr, pCollide );
 		}
-		m_iv_ragPos.SetMaxCount( m_elementCount );
-		m_iv_ragAngles.SetMaxCount( m_elementCount );
+
+		for ( size_t i = 0; i < m_elementCount; i++ )
+		{
+			m_iv_ragPos[i].Enable();
+			m_iv_ragAngles[i].Enable();
+		}
 	}
 
 	return hdr;

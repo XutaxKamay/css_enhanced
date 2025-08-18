@@ -4,8 +4,8 @@
 //
 //=============================================================================//
 
-#include "KeyValues.h"
 #include "cbase.h"
+#include "KeyValues.h"
 #include "c_cs_player.h"
 #include "c_user_message_register.h"
 #include "cdll_client_int.h"
@@ -267,20 +267,18 @@ void C_CSRagdoll::Interp_Copy( C_BaseAnimatingOverlay *pSourceEntity )
 	if ( !pSourceEntity )
 		return;
 
-	VarMapping_t *pSrc = pSourceEntity->GetVarMapping();
-	VarMapping_t *pDest = GetVarMapping();
-
 	// Find all the VarMapEntry_t's that represent the same variable.
-	for ( int i = 0; i < pDest->m_Entries.Count(); i++ )
+	for ( int i = 0; i < pSourceEntity->m_InterpolatedVariableList.variables.Count(); i++ )
 	{
-		VarMapEntry_t *pDestEntry = &pDest->m_Entries[i];
-		for ( int j=0; j < pSrc->m_Entries.Count(); j++ )
+		auto&& pSrc = pSourceEntity->m_InterpolatedVariableList.variables[i];
+
+		for ( int j = 0; j < m_InterpolatedVariableList.variables.Count(); j++ )
 		{
-			VarMapEntry_t *pSrcEntry = &pSrc->m_Entries[j];
-			if ( !Q_strcmp( pSrcEntry->watcher->GetDebugName(),
-				pDestEntry->watcher->GetDebugName() ) )
+			auto&& pDst = m_InterpolatedVariableList.variables[j];
+
+			if ( pDst->DebugName() == pSrc->DebugName() )
 			{
-				pDestEntry->watcher->Copy( pSrcEntry->watcher );
+				pSrc->Copy( pDst );
 				break;
 			}
 		}
@@ -393,7 +391,7 @@ void C_CSRagdoll::CreateLowViolenceRagdoll( void )
 	Q_snprintf( str, sizeof( str ), "death%d", iDeathAnim );
 	SetSequence( LookupSequence( str ) );
 
-	Interp_Reset( GetVarMapping() );
+	ResetLatched();
 }
 
 
@@ -410,8 +408,6 @@ void C_CSRagdoll::CreateCSRagdoll()
 	{
 		// move my current model instance to the ragdoll's so decals are preserved.
 		pPlayer->SnatchModelInstance( this );
-
-		VarMapping_t *varMap = GetVarMapping();
 
 		// Copy all the interpolated vars from the player entity.
 		// The entity uses the interpolated history to get bone velocity.
@@ -452,7 +448,7 @@ void C_CSRagdoll::CreateCSRagdoll()
 			pPlayer->SetSequence( iSeq );	// walk_lower, basic pose
 			pPlayer->SetCycle( 0.0 );
 
-			Interp_Reset( varMap );
+			ResetLatched();
 		}
 	}
 	else
@@ -464,7 +460,7 @@ void C_CSRagdoll::CreateCSRagdoll()
 		SetAbsOrigin( m_vecRagdollOrigin );
 		SetAbsVelocity( m_vecRagdollVelocity );
 
-		Interp_Reset( GetVarMapping() );
+		ResetLatched();
 	}
 
 	// Turn it into a ragdoll.
@@ -739,15 +735,16 @@ END_RECV_TABLE()
 
 
 C_CSPlayer::C_CSPlayer() :
-	m_iv_angEyeAngles( "C_CSPlayer::m_iv_angEyeAngles" ),
-	m_iv_angRenderAngles( "C_CSPlayer::m_iv_angRenderAngles" )
+	m_iv_angEyeAngles( "C_CSPlayer::m_iv_angEyeAngles", &m_angEyeAngles, LATCH_SIMULATION_VAR ),
+	m_iv_angRenderAngles( "C_CSPlayer::m_iv_angRenderAngles", &m_angRenderAngles, LATCH_SIMULATION_VAR )
 {
 	m_angEyeAngles.Init();
+	m_angRenderAngles.Init();
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_iv_angEyeAngles );
 
 	// TODO_ENHANCED:: interpolation on m_angRenderAngles later
-	AddVar( &m_angRenderAngles, &m_iv_angRenderAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_iv_angRenderAngles );
 
 	m_iLastAddonBits = m_iAddonBits = 0;
 	m_iLastPrimaryAddon = m_iLastSecondaryAddon = WEAPON_NONE;
@@ -1346,9 +1343,9 @@ void C_CSPlayer::PostDataUpdate( DataUpdateType_t updateType )
 // Purpose:
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool C_CSPlayer::Interpolate( float currentTime )
+bool C_CSPlayer::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
-	if ( !BaseClass::Interpolate( currentTime ) )
+	if ( !BaseClass::Interpolate( nAmountOfTicks, flInterpolationAmountFrac ) )
 		return false;
 
 	if ( CSGameRules()->IsFreezePeriod() )
@@ -2278,9 +2275,19 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					// Let's check what went wrong.
 					int pos = 0;
 
-					auto newOrigin = player->GetRenderOrigin();
+					auto origin = player->GetRenderOrigin();
 					auto simtime   = event->GetFloat( "simtime" );
 					auto animtime  = event->GetFloat( "animtime" );
+					auto interpamount = event->GetFloat( "interpamount" );
+
+					if ( pRecord->m_flInterpolationAmountFrac != interpamount )
+					{
+						char buffer[256];
+						V_sprintf_safe( buffer, "interpamount: %f != %f", interpamount, pRecord->m_flInterpolationAmountFrac );
+
+						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
+						pos++;
+					}
 
 					if ( pRecord->m_flSimulationTime != simtime )
 					{
@@ -2300,16 +2307,16 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						pos++;
 					}
 
-					if ( pRecord->m_vecRenderOrigin != newOrigin )
+					if ( pRecord->m_vecRenderOrigin != origin )
 					{
 						char buffer[256];
 						V_sprintf_safe( buffer,
 										"pos: %f != %f, %f != %f, %f != %f",
-										newOrigin.x,
+										origin.x,
 										pRecord->m_vecRenderOrigin.x,
-										newOrigin.y,
+										origin.y,
 										pRecord->m_vecRenderOrigin.y,
-										newOrigin.z,
+										origin.z,
 										pRecord->m_vecRenderOrigin.z );
 
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
@@ -2435,7 +2442,9 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
 				// Be sure we setup the bones again.
 				player->InvalidateBoneCache();
+				player->m_bForceSequenceTransitions = true;
 				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+				player->m_bForceSequenceTransitions = false;
 				player->DrawClientHitboxes( flDuration, false );
 				player->PopBoneAccess( "Lag compensation context" );
 

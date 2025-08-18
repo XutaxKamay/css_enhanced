@@ -1607,7 +1607,7 @@ public:
 		PRIORITY_LOW     = -1//THREAD_PRIORITY_BELOW_NORMAL
 #endif
 	};
-	virtual bool Start( unsigned nBytesStack = 0, ThreadPriorityEnum_t nPriority = PRIORITY_DEFAULT );
+	virtual bool Start( ThreadPriorityEnum_t nPriority = PRIORITY_DEFAULT );
 
 	// Returns true if thread has been created and hasn't yet exited
 	bool IsAlive();

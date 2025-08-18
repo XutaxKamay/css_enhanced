@@ -182,6 +182,8 @@ private:
 
 	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
 	CUtlVector<EventQueueForHistory> m_eventQueueHistory[MULTIPLAYER_BACKUP];
+public:
+	CGlobalVarsBase m_saveVars;
 };
  
 extern CPrediction *prediction;

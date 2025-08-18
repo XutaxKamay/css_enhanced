@@ -2091,8 +2091,7 @@ CBaseClient *CBaseServer::CreateFakeClient( const char *name )
 	//fakeclient->SetUserCVar( "name", name ); // set already by Connect()
 	fakeclient->SetUserCVar( "rate", V_STRINGIFY(DEFAULT_RATE) );
 	fakeclient->SetUserCVar( "cl_updaterate", "20" );
-	fakeclient->SetUserCVar( "cl_interp_ratio", "1.0" );
-	fakeclient->SetUserCVar( "cl_interp", "0.1" );
+	fakeclient->SetUserCVar( "cl_interpolation_amount", "0" );
 	fakeclient->SetUserCVar( "cl_interpolate", "0" );
 	fakeclient->SetUserCVar( "cl_predict", "1" );
 	fakeclient->SetUserCVar( "cl_predictweapons", "1" );

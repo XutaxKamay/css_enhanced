@@ -174,7 +174,10 @@ void C_SceneEntity::ResetActorFlexesForScene()
 		}
 
 		// Reset the prediction interpolation values.
-		pFlexActor->m_iv_flexWeight.Reset();
+		for ( size_t i = 0; i < MAXSTUDIOFLEXCTRL; i++ )
+		{
+			pFlexActor->m_iv_flexWeight[i].Reset();
+		}
 	}
 }
 

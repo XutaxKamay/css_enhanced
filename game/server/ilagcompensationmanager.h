@@ -25,6 +25,7 @@ abstract_class ILagCompensationManager
 {
   public:
 	// Called during player movement to set up/restore after lag compensation
+	virtual void TrackEntity( CBaseEntity * entity )						= 0;
 	virtual void StartLagCompensation( CBasePlayer* player, CUserCmd* cmd ) = 0;
 	virtual void FinishLagCompensation( CBasePlayer* player )				= 0;
 };

@@ -646,14 +646,14 @@ class C_BaseAnimatingGameSystem : public CAutoGameSystem
 // Purpose: convert axis rotations to a quaternion
 //-----------------------------------------------------------------------------
 C_BaseAnimating::C_BaseAnimating()
-    : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle" ),
-	m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter" ),
-	m_iv_flEncodedController("C_BaseAnimating::m_iv_flEncodedController"),
-	m_iv_Sequence("C_BaseAnimating::m_iv_Sequence")
+ : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle", &m_flCycle, LATCH_ANIMATION_VAR ),
+   m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter", m_flPoseParameter, LATCH_ANIMATION_VAR ),
+   m_iv_flEncodedController( "C_BaseAnimating::m_iv_flEncodedController", m_flEncodedController, LATCH_ANIMATION_VAR ),
+   m_iv_Sequence( "C_BaseAnimating::m_iv_Sequence", &m_nSequence, LATCH_ANIMATION_VAR )
 {
 	m_vecForce.Init();
 	m_nForceBone = -1;
-	
+
 	m_ClientSideAnimationListHandle = INVALID_CLIENTSIDEANIMATION_LIST_HANDLE;
 
 	m_nPrevSequence = -1;
@@ -729,6 +729,8 @@ C_BaseAnimating::C_BaseAnimating()
     m_flOldAnimTime = gpGlobals->curtime;
 
 	AddBaseAnimatingInterpolatedVars();
+
+	m_bForceSequenceTransitions = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -858,21 +860,37 @@ void C_BaseAnimating::UpdateRelevantInterpolatedVars()
 
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	AddVar( m_flEncodedController, &m_iv_flEncodedController, LATCH_ANIMATION_VAR, true );
-	AddVar( m_flPoseParameter, &m_iv_flPoseParameter, LATCH_ANIMATION_VAR, true );
+	for ( size_t i = 0; i < MAX_ENCODED_CONTROLLERS; i++ )
+	{
+		m_iv_flEncodedController[i].Disable();
+		AddVar( &m_iv_flEncodedController[i] );
+	}
 
-	int flags = LATCH_ANIMATION_VAR;
-	if ( m_bClientSideAnimation )
-		flags |= EXCLUDE_AUTO_INTERPOLATE;
-		
-	AddVar( &m_flCycle, &m_iv_flCycle, flags, true );
-	AddVar( &m_nSequence, &m_iv_Sequence, flags, true );
+	for ( size_t i = 0; i < MAX_POSE_PARAMETERS; i++ )
+	{
+		m_iv_flPoseParameter[i].Disable();
+		AddVar( &m_iv_flPoseParameter[i] );
+	}
+
+	if ( !m_bClientSideAnimation )
+	{
+		AddVar( &m_iv_flCycle );
+		AddVar( &m_iv_Sequence );
+	}
 }
 
 void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
 {
-	RemoveVar( m_flEncodedController, false );
-	RemoveVar( m_flPoseParameter, false );
+	for ( size_t i = 0; i < MAX_ENCODED_CONTROLLERS; i++ )
+	{
+		RemoveVar( &m_iv_flEncodedController[i] );
+	}
+
+	for ( size_t i = 0; i < MAX_POSE_PARAMETERS; i++ )
+	{
+		RemoveVar( &m_iv_flPoseParameter[i] );
+	}
+
 #ifdef HL2MP
 	// HACK:  Don't want to remove interpolation for predictables in hl2dm, though
 	// The animation state stuff sets the pose parameters -- so they should interp
@@ -881,8 +899,8 @@ void C_BaseAnimating::RemoveBaseAnimatingInterpolatedVars()
 	if ( !GetPredictable() )
 #endif
 	{
-		RemoveVar( &m_flCycle, false );
-		RemoveVar( &m_nSequence, false );
+		RemoveVar( &m_iv_flCycle );
+		RemoveVar( &m_iv_Sequence );
 	}
 }
 
@@ -1126,13 +1144,14 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 
 	Assert( hdr->GetNumPoseParameters() <= ARRAYSIZE( m_flPoseParameter ) );
 
-    m_iv_flPoseParameter.SetMaxCount(hdr->GetNumPoseParameters());
+	int poseParamCount = MIN( hdr->GetNumPoseParameters(), ARRAYSIZE( m_flPoseParameter ) );
 
 	int i;
-	for ( i = 0; i < hdr->GetNumPoseParameters() ; i++ )
+	for ( i = 0; i < poseParamCount; i++ )
 	{
-		const mstudioposeparamdesc_t &Pose = hdr->pPoseParameter( i );
-		m_iv_flPoseParameter.SetLooping( Pose.loop != 0.0f, i );
+		const mstudioposeparamdesc_t& Pose = hdr->pPoseParameter( i );
+		m_iv_flPoseParameter[i].SetLooping( Pose.loop != 0.0f );
+		m_iv_flPoseParameter[i].Enable();
 		// Note:  We can't do this since if we get a DATA_UPDATE_CREATED (i.e., new entity) with both a new model and some valid pose parameters this will slam the 
 		//  pose parameters to zero and if the model goes dormant the pose parameter field will never be set to the true value.  We shouldn't have to zero these out
 		//  as they are under the control of the server and should be properly set
@@ -1142,14 +1161,15 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
         }
 	}
 
-	int boneControllerCount = MIN( hdr->numbonecontrollers(), ARRAYSIZE( m_flEncodedController ) );
+	Assert( hdr->numbonecontrollers() <= ARRAYSIZE( m_flEncodedController ) );
 
-    m_iv_flEncodedController.SetMaxCount( boneControllerCount );
+	int boneControllerCount = MIN( hdr->numbonecontrollers(), ARRAYSIZE( m_flEncodedController ) );
 
 	for ( i = 0; i < boneControllerCount ; i++ )
 	{
 		bool loop = (hdr->pBonecontroller( i )->type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR)) != 0;
-		m_iv_flEncodedController.SetLooping( loop, i );
+		m_iv_flEncodedController[i].SetLooping( loop );
+		m_iv_flEncodedController[i].Enable();
 		SetBoneController( i, 0.0 );
 	}
 
@@ -1813,8 +1833,8 @@ void C_BaseAnimating::MaintainSequenceTransitions( IBoneSetup &boneSetup, float 
 	m_SequenceTransitioner.CheckForSequenceChange( 
 		boneSetup.GetStudioHdr(),
 		GetSequence(),
-		m_nNewSequenceParity != m_nPrevNewSequenceParity,
-		!IsNoInterpolationFrame()
+		m_bForceSequenceTransitions ? true : m_nNewSequenceParity != m_nPrevNewSequenceParity,
+		m_bForceSequenceTransitions ? true : !IsNoInterpolationFrame()
 		);
 
 	m_nPrevNewSequenceParity = m_nNewSequenceParity;
@@ -4278,7 +4298,7 @@ void C_BaseAnimating::ResetLatched( void )
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
 
-bool C_BaseAnimating::Interpolate( float flCurrentTime )
+bool C_BaseAnimating::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
 	// ragdolls don't need interpolation
 	if ( m_pRagdoll )
@@ -4302,7 +4322,7 @@ bool C_BaseAnimating::Interpolate( float flCurrentTime )
 	}
 
 	int bNoMoreChanges;
-	int retVal = BaseInterpolatePart1( flCurrentTime, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
+	int retVal = BaseInterpolatePart1( nAmountOfTicks, flInterpolationAmountFrac, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
 	if ( retVal == INTERPOLATE_STOP )
 	{
 		if ( bNoMoreChanges )
@@ -4598,8 +4618,7 @@ void C_BaseAnimating::ForceSetupBonesAtTime( matrix3x4_t *pBonesOut, float flTim
 	// blow the cached prev bones
 	InvalidateBoneCache();
 
-	// reset root position to flTime
-	Interpolate( flTime );
+	Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 
 	// Setup bone state at the given time
 	SetupBones( pBonesOut, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, flTime );

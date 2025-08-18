@@ -118,8 +118,8 @@ bool GetHWMExpressionFileName( const char *pFilename, char *pHWMFilename )
 }
 
 C_BaseFlex::C_BaseFlex() : 
-	m_iv_viewtarget( "C_BaseFlex::m_iv_viewtarget" ), 
-	m_iv_flexWeight("C_BaseFlex:m_iv_flexWeight" ),
+	m_iv_viewtarget( "C_BaseFlex::m_iv_viewtarget", &m_viewtarget, LATCH_ANIMATION_VAR ), 
+	m_iv_flexWeight("C_BaseFlex:m_iv_flexWeight", m_flexWeight, LATCH_ANIMATION_VAR ),
 #ifdef HL2_CLIENT_DLL
 	m_iv_vecLean("C_BaseFlex:m_iv_vecLean" ),
 	m_iv_vecShift("C_BaseFlex:m_iv_vecShift" ),
@@ -130,8 +130,13 @@ C_BaseFlex::C_BaseFlex() :
 	((Vector&)m_viewtarget).Init();
 #endif
 
-	AddVar( &m_viewtarget, &m_iv_viewtarget, LATCH_ANIMATION_VAR | INTERPOLATE_LINEAR_ONLY );
-	AddVar( m_flexWeight, &m_iv_flexWeight, LATCH_ANIMATION_VAR );
+	AddVar( &m_iv_viewtarget );
+
+	for ( size_t i = 0; i < MAXSTUDIOFLEXCTRL; i++ )
+	{
+		m_iv_flexWeight[i].Disable();
+		AddVar( &m_iv_flexWeight[i] );
+	}
 
 	// Fill in phoneme class lookup
 	SetupMappings( "phonemes" );
@@ -213,7 +218,10 @@ CStudioHdr *C_BaseFlex::OnNewModel()
 			memset( m_flFlexDelayedWeight, 0, sizeof( float ) * m_cFlexDelayedWeight );
 		}
 
-		m_iv_flexWeight.SetMaxCount( hdr->numflexcontrollers() );
+		for ( size_t i = 0; i < hdr->numflexcontrollers(); i++ )
+		{
+			m_iv_flexWeight[i].Enable();
+		}
 
 		m_iMouthAttachment = LookupAttachment( "mouth" );
 

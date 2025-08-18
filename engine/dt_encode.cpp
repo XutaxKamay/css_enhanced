@@ -23,305 +23,316 @@ extern const char* GetObjectClassName( int objectID );
 
 // Check for special flags like SPROP_COORD, SPROP_NOSCALE, and SPROP_NORMAL.
 // Returns true if it encoded the float.
-static inline bool EncodeSpecialFloat( const SendProp *pProp, float fVal, bf_write *pOut )
-{
-	int flags = pProp->GetFlags();
-	if ( flags & SPROP_COORD )
-	{
-		pOut->WriteBitCoord( fVal );
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP )
-	{
-		pOut->WriteBitCoordMP( fVal, false, false );
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP_LOWPRECISION )
-	{
-		pOut->WriteBitCoordMP( fVal, false, true );
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP_INTEGRAL )
-	{
-		pOut->WriteBitCoordMP( fVal, true, false );
-		return true;
-	}
-	else if ( flags & SPROP_NOSCALE )
-	{
-		pOut->WriteBitFloat( fVal );
-		return true;
-	}
-	else if ( flags & SPROP_NORMAL )
-	{
-		pOut->WriteBitNormal( fVal );
-		return true;
-	}
-	return false;
-}
+// static inline bool EncodeSpecialFloat( const SendProp *pProp, float fVal, bf_write *pOut )
+// {
+// 	int flags = pProp->GetFlags();
+// 	if ( flags & SPROP_COORD )
+// 	{
+// 		pOut->WriteBitCoord( fVal );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP )
+// 	{
+// 		pOut->WriteBitCoordMP( fVal, false, false );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP_LOWPRECISION )
+// 	{
+// 		pOut->WriteBitCoordMP( fVal, false, true );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP_INTEGRAL )
+// 	{
+// 		pOut->WriteBitCoordMP( fVal, true, false );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_NOSCALE )
+// 	{
+// 		pOut->WriteBitFloat( fVal );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_NORMAL )
+// 	{
+// 		pOut->WriteBitNormal( fVal );
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 // TODO_ENHANCED:
 // Encoding works by sending a normalized float (from range 0.0 to 1.0)
 // This works because we know the range we encode the float to
-static inline void EncodeFloat( const SendProp* pProp, float fVal, bf_write* pOut, int objectID )
-{
-	const auto WriteNormalizedFloat = [&]( double dblValue )
-	{
-		bool isPerfectOne = dblValue >= 1.0;
+// static inline void EncodeFloat( const SendProp* pProp, float fVal, bf_write* pOut, int objectID )
+// {
+// 	const auto WriteNormalizedFloat = [&]( double dblValue )
+// 	{
+// 		bool isPerfectOne = dblValue >= 1.0;
 
-		if ( isPerfectOne )
-		{
-			pOut->WriteOneBit( true );
-		}
-		else
-		{
-			pOut->WriteOneBit( false );
+// 		if ( isPerfectOne )
+// 		{
+// 			pOut->WriteOneBit( true );
+// 		}
+// 		else
+// 		{
+// 			pOut->WriteOneBit( false );
 
-			char strNumber[16];
-			V_memset( strNumber, 0, sizeof( strNumber ) );
-			V_sprintf_safe( strNumber, "%f", static_cast< float >( dblValue ) );
+// 			char strNumber[16];
+// 			V_memset( strNumber, 0, sizeof( strNumber ) );
+// 			V_sprintf_safe( strNumber, "%f", static_cast< float >( dblValue ) );
 
-			auto sixDigitsValue = V_atoi( &strNumber[2] );
+// 			auto sixDigitsValue = V_atoi( &strNumber[2] );
 
-			if ( sixDigitsValue > 999999 )
-			{
-				Sys_Error( "EncodeFloat: tell to xutaxkamay that he's "
-						   "dumb\n" );
-			}
+// 			if ( sixDigitsValue > 999999 )
+// 			{
+// 				Sys_Error( "EncodeFloat: tell to xutaxkamay that he's "
+// 						   "dumb\n" );
+// 			}
 
-			pOut->WriteUBitLong( sixDigitsValue, 20 );
-		}
-	};
+// 			pOut->WriteUBitLong( sixDigitsValue, 20 );
+// 		}
+// 	};
 
-	// Check for special flags like SPROP_COORD, SPROP_NOSCALE, and
-	// SPROP_NORMAL.
-	if ( EncodeSpecialFloat( pProp, fVal, pOut ) )
-	{
-		return;
-	}
+// 	// Check for special flags like SPROP_COORD, SPROP_NOSCALE, and
+// 	// SPROP_NORMAL.
+// 	if ( EncodeSpecialFloat( pProp, fVal, pOut ) )
+// 	{
+// 		return;
+// 	}
 
-	if ( ( pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f ) || pProp->m_fHighValue == pProp->m_fLowValue )
-	{
-		pOut->WriteBitFloat( fVal );
-		return;
-	}
+// 	if ( ( pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f ) || pProp->m_fHighValue == pProp->m_fLowValue )
+// 	{
+// 		pOut->WriteBitFloat( fVal );
+// 		return;
+// 	}
 
-	if ( fVal > pProp->m_fHighValue )
-	{
-		Sys_Error( "EncodeFloat: %s has value %f which is too big "
-				   "(%f)",
-				   pProp->GetName(),
-				   fVal,
-				   pProp->m_fHighValue );
-	}
+// 	if ( fVal > pProp->m_fHighValue )
+// 	{
+// 		Sys_Error( "EncodeFloat: %s has value %f which is too big "
+// 				   "(%f)",
+// 				   pProp->GetName(),
+// 				   fVal,
+// 				   pProp->m_fHighValue );
+// 	}
 
-	if ( fVal < pProp->m_fLowValue )
-	{
-		Sys_Error( "EncodeFloat: %s has value %f which is too low "
-				   "(%f)",
-				   pProp->GetName(),
-				   fVal,
-				   pProp->m_fLowValue );
-	}
+// 	if ( fVal < pProp->m_fLowValue )
+// 	{
+// 		Sys_Error( "EncodeFloat: %s has value %f which is too low "
+// 				   "(%f)",
+// 				   pProp->GetName(),
+// 				   fVal,
+// 				   pProp->m_fLowValue );
+// 	}
 
-	if ( pProp->m_fLowValue > pProp->m_fHighValue )
-	{
-		Sys_Error( "EncodeFloat: %s(%f) low value %f is higher than "
-				   "%f",
-				   pProp->GetName(),
-				   fVal,
-				   pProp->m_fLowValue,
-				   pProp->m_fHighValue );
-	}
+// 	if ( pProp->m_fLowValue > pProp->m_fHighValue )
+// 	{
+// 		Sys_Error( "EncodeFloat: %s(%f) low value %f is higher than "
+// 				   "%f",
+// 				   pProp->GetName(),
+// 				   fVal,
+// 				   pProp->m_fLowValue,
+// 				   pProp->m_fHighValue );
+// 	}
 
-	double dblVal = static_cast< double >( fVal );
+// 	double dblVal = static_cast< double >( fVal );
 
-	// If low value bigger than zero, we need to substract to the
-	// lowest value possible, so we can recover it later.
-	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
-		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
-	{
-		dblVal -= pProp->m_fLowValue;
-	}
+// 	// If low value bigger than zero, we need to substract to the
+// 	// lowest value possible, so we can recover it later.
+// 	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
+// 		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
+// 	{
+// 		dblVal -= pProp->m_fLowValue;
+// 	}
 
-	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
+// 	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
 
-	bool sign = false;
+// 	bool sign = false;
 
-	if ( dblVal < 0.0 )
-	{
-		sign   = true;
-		dblVal = -dblVal;
-	}
+// 	if ( dblVal < 0.0 )
+// 	{
+// 		sign   = true;
+// 		dblVal = -dblVal;
+// 	}
 
-	pOut->WriteOneBit( sign );
+// 	pOut->WriteOneBit( sign );
 
-	WriteNormalizedFloat( dblRange > 1.0 ? ( dblVal / dblRange ) : dblVal );
-}
+// 	WriteNormalizedFloat( dblRange > 1.0 ? ( dblVal / dblRange ) : dblVal );
+// }
 
 // Look for special flags like SPROP_COORD, SPROP_NOSCALE, and SPROP_NORMAL and
 // decode if they're there. Fills in fVal and returns true if it decodes anything.
-static inline bool DecodeSpecialFloat( SendProp const *pProp, bf_read *pIn, float &fVal )
-{
-	int flags = pProp->GetFlags();
+// static inline bool DecodeSpecialFloat( SendProp const *pProp, bf_read *pIn, float &fVal )
+// {
+// 	int flags = pProp->GetFlags();
 
-	if ( flags & SPROP_COORD )
-	{
-		fVal = pIn->ReadBitCoord();
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP )
-	{
-		fVal = pIn->ReadBitCoordMP( false, false );
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP_LOWPRECISION )
-	{
-		fVal = pIn->ReadBitCoordMP( false, true );
-		return true;
-	}
-	else if ( flags & SPROP_COORD_MP_INTEGRAL )
-	{
-		fVal = pIn->ReadBitCoordMP( true, false );
-		return true;
-	}
-	if ( flags & SPROP_NOSCALE )
-	{
-		fVal = pIn->ReadBitFloat();
-		return true;
-	}
-	else if ( flags & SPROP_NORMAL )
-	{
-		fVal = pIn->ReadBitNormal();
-		return true;
-	}
+// 	if ( flags & SPROP_COORD )
+// 	{
+// 		fVal = pIn->ReadBitCoord();
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP )
+// 	{
+// 		fVal = pIn->ReadBitCoordMP( false, false );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP_LOWPRECISION )
+// 	{
+// 		fVal = pIn->ReadBitCoordMP( false, true );
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_COORD_MP_INTEGRAL )
+// 	{
+// 		fVal = pIn->ReadBitCoordMP( true, false );
+// 		return true;
+// 	}
+// 	if ( flags & SPROP_NOSCALE )
+// 	{
+// 		fVal = pIn->ReadBitFloat();
+// 		return true;
+// 	}
+// 	else if ( flags & SPROP_NORMAL )
+// 	{
+// 		fVal = pIn->ReadBitNormal();
+// 		return true;
+// 	}
 
-	return false;
-}
+// 	return false;
+// }
 
-static inline float DecodeNormalizedFloat( const SendProp* pProp, bf_read* pIn )
-{
-	bool sign = pIn->ReadOneBit();
-	double dblVal;
+// static inline float DecodeNormalizedFloat( const SendProp* pProp, bf_read* pIn )
+// {
+// 	bool sign = pIn->ReadOneBit();
+// 	double dblVal;
 
-	if ( !pIn->ReadOneBit() )
-	{
-		const auto fractionPart = pIn->ReadUBitLong( 20 );
+// 	if ( !pIn->ReadOneBit() )
+// 	{
+// 		const auto fractionPart = pIn->ReadUBitLong( 20 );
 
-		char strNumber[8];
-		V_memset( strNumber, 0, sizeof( strNumber ) );
-		V_sprintf_safe( strNumber, "%i", fractionPart );
+// 		char strNumber[8];
+// 		V_memset( strNumber, 0, sizeof( strNumber ) );
+// 		V_sprintf_safe( strNumber, "%i", fractionPart );
 
-		int countDigits = 0;
-		while ( strNumber[countDigits] )
-		{
-			countDigits++;
-		}
+// 		int countDigits = 0;
+// 		while ( strNumber[countDigits] )
+// 		{
+// 			countDigits++;
+// 		}
 
-		int digitLeft = 6 - countDigits;
+// 		int digitLeft = 6 - countDigits;
 
-		if ( digitLeft < 0 )
-		{
-			Sys_Error( "DecodeNormalizedFloat: digitLeft < 0\n" );
-		}
+// 		if ( digitLeft < 0 )
+// 		{
+// 			Sys_Error( "DecodeNormalizedFloat: digitLeft < 0\n" );
+// 		}
 
-		char strFraction[16];
-		strFraction[0] = '0';
-		strFraction[1] = '.';
+// 		char strFraction[16];
+// 		strFraction[0] = '0';
+// 		strFraction[1] = '.';
 
-		for ( int i = 0; i < digitLeft; i++ )
-		{
-			strFraction[2 + i] = '0';
-		}
+// 		for ( int i = 0; i < digitLeft; i++ )
+// 		{
+// 			strFraction[2 + i] = '0';
+// 		}
 
-		for ( int i = 0; i < countDigits; i++ )
-		{
-			strFraction[2 + digitLeft + i] = strNumber[i];
-		}
+// 		for ( int i = 0; i < countDigits; i++ )
+// 		{
+// 			strFraction[2 + digitLeft + i] = strNumber[i];
+// 		}
 
-		dblVal = V_atof( strFraction );
-	}
-	else
-	{
-		dblVal = 1.0;
-	}
+// 		dblVal = V_atof( strFraction );
+// 	}
+// 	else
+// 	{
+// 		dblVal = 1.0;
+// 	}
 
-	if ( dblVal <= 0.0 )
-	{
-		return 0.0f;
-	}
+// 	if ( dblVal <= 0.0 )
+// 	{
+// 		return 0.0f;
+// 	}
 
-	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
+// 	double dblRange = pProp->m_fHighValue - pProp->m_fLowValue;
 
-	if ( dblRange > 1.0 )
-	{
-		dblVal *= dblRange;
-	}
+// 	if ( dblRange > 1.0 )
+// 	{
+// 		dblVal *= dblRange;
+// 	}
 
-	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
-		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
-	{
-		dblVal += pProp->m_fLowValue;
-	}
+// 	if ( ( pProp->m_fLowValue > 0.0f && pProp->m_fHighValue > 0.0f )
+// 		 || ( pProp->m_fHighValue < 0.0f && pProp->m_fLowValue < 0.0f ) )
+// 	{
+// 		dblVal += pProp->m_fLowValue;
+// 	}
 
-	dblVal = sign ? -dblVal : dblVal;
-	return static_cast< float >( dblVal );
-}
+// 	dblVal = sign ? -dblVal : dblVal;
+// 	return static_cast< float >( dblVal );
+// }
+
+// static inline float DecodeFloat(const SendProp* pProp, bf_read* pIn)
+// {
+//     float fVal;
+
+//     // Check for special flags..
+//     if (DecodeSpecialFloat(pProp, pIn, fVal))
+//     {
+//         return fVal;
+//     }
+
+//     if ((pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f)
+//         || pProp->m_fHighValue == pProp->m_fLowValue)
+//     {
+//         fVal = pIn->ReadBitFloat();
+//         return fVal;
+//     }
+
+//     if (pProp->m_fLowValue > pProp->m_fHighValue)
+//     {
+//         Sys_Error("EncodeFloat: %s low value %f is higher than "
+//                   "%f",
+//                   pProp->GetName(),
+//                   pProp->m_fLowValue,
+//                   pProp->m_fHighValue);
+//     }
+
+//     fVal = DecodeNormalizedFloat(pProp, pIn);
+
+//     return fVal;
+// }
 
 static inline float DecodeFloat(const SendProp* pProp, bf_read* pIn)
 {
-    float fVal;
+	return pIn->ReadFloat();
+}
 
-    // Check for special flags..
-    if (DecodeSpecialFloat(pProp, pIn, fVal))
-    {
-        return fVal;
-    }
-
-    if ((pProp->m_fHighValue == 0.0f && pProp->m_fLowValue == 0.0f)
-        || pProp->m_fHighValue == pProp->m_fLowValue)
-    {
-        fVal = pIn->ReadBitFloat();
-        return fVal;
-    }
-
-    if (pProp->m_fLowValue > pProp->m_fHighValue)
-    {
-        Sys_Error("EncodeFloat: %s low value %f is higher than "
-                  "%f",
-                  pProp->GetName(),
-                  pProp->m_fLowValue,
-                  pProp->m_fHighValue);
-    }
-
-    fVal = DecodeNormalizedFloat(pProp, pIn);
-
-    return fVal;
+static inline void EncodeFloat( const SendProp* pProp, float fVal, bf_write* pOut, int objectID )
+{
+	pOut->WriteFloat( fVal );
 }
 
 static inline void DecodeVector(SendProp const *pProp, bf_read *pIn, float *v)
 {
 	v[0] = DecodeFloat(pProp, pIn);
     v[1] = DecodeFloat(pProp, pIn);
+	v[2] = DecodeFloat(pProp, pIn);
 
-	// Don't read in the third component for normals
-	if ((pProp->GetFlags() & SPROP_NORMAL) == 0)
-	{
-		v[2] = DecodeFloat(pProp, pIn);
-	}
-	else
-	{
-		int signbit = pIn->ReadOneBit();
+	// // Don't read in the third component for normals
+	// if ((pProp->GetFlags() & SPROP_NORMAL) == 0)
+	// {
+	// 	v[2] = DecodeFloat(pProp, pIn);
+	// }
+	// else
+	// {
+	// 	int signbit = pIn->ReadOneBit();
 
-		float v0v0v1v1 = v[0] * v[0] +
-			v[1] * v[1];
-		if (v0v0v1v1 < 1.0f)
-			v[2] = sqrtf( 1.0f - v0v0v1v1 );
-		else
-			v[2] = 0.0f;
+	// 	float v0v0v1v1 = v[0] * v[0] +
+	// 		v[1] * v[1];
+	// 	if (v0v0v1v1 < 1.0f)
+	// 		v[2] = sqrtf( 1.0f - v0v0v1v1 );
+	// 	else
+	// 		v[2] = 0.0f;
 
-		if (signbit)
-			v[2] *= -1.0f;
-	}
+	// 	if (signbit)
+	// 		v[2] *= -1.0f;
+	// }
 }
 
 static inline void DecodeQuaternion(SendProp const *pProp, bf_read *pIn, float *v)
@@ -582,34 +593,35 @@ void Float_Decode( DecodeInfo *pInfo )
 
 int	Float_CompareDeltas( const SendProp *pProp, bf_read *p1, bf_read *p2 )
 {
-	if ( pProp->GetFlags() & SPROP_COORD )
-	{
-		return p1->ReadBitCoord() != p2->ReadBitCoord();
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP )
-	{
-		return p1->ReadBitCoordMP( false, false ) != p2->ReadBitCoordMP( false, false );
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP_LOWPRECISION )
-	{
-		return p1->ReadBitCoordMP( false, true ) != p2->ReadBitCoordMP( false, true );
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP_INTEGRAL )
-	{
-		return p1->ReadBitCoordMP( true, false ) != p2->ReadBitCoordMP( true, false );
-	}
-	else if ( pProp->GetFlags() & SPROP_NOSCALE )
-	{
-		return p1->ReadUBitLong( 32 ) != p2->ReadUBitLong( 32 );
-	}
-	else if ( pProp->GetFlags() & SPROP_NORMAL )
-	{
-		return p1->ReadUBitLong( NORMAL_FRACTIONAL_BITS+1 ) != p2->ReadUBitLong( NORMAL_FRACTIONAL_BITS+1 );
-	}
-	else
-	{
-        return DecodeNormalizedFloat(pProp, p1) != DecodeNormalizedFloat(pProp, p2);
-	}
+	// if ( pProp->GetFlags() & SPROP_COORD )
+	// {
+	// 	return p1->ReadBitCoord() != p2->ReadBitCoord();
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP )
+	// {
+	// 	return p1->ReadBitCoordMP( false, false ) != p2->ReadBitCoordMP( false, false );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP_LOWPRECISION )
+	// {
+	// 	return p1->ReadBitCoordMP( false, true ) != p2->ReadBitCoordMP( false, true );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP_INTEGRAL )
+	// {
+	// 	return p1->ReadBitCoordMP( true, false ) != p2->ReadBitCoordMP( true, false );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_NOSCALE )
+	// {
+	// 	return p1->ReadUBitLong( 32 ) != p2->ReadUBitLong( 32 );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_NORMAL )
+	// {
+	// 	return p1->ReadUBitLong( NORMAL_FRACTIONAL_BITS+1 ) != p2->ReadUBitLong( NORMAL_FRACTIONAL_BITS+1 );
+	// }
+	// else
+	// {
+		return p1->ReadFloat() != p2->ReadFloat();
+        // return DecodeNormalizedFloat(pProp, p1) != DecodeNormalizedFloat(pProp, p2);
+	// }
 }
 
 const char* Float_GetTypeNameString()
@@ -638,54 +650,55 @@ bool Float_IsEncodedZero( const SendProp *pProp, bf_read *pIn )
 
 void Float_SkipProp( const SendProp *pProp, bf_read *pIn )
 {
-	// Check for special flags..
-	if(pProp->GetFlags() & SPROP_COORD)
-	{
-		// Read the required integer and fraction flags
-		unsigned int val = pIn->ReadUBitLong(2);
-		// this reads two bits, the first bit (bit0 in this word) indicates integer part
-		// the second bit (bit1 in this word) indicates the fractional part
+	// // Check for special flags..
+	// if(pProp->GetFlags() & SPROP_COORD)
+	// {
+	// 	// Read the required integer and fraction flags
+	// 	unsigned int val = pIn->ReadUBitLong(2);
+	// 	// this reads two bits, the first bit (bit0 in this word) indicates integer part
+	// 	// the second bit (bit1 in this word) indicates the fractional part
 
-		// If we got either parse them, otherwise it's a zero.
-		if ( val )
-		{
-			// sign bit
-			int seekDist = 1;
+	// 	// If we got either parse them, otherwise it's a zero.
+	// 	if ( val )
+	// 	{
+	// 		// sign bit
+	// 		int seekDist = 1;
 
-			// If there's an integer, read it in
-			if ( val & 1 )
-				seekDist += COORD_INTEGER_BITS;
+	// 		// If there's an integer, read it in
+	// 		if ( val & 1 )
+	// 			seekDist += COORD_INTEGER_BITS;
 		
-			if ( val & 2 )
-				seekDist += COORD_FRACTIONAL_BITS;
+	// 		if ( val & 2 )
+	// 			seekDist += COORD_FRACTIONAL_BITS;
 
-			pIn->SeekRelative( seekDist );
-		}
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP )
-	{
-		pIn->ReadBitCoordMP( false, false );
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP_LOWPRECISION )
-	{
-		pIn->ReadBitCoordMP( false, true );
-	}
-	else if ( pProp->GetFlags() & SPROP_COORD_MP_INTEGRAL )
-	{
-		pIn->ReadBitCoordMP( true, false );
-	}
-	else if(pProp->GetFlags() & SPROP_NOSCALE)
-	{
-		pIn->SeekRelative( 32 );
-	}
-	else if(pProp->GetFlags() & SPROP_NORMAL)
-	{
-		pIn->SeekRelative( NORMAL_FRACTIONAL_BITS + 1 );
-	}
-	else
-	{
-        DecodeNormalizedFloat(pProp, pIn);
-	}
+	// 		pIn->SeekRelative( seekDist );
+	// 	}
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP )
+	// {
+	// 	pIn->ReadBitCoordMP( false, false );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP_LOWPRECISION )
+	// {
+	// 	pIn->ReadBitCoordMP( false, true );
+	// }
+	// else if ( pProp->GetFlags() & SPROP_COORD_MP_INTEGRAL )
+	// {
+	// 	pIn->ReadBitCoordMP( true, false );
+	// }
+	// else if(pProp->GetFlags() & SPROP_NOSCALE)
+	// {
+	// 	pIn->SeekRelative( 32 );
+	// }
+	// else if(pProp->GetFlags() & SPROP_NORMAL)
+	// {
+	// 	pIn->SeekRelative( NORMAL_FRACTIONAL_BITS + 1 );
+	// }
+	// else
+	// {
+		pIn->ReadFloat();
+        // DecodeNormalizedFloat(pProp, pIn);
+	// }
 }
 
 
@@ -726,14 +739,14 @@ int	Vector_CompareDeltas( const SendProp *pProp, bf_read *p1, bf_read *p2 )
 	int c2 = Float_CompareDeltas( pProp, p1, p2 );
 	int c3;
 	
-	if ( pProp->GetFlags() & SPROP_NORMAL )
-	{
-		c3 = p1->ReadOneBit() != p2->ReadOneBit();
-	}
-	else
-	{
+	// if ( pProp->GetFlags() & SPROP_NORMAL )
+	// {
+	// 	c3 = p1->ReadOneBit() != p2->ReadOneBit();
+	// }
+	// else
+	// {
 		c3 = Float_CompareDeltas( pProp, p1, p2 );
-	}
+	// }
 
 	return c1 | c2 | c3;
 }
@@ -774,14 +787,14 @@ void Vector_SkipProp( const SendProp *pProp, bf_read *pIn )
 	Float_SkipProp(pProp, pIn);
 
 	// Don't read in the third component for normals
-	if ( pProp->GetFlags() & SPROP_NORMAL )
-	{
-		pIn->SeekRelative( 1 );
-	}
-	else
-	{
+	// if ( pProp->GetFlags() & SPROP_NORMAL )
+	// {
+	// 	pIn->SeekRelative( 1 );
+	// }
+	// else
+	// {
 		Float_SkipProp(pProp, pIn);
-	}
+	// }
 }
 
 // ---------------------------------------------------------------------------------------- //

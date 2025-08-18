@@ -91,7 +91,7 @@ public:
 	virtual void OnDataChanged( DataUpdateType_t type );
 	virtual void PreDataUpdate( DataUpdateType_t updateType );
 	virtual void PostDataUpdate( DataUpdateType_t updateType );
-	virtual bool Interpolate( float currentTime );
+	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac );
 	virtual void UpdateStepSound( surfacedata_t *psurface, const Vector &vecOrigin, const Vector &vecVelocity  );
 	virtual surfacedata_t * GetFootstepSurface( const Vector &origin, const char *surfaceName );
 	virtual void ValidateModelIndex( void );
@@ -413,6 +413,7 @@ private:
 	struct HitboxRecord
 	{
 		int m_nAttackerTickBase;
+		float m_flInterpolationAmountFrac;
 		Vector m_vecRenderOrigin;
 		QAngle m_angRenderAngles;
 		float m_flSimulationTime;

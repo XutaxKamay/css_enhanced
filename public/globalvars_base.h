@@ -49,7 +49,7 @@ public:
 	//     [server_current_Tick * tick_interval]
 	//
 	//   - While rendering, this is the exact client clock 
-	//     [client_current_tick * tick_interval + interpolation_amount]
+	//     [client_current_tick * tick_interval + interpolation_amount_frac]
 	//
 	//   - During prediction, this is based on the client's current tick:
 	//     [client_current_tick * tick_interval]
@@ -68,8 +68,8 @@ public:
 	float			interval_per_tick;
 
 	// interpolation amount ( client-only ) based on fraction of next tick which has elapsed
-	float			interpolation_amount;
-	float           next_interpolation_amount;
+	float			interpolation_amount_frac;
+	float           next_interpolation_amount_frac;
 	int				simTicksThisFrame;
 
 	int				network_protocol;
@@ -102,7 +102,6 @@ inline CGlobalVarsBase::CGlobalVarsBase( bool bIsClient ) :
 	nTimestampNetworkingBase( 100 ),
 	nTimestampRandomizeWindow( 32 )
 {
-    client_taking_screenshot = false;
 }
 
 inline bool CGlobalVarsBase::IsClient() const

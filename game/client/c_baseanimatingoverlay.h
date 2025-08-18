@@ -38,7 +38,7 @@ public:
 	// model specific
 	virtual void AccumulateLayers( IBoneSetup &boneSetup, Vector pos[], Quaternion q[], float currentTime );
 	virtual void DoAnimationEvents( CStudioHdr *pStudioHdr );
-	virtual bool Interpolate( float currentTime );
+	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac );
 
 	enum
 	{

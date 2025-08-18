@@ -11,6 +11,8 @@
 #pragma once
 #endif
 
+#include "interpolatedvar.h"
+
 // PlayerUse defines
 #define	PLAYER_USE_RADIUS	80.f
 #define CONE_45_DEGREES		0.707f
@@ -65,10 +67,11 @@ struct BasePlayerInterpolationCommandContext
 	enum
 	{
 		BEFORE_MOVEMENT,
-		APPLIED,
 		AFTER_MOVEMENT,
 		MAX
 	};
+
+	BasePlayerInterpolationCommandContext();
 
 	virtual void Start( CBasePlayer* player );
 	virtual void Interpolate( CBasePlayer* player );
@@ -81,14 +84,22 @@ struct BasePlayerInterpolationCommandContext
 	// Basically, there shouldn't be any networked variables being set in PostThink that affects player's camera.
 	struct Data
 	{
-		QAngle m_angLocalRotation;
+		// QAngle m_angLocalRotation;
 		Vector m_vecLocalOrigin;
 		Vector m_vecViewOffset;
-		QAngle m_vecPunchAngle;
-		QAngle m_vecPunchAngleVel;
+		// QAngle m_vecPunchAngle;
+		// QAngle m_vecPunchAngleVel;
 	};
 
-	Data data[MAX];
+	// CInterpolatedVar< QAngle > m_iv_angLocalRotation;
+	CInterpolatedVar< Vector > m_iv_vecLocalOrigin;
+	CInterpolatedVar< Vector > m_iv_vecViewOffset;
+	// CInterpolatedVar< QAngle > m_iv_vecPunchAngle;
+	// CInterpolatedVar< QAngle > m_iv_vecPunchAngleVel;
+
+	Data m_InterpolatedData;
+
+	CInterpolatedVarList m_InterpolatedVariableList;
 };
 
 // Shared header file for players

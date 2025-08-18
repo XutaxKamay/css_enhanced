@@ -77,30 +77,6 @@ enum CollideType_t
 	ENTITY_SHOULD_RESPOND
 };
 
-class VarMapEntry_t
-{
-	
-
-public:
-	unsigned short		type;
-	unsigned short		m_bNeedsToInterpolate;	// Set to false when this var doesn't
-												// need Interpolate() called on it anymore.
-	void				*data;
-	IInterpolatedVar	*watcher;
-};
-
-struct VarMapping_t
-{
-	VarMapping_t()
-	{
-		m_nInterpolatedEntries = 0;
-	}
-
-	CUtlVector< VarMapEntry_t >	m_Entries;
-	int							m_nInterpolatedEntries;
-	float						m_lastInterpolationTime;
-};
-
 //
 // Structure passed to input handlers.
 //
@@ -236,16 +212,6 @@ public:
 	bool							BlocksLOS( void );
 	void							SetAIWalkable( bool bBlocksLOS );
 	bool							IsAIWalkable( void );
-
-
-	void							Interp_SetupMappings( VarMapping_t *map );
-	
-	// Returns 1 if there are no more changes (ie: we could call RemoveFromInterpolationList).
-	int								Interp_Interpolate( VarMapping_t *map, float currentTime );
-	
-	void							Interp_RestoreToLastNetworked( VarMapping_t *map );
-	void							Interp_UpdateInterpolationAmounts( VarMapping_t *map );
-	void							Interp_HierarchyUpdateInterpolationAmounts();
 
 	// Called by the CLIENTCLASS macros.
 	virtual bool					Init( int entnum, int iSerialNum );
@@ -386,15 +352,9 @@ public:
 	virtual ClientThinkHandle_t		GetThinkHandle();
 	virtual void					SetThinkHandle( ClientThinkHandle_t hThink );
 
-
 public:
-
-	void AddVar( void *data, IInterpolatedVar *watcher, int type, bool bSetup=false );
-	void RemoveVar( void *data, bool bAssert=true );
-	VarMapping_t* GetVarMapping();
-
-	VarMapping_t	m_VarMap;
-
+	void AddVar( IInterpolatedVar* watcher );
+	void RemoveVar( IInterpolatedVar* watcher );
 
 public:
 	// An inline version the game code can use
@@ -486,9 +446,6 @@ public:
 	void							SetLocalAngles( const QAngle& angles );
 	vec_t							GetLocalAnglesDim( int iDim ) const;		// You can use the X_INDEX, Y_INDEX, and Z_INDEX defines here.
 	void							SetLocalAnglesDim( int iDim, vec_t flValue );
-
-	virtual const Vector&			GetPrevLocalOrigin() const;
-	virtual const QAngle&			GetPrevLocalAngles() const;
 
 	void							SetLocalTransform( const matrix3x4_t &localTransform );
 
@@ -706,7 +663,7 @@ public:
 	virtual bool					IsSelfAnimating();
 
 	// Set appropriate flags and store off data when these fields are about to change
-	virtual	void					OnLatchInterpolatedVariables( int flags );
+	virtual	void					OnLatchInterpolatedVariables( InterpolatedVarType type, bool bUpdateLastNetworkedValue = true );
 	// For predictable entities, stores last networked value
 	void							OnStoreLastNetworkedValue();
 
@@ -718,15 +675,10 @@ public:
 	bool							IsAnimatedEveryTick() const;
 	void							SetSimulatedEveryTick( bool sim );
 	void							SetAnimatedEveryTick( bool anim );
-
-	void							Interp_Reset( VarMapping_t *map );
 	virtual void					ResetLatched();
-	
-	float							GetInterpolationAmount( int flags );
-	float							GetLastChangeTime( int flags );
 
 	// Interpolate the position for rendering
-	virtual bool					Interpolate( float currentTime );
+	virtual bool					Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac );
 
 	// Did the object move so far that it shouldn't interpolate?
 	bool							Teleported( void );
@@ -1192,7 +1144,7 @@ protected:
 	// Interpolate entity
 	static void ProcessTeleportList();
 	static void ProcessInterpolatedList();
-	static void CheckInterpolatedVarParanoidMeasurement();
+	static void DebugCheckInterpolatedVar();
 
 	// overrideable rules if an entity should interpolate
 	virtual bool ShouldInterpolate();
@@ -1219,7 +1171,7 @@ protected:
 
 	// Returns INTERPOLATE_STOP or INTERPOLATE_CONTINUE.
 	// bNoMoreChanges is set to 1 if you can call RemoveFromInterpolationList on the entity.
-	int BaseInterpolatePart1( float &currentTime, Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int &bNoMoreChanges );
+	int BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolationAmountFrac, Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int &bNoMoreChanges );
 	void BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int nChangeFlags );
 
 
@@ -1229,7 +1181,6 @@ public:
 	static void						SetPredictionRandomSeed( int randomSeed );
 	static C_BasePlayer				*GetPredictionPlayer( void );
 	static void						SetPredictionPlayer( C_BasePlayer *player );
-	static void						CheckCLInterpChanged();
 
 	// Collision group accessors
 	int GetCollisionGroup() const;
@@ -1449,13 +1400,14 @@ public:
 	// a render handle, and is put into the spatial partition.
 	bool InitializeAsClientEntityByIndex( int iIndex, RenderGroup_t renderGroup );
 
-private:
+public:
 	friend void OnRenderStart();
 
 	// Figure out the smoothly interpolated origin for all server entities. Happens right before
 	// letting all entities simulate.
 	static void InterpolateServerEntities();
-	
+
+private:
 	// Check which entities want to be drawn and add them to the leaf system.
 	static void	AddVisibleEntities();
 
@@ -1785,6 +1737,8 @@ protected:
 	RenderMode_t m_PreviousRenderMode;
 	color32 m_PreviousRenderColor;
 #endif
+  public:
+	CInterpolatedVarList m_InterpolatedVariableList;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
@@ -2217,11 +2171,6 @@ inline const QAngle &C_BaseEntity::LocalEyeAngles( void ) const	// Direction of 
 inline Vector	C_BaseEntity::EarPosition( void ) const			// position of ears
 {
 	return const_cast<C_BaseEntity*>(this)->EarPosition();
-}
-
-inline VarMapping_t* C_BaseEntity::GetVarMapping()
-{
-	return &m_VarMap;
 }
 
 //-----------------------------------------------------------------------------

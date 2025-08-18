@@ -3176,13 +3176,13 @@ void _Host_RunFrame (float time)
         // Two choices here:
         //
         // 1) For precision we might need to send camera position, that is proven to work.
-        // 2) Send interpolation_amount so we calculate it server and in runcommand.
+        // 2) Send interpolation_amount_frac so we calculate it server and in runcommand.
         //
 		// Both works, but the first one requires validation,
 		// the second doesn't at the expense of some unprecisions due to floats.
 		// The first one is the easier route to avoid issues.
 
-        g_ClientGlobalVariables.interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
+        g_ClientGlobalVariables.interpolation_amount_frac = cl.m_tickRemainder / host_state.interval_per_tick;
     };
 #endif
     {
@@ -3202,10 +3202,11 @@ void _Host_RunFrame (float time)
 		g_HostTimes.EndFrameSegment( FRAME_SEGMENT_CMD_EXECUTE );
 
 		// Msg( "Running %i ticks (%f remainder) for frametime %f total %f tick %f delta %f\n", numticks, remainder, host_frametime, host_time );
-		g_ServerGlobalVariables.interpolation_amount = 0.0f;
+		g_ServerGlobalVariables.interpolation_amount_frac = 0.0f;
+		g_ServerGlobalVariables.next_interpolation_amount_frac = 0.0f;
 #ifndef SWDS
-		// g_ClientGlobalVariables.interpolation_amount = 0.0f;
-
+		// g_ClientGlobalVariables.interpolation_amount_frac = 0.0f;
+        g_ClientGlobalVariables.next_interpolation_amount_frac = host_remainder / host_state.interval_per_tick;
 		cl.insimulation = true;
 #endif
 
@@ -3237,7 +3238,6 @@ void _Host_RunFrame (float time)
 			g_ServerGlobalVariables.simTicksThisFrame = 1;
             cl.SetFrameTime(host_frametime);
 #ifndef SWDS
-            g_ClientGlobalVariables.next_interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
 
 			// TODO_ENHANCED:
 			// Update the mouse as first so we can get the right viewangles while rendering.
@@ -3377,7 +3377,7 @@ void _Host_RunFrame (float time)
 
     #if defined(REPLAY_ENABLED)
                 // Update client-side replay history manager - called here
-                // since interpolation_amount is set
+                // since interpolation_amount_frac is set
                 if ( g_pClientReplayContext && g_pClientReplayContext->IsInitialized() )
 				{
 					g_pClientReplayContext->Think();
@@ -3420,7 +3420,6 @@ void _Host_RunFrame (float time)
 
 			clientticks = numticks_last_frame;
 			cl.m_tickRemainder = host_remainder_last_frame;
-            g_ClientGlobalVariables.next_interpolation_amount = cl.m_tickRemainder / host_state.interval_per_tick;
 			cl.SetFrameTime( last_frame_time );
 			if ( g_ClientDLL )
 			{

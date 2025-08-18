@@ -67,7 +67,7 @@ ConVar r_VehicleViewClamp( "r_VehicleViewClamp", "1", FCVAR_CHEAT );
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
 C_PropVehicleDriveable::C_PropVehicleDriveable() :
-	m_iv_vecGunCrosshair( "C_PropVehicleDriveable::m_iv_vecGunCrosshair" )
+	m_iv_vecGunCrosshair( "C_PropVehicleDriveable::m_iv_vecGunCrosshair", &m_vecGunCrosshair, LATCH_SIMULATION_VAR )
 
 {
 	m_hPrevPlayer = NULL;
@@ -85,7 +85,7 @@ C_PropVehicleDriveable::C_PropVehicleDriveable() :
 
 	m_ViewSmoothingData.flFOV = m_flFOV = default_fov.GetFloat();
 
-	AddVar( &m_vecGunCrosshair, &m_iv_vecGunCrosshair, LATCH_SIMULATION_VAR );
+	AddVar( &m_iv_vecGunCrosshair );
 }
 
 //-----------------------------------------------------------------------------

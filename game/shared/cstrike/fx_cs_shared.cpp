@@ -147,13 +147,13 @@ void FX_FireBullets(
 
 // 	if ( playerCmd )
 // 	{
-// 		vHookedOrigin = VectorLerp( pPlayer->m_vecPreviousEyePosition, vOrigin, playerCmd->interpolated_amount );
+// 		vHookedOrigin = VectorLerp( pPlayer->m_vecPreviousEyePosition, vOrigin, playerCmd->interpolated_amount_frac );
 // 	}
 
 // #ifndef CLIENT_DLL
-// 	DevMsg("server new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount, playerCmd ? "true" : "false" );
+// 	DevMsg("server new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount_frac, playerCmd ? "true" : "false" );
 // #else
-// 	DevMsg("client new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount, playerCmd ? "true" : "false" );
+// 	DevMsg("client new shoot pos: %f %f %f - %f, has command: %s\n", vHookedOrigin.x, vHookedOrigin.y, vHookedOrigin.z, playerCmd->interpolated_amount_frac, playerCmd ? "true" : "false" );
 // #endif
 	const char * weaponAlias =	WeaponIDToAlias( iWeaponID );
 
@@ -313,8 +313,9 @@ void FX_FireBullets(
 
 			C_CSPlayer::HitboxRecord record;
 
-			record.m_vecRenderOrigin = lagPlayer->GetRenderOrigin();
-			record.m_angRenderAngles = lagPlayer->GetRenderAngles();
+			record.m_flInterpolationAmountFrac = playerCmd->interpolated_amount_frac;
+			record.m_vecRenderOrigin	   = lagPlayer->GetRenderOrigin();
+			record.m_angRenderAngles	   = lagPlayer->GetRenderAngles();
 
 			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
 			record.m_flSimulationTime  = lagPlayer->m_flInterpolatedSimulationTime;

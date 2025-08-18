@@ -235,7 +235,7 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 
 	for (i = 0; i < m_numHydraBones; i++)
 	{
-		m_iv_vecPos[i].Interpolate( currentTime );
+		m_iv_vecPos[i].Interpolate( currentTime, gpGlobals->interpolation_amount_frac );
 		pos[ i ] = m_vecPos[ i ]; 
 	}
 

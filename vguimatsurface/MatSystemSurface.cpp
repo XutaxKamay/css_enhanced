@@ -1093,7 +1093,7 @@ void CMatSystemSurface::DrawQuadArray( int quadCount, vgui::Vertex_t *pVerts, un
 
 	Assert( !m_bIn3DPaintMode );
 
-	if ( !m_pMesh )
+	if ( !m_pMesh || !pColor || !pVerts )
 		return;
 
 	meshBuilder.Begin( m_pMesh, MATERIAL_QUADS, quadCount );

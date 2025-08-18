@@ -1544,93 +1544,92 @@ class CUtlCircularBuffer
 	};
 
   public:
-	inline pT Get( const int wantedSlot = 0 )
+	inline pT Get( size_t nSlot = 0 )
 	{
-		const auto real_slot = _Slot( wantedSlot );
+		if ( nSlot >= m_nFilled || m_nFilled == 0 )
+		{
+			return nullptr;
+		}
 
-		return ( real_slot == -1 ) ? NULL : &_buffer[real_slot];
+		size_t nPhysicalSlot;
+
+		if ( m_nFilled >= N )
+		{
+			nPhysicalSlot = ( m_nIndex >= nSlot ) ? m_nIndex - nSlot : N + m_nIndex - nSlot;
+		}
+		else
+		{
+			nPhysicalSlot = ( m_nFilled - 1 ) - nSlot;
+		}
+
+		return &_buffer[nPhysicalSlot];
 	}
 
-  public:
 	inline PushType Push( T&& element )
 	{
-		if ( _filled_history >= N )
+		if ( m_nFilled >= N )
 		{
-			if ( _index >= ( N - 1 ) )
+			if ( m_nIndex >= ( N - 1 ) )
 			{
-				_index = 0;
+				m_nIndex = 0;
 			}
 			else
 			{
-				_index++;
+				m_nIndex++;
 			}
 
-			_buffer[_index] = element;
+			_buffer[m_nIndex] = std::move( element );
 
 			return Updating;
 		}
 
-		_buffer[_filled_history] = element;
-		_index					 = _filled_history;
-		_filled_history++;
+		_buffer[m_nFilled] = std::move( element );
+		m_nIndex		   = m_nFilled;
+		m_nFilled++;
 
 		return Filling;
 	}
 
 	inline PushType Push( const T& element )
 	{
-		if ( _filled_history >= N )
+		if ( m_nFilled >= N )
 		{
-			if ( _index >= ( N - 1 ) )
+			if ( m_nIndex >= ( N - 1 ) )
 			{
-				_index = 0;
+				m_nIndex = 0;
 			}
 			else
 			{
-				_index++;
+				m_nIndex++;
 			}
 
-			_buffer[_index] = element;
+			_buffer[m_nIndex] = element;
 
 			return Updating;
 		}
 
-		_buffer[_filled_history] = element;
-		_index					 = _filled_history;
-		_filled_history++;
+		_buffer[m_nFilled] = element;
+		m_nIndex		   = m_nFilled;
+		m_nFilled++;
 
 		return Filling;
 	}
 
 	inline void Clear()
 	{
-		_index			= 0;
-		_filled_history = 0;
+		m_nIndex			= 0;
+		m_nFilled = 0;
 	}
 
-  private:
-	inline int _Slot( const int wantedSlot = 0 ) const
+	inline size_t FillCount() const
 	{
-		if ( wantedSlot >= _filled_history || wantedSlot < 0 || _filled_history <= 0 )
-		{
-			return -1;
-		}
-
-		if ( _filled_history >= N )
-		{
-			const int calc_slot = ( _index - wantedSlot );
-			return ( calc_slot < 0 ) ? calc_slot + N : calc_slot;
-		}
-		else
-		{
-			return ( _filled_history - 1 ) - wantedSlot;
-		}
+		return m_nFilled;
 	}
 
   private:
 	T _buffer[N];
-	int _filled_history {};
-	int _index {};
+	size_t m_nFilled {};
+	size_t m_nIndex {};
 };
 
 #endif // CCVECTOR_H

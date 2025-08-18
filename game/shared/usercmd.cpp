@@ -183,10 +183,10 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
-	if ( from->interpolated_amount != to->interpolated_amount )
+	if ( from->interpolated_amount_frac != to->interpolated_amount_frac )
 	{
 		buf->WriteOneBit( 1 );
-		buf->WriteBitFloat( to->interpolated_amount );
+		buf->WriteBitFloat( to->interpolated_amount_frac );
 	}
 	else
 	{
@@ -303,7 +303,7 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
     if ( buf->ReadOneBit() )
     {
-        move->interpolated_amount = buf->ReadBitFloat();
+        move->interpolated_amount_frac = buf->ReadBitFloat();
 	}
 
 #if defined( HL2_DLL )

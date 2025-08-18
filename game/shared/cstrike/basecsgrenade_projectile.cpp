@@ -52,22 +52,23 @@ END_NETWORK_TABLE()
 	{
 		BaseClass::PostDataUpdate( type );
 
-		if ( type == DATA_UPDATE_CREATED )
-		{
-			// Now stick our initial velocity into the interpolation history 
-			CInterpolatedVar< Vector > &interpolator = GetOriginInterpolator();
+		// TODO_ENHANCED: why??
+		// if ( type == DATA_UPDATE_CREATED )
+		// {
+		// 	// Now stick our initial velocity into the interpolation history 
+		// 	CInterpolatedVar< Vector > &interpolator = GetOriginInterpolator();
 			
-			interpolator.ClearHistory();
-			float changeTime = GetLastChangeTime( LATCH_SIMULATION_VAR );
+		// 	interpolator.ClearHistory();
+		// 	float changeTime = GetLastChangeTime( LATCH_SIMULATION_VAR );
 
-			// Add a sample 1 second back.
-			Vector vCurOrigin = GetLocalOrigin() - m_vInitialVelocity;
-			interpolator.AddToHead( changeTime - 1.0, &vCurOrigin, false );
+		// 	// Add a sample 1 second back.
+		// 	Vector vCurOrigin = GetLocalOrigin() - m_vInitialVelocity;
+		// 	interpolator.AddToHead( changeTime - 1.0, &vCurOrigin, false );
 
-			// Add the current sample.
-			vCurOrigin = GetLocalOrigin();
-			interpolator.AddToHead( changeTime, &vCurOrigin, false );
-		}
+		// 	// Add the current sample.
+		// 	vCurOrigin = GetLocalOrigin();
+		// 	interpolator.AddToHead( changeTime, &vCurOrigin, false );
+		// }
 	}
 
 	int CBaseCSGrenadeProjectile::DrawModel( int flags )

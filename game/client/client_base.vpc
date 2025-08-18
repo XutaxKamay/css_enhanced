@@ -379,7 +379,7 @@ $Project
 		$File	"in_joystick.cpp"
 		$File	"in_main.cpp"
 		$File	"initializer.cpp"
-		$File	"interpolatedvar.cpp"
+		$File	"$SRCDIR\game\shared\interpolatedvar.cpp"
 		$File	"IsNPCProxy.cpp"
 		$File	"lampbeamproxy.cpp"
 		$File	"lamphaloproxy.cpp"

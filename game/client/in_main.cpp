@@ -11,8 +11,6 @@
 #include "cbase.h"
 #include "baseentity_shared.h"
 #include "c_baseanimating.h"
-#include <cmath>
-#include <cstdio>
 #include "bone_setup.h"
 #include "const.h"
 #include "convar.h"
@@ -1271,6 +1269,9 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i] = {};
 	}
 
+	auto nInterpolationAmountOfTicks = GetClientInterpolationAmountInTicks();
+	auto flInterpolationAmountFrac = gpGlobals->next_interpolation_amount_frac;
+
 	auto entities = g_pFastEntityLookUp->entities;
 
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
@@ -1283,17 +1284,10 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		// If predictable, we just give the simulation time.
-		if ( pEntity->GetPredictable() )
-		{
-			cmd->simulationdata[i].sim_time	 = pEntity->m_flSimulationTime;
-			cmd->simulationdata[i].anim_time = pEntity->m_flAnimTime;
-		}
-		else
-		{
-			cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
-			cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
-		}
+		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
+
+		cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
+		cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
 	}
 
 #ifdef CSTRIKE_DLL
@@ -1314,7 +1308,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 #endif
 
-	cmd->interpolated_amount = gpGlobals->next_interpolation_amount;
+	// InterpolateServerEntities starts after prediction during rendering (OnRenderStart)
+	cmd->interpolated_amount_frac = flInterpolationAmountFrac;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

@@ -96,7 +96,7 @@ INLINE_ON_PS3 void CThread::SetName(const char *pszName)
 //-----------------------------------------------------
 
 // Start thread running  - error if already running
-INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nPriority )
+INLINE_ON_PS3 bool CThread::Start( ThreadPriorityEnum_t nPriority )
 {
 	AUTO_LOCK( m_Lock );
 
@@ -122,10 +122,10 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 
 #ifdef _WIN32
 	m_hThread = (HANDLE)CreateThread( NULL,
-		nBytesStack,
+		0x40000000, // what stack size you want? yes
 		(LPTHREAD_START_ROUTINE)GetThreadProc(),
 		new ThreadInit_t(init),
-		nBytesStack ? STACK_SIZE_PARAM_IS_A_RESERVATION : 0,
+		STACK_SIZE_PARAM_IS_A_RESERVATION,
 		(LPDWORD)&m_threadId );
 
 	if( nPriority != TP_PRIORITY_DEFAULT )
@@ -139,13 +139,6 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 		return false;
 	}
 #elif PLATFORM_PS3
-	// On the PS3, a stack size of 0 doesn't imply a default stack size, so we need to force it to our
-	//		 own default size.
-	if ( nBytesStack == 0 )
-	{
-		nBytesStack = PS3_SYS_PPU_THREAD_COMMON_STACK_SIZE;
-	}
-
 	//The thread is about to begin
 	m_threadEnd.Reset();
 
@@ -159,7 +152,7 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 			(void(*)(uint64_t))GetThreadProc(), 
 			(uint64_t)(new ThreadInit_t( init )), 
 			nPriority, 
-			nBytesStack, 
+			0x40000000, // what stack size you want? yes
 			SYS_PPU_THREAD_CREATE_JOINABLE  , 
 			threadName ) != CELL_OK )
 	{
@@ -171,7 +164,7 @@ INLINE_ON_PS3 bool CThread::Start( unsigned nBytesStack, ThreadPriorityEnum_t nP
 #elif POSIX
 	pthread_attr_t attr;
 	pthread_attr_init( &attr );
-	pthread_attr_setstacksize( &attr, MAX( nBytesStack, 1024u*1024 ) );
+	pthread_attr_setstacksize( &attr, 0x40000000 ); // what stack size you want? yes (CUserCmd)
 	//lwss - fix memory leak here
 	m_threadInit = ThreadInit_t( init );
 	//if ( pthread_create( &m_threadId, &attr, (void *(*)(void *))GetThreadProc(), new ThreadInit_t( init ) ) != 0 )

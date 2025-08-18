@@ -2094,6 +2094,61 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	RemoveEFlags( EFL_SETTING_UP_BONES );
 }
 
+float CBaseAnimating::ClampCycle( float flCycle, bool isLooping )
+{
+	if ( isLooping )
+	{
+		// FIXME: does this work with negative framerate?
+		flCycle -= ( int )flCycle;
+		if ( flCycle < 0.0f )
+		{
+			flCycle += 1.0f;
+		}
+	}
+	else
+	{
+		flCycle = clamp( flCycle, 0.0f, 0.999f );
+	}
+
+	return flCycle;
+}
+
+void CBaseAnimating::MaintainSequenceTransitions( IBoneSetup& boneSetup,
+												  float flCycle,
+												  float currentTime,
+												  Vector pos[],
+												  Quaternion q[] )
+{
+	VPROF( "CBaseAnimating::MaintainSequenceTransitions" );
+
+	if ( !boneSetup.GetStudioHdr() )
+	{
+		return;
+	}
+
+	m_SequenceTransitioner.CheckForSequenceChange( boneSetup.GetStudioHdr(), GetSequence(), true, true );
+
+	// Update the transition sequence list.
+	m_SequenceTransitioner.UpdateCurrent( boneSetup.GetStudioHdr(),
+										  GetSequence(),
+										  flCycle,
+										  m_flPlaybackRate,
+										  currentTime );
+
+	// process previous sequences
+	for ( int i = m_SequenceTransitioner.m_animationQueue.Count() - 2; i >= 0; i-- )
+	{
+		CAnimationLayer* blend = &m_SequenceTransitioner.m_animationQueue[i];
+
+		float dt = ( currentTime - blend->m_flLayerAnimtime );
+		flCycle	 = blend->m_flCycle
+				  + dt * blend->m_flPlaybackRate * GetSequenceCycleRate( boneSetup.GetStudioHdr(), blend->m_nSequence );
+		flCycle = ClampCycle( flCycle, IsSequenceLooping( boneSetup.GetStudioHdr(), blend->m_nSequence ) );
+
+		boneSetup.AccumulatePose( pos, q, blend->m_nSequence, flCycle, blend->m_flWeight, currentTime, m_pIk );
+	}
+}
+
 //=========================================================
 //=========================================================
 int CBaseAnimating::GetNumBones ( void )
@@ -3036,6 +3091,8 @@ void CBaseAnimating::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaterni
 
 	boneSetup.AccumulatePose( pos, q, GetSequence(), GetCycle(), 1.0, gpGlobals->curtime, m_pIk );
 
+	// MaintainSequenceTransitions( boneSetup, GetCycle(), gpGlobals->curtime, pos, q );
+
 	if ( m_pIk )
 	{
 		CIKContext auto_ik;
@@ -3824,6 +3881,8 @@ bool CBaseAnimating::IsSequenceLooping( CStudioHdr *pStudioHdr, int iSequence )
 CStudioHdr *CBaseAnimating::OnNewModel()
 {
 	(void) BaseClass::OnNewModel();
+
+	m_SequenceTransitioner.RemoveAll();
 
 	// TODO: if dynamic, validate m_Sequence and apply queued body group settings?
 	if ( IsDynamicModelLoading() )

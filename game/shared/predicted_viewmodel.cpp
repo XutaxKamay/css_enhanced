@@ -20,10 +20,9 @@ END_NETWORK_TABLE()
 // Purpose: 
 //-----------------------------------------------------------------------------
 #ifdef CLIENT_DLL
-CPredictedViewModel::CPredictedViewModel() : m_LagAnglesHistory("CPredictedViewModel::m_LagAnglesHistory")
+CPredictedViewModel::CPredictedViewModel() : m_LagAnglesHistory("CPredictedViewModel::m_LagAnglesHistory", &m_vLagAngles, LATCH_SIMULATION_VAR)
 {
 	m_vLagAngles.Init();
-	m_LagAnglesHistory.Setup( &m_vLagAngles, 0 );
 }
 #else
 CPredictedViewModel::CPredictedViewModel()
@@ -40,8 +39,8 @@ CPredictedViewModel::~CPredictedViewModel()
 }
 
 #ifdef CLIENT_DLL
-ConVar cl_wpn_sway_interp( "cl_wpn_sway_interp", "0.1", FCVAR_CLIENTDLL );
-ConVar cl_wpn_sway_scale( "cl_wpn_sway_scale", "1.0", FCVAR_CLIENTDLL|FCVAR_CHEAT );
+ConVar cl_wpn_sway_interp_in_ticks( "cl_wpn_sway_interp_in_ticks", "10", FCVAR_CLIENTDLL );
+ConVar cl_wpn_sway_scale( "cl_wpn_sway_scale", "1.0", FCVAR_CLIENTDLL );
 #endif
 
 void CPredictedViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& original_angles )
@@ -53,10 +52,10 @@ void CPredictedViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAng
 		
 		// Add an entry to the history.
 		m_vLagAngles = angles;
-		m_LagAnglesHistory.NoteChanged( gpGlobals->curtime, cl_wpn_sway_interp.GetFloat(), false );
+		m_LagAnglesHistory.Push();
 		
 		// Interpolate back 100ms.
-		m_LagAnglesHistory.Interpolate( gpGlobals->curtime, cl_wpn_sway_interp.GetFloat() );
+		m_LagAnglesHistory.Interpolate( cl_wpn_sway_interp_in_ticks.GetInt(), gpGlobals->interpolation_amount_frac );
 		
 		// Now take the 100ms angle difference and figure out how far the forward vector moved in local space.
 		Vector vLaggedForward;

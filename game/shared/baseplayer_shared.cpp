@@ -2144,42 +2144,53 @@ void CBasePlayer::FinishInterpolatingCommand( void )
 
 // TODO_ENHANCED: move punch angle code (PrimaryAttack/ViewPunch)
 
+BasePlayerInterpolationCommandContext::BasePlayerInterpolationCommandContext()
+ : m_iv_vecLocalOrigin( "BasePlayerInterpolationCommandContext:m_iv_vecLocalOrigin",
+						&m_InterpolatedData.m_vecLocalOrigin,
+						LATCH_SIMULATION_VAR ),
+   m_iv_vecViewOffset( "BasePlayerInterpolationCommandContext:m_iv_vecViewOffset",
+					   &m_InterpolatedData.m_vecViewOffset,
+					   LATCH_SIMULATION_VAR )
+{
+	m_InterpolatedVariableList.AddVar( &m_iv_vecLocalOrigin );
+	m_InterpolatedVariableList.AddVar( &m_iv_vecViewOffset );
+}
+
 void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )
 {
-	auto&& pData = &data[BEFORE_MOVEMENT];
+	auto&& data = m_InterpolatedData;
+
+	m_InterpolatedVariableList.ClearHistory();
 
 	// pData->m_angLocalRotation = player->GetLocalAngles();
-	pData->m_vecLocalOrigin = player->GetLocalOrigin();
+	data.m_vecLocalOrigin = player->GetLocalOrigin();
 	// pData->m_vecPunchAngle	  = player->GetPunchAngle();
 	// pData->m_vecPunchAngleVel = player->GetPunchAngleVel();
-	pData->m_vecViewOffset = player->GetViewOffset();
+	data.m_vecViewOffset = player->GetViewOffset();
+
+	m_InterpolatedVariableList.Push();
 }
 
 void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
 {
-	auto&& pDataBefore	= &data[BEFORE_MOVEMENT];
-	auto&& pDataApplied = &data[APPLIED];
-	auto&& pDataAfter	= &data[AFTER_MOVEMENT];
+	auto&& data = m_InterpolatedData;
 
 	// pDataAfter->m_angLocalRotation = player->GetLocalAngles();
-	pDataAfter->m_vecLocalOrigin = player->GetLocalOrigin();
+	data.m_vecLocalOrigin = player->GetLocalOrigin();
 	// pDataAfter->m_vecPunchAngle	   = player->GetPunchAngle();
 	// pDataAfter->m_vecPunchAngleVel = player->GetPunchAngleVel();
-	pDataAfter->m_vecViewOffset = player->GetViewOffset();
+	data.m_vecViewOffset = player->GetViewOffset();
 
-	auto lerp = player->GetCurrentCommand()->interpolated_amount;
+	m_InterpolatedVariableList.SaveLastKnownValue();
+	m_InterpolatedVariableList.Push();
 
-	// pDataApplied->m_angLocalRotation = Lerp( lerp, pDataAfter->m_angLocalRotation, pDataBefore->m_angLocalRotation );
-	pDataApplied->m_vecLocalOrigin = Lerp( lerp, pDataAfter->m_vecLocalOrigin, pDataBefore->m_vecLocalOrigin );
-	// pDataApplied->m_vecPunchAngle	 = Lerp( lerp, pDataAfter->m_vecPunchAngle, pDataBefore->m_vecPunchAngle );
-	// pDataApplied->m_vecPunchAngleVel = Lerp( lerp, pDataAfter->m_vecPunchAngleVel, pDataBefore->m_vecPunchAngleVel );
-	pDataApplied->m_vecViewOffset = Lerp( lerp, pDataAfter->m_vecViewOffset, pDataBefore->m_vecViewOffset );
+	m_InterpolatedVariableList.Interpolate( 1, player->GetCurrentCommand()->interpolated_amount_frac );
 
 	// player->SetLocalAngles( pDataApplied->m_angLocalRotation );
-	player->SetLocalOrigin( pDataApplied->m_vecLocalOrigin );
+	player->SetLocalOrigin( data.m_vecLocalOrigin );
 	// player->SetPunchAngle( pDataApplied->m_vecPunchAngle );
 	// player->SetPunchAngleVel( pDataApplied->m_vecPunchAngleVel );
-	player->SetViewOffset( pDataApplied->m_vecViewOffset );
+	player->SetViewOffset( data.m_vecViewOffset );
 }
 
 template < typename T >
@@ -2216,23 +2227,24 @@ inline static void WarnCoords( const char* name, const T& newValue, const T& ori
 
 void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
 {
-	auto&& pDataApplied = &data[APPLIED];
-	auto&& pDataAfter	= &data[AFTER_MOVEMENT];
+	auto&& data	= m_InterpolatedData;
 
 	// TODO_ENHANCED: If this warns, this is bad, it means something that should be inside game movement / before
 	// interpolation must be moved.
 
 	// WarnCoords( "m_angLocalRotation", player->GetLocalAngles(), pDataApplied->m_angLocalRotation );
-	WarnCoords( "m_vecLocalOrigin", player->GetLocalOrigin(), pDataApplied->m_vecLocalOrigin, player );
+	WarnCoords( "m_vecLocalOrigin", player->GetLocalOrigin(), data.m_vecLocalOrigin, player );
 	// WarnCoords( "m_vecPunchAngle", player->GetPunchAngle(), pDataApplied->m_vecPunchAngle );
 	// WarnCoords( "m_vecPunchAngleVel", player->GetPunchAngleVel(), pDataApplied->m_vecPunchAngleVel );
-	WarnCoords( "m_vecViewOffset", player->GetViewOffset(), pDataApplied->m_vecViewOffset, player );
+	WarnCoords( "m_vecViewOffset", player->GetViewOffset(), data.m_vecViewOffset, player );
+
+	m_InterpolatedVariableList.RestoreToLastKnownValue();
 
 	// player->SetLocalAngles( pDataAfter->m_angLocalRotation );
-	player->SetLocalOrigin( pDataAfter->m_vecLocalOrigin );
+	player->SetLocalOrigin( data.m_vecLocalOrigin );
 	// player->SetPunchAngle( pDataAfter->m_vecPunchAngle );
 	// player->SetPunchAngleVel( pDataAfter->m_vecPunchAngleVel );
-	player->SetViewOffset( pDataAfter->m_vecViewOffset );
+	player->SetViewOffset( data.m_vecViewOffset );
 }
 
 bool fogparams_t::operator !=( const fogparams_t& other ) const

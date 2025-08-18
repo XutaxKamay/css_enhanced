@@ -44,42 +44,17 @@
 #include "cdll_bounded_cvars.h"
 #include "inetchannelinfo.h"
 #include "proto_version.h"
+#include "debugoverlay_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-
-#ifdef INTERPOLATEDVAR_PARANOID_MEASUREMENT
-	int g_nInterpolatedVarsChanged = 0;
-	bool g_bRestoreInterpolatedVarValues = false;
-#endif
-
+ConVar cl_interp_linear_only( "cl_interp_linear_only", "1", FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE | FCVAR_USERINFO );
 
 static bool g_bWasSkipping = (bool)-1;
 static bool g_bWasThreaded =(bool)-1;
 static int  g_nThreadModeTicks = 0;
 
-void cc_cl_interp_all_changed( IConVar *pConVar, const char *pOldString, float flOldValue )
-{
-	ConVarRef var( pConVar );
-	if ( var.GetInt() )
-	{
-		C_BaseEntityIterator iterator;
-		C_BaseEntity *pEnt;
-		while ( (pEnt = iterator.Next()) != NULL )	
-		{
-			if ( pEnt->ShouldInterpolate() )
-			{
-				pEnt->AddToInterpolationList();
-			}
-		}
-	}
-}
-
-// TODO_ENHANCED: Never extrapolate, this breaks clock correction.
-static ConVar  cl_extrapolate( "cl_extrapolate", "0", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
-static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.0", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
-static ConVar  cl_interp_all( "cl_interp_all", "0", 0, "Disable interpolation list optimizations.", 0, 0, 0, 0, cc_cl_interp_all_changed );
 ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1" );
 extern ConVar	cl_showerror;
 C_BasePlayer *C_BaseEntity::m_pPredictionPlayer = NULL;
@@ -416,8 +391,8 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "predictable_id", 0, 0, &REFERENCE_RECV_TABLE( DT_PredictableId ) ),
 #endif
 
-	RecvPropInt		( RECVINFO( m_bSimulatedEveryTick ), 0, RecvProxy_InterpolationAmountChanged ),
-	RecvPropInt		( RECVINFO( m_bAnimatedEveryTick ), 0, RecvProxy_InterpolationAmountChanged ),
+	RecvPropInt		( RECVINFO( m_bSimulatedEveryTick ) ),
+	RecvPropInt		( RECVINFO( m_bAnimatedEveryTick ) ),
 	RecvPropBool	( RECVINFO( m_bAlternateSorting ) ),
 
 #ifdef TF_CLIENT_DLL
@@ -513,141 +488,6 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 END_PREDICTION_DATA()
 
 //-----------------------------------------------------------------------------
-// Helper functions.
-//-----------------------------------------------------------------------------
-
-void SpewInterpolatedVar( CInterpolatedVar< Vector > *pVar )
-{
-	Msg( "--------------------------------------------------\n" );
-	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
-	float prevtime = 0.0f;
-	while ( 1 )
-	{
-		float changetime;
-		Vector *pVal = pVar->GetHistoryValue( i, changetime );
-		if ( !pVal )
-			break;
-
-		float vel = apparent.AddSample( changetime, *pVal );
-		Msg( "%6.6f: (%.2f %.2f %.2f), vel: %.2f [dt %.1f]\n", changetime, VectorExpand( *pVal ), vel, prevtime == 0.0f ? 0.0f : 1000.0f * ( changetime - prevtime ) );
-		i = pVar->GetNext( i );
-		prevtime = changetime;
-	}
-	Msg( "--------------------------------------------------\n" );
-}
-
-void SpewInterpolatedVar( CInterpolatedVar< Vector > *pVar, float flNow, float flInterpAmount, bool bSpewAllEntries = true )
-{
-	float target = flNow - flInterpAmount;
-
-	Msg( "--------------------------------------------------\n" );
-	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
-	float newtime = 999999.0f;
-	Vector newVec( 0, 0, 0 );
-	bool bSpew = true;
-
-	while ( 1 )
-	{
-		float changetime;
-		Vector *pVal = pVar->GetHistoryValue( i, changetime );
-		if ( !pVal )
-			break;
-
-		if ( bSpew && target >= changetime )
-		{
-			Vector o;
-			pVar->DebugInterpolate( &o, flNow );
-			bool bInterp = newtime != 999999.0f;
-			float frac = 0.0f;
-			char desc[ 32 ];
-
-			if ( bInterp )
-			{
-				frac = ( target - changetime ) / ( newtime - changetime );
-				Q_snprintf( desc, sizeof( desc ), "interpolated [%.2f]", frac );
-			}
-			else
-			{
-				bSpew = true;
-				int savei = i;
-				i = pVar->GetNext( i );
-				float oldtertime = 0.0f;
-				pVar->GetHistoryValue( i, oldtertime );
-
-				if ( changetime != oldtertime )
-				{
-					frac = ( target - changetime ) / ( changetime - oldtertime );
-				}
-
-				Q_snprintf( desc, sizeof( desc ), "extrapolated [%.2f]", frac );
-				i = savei;
-			}
-
-			if ( bSpew )
-			{
-				Msg( "  > %6.6f: (%.2f %.2f %.2f) %s for %.1f msec\n", 
-					target, 
-					VectorExpand( o ), 
-					desc,
-					1000.0f * ( target - changetime ) );
-				bSpew = false;
-			}
-		}
-
-		float vel = apparent.AddSample( changetime, *pVal );
-		if ( bSpewAllEntries )
-		{
-			Msg( "    %6.6f: (%.2f %.2f %.2f), vel: %.2f [dt %.1f]\n", changetime, VectorExpand( *pVal ), vel, newtime == 999999.0f ? 0.0f : 1000.0f * ( newtime - changetime ) );
-		}
-		i = pVar->GetNext( i );
-		newtime = changetime;
-		newVec = *pVal;
-	}
-	Msg( "--------------------------------------------------\n" );
-}
-void SpewInterpolatedVar( CInterpolatedVar< float > *pVar )
-{
-	Msg( "--------------------------------------------------\n" );
-	int i = pVar->GetHead();
-	CApparentVelocity<float> apparent;
-	while ( 1 )
-	{
-		float changetime;
-		float *pVal = pVar->GetHistoryValue( i, changetime );
-		if ( !pVal )
-			break;
-
-		float vel = apparent.AddSample( changetime, *pVal );
-		Msg( "%6.6f: (%.2f), vel: %.2f\n", changetime, *pVal, vel );
-		i = pVar->GetNext( i );
-	}
-	Msg( "--------------------------------------------------\n" );
-}
-
-template<class T>
-void GetInterpolatedVarTimeRange( CInterpolatedVar<T> *pVar, float &flMin, float &flMax )
-{
-	flMin = 1e23;
-	flMax = -1e23;
-
-	int i = pVar->GetHead();
-	CApparentVelocity<Vector> apparent;
-	while ( 1 )
-	{
-		float changetime;
-		if ( !pVar->GetHistoryValue( i, changetime ) )
-			return;
-
-		flMin = MIN( flMin, changetime );
-		flMax = MAX( flMax, changetime );
-		i = pVar->GetNext( i );
-	}
-}
-
-
-//-----------------------------------------------------------------------------
 // Global methods related to when abs data is correct
 //-----------------------------------------------------------------------------
 void C_BaseEntity::SetAbsQueriesValid( bool bValid )
@@ -733,122 +573,21 @@ void C_BaseEntity::SetTextureFrameIndex( int iIndex )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : *map - 
-//-----------------------------------------------------------------------------
-void C_BaseEntity::Interp_SetupMappings( VarMapping_t *map )
-{
-	if( !map )
-		return;
-
-	int c = map->m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		VarMapEntry_t *e = &map->m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
-		void *data = e->data;
-		int type = e->type;
-
-		watcher->Setup( data, type );
-		watcher->SetInterpolationAmount( GetInterpolationAmount( watcher->GetType() ) ); 
-	}
-}
-
-void C_BaseEntity::Interp_RestoreToLastNetworked( VarMapping_t *map )
-{
-	VPROF( "C_BaseEntity::Interp_RestoreToLastNetworked" );
-
-	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, "restoretolastnetworked" );
-
-	Vector oldOrigin = GetLocalOrigin();
-	QAngle oldAngles = GetLocalAngles();
-	Vector oldVel = GetLocalVelocity();
-
-	int c = map->m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		VarMapEntry_t *e = &map->m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
-		watcher->RestoreToLastNetworked();
-	}
-
-	BaseInterpolatePart2( oldOrigin, oldAngles, oldVel, 0 );
-}
-
-void C_BaseEntity::Interp_UpdateInterpolationAmounts( VarMapping_t *map )
-{
-	if( !map )
-		return;
-
-	int c = map->m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		VarMapEntry_t *e = &map->m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
-		watcher->SetInterpolationAmount( GetInterpolationAmount( watcher->GetType() ) ); 
-	}
-}
-
-void C_BaseEntity::Interp_HierarchyUpdateInterpolationAmounts()
-{
-	Interp_UpdateInterpolationAmounts( GetVarMapping() );
-
-	for ( C_BaseEntity *pChild = FirstMoveChild(); pChild; pChild = pChild->NextMovePeer() )
-	{
-		pChild->Interp_HierarchyUpdateInterpolationAmounts();
-	}
-}
-
-inline int C_BaseEntity::Interp_Interpolate( VarMapping_t *map, float currentTime )
-{
-	int bNoMoreChanges = 1;
-	if ( currentTime < map->m_lastInterpolationTime )
-	{
-		for ( int i = 0; i < map->m_nInterpolatedEntries; i++ )
-		{
-			VarMapEntry_t *e = &map->m_Entries[ i ];
-
-			e->m_bNeedsToInterpolate = true;
-		}
-	}
-	map->m_lastInterpolationTime = currentTime;
-
-	for ( int i = 0; i < map->m_nInterpolatedEntries; i++ )
-	{
-		VarMapEntry_t *e = &map->m_Entries[ i ];
-
-		if ( !e->m_bNeedsToInterpolate )
-			continue;
-			
-		IInterpolatedVar *watcher = e->watcher;
-		Assert( !( watcher->GetType() & EXCLUDE_AUTO_INTERPOLATE ) );
-
-
-		if ( watcher->Interpolate( currentTime ) )
-			e->m_bNeedsToInterpolate = false;
-		else
-			bNoMoreChanges = 0;
-	}
-
-	return bNoMoreChanges;
-}
-
-//-----------------------------------------------------------------------------
 // Functions.
 //-----------------------------------------------------------------------------
 C_BaseEntity::C_BaseEntity() : 
-	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin" ),
-	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation" ),
-	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity" ),
-	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime" ),
-	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime" )
+	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin", &m_vecOrigin, LATCH_SIMULATION_VAR ),
+	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation", &m_angRotation, LATCH_SIMULATION_VAR ),
+	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity", &m_vecVelocity, LATCH_SIMULATION_VAR ),
+	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime", &m_flInterpolatedSimulationTime, LATCH_SIMULATION_VAR ),
+	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime", &m_flInterpolatedAnimTime, LATCH_ANIMATION_VAR )
 {
-	AddVar( &m_vecOrigin, &m_iv_vecOrigin, LATCH_SIMULATION_VAR );
-	AddVar( &m_angRotation, &m_iv_angRotation, LATCH_SIMULATION_VAR );
+	AddVar( &m_iv_vecOrigin );
+	AddVar( &m_iv_angRotation );
+
 	// Needed for lag compensation
-	AddVar( &m_flInterpolatedSimulationTime, &m_iv_flSimulationTime, LATCH_SIMULATION_VAR );
-	// TODO_ENHANCED: For now, animations aren't interpolated!
-	AddVar( &m_flInterpolatedAnimTime, &m_iv_flAnimTime, LATCH_ANIMATION_VAR );
+	AddVar( &m_iv_flSimulationTime );
+	AddVar( &m_iv_flAnimTime );
 
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
@@ -1046,8 +785,6 @@ bool C_BaseEntity::Init( int entnum, int iSerialNum )
 
 	CollisionProp()->CreatePartitionHandle();
 
-	Interp_SetupMappings( GetVarMapping() );
-
 	m_nCreationTick = gpGlobals->tickcount;
 
 	return true;
@@ -1075,8 +812,6 @@ bool C_BaseEntity::InitializeAsClientEntity( const char *pszModelName, RenderGro
 	{
 		nModelIndex = -1;
 	}
-
-	Interp_SetupMappings( GetVarMapping() );
 
 	return InitializeAsClientEntityByIndex( nModelIndex, renderGroup );
 }
@@ -2098,7 +1833,7 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 
 	if ( !bnewentity )
 	{
-		Interp_RestoreToLastNetworked( GetVarMapping() );
+		m_InterpolatedVariableList.RestoreToLastKnownValue();
 	}
 
 	if ( bnewentity && !IsClientCreated() )
@@ -2169,8 +1904,6 @@ void C_BaseEntity::UnlinkChild( C_BaseEntity *pParent, C_BaseEntity *pChild )
 	pChild->m_pMovePrevPeer = NULL;
 	pChild->m_pMoveParent = NULL;
 	pChild->RemoveFromAimEntsList();
-
-	Interp_HierarchyUpdateInterpolationAmounts();
 }
 
 void C_BaseEntity::LinkChild( C_BaseEntity *pParent, C_BaseEntity *pChild )
@@ -2198,8 +1931,6 @@ void C_BaseEntity::LinkChild( C_BaseEntity *pParent, C_BaseEntity *pChild )
 	pParent->m_pMoveChild = pChild;
 	pChild->m_pMoveParent = pParent;
 	pChild->AddToAimEntsList();
-
-	Interp_HierarchyUpdateInterpolationAmounts();
 }
 
 CUtlVector< C_BaseEntity * >	g_AimEntsList;
@@ -2502,14 +2233,8 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 		SetRenderMode( (RenderMode_t)m_nRenderMode, true );
 	}
 
-	bool animTimeChanged = ( m_flAnimTime != m_flOldAnimTime ) ? true : false;
-	bool originChanged = ( m_vecOldOrigin != GetLocalOrigin() ) ? true : false;
-	bool anglesChanged = ( m_vecOldAngRotation != GetLocalAngles() ) ? true : false;
-	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime ) ? true : false;
-
-	// Detect simulation changes 
-	bool simulationChanged = originChanged || anglesChanged || simTimeChanged;
-
+	bool animTimeChanged = ( m_flAnimTime != m_flOldAnimTime );
+	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime );
 	bool bPredictable = GetPredictable();
 
 	// if ( !bPredictable )
@@ -2519,6 +2244,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 		// Otherwise createmove will send these values without caring and potentially
 		// make the client and server framerate less efficient including prediction errors.
 		// TODO_ENHANCED: apparently IsClientCreated doesn't behave as it should do ...
+		// Predictable like moving triggers/platforms will need lag compensation anyway ...
 		m_flInterpolatedSimulationTime = m_flSimulationTime;
 		m_flInterpolatedAnimTime = m_flAnimTime;
 	}
@@ -2531,7 +2257,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 			OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR );
 		}
 
-		if ( simulationChanged )
+		if ( simTimeChanged )
 		{
 			OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR );
 		}
@@ -2541,6 +2267,11 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		// Just store off last networked value for use in prediction
 		OnStoreLastNetworkedValue();
+	}
+	else
+	{
+		// Should never happen, a client created class calling PostDataUpdate ? I have no idea.
+		Error( "What to do with it %s:%s:%i ...\n", GetDebugName(), GetEntityName(), index );
 	}
 
 	// Deal with hierarchy. Have to do it here (instead of in a proxy)
@@ -2705,19 +2436,7 @@ void C_BaseEntity::OnStoreLastNetworkedValue()
 		MoveToLastReceivedPosition( true );
 	}
 
-	int c = m_VarMap.m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		VarMapEntry_t *e = &m_VarMap.m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
-
-		int type = watcher->GetType();
-
-		if ( type & EXCLUDE_AUTO_LATCH )
-			continue;
-
-		watcher->NoteLastNetworkedValue();
-	}
+	m_InterpolatedVariableList.SaveLastKnownValue();
 
 	if ( bRestore )
 	{
@@ -2732,44 +2451,28 @@ void C_BaseEntity::OnStoreLastNetworkedValue()
 // Input  : *pState - the (mostly) previous state data
 //-----------------------------------------------------------------------------
 
-void C_BaseEntity::OnLatchInterpolatedVariables( int flags )
+void C_BaseEntity::OnLatchInterpolatedVariables( InterpolatedVarType type, bool bUpdateLastNetworkedValue )
 {
-	float changetime = GetLastChangeTime( flags );
-
-	bool bUpdateLastNetworkedValue = !(flags & INTERPOLATE_OMIT_UPDATE_LAST_NETWORKED) ? true : false;
-
-	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, bUpdateLastNetworkedValue ? "latch+net" : "latch" );
-
-	int c = m_VarMap.m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
+	for ( auto&& variable : m_InterpolatedVariableList.variables )
 	{
-		VarMapEntry_t *e = &m_VarMap.m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
+		if ( variable->Type() == type )
+		{
+			variable->Push();
 
-        if (!watcher)
-        {
-            continue;
-        }
-
-		int type = watcher->GetType();
-
-		if ( !(type & flags) )
-			continue;
-
-		if ( type & EXCLUDE_AUTO_LATCH )
-			continue;
-
-		if ( watcher->NoteChanged( changetime, bUpdateLastNetworkedValue ) )
-			e->m_bNeedsToInterpolate = true;
+			if ( bUpdateLastNetworkedValue )
+			{
+				variable->SaveLastKnownValue();
+			}
+		}
 	}
-	
+
 	if ( ShouldInterpolate() )
 	{
 		AddToInterpolationList();
 	}
 }
 
-int CBaseEntity::BaseInterpolatePart1( float &currentTime, Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int &bNoMoreChanges )
+int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolationAmountFrac, Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int &bNoMoreChanges )
 {
 	// Don't mess with the world!!!
 	bNoMoreChanges = 1;
@@ -2783,32 +2486,21 @@ int CBaseEntity::BaseInterpolatePart1( float &currentTime, Vector &oldOrigin, QA
 		return INTERPOLATE_STOP;
 	}
 
-
 	if ( GetPredictable() || IsClientCreated() )
 	{
-		C_BasePlayer *localplayer = C_BasePlayer::GetLocalPlayer();
-		if ( localplayer && currentTime == gpGlobals->curtime )
-		{
-			currentTime = localplayer->GetFinalPredictedTime();
-			currentTime -= TICK_INTERVAL;
-			currentTime += ( gpGlobals->interpolation_amount * TICK_INTERVAL );
-		}
+		nAmountOfTicks = cl_interp_linear_only.GetBool() ? 1 : 2;
 	}
 
 	oldOrigin = m_vecOrigin;
 	oldAngles = m_angRotation;
 	oldVel = m_vecVelocity;
 
-	bNoMoreChanges = Interp_Interpolate( GetVarMapping(), currentTime );
-	if ( cl_interp_all.GetInt() || (m_EntClientFlags & ENTCLIENTFLAG_ALWAYS_INTERPOLATE) )
-		bNoMoreChanges = 0;
+	m_InterpolatedVariableList.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+
+	bNoMoreChanges = 0;
 
 	return INTERPOLATE_CONTINUE;
 }
-
-#if 0
-static ConVar cl_watchplayer( "cl_watchplayer", "-1", 0 );
-#endif
 
 void C_BaseEntity::BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int nChangeFlags )
 {
@@ -2831,13 +2523,6 @@ void C_BaseEntity::BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, V
 	{
 		InvalidatePhysicsRecursive( nChangeFlags );
 	}
-
-#if 0
-	if ( index == 1 )
-	{
-		SpewInterpolatedVar( &m_iv_vecOrigin, gpGlobals->curtime, GetInterpolationAmount( LATCH_SIMULATION_VAR ), true );
-	}
-#endif
 }
 
 
@@ -2845,7 +2530,7 @@ void C_BaseEntity::BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, V
 // Purpose: Default interpolation for entities
 // Output : true means entity should be drawn, false means probably not
 //-----------------------------------------------------------------------------
-bool C_BaseEntity::Interpolate( float currentTime )
+bool C_BaseEntity::Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 {
 	VPROF( "C_BaseEntity::Interpolate" );
 
@@ -2854,7 +2539,7 @@ bool C_BaseEntity::Interpolate( float currentTime )
 	Vector oldVel;
 
 	int bNoMoreChanges;
-	int retVal = BaseInterpolatePart1( currentTime, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
+	int retVal = BaseInterpolatePart1( nAmountOfTicks, flInterpolationAmountFrac, oldOrigin, oldAngles, oldVel, bNoMoreChanges );
 
 	// If all the Interpolate() calls returned that their values aren't going to
 	// change anymore, then get us out of the interpolation list.
@@ -3016,47 +2701,48 @@ void C_BaseEntity::ProcessTeleportList()
 }
 
 
-void C_BaseEntity::CheckInterpolatedVarParanoidMeasurement()
+void C_BaseEntity::DebugCheckInterpolatedVar()
 {
-	// What we're doing here is to check all the entities that were not in the interpolation
-	// list and make sure that there's no entity that should be in the list that isn't.
-	
-#ifdef INTERPOLATEDVAR_PARANOID_MEASUREMENT
-	int iHighest = ClientEntityList().GetHighestEntityIndex();
-	for ( int i=0; i <= iHighest; i++ )
+	static ConVar cl_interp_debug_entity("cl_interp_debug_entity", "-1");
+
+	auto pEntity = cl_entitylist->GetBaseEntity( cl_interp_debug_entity.GetInt() );
+
+	if ( !pEntity )
 	{
-		C_BaseEntity *pEnt = ClientEntityList().GetBaseEntity( i );
-		if ( !pEnt || pEnt->m_InterpolationListEntry != 0xFFFF || !pEnt->ShouldInterpolate() )
-			continue;
-		
-		// Player angles always generates this error when the console is up.
-		if ( pEnt->entindex() == 1 && engine->Con_IsVisible() )
-			continue;
-			
-		// View models tend to screw up this test unnecesarily because they modify origin,
-		// angles, and 
-		if ( dynamic_cast<C_BaseViewModel*>( pEnt ) )
-			continue;
-
-		g_bRestoreInterpolatedVarValues = true;
-		g_nInterpolatedVarsChanged = 0;
-		pEnt->Interpolate( gpGlobals->curtime );
-		g_bRestoreInterpolatedVarValues = false;
-		
-		if ( g_nInterpolatedVarsChanged > 0 )
-		{
-			static int iWarningCount = 0;
-			Warning( "(%d): An entity (%d) should have been in g_InterpolationList.\n", iWarningCount++, pEnt->entindex() );
-			break;
-		}
+		return;
 	}
-#endif
-}
 
+	if ( pEntity->entindex() != cl_interp_debug_entity.GetInt() )
+	{
+		return;
+	}
+
+	int pos = 0;
+
+	for ( auto&& variable : pEntity->m_InterpolatedVariableList.variables )
+	{
+		if ( !variable->IsEnabled() )
+		{
+			continue;
+		}
+
+		char buffer[256];
+		V_sprintf_safe( buffer,
+						"%s(%li) => %s",
+						variable->DebugName().c_str(),
+						variable->CurrentHistorySize(),
+						variable->DebugValue().c_str() );
+
+		NDebugOverlay::EntityTextAtPosition( pEntity->GetAbsOrigin(), pos, buffer, gpGlobals->frametime );
+
+		pos++;
+	}
+}
 
 void C_BaseEntity::ProcessInterpolatedList()
 {
-	CheckInterpolatedVarParanoidMeasurement();
+	auto nBaseInterpAmountInTicks = GetClientInterpolationAmountInTicks();
+	float flInterpolationAmountFrac = gpGlobals->interpolation_amount_frac;
 
 	// Interpolate the minimal set of entities that need it.
 	int iNext;
@@ -3064,9 +2750,11 @@ void C_BaseEntity::ProcessInterpolatedList()
 	{
 		iNext = g_InterpolationList.Next( iCur );
 		C_BaseEntity *pCur = g_InterpolationList[iCur];
-		
-		pCur->m_bReadyToDraw = pCur->Interpolate( gpGlobals->curtime );
+
+		pCur->m_bReadyToDraw = pCur->Interpolate( nBaseInterpAmountInTicks, flInterpolationAmountFrac );
 	}
+
+	DebugCheckInterpolatedVar();
 }
 
 
@@ -3176,21 +2864,6 @@ void C_BaseEntity::InterpolateServerEntities()
 	{
 		g_bWasSkipping = IsSimulatingOnAlternateTicks();
 		g_bWasThreaded = IsEngineThreaded();
-
-		C_BaseEntityIterator iterator;
-		C_BaseEntity *pEnt;
-		while ( (pEnt = iterator.Next()) != NULL )
-		{
-			pEnt->Interp_UpdateInterpolationAmounts( pEnt->GetVarMapping() );
-		}
-	}
-
-	// Enable extrapolation?
-	CInterpolationContext context;
-	context.SetLastTimeStamp( engine->GetLastTimeStamp() );
-	if ( cl_extrapolate.GetBool() && !engine->IsPaused() )
-	{
-		context.EnableExtrapolation( true );
 	}
 
 	// Smoothly interpolate position for server entities.
@@ -4528,9 +4201,6 @@ void C_BaseEntity::InitPredictable( void )
 void C_BaseEntity::SetPredictable( bool state )
 {
 	m_bPredictable = state;
-
-	// update interpolation times
-	Interp_UpdateInterpolationAmounts( GetVarMapping() );
 }
 
 //-----------------------------------------------------------------------------
@@ -4914,8 +4584,6 @@ C_BaseEntity *C_BaseEntity::CreatePredictedEntityByName( const char *classname, 
 		ent->OnPreDataChanged( DATA_UPDATE_CREATED );
 	}
 
-	ent->Interp_UpdateInterpolationAmounts( ent->GetVarMapping() );
-	
 	return ent;
 #else
 	return NULL;
@@ -5791,29 +5459,8 @@ void C_BaseEntity::OnPostRestoreData()
 //-----------------------------------------------------------------------------
 void C_BaseEntity::EstimateAbsVelocity( Vector& vel )
 {
-	if ( this == C_BasePlayer::GetLocalPlayer() )
-	{
-		// This is interpolated and networked
-		vel = GetAbsVelocity();
-		return;
-	}
-
-	CInterpolationContext context;
-	context.EnableExtrapolation( true );
-	m_iv_vecOrigin.GetDerivative_SmoothVelocity( &vel, gpGlobals->curtime );
-}
-
-void C_BaseEntity::Interp_Reset( VarMapping_t *map )
-{
-	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, "reset" );
-	int c = map->m_Entries.Count();
-	for ( int i = 0; i < c; i++ )
-	{
-		VarMapEntry_t *e = &map->m_Entries[ i ];
-		IInterpolatedVar *watcher = e->watcher;
-
-		watcher->Reset();
-	}
+	// TODO_ENHANCED
+	vel = GetAbsVelocity();
 }
 
 void C_BaseEntity::ResetLatched()
@@ -5821,124 +5468,7 @@ void C_BaseEntity::ResetLatched()
 	if ( IsClientCreated() )
 		return;
 
-	Interp_Reset( GetVarMapping() );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Fixme, this needs a better solution
-// Input  : flags - 
-// Output : float
-//-----------------------------------------------------------------------------
-
-static float AdjustInterpolationAmount( C_BaseEntity *pEntity, float baseInterpolation )
-{
-	if ( cl_interp_npcs.GetFloat() > 0 )
-	{
-		const float minNPCInterpolationTime = cl_interp_npcs.GetFloat();
-		const float minNPCInterpolation = TICK_INTERVAL * ( TIME_TO_TICKS( minNPCInterpolationTime ) + 1 );
-
-		if ( minNPCInterpolation > baseInterpolation )
-		{
-			while ( pEntity )
-			{
-				if ( pEntity->IsNPC() )
-					return minNPCInterpolation;
-
-				pEntity = pEntity->GetMoveParent();
-			}
-		}
-	}
-
-	return baseInterpolation;
-}
-
-//-------------------------------------
-float C_BaseEntity::GetInterpolationAmount( int flags )
-{
-	// If single player server is "skipping ticks" everything needs to interpolate for a bit longer
-	int serverTickMultiple = 1;
-	if ( IsSimulatingOnAlternateTicks() )
-	{
-		serverTickMultiple = 2;
-	}
-
-	if ( GetPredictable() || IsClientCreated() )
-	{
-		return TICK_INTERVAL * serverTickMultiple;
-	}
-
-	// Always fully interpolate during multi-player or during demo playback, if the recorded
-	// demo was recorded locally.
-	const bool bPlayingDemo = engine->IsPlayingDemo();
-	const bool bPlayingMultiplayer = !bPlayingDemo && ( gpGlobals->maxClients > 1 );
-	const bool bPlayingNonLocallyRecordedDemo = bPlayingDemo && !engine->IsPlayingDemoALocallyRecordedDemo();
-	if ( bPlayingMultiplayer || bPlayingNonLocallyRecordedDemo )
-	{
-		return AdjustInterpolationAmount( this, TICKS_TO_TIME( TIME_TO_TICKS( GetClientInterpAmount() ) + serverTickMultiple ) );
-	}
-
-	int expandedServerTickMultiple = serverTickMultiple;
-	if ( IsEngineThreaded() )
-	{
-		expandedServerTickMultiple += g_nThreadModeTicks;
-	}
-
-	if ( IsAnimatedEveryTick() && IsSimulatedEveryTick() )
-	{
-		return TICK_INTERVAL * expandedServerTickMultiple;
-	}
-
-	if ( ( flags & LATCH_ANIMATION_VAR ) && IsAnimatedEveryTick() )
-	{
-		return TICK_INTERVAL * expandedServerTickMultiple;
-	}
-	if ( ( flags & LATCH_SIMULATION_VAR ) && IsSimulatedEveryTick() )
-	{
-		return TICK_INTERVAL * expandedServerTickMultiple;
-	}
-
-	return AdjustInterpolationAmount( this, TICKS_TO_TIME( TIME_TO_TICKS( GetClientInterpAmount() ) + serverTickMultiple ) );
-}
-
-
-float C_BaseEntity::GetLastChangeTime( int flags )
-{
-	if ( GetPredictable() || IsClientCreated() )
-	{
-		return gpGlobals->curtime;
-	}
-	
-	// make sure not both flags are set, we can't resolve that
-	Assert( !( (flags & LATCH_ANIMATION_VAR) && (flags & LATCH_SIMULATION_VAR) ) );
-	
-	if ( flags & LATCH_ANIMATION_VAR )
-	{
-		return GetAnimTime();
-	}
-
-	if ( flags & LATCH_SIMULATION_VAR )
-	{
-		float st = GetSimulationTime();
-		if ( st == 0.0f )
-		{
-			return gpGlobals->curtime;
-		}
-		return st;
-	}
-
-	Assert( 0 );
-
-	return gpGlobals->curtime;
-}
-
-const Vector& C_BaseEntity::GetPrevLocalOrigin() const
-{
-	return m_iv_vecOrigin.GetPrev();
-}
-
-const QAngle& C_BaseEntity::GetPrevLocalAngles() const
-{
-	return m_iv_angRotation.GetPrev();
+	m_InterpolatedVariableList.Reset();
 }
 
 //-----------------------------------------------------------------------------
@@ -6339,112 +5869,23 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 }
 #endif // TF_CLIENT_DLL
 
-ConVar cl_interp_linear_only( "cl_interp_linear_only", "1", FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE | FCVAR_USERINFO );
-
-void C_BaseEntity::AddVar( void *data, IInterpolatedVar *watcher, int type, bool bSetup )
+void C_BaseEntity::AddVar( IInterpolatedVar* var )
 {
-	// Only add it if it hasn't been added yet.
-	bool bAddIt = true;
-
 	if ( cl_interp_linear_only.GetBool() )
 	{
-		type |= INTERPOLATE_LINEAR_ONLY;
-		DevMsg( 3, "Linear only interpolation enabled for entity %p (varname: %s) !\n", this, watcher->GetDebugName());
+		var->SetHermite( false );
 	}
 	else
 	{
-		DevMsg( 3, "Hermite interpolation enabled for entity: %p (varname: %s) !\n", this, watcher->GetDebugName());
+		var->SetHermite( true );
 	}
 
-	for ( int i=0; i < m_VarMap.m_Entries.Count(); i++ )
-	{
-		if ( m_VarMap.m_Entries[i].watcher == watcher )
-		{
-			if ( (type & EXCLUDE_AUTO_INTERPOLATE) != (watcher->GetType() & EXCLUDE_AUTO_INTERPOLATE) )
-			{
-				// Its interpolation mode changed, so get rid of it and re-add it.
-				RemoveVar( m_VarMap.m_Entries[i].data, true );
-			}
-			else
-			{
-				// They're adding something that's already there. No need to re-add it.
-				bAddIt = false;
-			}
-			
-			break;	
-		}
-	}
-	
-	if ( bAddIt )
-	{
-		// watchers must have a debug name set
-		Assert( watcher->GetDebugName() != NULL );
-
-		VarMapEntry_t map;
-		map.data = data;
-		map.watcher = watcher;
-		map.type = type;
-		map.m_bNeedsToInterpolate = true;
-		if ( type & EXCLUDE_AUTO_INTERPOLATE )
-		{
-			m_VarMap.m_Entries.AddToTail( map );
-		}
-		else
-		{
-			m_VarMap.m_Entries.AddToHead( map );
-			++m_VarMap.m_nInterpolatedEntries;
-		}
-	}
-
-	if ( bSetup )
-	{
-		watcher->Setup( data, type );
-		watcher->SetInterpolationAmount( GetInterpolationAmount( watcher->GetType() ) );
-	}
+	m_InterpolatedVariableList.AddVar( var );
 }
 
-
-void C_BaseEntity::RemoveVar( void *data, bool bAssert )
+void C_BaseEntity::RemoveVar( IInterpolatedVar* var )
 {
-	for ( int i=0; i < m_VarMap.m_Entries.Count(); i++ )
-	{
-		if ( m_VarMap.m_Entries[i].data == data )
-		{
-			if ( !( m_VarMap.m_Entries[i].type & EXCLUDE_AUTO_INTERPOLATE ) )
-				--m_VarMap.m_nInterpolatedEntries;
-
-			m_VarMap.m_Entries.Remove( i );
-			return;
-		}
-	}
-	if ( bAssert )
-	{
-		Assert( !"RemoveVar" );
-	}
-}
-
-void C_BaseEntity::CheckCLInterpChanged()
-{
-	float flCurValue_Interp = GetClientInterpAmount();
-	static float flLastValue_Interp = flCurValue_Interp;
-
-	float flCurValue_InterpNPCs = cl_interp_npcs.GetFloat();
-	static float flLastValue_InterpNPCs = flCurValue_InterpNPCs;
-	
-	if ( flLastValue_Interp != flCurValue_Interp || 
-		 flLastValue_InterpNPCs != flCurValue_InterpNPCs  )
-	{
-		flLastValue_Interp = flCurValue_Interp;
-		flLastValue_InterpNPCs = flCurValue_InterpNPCs;
-	
-		// Tell all the existing entities to update their interpolation amounts to account for the change.
-		C_BaseEntityIterator iterator;
-		C_BaseEntity *pEnt;
-		while ( (pEnt = iterator.Next()) != NULL )
-		{
-			pEnt->Interp_UpdateInterpolationAmounts( pEnt->GetVarMapping() );
-		}
-	}
+	m_InterpolatedVariableList.RemoveVar( var );
 }
 
 void C_BaseEntity::DontRecordInTools()

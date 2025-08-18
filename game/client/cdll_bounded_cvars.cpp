@@ -12,8 +12,10 @@
 #include "icvar.h"
 #include "shareddefs.h"
 #include "tier0/icommandline.h"
+#include "interpolatedvar.h"
 
-
+// 10 ticks should be enough
+constexpr auto g_DefaultTicksToInterpolate = 10;
 bool g_bForceCLPredictOff = false;
 
 // ------------------------------------------------------------------------------------------ //
@@ -55,79 +57,31 @@ public:
 };
 
 static CBoundedCvar_Predict cl_predict_var;
-ConVar_ServerBounded *cl_predict = &cl_predict_var;
+ConVar_ServerBounded* cl_predict = &cl_predict_var;
 
+ConVar cl_interpolation_amount( "cl_interpolation_amount",
+								"0",
+								FCVAR_ARCHIVE | FCVAR_USERINFO | FCVAR_NOT_CONNECTED,
+								"Number of ticks at least to interpolate entities with. 0 is default.",
+								true,
+								0.0,
+								true,
+								( float )( MAX_INTERPOLATION_TICK_HISTORY - 1 ) );
 
-
-// ------------------------------------------------------------------------------------------ //
-// cl_interp_ratio.
-// ------------------------------------------------------------------------------------------ //
-
-ConVar cl_interp_ratio("cl_interp_ratio", "2");
-
-
-// ------------------------------------------------------------------------------------------ //
-// cl_interp
-// ------------------------------------------------------------------------------------------ //
-
-class CBoundedCvar_Interp : public ConVar_ServerBounded
+int GetClientInterpolationAmountInTicks()
 {
-public:
-	CBoundedCvar_Interp() :
-	  ConVar_ServerBounded( "cl_interp", 
-		  "-1.0",
-		  FCVAR_USERINFO,
-		  "Sets the interpolation amount (bounded on low side by server interp ratio settings).", true, -1.0f, true, 1.0f )
-	  {
-	  }
+	static ConVarRef cl_interpolate( "cl_interpolate" );
 
-	  virtual float GetFloat() const
-	  {
-		  float value = GetBaseFloatValue();
-
-		  if (value < 0.0f)
-		  {
-			  value = TICK_INTERVAL;
-		  }
-
-		  static const ConVar *pUpdateRate = g_pCVar->FindVar( "cl_updaterate" );
-		  if ( pUpdateRate )
-		  {
-			  return MAX( value, cl_interp_ratio.GetFloat() / pUpdateRate->GetFloat() );
-		  }
-		  else
-		  {
-			  return value;
-		  }
-	  }
-};
-
-static CBoundedCvar_Interp cl_interp_var;
-ConVar_ServerBounded *cl_interp = &cl_interp_var;
-
-float GetClientInterpAmount()
-{
-	static const ConVar *cl_interpolate = g_pCVar->FindVar("cl_interpolate");
-	static const ConVar *pUpdateRate = g_pCVar->FindVar( "cl_updaterate" );
-
-	if (!cl_interpolate->GetBool())
+	if ( !cl_interpolate.GetBool() )
 	{
-		return 0.0f;
+		return 0;
 	}
 
-	if ( pUpdateRate )
+	// Some sane defaults
+	if ( cl_interpolation_amount.GetInt() <= 0 || cl_interpolation_amount.GetInt() >= MAX_INTERPOLATION_TICK_HISTORY )
 	{
-		// #define FIXME_INTERP_RATIO
-		return MAX( cl_interp->GetFloat(), cl_interp_ratio.GetFloat() / pUpdateRate->GetFloat() );
+		return g_DefaultTicksToInterpolate;
 	}
-	else
-	{
-		if (!CommandLine()->FindParm("-hushasserts"))
-		{
-			AssertMsgOnce( false, "GetInterpolationAmount: can't get cl_updaterate cvar." );
-		}
-	
-		return 0.1f;
-	}
+
+	return cl_interpolation_amount.GetInt();
 }
-

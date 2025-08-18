@@ -77,7 +77,7 @@ public:
 
 	virtual bool	IsNull() const = 0;
 	virtual int		GetNumBitsWritten( bool bReliable ) = 0;
-	virtual void	SetInterpolationAmount( float flInterpolationAmount ) = 0;
+	virtual void	SetInterpolationAmount( float flInterpolationAmountFrac ) = 0;
 	virtual void	SetRemoteFramerate( float flFrameTime, float flFrameTimeStdDeviation ) = 0;
 
 	// Max # of payload bytes before we must split/fragment the packet

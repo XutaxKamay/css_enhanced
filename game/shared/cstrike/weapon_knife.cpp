@@ -337,7 +337,7 @@ bool CKnife::SwingOrStab( bool bStab )
 
 // 	if (playerCmd)
 // 	{
-// 		vecSrc = VectorLerp(pPlayer->m_vecPreviousEyePosition, vecSrc, playerCmd->interpolated_amount);
+// 		vecSrc = VectorLerp(pPlayer->m_vecPreviousEyePosition, vecSrc, playerCmd->interpolated_amount_frac);
 // 	}
 
 	Vector vecEnd	= vecSrc + vForward * fRange;

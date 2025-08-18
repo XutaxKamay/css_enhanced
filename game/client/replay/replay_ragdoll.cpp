@@ -602,7 +602,7 @@ bool CReplayRagdollCache::GetFrame( C_BaseAnimating* pEntity, int nTick, bool* p
 
 	// Compute root transform
 	matrix3x4_t rootTransform;
-	float flInterpAmount = gpGlobals->interpolation_amount;
+	float flInterpAmount = gpGlobals->interpolation_amount_frac;
 	if ( pNextFrame )
 	{
 		AngleMatrix(
@@ -630,7 +630,7 @@ bool CReplayRagdollCache::GetFrame( C_BaseAnimating* pEntity, int nTick, bool* p
 		if ( pNextFrame && replay_ragdoll_blending.GetInt() )
 		{
 			// Get blended Eular angles - NOTE: The Lerp() here actually calls Lerp<QAngle>() which converts to quats and back
-			float flInterpAmount = gpGlobals->interpolation_amount;		Assert( flInterpAmount >= 0.0f && flInterpAmount <= 1.0f );
+			float flInterpAmount = gpGlobals->interpolation_amount_frac;		Assert( flInterpAmount >= 0.0f && flInterpAmount <= 1.0f );
 			AngleMatrix(
 				(const QAngle &)Lerp( flInterpAmount, pFrame->pAngles   [ objectIndex ], pNextFrame->pAngles   [ objectIndex ] ), 
 				Lerp( flInterpAmount, pFrame->pPositions[ objectIndex ], pNextFrame->pPositions[ objectIndex ] ),

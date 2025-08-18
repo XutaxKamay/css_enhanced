@@ -118,7 +118,7 @@ public:
 
 	bool UsesPowerOfTwoFrameBufferTexture( void );
 
-	virtual bool	Interpolate( float currentTime );
+	virtual bool	Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac );
 	virtual void	Simulate();	
 	virtual void	Release();	
 
@@ -643,6 +643,9 @@ private:
 	mutable CStudioHdr				*m_pStudioHdr;
 	mutable MDLHandle_t				m_hStudioHdr;
 	CThreadFastMutex				m_StudioHdrInitLock;
+
+public:
+	bool m_bForceSequenceTransitions;
 };
 
 enum 

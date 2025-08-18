@@ -97,6 +97,7 @@ static C_BaseEntity *FindPredictableByGameClass( const char *classname )
 // Purpose: 
 //-----------------------------------------------------------------------------
 CPrediction::CPrediction( void )
+ : m_saveVars( true )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	m_bInPrediction = false;
@@ -1325,7 +1326,13 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 		}
 
 		// Don't update last networked data here!!!
-		entity->OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR | LATCH_ANIMATION_VAR | INTERPOLATE_OMIT_UPDATE_LAST_NETWORKED );
+		// We need only to store the last predicted command, in order to get proper interpolation data.
+		// IF there's a prediction error, well, it's going to rollback anyway.
+		if ( IsFirstTimePredicted() )
+		{
+			entity->OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR, false );
+			entity->OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR, false );
+		}
 	}
 
 	// Always reset after running command
@@ -1883,8 +1890,7 @@ void CPrediction::Update( int startframe, bool validframe,
 	m_nPreviousStartFrame = startframe;
 
 	// Save off current timer values, etc.
-	CGlobalVarsBase saveVars(true);
-	saveVars = *gpGlobals;
+	m_saveVars = *gpGlobals;
 
 	_Update( received_new_world_update, validframe, incoming_acknowledged, outgoing_command );
 
@@ -1892,7 +1898,7 @@ void CPrediction::Update( int startframe, bool validframe,
     // the value isn't saved.
     bool is_taking_screenshot = gpGlobals->client_taking_screenshot;
 	// Restore current timer values, etc.
-    *gpGlobals = saveVars;
+    *gpGlobals = m_saveVars;
     gpGlobals->client_taking_screenshot = is_taking_screenshot;
 #endif
 }

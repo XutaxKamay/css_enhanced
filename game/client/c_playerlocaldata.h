@@ -15,6 +15,7 @@
 #include "basetypes.h"
 #include "mathlib/vector.h"
 #include "playernet_vars.h"
+#include "interpolatedvar.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: Player specific data ( sent only to local player, too )
@@ -27,8 +28,8 @@ public:
 	DECLARE_EMBEDDED_NETWORKVAR();
 
 	CPlayerLocalData() :
-		m_iv_vecPunchAngle( "CPlayerLocalData::m_iv_vecPunchAngle" ),
-		m_iv_vecPunchAngleVel( "CPlayerLocalData::m_iv_vecPunchAngleVel" )
+		m_iv_vecPunchAngle( "CPlayerLocalData::m_iv_vecPunchAngle", &m_vecPunchAngle.GetForModify(), LATCH_SIMULATION_VAR ),
+		m_iv_vecPunchAngleVel( "CPlayerLocalData::m_iv_vecPunchAngleVel", &m_vecPunchAngleVel.GetForModify(), LATCH_SIMULATION_VAR )
 	{
 		// m_iv_vecPunchAngle.Setup( &m_vecPunchAngle.m_Value, LATCH_SIMULATION_VAR );
 		// m_iv_vecPunchAngleVel.Setup( &m_vecPunchAngleVel.m_Value, LATCH_SIMULATION_VAR );
