@@ -2797,7 +2797,9 @@ void CServerGameClients::ClientSettingsChanged( edict_t *pEdict )
 	static const ConVar *pMaxUpdateRate = g_pCVar->FindVar( "sv_maxupdaterate" );
 	if ( pMinUpdateRate && pMaxUpdateRate )
 		player->m_nUpdateRate = clamp( player->m_nUpdateRate, (int) pMinUpdateRate->GetFloat(), (int) pMaxUpdateRate->GetFloat() );
-	
+
+	player->m_bUseLinearInterpolationOnly = Q_atoi( QUICKGETCVARVALUE("cl_interp_linear_only")) != 0;
+
 #if !defined( NO_ENTITY_PREDICTION )
 	bool usePrediction = Q_atoi( QUICKGETCVARVALUE("cl_predict")) != 0;
 
@@ -2805,14 +2807,12 @@ void CServerGameClients::ClientSettingsChanged( edict_t *pEdict )
 	{
 		player->m_bPredictWeapons  = Q_atoi( QUICKGETCVARVALUE("cl_predictweapons")) != 0;
 		player->m_bLagCompensation = Q_atoi( QUICKGETCVARVALUE("cl_lagcompensation")) != 0;
-		player->m_bUseLinearInterpolationOnly = Q_atoi( QUICKGETCVARVALUE("cl_interp_linear_only")) != 0;
 	}
 	else
 #endif
 	{
 		player->m_bPredictWeapons  = false;
 		player->m_bLagCompensation = false;
-		player->m_bUseLinearInterpolationOnly = false;
 	}
 	
 

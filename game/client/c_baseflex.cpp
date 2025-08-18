@@ -130,6 +130,7 @@ C_BaseFlex::C_BaseFlex() :
 	((Vector&)m_viewtarget).Init();
 #endif
 
+	m_iv_viewtarget.SetHermite( false );
 	AddVar( &m_iv_viewtarget );
 
 	for ( size_t i = 0; i < MAXSTUDIOFLEXCTRL; i++ )

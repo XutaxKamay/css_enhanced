@@ -5871,13 +5871,10 @@ bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 
 void C_BaseEntity::AddVar( IInterpolatedVar* var )
 {
+	// TODO_ENHANCED: support Hermite, also in lag compensation / player command context. (easy but lazy)
 	if ( cl_interp_linear_only.GetBool() )
 	{
 		var->SetHermite( false );
-	}
-	else
-	{
-		var->SetHermite( true );
 	}
 
 	m_InterpolatedVariableList.AddVar( var );

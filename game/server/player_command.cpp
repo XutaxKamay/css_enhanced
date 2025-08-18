@@ -362,8 +362,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	g_pGameMovement->StartTrackPredictionErrors( player );
 
-	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
-
 	// Prevent hacked clients from sending us invalid view angles to try to get leaf server code to crash
 	if ( !ucmd->viewangles.IsValid() || !IsEntityQAngleReasonable( ucmd->viewangles ) )
 	{
@@ -471,7 +469,11 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	InterpolateCommand( player );
 
+	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
+
 	RunPostThink( player );
+
+	lagcompensation->FinishLagCompensation( player );
 
 	FinishInterpolatingCommand( player );
 
@@ -482,8 +484,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	VPROF_SCOPE_END();
 
 	ServiceEventQueue( player );
-
-	lagcompensation->FinishLagCompensation( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 

@@ -598,7 +598,7 @@ CBasePlayer::CBasePlayer( )
 	m_nUpdateRate = 20;  // cl_updaterate defualt
 	m_bPredictWeapons = true;
 	m_bLagCompensation = false;
-	m_bUseLinearInterpolationOnly = false;
+	m_bUseLinearInterpolationOnly = true;
 	m_flLaggedMovementValue = 1.0f;
 	m_StuckLast = 0;
 	m_impactEnergyScale = 1.0f;

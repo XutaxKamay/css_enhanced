@@ -453,6 +453,7 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	ListenForGameEvent( "base_player_teleported" );
 
 	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
+	m_bUseLinearInterpolationOnly = true;
 }
 
 //-----------------------------------------------------------------------------
