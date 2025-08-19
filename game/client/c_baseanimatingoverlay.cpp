@@ -92,7 +92,6 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	// remove all entries
 	for ( int i = 0; i < pVecIV->Count(); i++ )
 	{
-		pVecIV->Element( i ).Disable();
 		pEnt->RemoveVar( &pVecIV->Element( i ) );
 	}
 
@@ -113,7 +112,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 	{
 		IInterpolatedVar* pWatcher = &pVecIV->Element( i );
 		pWatcher->SetDebugName( s_m_iv_AnimOverlayNames[i] );
-		pWatcher->SetReferenceData( &pVec->Element( i ) );
+		pWatcher->SetReferenceData( &pVec->Element( i ), sizeof( pVec->Element( i ) ) );
 		pWatcher->SetType( LATCH_ANIMATION_VAR );
 		pWatcher->Enable();
 		pWatcher->EnableInterpolation();

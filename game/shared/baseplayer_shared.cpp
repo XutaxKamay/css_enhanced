@@ -2160,15 +2160,17 @@ void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )
 {
 	auto&& data = m_InterpolatedData;
 
-	m_InterpolatedVariableList.ClearHistory();
+	// TODO_ENHANCED if we ever simulate people commands client side, m_bUseLinearInterpolationOnly will need to be networked.
+	// If m_iv_viewtarget gets used, this one is linear only so we need to ignore hermite interpolation on it.
+#ifdef CLIENT_DLL
+	static ConVarRef cl_interp_linear_only( "cl_interp_linear_only" );
+	player->m_bUseLinearInterpolationOnly = cl_interp_linear_only.GetBool();
+#endif
 
-	// pData->m_angLocalRotation = player->GetLocalAngles();
-	data.m_vecLocalOrigin = player->GetLocalOrigin();
-	// pData->m_vecPunchAngle	  = player->GetPunchAngle();
-	// pData->m_vecPunchAngleVel = player->GetPunchAngleVel();
-	data.m_vecViewOffset = player->GetViewOffset();
-
-	m_InterpolatedVariableList.Push();
+	for ( auto&& variable : m_InterpolatedVariableList.variables )
+	{
+		variable->SetHermite( !player->m_bUseLinearInterpolationOnly );
+	}
 }
 
 void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
@@ -2184,7 +2186,8 @@ void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
 	m_InterpolatedVariableList.SaveLastKnownValue();
 	m_InterpolatedVariableList.Push();
 
-	m_InterpolatedVariableList.Interpolate( 1, player->GetCurrentCommand()->interpolated_amount_frac );
+	m_InterpolatedVariableList.Interpolate( player->m_bUseLinearInterpolationOnly ? 1 : 2,
+											player->GetCurrentCommand()->interpolated_amount_frac );
 
 	// player->SetLocalAngles( pDataApplied->m_angLocalRotation );
 	player->SetLocalOrigin( data.m_vecLocalOrigin );
@@ -2227,7 +2230,7 @@ inline static void WarnCoords( const char* name, const T& newValue, const T& ori
 
 void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
 {
-	auto&& data	= m_InterpolatedData;
+	auto&& data = m_InterpolatedData;
 
 	// TODO_ENHANCED: If this warns, this is bad, it means something that should be inside game movement / before
 	// interpolation must be moved.

@@ -1284,10 +1284,18 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
 		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
+#endif
 
-		cmd->simulationdata[i].sim_time	 = pEntity->m_flInterpolatedSimulationTime;
-		cmd->simulationdata[i].anim_time = pEntity->m_flInterpolatedAnimTime;
+		cmd->simulationdata[i].sim_time			  = pEntity->m_flSimulationTime;
+		cmd->simulationdata[i].anim_time		  = pEntity->m_flAnimTime;
+
+		// Debugging purpose
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+		cmd->simulationdata[i].sim_time_debugged  = pEntity->m_flInterpolatedAnimTime;
+		cmd->simulationdata[i].anim_time_debugged = pEntity->m_flInterpolatedSimulationTime;
+#endif
 	}
 
 #ifdef CSTRIKE_DLL
@@ -1308,8 +1316,12 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 #endif
 
+	// TODO_ENHANCED: this is left in CUserCmd for debugging, but it needs to be get from cl_interpolation_amount.
+	// The actual latency too can be calculated with predicted local player's m_nTickBase instead of taking sim_time/anim_time.
+	cmd->interpolated_amount_in_ticks = GetClientInterpolationAmountInTicks();
+
 	// InterpolateServerEntities starts after prediction during rendering (OnRenderStart)
-	cmd->interpolated_amount_frac = flInterpolationAmountFrac;
+	cmd->interpolated_amount_frac = cmd->interpolated_amount_in_ticks ? flInterpolationAmountFrac : 0;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

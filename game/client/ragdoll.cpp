@@ -433,15 +433,6 @@ C_ServerRagdoll::C_ServerRagdoll( void ) :
 {
 	m_elementCount = 0;
 	m_flLastBoneChangeTime = -FLT_MAX;
-
-	for ( size_t i = 0; i < RAGDOLL_MAX_ELEMENTS; i++ )
-	{
-		m_iv_ragPos[i].Disable();
-		AddVar( &m_iv_ragPos[i] );
-		m_iv_ragAngles[i].Disable();
-		AddVar( &m_iv_ragAngles[i] );
-	}
-
 	m_flBlendWeight = 0.0f;
 	m_flBlendWeightCurrent = 0.0f;
 	m_nOverlaySequence = -1;
@@ -508,8 +499,8 @@ CStudioHdr *C_ServerRagdoll::OnNewModel( void )
 
 		for ( size_t i = 0; i < m_elementCount; i++ )
 		{
-			m_iv_ragPos[i].Enable();
-			m_iv_ragAngles[i].Enable();
+			AddVar( &m_iv_ragPos[i] );
+			AddVar( &m_iv_ragAngles[i] );
 		}
 	}
 

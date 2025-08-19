@@ -1250,12 +1250,12 @@ public:
 	float							m_flAnimTime;
 	float							m_flOldAnimTime;
 	float							m_flInterpolatedAnimTime;
-	CInterpolatedVar<float>					m_iv_flAnimTime;
+	CInterpolatedVar<float>			m_iv_flAnimTime;
 
 	float							m_flSimulationTime;
 	float							m_flOldSimulationTime;
 	float							m_flInterpolatedSimulationTime;
-	CInterpolatedVar<float>					m_iv_flSimulationTime;
+	CInterpolatedVar<float>			m_iv_flSimulationTime;
 	
 	float							m_flCreateTime;
 

@@ -860,18 +860,6 @@ void C_BaseAnimating::UpdateRelevantInterpolatedVars()
 
 void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 {
-	for ( size_t i = 0; i < MAX_ENCODED_CONTROLLERS; i++ )
-	{
-		m_iv_flEncodedController[i].Disable();
-		AddVar( &m_iv_flEncodedController[i] );
-	}
-
-	for ( size_t i = 0; i < MAX_POSE_PARAMETERS; i++ )
-	{
-		m_iv_flPoseParameter[i].Disable();
-		AddVar( &m_iv_flPoseParameter[i] );
-	}
-
 	if ( !m_bClientSideAnimation )
 	{
 		AddVar( &m_iv_flCycle );
@@ -1151,7 +1139,7 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 	{
 		const mstudioposeparamdesc_t& Pose = hdr->pPoseParameter( i );
 		m_iv_flPoseParameter[i].SetLooping( Pose.loop != 0.0f );
-		m_iv_flPoseParameter[i].Enable();
+		AddVar( &m_iv_flPoseParameter[i] );
 		// Note:  We can't do this since if we get a DATA_UPDATE_CREATED (i.e., new entity) with both a new model and some valid pose parameters this will slam the 
 		//  pose parameters to zero and if the model goes dormant the pose parameter field will never be set to the true value.  We shouldn't have to zero these out
 		//  as they are under the control of the server and should be properly set
@@ -1169,7 +1157,7 @@ CStudioHdr *C_BaseAnimating::OnNewModel()
 	{
 		bool loop = (hdr->pBonecontroller( i )->type & (STUDIO_XR | STUDIO_YR | STUDIO_ZR)) != 0;
 		m_iv_flEncodedController[i].SetLooping( loop );
-		m_iv_flEncodedController[i].Enable();
+		AddVar( &m_iv_flEncodedController[i] );
 		SetBoneController( i, 0.0 );
 	}
 

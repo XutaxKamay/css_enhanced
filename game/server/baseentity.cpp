@@ -379,6 +379,8 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 #ifndef _XBOX
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
 #endif
+	m_flInterpolatedSimulationTime = 0;
+	m_flInterpolatedAnimTime = 0;
 }
 
 //-----------------------------------------------------------------------------

@@ -26,6 +26,8 @@ constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 1024;
 
 #ifdef CLIENT_DLL
 class C_AnimationLayer;
+#else
+class LayerRecord;
 #endif
 
 namespace std
@@ -48,6 +50,8 @@ namespace std
 
 #ifdef CLIENT_DLL
 	std::string to_string( C_AnimationLayer& obj );
+#else
+	std::string to_string( LayerRecord& obj );
 #endif
 };
 
@@ -128,7 +132,7 @@ struct IInterpolatedVar
 	virtual bool IsInterpolationEnabled()											   = 0;
 	virtual void* ReferenceData()													   = 0;
 	virtual size_t ReferenceSize()													   = 0;
-	virtual void SetReferenceData( void* pData )									   = 0;
+	virtual void SetReferenceData( void* pData, size_t size )						   = 0;
 	virtual void SetDebugName( const std::string& szDebugName )						   = 0;
 	virtual std::string DebugName()													   = 0;
 	virtual size_t MaxHistory()														   = 0;
@@ -152,9 +156,24 @@ class CInterpolatedVar : public IInterpolatedVar
 	   m_pReferencedVariable( &m_LastKnownValue ),
 	   m_IVType( LATCH_SIMULATION_VAR ),
 	   m_bLooping( false ),
-	   m_bHermite( false ),
+	   m_bHermite( true ),
 	   m_bDisabledInterpolation( false ),
-	   m_bEnabled( false )
+	   m_bEnabled( true )
+	{
+	}
+
+	CInterpolatedVar( const std::string& szDebugName,
+					  const InterpolatedVarType& IVtype,
+					  bool bLooping				  = false,
+					  bool bHermite				  = true,
+					  bool bDisabledInterpolation = false )
+	 : m_szDebugName( szDebugName ),
+	   m_pReferencedVariable( &m_LastKnownValue ),
+	   m_IVType( IVtype ),
+	   m_bLooping( bLooping ),
+	   m_bHermite( bHermite ),
+	   m_bDisabledInterpolation( bDisabledInterpolation ),
+	   m_bEnabled( true )
 	{
 	}
 
@@ -162,7 +181,7 @@ class CInterpolatedVar : public IInterpolatedVar
 					  T* pReferenceVariable,
 					  const InterpolatedVarType& IVtype,
 					  bool bLooping				  = false,
-					  bool bHermite				  = false,
+					  bool bHermite				  = true,
 					  bool bDisabledInterpolation = false )
 	 : m_szDebugName( szDebugName ),
 	   m_pReferencedVariable( pReferenceVariable ),
@@ -201,8 +220,9 @@ class CInterpolatedVar : public IInterpolatedVar
 
 	virtual void Push( void* pData, size_t size ) override
 	{
-		ErrorIfNot( size == sizeof( T ),
-					( "CInterpolatedVar::%s pushing bad variable %li != %li", m_szDebugName, size, sizeof( T ) ) );
+		ErrorIfNot(
+		  size == sizeof( T ),
+		  ( "CInterpolatedVar::%s pushing bad variable %li != %li", m_szDebugName.c_str(), size, sizeof( T ) ) );
 
 		Push( *reinterpret_cast< T* >( pData ) );
 	}
@@ -235,7 +255,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	bool Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
 		ErrorIfNot( nAmountOfTicks >= 1 || nAmountOfTicks - 1 < MAX_HISTORY,
-					( "Need atleast 1 tick of history for CInterpolatedVar::%s", m_szDebugName ) );
+					( "Need atleast 1 tick of history for CInterpolatedVar::%s", m_szDebugName.c_str() ) );
 
 		auto start = m_History.Get( nAmountOfTicks );
 		auto end   = m_History.Get( nAmountOfTicks - 1 );
@@ -253,7 +273,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	bool Interpolate_Hermite( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
 		ErrorIfNot( nAmountOfTicks >= 2 || nAmountOfTicks - 2 < MAX_HISTORY,
-					( "Need atleast 2 ticks of history for CInterpolatedVar::%s", m_szDebugName ) );
+					( "Need atleast 2 ticks of history for CInterpolatedVar::%s", m_szDebugName.c_str() ) );
 
 		auto prev  = m_History.Get( nAmountOfTicks );
 		auto start = m_History.Get( nAmountOfTicks - 1 );
@@ -320,8 +340,14 @@ class CInterpolatedVar : public IInterpolatedVar
 		return sizeof( T );
 	}
 
-	virtual void SetReferenceData( void* pData ) override
+	virtual void SetReferenceData( void* pData, size_t size ) override
 	{
+		ErrorIfNot( size == sizeof( T ),
+					( "CInterpolatedVar::%s setting bad reference variable %li != %li",
+					  m_szDebugName.c_str(),
+					  size,
+					  sizeof( T ) ) );
+
 		m_pReferencedVariable = reinterpret_cast< T* >( pData );
 	}
 
@@ -392,7 +418,7 @@ class CInterpolatedVar : public IInterpolatedVar
 			   + "  |  networked = " + std::to_string( m_LastKnownValue );
 	}
 
-	inline T&& GetLastKnownValue()
+	inline T& GetLastKnownValue()
 	{
 		return m_LastKnownValue;
 	}
@@ -420,17 +446,49 @@ class CInterpolatedVarArray
   public:
 	using Element = CInterpolatedVar< T, MAX_HISTORY >;
 
+	CInterpolatedVarArray()
+	{
+		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
+		{
+			m_Array[i].SetDebugName( "unknown_" + std::to_string( i ) );
+			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
+			m_Array[i].SetType( LATCH_SIMULATION_VAR );
+			m_Array[i].SetLooping( false );
+			m_Array[i].SetHermite( true );
+			m_Array[i].Enable();
+			m_Array[i].EnableInterpolation();
+		}
+	}
+
 	CInterpolatedVarArray( const std::string& szDebugName,
-						   T ( &pReferenceVariable )[ARRAY_SIZE],
 						   const InterpolatedVarType& IVtype,
 						   bool bLooping			   = false,
-						   bool bHermite			   = false,
+						   bool bHermite			   = true,
 						   bool bDisabledInterpolation = false )
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
 			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
-			m_Array[i].SetReferenceData( &pReferenceVariable[i] );
+			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
+			m_Array[i].SetType( IVtype );
+			m_Array[i].SetLooping( bLooping );
+			m_Array[i].SetHermite( bHermite );
+			m_Array[i].Enable();
+			bDisabledInterpolation ? m_Array[i].DisableInterpolation() : m_Array[i].EnableInterpolation();
+		}
+	}
+
+	CInterpolatedVarArray( const std::string& szDebugName,
+						   T ( &pReferenceVariable )[ARRAY_SIZE],
+						   const InterpolatedVarType& IVtype,
+						   bool bLooping			   = false,
+						   bool bHermite			   = true,
+						   bool bDisabledInterpolation = false )
+	{
+		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
+		{
+			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
+			m_Array[i].SetReferenceData( &pReferenceVariable[i], sizeof( T ) );
 			m_Array[i].SetType( IVtype );
 			m_Array[i].SetLooping( bLooping );
 			m_Array[i].SetHermite( bHermite );

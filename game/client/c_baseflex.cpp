@@ -130,14 +130,9 @@ C_BaseFlex::C_BaseFlex() :
 	((Vector&)m_viewtarget).Init();
 #endif
 
-	m_iv_viewtarget.SetHermite( false );
+	// TODO_ENHANCED: check if that's really needed now.
+	// m_iv_viewtarget.SetHermite( false );
 	AddVar( &m_iv_viewtarget );
-
-	for ( size_t i = 0; i < MAXSTUDIOFLEXCTRL; i++ )
-	{
-		m_iv_flexWeight[i].Disable();
-		AddVar( &m_iv_flexWeight[i] );
-	}
 
 	// Fill in phoneme class lookup
 	SetupMappings( "phonemes" );
@@ -221,7 +216,7 @@ CStudioHdr *C_BaseFlex::OnNewModel()
 
 		for ( size_t i = 0; i < hdr->numflexcontrollers(); i++ )
 		{
-			m_iv_flexWeight[i].Enable();
+			AddVar( &m_iv_flexWeight[i] );
 		}
 
 		m_iMouthAttachment = LookupAttachment( "mouth" );

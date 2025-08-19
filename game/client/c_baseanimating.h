@@ -118,7 +118,7 @@ public:
 
 	bool UsesPowerOfTwoFrameBufferTexture( void );
 
-	virtual bool	Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac );
+	virtual bool	Interpolate( size_t nAmountOfTicks, float flInterpolationAmount );
 	virtual void	Simulate();	
 	virtual void	Release();	
 

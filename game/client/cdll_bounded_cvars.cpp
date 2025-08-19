@@ -61,7 +61,7 @@ ConVar_ServerBounded* cl_predict = &cl_predict_var;
 
 ConVar cl_interpolation_amount( "cl_interpolation_amount",
 								"0",
-								FCVAR_ARCHIVE | FCVAR_USERINFO | FCVAR_NOT_CONNECTED,
+								FCVAR_ARCHIVE | FCVAR_USERINFO,
 								"Number of ticks at least to interpolate entities with. 0 is default.",
 								true,
 								0.0,

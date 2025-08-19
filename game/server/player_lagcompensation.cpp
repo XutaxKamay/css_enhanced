@@ -50,27 +50,143 @@ struct LayerRecord
 	float m_flLayerFadeOuttime;
 };
 
+struct BaseLagTrack
+{
+	inline void AddVar( IInterpolatedVar* var )
+	{
+		m_InterpolatedVarList.AddVar( var );
+	}
+
+	inline void RemoveVar( IInterpolatedVar* var )
+	{
+		m_InterpolatedVarList.RemoveVar( var );
+	}
+
+	inline void Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac, InterpolatedVarType type )
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			if ( variable->Type() == type )
+			{
+				variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+			}
+		}
+	}
+
+	inline void Push( InterpolatedVarType type )
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			if ( variable->Type() == type )
+			{
+				variable->Push();
+			}
+		}
+	}
+
+	inline void SetHermite( bool bHermite )
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			variable->SetHermite( bHermite );
+		}
+	}
+
+	inline void SaveLastKnownValue( InterpolatedVarType type )
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			if ( variable->Type() == type )
+			{
+				variable->SaveLastKnownValue();
+			}
+		}
+	}
+
+	inline void RestoreToLastKnownValue()
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			variable->RestoreToLastKnownValue();
+		}
+	}
+
+	inline void ClearHistory()
+	{
+		m_InterpolatedVarList.ClearHistory();
+	}
+
+	CInterpolatedVarList m_InterpolatedVarList;
+};
+
+#define INTERPOLATED_VARIABLE_LIST                                                                                     \
+	INTERPOLATED_VAR( Vector, vecLocalOrigin, LATCH_SIMULATION_VAR )                                                   \
+	INTERPOLATED_VAR( QAngle, angLocalAngles, LATCH_SIMULATION_VAR )                                                   \
+	INTERPOLATED_VAR( Vector, vecMinsPreScaled, LATCH_SIMULATION_VAR )                                                 \
+	INTERPOLATED_VAR( Vector, vecMaxsPreScaled, LATCH_SIMULATION_VAR )                                                 \
+	INTERPOLATED_VAR( float, flSimulationTime, LATCH_SIMULATION_VAR )                                                  \
+	INTERPOLATED_VAR( QAngle, angRenderAngles, LATCH_SIMULATION_VAR )                                                  \
+	INTERPOLATED_VAR( int, nSequence, LATCH_ANIMATION_VAR )                                                            \
+	INTERPOLATED_VAR( float, flCycle, LATCH_ANIMATION_VAR )                                                            \
+	INTERPOLATED_VAR_ARRAY( float, flPoseParameter, MAXSTUDIOPOSEPARAM, LATCH_ANIMATION_VAR )                          \
+	INTERPOLATED_VAR_ARRAY( float, flEncodedController, MAXSTUDIOBONECTRLS, LATCH_ANIMATION_VAR )                      \
+	INTERPOLATED_VAR_ARRAY( LayerRecord, LayerRecords, MAX_LAYER_RECORDS, LATCH_ANIMATION_VAR )                        \
+	INTERPOLATED_VAR( float, flAnimTime, LATCH_ANIMATION_VAR )
+
 struct LagRecord
 {
-  public:
-	// Player position, orientation and bbox
-	Vector m_vecOrigin;
-	QAngle m_vecAngles;
-	Vector m_vecMinsPreScaled;
-	Vector m_vecMaxsPreScaled;
+#define INTERPOLATED_VAR( type, name, ltype )			  type m_##name;
+#define INTERPOLATED_VAR_ARRAY( type, name, size, ltype ) type m_##name[size];
 
-	float m_flSimulationTime;
-	float m_flAnimTime;
+	INTERPOLATED_VARIABLE_LIST
 
-	// Player animation details, so we can get the legs in the right spot.
-	LayerRecord m_LayerRecords[MAX_LAYER_RECORDS];
-	int m_nSequence;
-	float m_flCycle;
-	float m_flPoseParameter[MAXSTUDIOPOSEPARAM];
-	float m_flEncodedController[MAXSTUDIOBONECTRLS];
-#ifdef CSTRIKE_DLL
-	QAngle m_angRenderAngles;
-#endif
+#undef INTERPOLATED_VAR
+#undef INTERPOLATED_VAR_ARRAY
+};
+
+struct LagTrack : public BaseLagTrack
+{
+	LagRecord m_RecordReferenced;
+
+#define INTERPOLATED_VAR( type, name, ltype )                                                                          \
+	CInterpolatedVar< type > m_iv_##name { "LagTrack::m_iv_" #name, &m_RecordReferenced.m_##name, ltype };
+#define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
+	CInterpolatedVarArray< type, size > m_iv_##name { "LagTrack::m_iv_" #name, m_RecordReferenced.m_##name, ltype };
+
+	INTERPOLATED_VARIABLE_LIST
+
+#undef INTERPOLATED_VAR
+#undef INTERPOLATED_VAR_ARRAY
+
+	LagTrack()
+	{
+#define INTERPOLATED_VAR( type, name, ltype ) AddVar( &m_iv_##name );
+#define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
+	for ( size_t i = 0; i < size; i++ )                                                                                \
+	{                                                                                                                  \
+		AddVar( &m_iv_##name[i] );                                                                                     \
+	}
+
+		INTERPOLATED_VARIABLE_LIST
+
+#undef INTERPOLATED_VAR
+#undef INTERPOLATED_VAR_ARRAY
+	}
+
+	void ResetLastKnownValue()
+	{
+#define INTERPOLATED_VAR( type, name, ltype ) m_iv_##name.GetLastKnownValue() = {};
+#define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
+	for ( size_t i = 0; i < size; i++ )                                                                                \
+	{                                                                                                                  \
+		m_iv_##name[i].GetLastKnownValue() = {};                                                                       \
+	}
+
+		INTERPOLATED_VARIABLE_LIST
+
+#undef INTERPOLATED_VAR
+#undef INTERPOLATED_VAR_ARRAY
+	}
 };
 
 //
@@ -79,6 +195,7 @@ struct LagRecord
 //
 
 ConVar sv_unlag_debug( "sv_unlag_debug", "0" );
+
 ConVar sv_unlag_debug_entity( "sv_unlag_debug_entity", "-1" );
 
 inline LayerRecord LoopingLerp( float flPercent, LayerRecord& from, LayerRecord& to )
@@ -113,7 +230,10 @@ inline LayerRecord Lerp( float flPercent, LayerRecord& from, LayerRecord& to )
 	return LoopingLerp( flPercent, from, to );
 }
 
-inline LayerRecord LoopingLerp_Hermite( float flPercent, LayerRecord& prev, LayerRecord& from, LayerRecord& to )
+inline LayerRecord LoopingLerp_Hermite( float flPercent,
+										const LayerRecord& prev,
+										const LayerRecord& from,
+										const LayerRecord& to )
 {
 	LayerRecord output;
 
@@ -140,6 +260,14 @@ inline LayerRecord LoopingLerp_Hermite( float flPercent, LayerRecord& prev, Laye
 	return output;
 }
 
+inline LayerRecord Lerp_Hermite( float flPercent,
+								 const LayerRecord& prev,
+								 const LayerRecord& from,
+								 const LayerRecord& to )
+{
+	return LoopingLerp_Hermite( flPercent, prev, from, to );
+}
+
 inline void Lerp_Clamp( LayerRecord& val )
 {
 	Lerp_Clamp( val.m_nSequence );
@@ -154,6 +282,13 @@ inline void Lerp_Clamp( LayerRecord& val )
 inline bool operator==( LayerRecord& lr1, LayerRecord& lr2 )
 {
 	return false;
+}
+
+std::string std::to_string( LayerRecord& obj )
+{
+	return "cycle: " + std::to_string( obj.m_flCycle ) + ", sequence: " + std::to_string( obj.m_nSequence )
+		   + ", weight: " + std::to_string( obj.m_flWeight ) + ", flags: " + std::to_string( obj.m_fFlags )
+		   + ", order: " + std::to_string( obj.m_nOrder );
 }
 
 //-----------------------------------------------------------------------------
@@ -186,14 +321,16 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 	void FinishLagCompensation( CBasePlayer* player ) override;
 	// Some entities gets simulated at different times. For example players can run multiples commands per second.
 	virtual void TrackEntity( CBaseEntity* pEntity ) override;
-	inline void BacktrackEntity( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd );
+	void BacktrackEntity( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd );
+	void BacktrackSimulationData( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd, bool& bNeedsRestore );
+	void BacktrackAnimationData( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd, bool& bNeedsRestore );
 
 	void ClearHistory()
 	{
 		for ( int i = 0; i < MAX_EDICTS; i++ )
 		{
-			m_EntityTrack[i].Clear();
-			m_flOldSimulationTime[i] = 0;
+			m_EntityTrack[i].ClearHistory();
+			m_EntityTrack[i].ResetLastKnownValue();
 		}
 	}
 
@@ -208,27 +345,22 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 				continue;
 			}
 
-			// Don't track if simulation time haven't changed.
-			if ( pEntity->m_flSimulationTime == m_flOldSimulationTime[i] )
+			// Players will be tracked differently
+			if ( pEntity->IsPlayer() )
 			{
 				continue;
 			}
-
-			m_flOldSimulationTime[i] = pEntity->m_flSimulationTime;
 
 			TrackEntity( pEntity );
 		}
 	}
 
 	// keep a list of lag records for each entities
-	CUtlCircularBuffer< LagRecord, MAX_INTERPOLATION_TICK_HISTORY > m_EntityTrack[MAX_EDICTS];
+	LagTrack m_EntityTrack[MAX_EDICTS];
 
 	// Scratchpad for determining what needs to be restored
 	CBitVec< MAX_EDICTS > m_RestoreEntity;
 	bool m_bNeedToRestore;
-
-	LagRecord m_RestoreData[MAX_EDICTS]; // entities data before we moved him back
-	float m_flOldSimulationTime[MAX_EDICTS];
 	CBasePlayer* m_LagPlayer;
 };
 
@@ -240,8 +372,6 @@ ILagCompensationManager* lagcompensation = &g_LagCompensationManager;
 //-----------------------------------------------------------------------------
 void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 {
-	LagRecord record;
-
 	if ( !sv_unlag.GetBool() )
 	{
 		ClearHistory();
@@ -250,74 +380,89 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	VPROF_BUDGET( "TrackEntities", "CLagCompensationManager" );
 
+	auto index = pEntity->entindex();
+
 	// remove all records before that time:
-	auto track = &m_EntityTrack[pEntity->entindex()];
+	auto pTrack	 = &m_EntityTrack[index];
+	auto pRecord = &pTrack->m_RecordReferenced;
 
 	// add new record to entity track
-	record.m_flSimulationTime = pEntity->GetSimulationTime();
-	record.m_flAnimTime		  = pEntity->GetAnimTime();
-	record.m_vecAngles		  = pEntity->GetLocalAngles();
-	record.m_vecOrigin		  = pEntity->GetLocalOrigin();
-	record.m_vecMinsPreScaled = pEntity->CollisionProp()->OBBMinsPreScaled();
-	record.m_vecMaxsPreScaled = pEntity->CollisionProp()->OBBMaxsPreScaled();
+	pRecord->m_flSimulationTime = pEntity->GetSimulationTime();
+
+	if ( pTrack->m_iv_flSimulationTime.GetLastKnownValue() != pRecord->m_flSimulationTime )
+	{
+		pRecord->m_angLocalAngles	= pEntity->GetLocalAngles();
+		pRecord->m_vecLocalOrigin	= pEntity->GetLocalOrigin();
+		pRecord->m_vecMinsPreScaled = pEntity->CollisionProp()->OBBMinsPreScaled();
+		pRecord->m_vecMaxsPreScaled = pEntity->CollisionProp()->OBBMaxsPreScaled();
 
 #ifdef CSTRIKE_DLL
-	auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
+		auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
-	if ( csPlayer )
-	{
-		record.m_angRenderAngles = csPlayer->GetRenderAngles();
-	}
+		if ( csPlayer )
+		{
+			pRecord->m_angRenderAngles = csPlayer->GetRenderAngles();
+		}
 #endif
-
-	auto pAnim = dynamic_cast< CBaseAnimating* >( pEntity );
-
-	if ( pAnim )
-	{
-		record.m_nSequence = pAnim->GetSequence();
-		record.m_flCycle   = pAnim->GetCycle();
-
-		CStudioHdr* pStudioHDr = pAnim->GetModelPtr();
-
-		if ( pStudioHDr )
-		{
-			for ( int paramIndex = 0; paramIndex < pStudioHDr->GetNumPoseParameters(); paramIndex++ )
-			{
-				record.m_flPoseParameter[paramIndex] = pAnim->GetPoseParameterArray()[paramIndex];
-			}
-
-			for ( int boneIndex = 0; boneIndex < pStudioHDr->GetNumBoneControllers(); boneIndex++ )
-			{
-				record.m_flEncodedController[boneIndex] = pAnim->GetBoneControllerArray()[boneIndex];
-			}
-		}
+		pTrack->Push( LATCH_SIMULATION_VAR );
+		pTrack->SaveLastKnownValue( LATCH_SIMULATION_VAR );
 	}
 
-	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+	pRecord->m_flAnimTime = pEntity->GetAnimTime();
 
-	if ( pAnimOverlay )
+	if ( pTrack->m_iv_flAnimTime.GetLastKnownValue() != pRecord->m_flAnimTime )
 	{
-		int layerCount = pAnimOverlay->GetNumAnimOverlays();
+		auto pAnim = dynamic_cast< CBaseAnimating* >( pEntity );
 
-		for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
+		if ( pAnim )
 		{
-			CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
+			pRecord->m_nSequence = pAnim->GetSequence();
+			pRecord->m_flCycle	 = pAnim->GetCycle();
 
-			if ( pCurrentLayer )
+			auto pStudioHdr = pAnim->GetModelPtr();
+
+			if ( pStudioHdr )
 			{
-				record.m_LayerRecords[layerIndex].m_flCycle			   = pCurrentLayer->m_flCycle;
-				record.m_LayerRecords[layerIndex].m_nOrder			   = pCurrentLayer->m_nOrder;
-				record.m_LayerRecords[layerIndex].m_nSequence		   = pCurrentLayer->m_nSequence;
-				record.m_LayerRecords[layerIndex].m_flWeight		   = pCurrentLayer->m_flWeight;
-				record.m_LayerRecords[layerIndex].m_fFlags			   = pCurrentLayer->m_fFlags;
-				record.m_LayerRecords[layerIndex].m_flPrevCycle		   = pCurrentLayer->m_flPrevCycle;
-				record.m_LayerRecords[layerIndex].m_flLayerAnimtime	   = pCurrentLayer->m_flLayerAnimtime;
-				record.m_LayerRecords[layerIndex].m_flLayerFadeOuttime = pCurrentLayer->m_flLayerFadeOuttime;
+				for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
+				{
+					pRecord->m_flPoseParameter[paramIndex] = pAnim->GetPoseParameterArray()[paramIndex];
+				}
+
+				for ( int boneIndex = 0; boneIndex < pStudioHdr->GetNumBoneControllers(); boneIndex++ )
+				{
+					pRecord->m_flEncodedController[boneIndex] = pAnim->GetBoneControllerArray()[boneIndex];
+				}
 			}
 		}
-	}
 
-	track->Push( record );
+		auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+
+		if ( pAnimOverlay )
+		{
+			int layerCount = pAnimOverlay->GetNumAnimOverlays();
+
+			for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
+			{
+				auto layerRecord			   = &pRecord->m_LayerRecords[layerIndex];
+				CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
+
+				if ( pCurrentLayer )
+				{
+					layerRecord->m_flCycle			  = pCurrentLayer->m_flCycle;
+					layerRecord->m_nOrder			  = pCurrentLayer->m_nOrder;
+					layerRecord->m_nSequence		  = pCurrentLayer->m_nSequence;
+					layerRecord->m_flWeight			  = pCurrentLayer->m_flWeight;
+					layerRecord->m_fFlags			  = pCurrentLayer->m_fFlags;
+					layerRecord->m_flPrevCycle		  = pCurrentLayer->m_flPrevCycle;
+					layerRecord->m_flLayerAnimtime	  = pCurrentLayer->m_flLayerAnimtime;
+					layerRecord->m_flLayerFadeOuttime = pCurrentLayer->m_flLayerFadeOuttime;
+				}
+			}
+		}
+
+		pTrack->Push( LATCH_ANIMATION_VAR );
+		pTrack->SaveLastKnownValue( LATCH_ANIMATION_VAR );
+	}
 }
 
 // Called during player movement to set up/restore after lag compensation
@@ -340,7 +485,6 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 
 	// NOTE: Put this here so that it won't show up in single player mode.
 	VPROF_BUDGET( "StartLagCompensation", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-	Q_memset( m_RestoreData, 0, sizeof( m_RestoreData ) );
 
 	// Iterate all active entities
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
@@ -383,12 +527,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 
 		if ( sv_unlag_debug_entity.GetInt() == pEntity->entindex() && player->entindex() == 1 )
 		{
-			LagRecord* restore = &m_RestoreData[i];
+			auto pInterpolatedRecord = &m_EntityTrack[i].m_RecordReferenced;
 
-			auto origin = restore->m_vecOrigin;
-			auto angle	= restore->m_vecAngles;
-			auto mins	= restore->m_vecMinsPreScaled;
-			auto maxs	= restore->m_vecMaxsPreScaled;
+			auto origin = pInterpolatedRecord->m_vecLocalOrigin;
+			auto angle	= pInterpolatedRecord->m_angLocalAngles;
+			auto mins	= pInterpolatedRecord->m_vecMinsPreScaled;
+			auto maxs	= pInterpolatedRecord->m_vecMaxsPreScaled;
 
 			debugoverlay->AddBoxOverlay( origin, mins, maxs, angle, 0, 0, 255, 128, gpGlobals->interval_per_tick );
 
@@ -405,375 +549,311 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	}
 }
 
-inline void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int loopindex, CUserCmd* cmd )
+void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd )
 {
 	VPROF_BUDGET( "BacktrackEntity", "CLagCompensationManager" );
 
 	// TODO_ENHANCED: to limit cheaters backtracking, we could their measure latency and approximatively check if it's
 	// reasonable enough.
 
-	LagRecord* nextRecordSim  = NULL;
-	LagRecord* recordSim	  = NULL;
-	LagRecord* nextRecordAnim = NULL;
-	LagRecord* recordAnim	  = NULL;
+	bool bNeedsRestore	   = false;
+	float flTargetSimTime  = cmd->simulationdata[loopIndex].sim_time;
+	float flTargetAnimTime = cmd->simulationdata[loopIndex].anim_time;
+	auto pTrack			   = &m_EntityTrack[loopIndex];
 
-	float flTargetSimTime			 = cmd->simulationdata[loopindex].sim_time;
-	float flTargetAnimTime			 = cmd->simulationdata[loopindex].anim_time;
-	auto bUseLinearInterpolationOnly = m_LagPlayer->m_bUseLinearInterpolationOnly;
+	pTrack->SetHermite( !m_LagPlayer->m_bUseLinearInterpolationOnly );
 
-	// Somehow the client didn't care.
+	// Somehow the client didn't care, might due to prediction or some other things like client created entities.
 	if ( flTargetSimTime == 0 )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Client has refused to lag compensate this entity, probably already predicted ( %i )\n",
+			DevMsg( "Client has refused to lag compensate simulation data this entity, probably already predicted ( %i "
+					")\n",
 					pEntity->entindex() );
 		}
-
-		return;
 	}
-
-	// get track history of this entity
-	auto track	  = &m_EntityTrack[loopindex];
-	bool foundSim = false;
-
-	for ( int i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
+	else
 	{
-		recordSim = track->Get( i );
-
-		if ( !recordSim )
-		{
-			break;
-		}
-
-		if ( flTargetSimTime == recordSim->m_flSimulationTime )
-		{
-			foundSim = true;
-			break;
-		}
-
-		if ( flTargetSimTime > recordSim->m_flSimulationTime )
-		{
-			foundSim	  = true;
-			nextRecordSim = track->Get( i - 1 );
-			break;
-		}
+		BacktrackSimulationData( pEntity, loopIndex, cmd, bNeedsRestore );
 	}
 
-	if ( !foundSim )
+	// This entity doesn't have animation or not cared by the player somehow.
+	if ( flTargetAnimTime == 0 )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "No valid simulation in history for BacktrackEntity client ( %i )\n", pEntity->entindex() );
+			DevMsg( "Client has refused to lag compensate animation data this entity, probably already predicted ( %i "
+					")\n",
+					pEntity->entindex() );
+		}
+	}
+	else
+	{
+		BacktrackAnimationData( pEntity, loopIndex, cmd, bNeedsRestore );
+	}
+
+	if ( bNeedsRestore )
+	{
+		m_RestoreEntity.Set( loopIndex ); // remember that we changed this entity
+		m_bNeedToRestore = true;		  // we changed at least one entity
+	}
+}
+
+void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
+													   int loopIndex,
+													   CUserCmd* cmd,
+													   bool& bNeedsRestore )
+{
+	auto flTargetSimTime		   = cmd->simulationdata[loopIndex].sim_time;
+	auto flInterpolationAmountFrac = cmd->interpolated_amount_frac;
+	auto pTrack					   = &m_EntityTrack[loopIndex];
+	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
+	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
+
+	// Find the corresponding simulation time.
+	float flSimulationTimeWithoutFrac = 0;
+
+	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
+	{
+		auto pflSimulationTime = pTrack->m_iv_flSimulationTime.Get( i );
+
+		if ( !pflSimulationTime )
+		{
+			break;
+		}
+
+		if ( *pflSimulationTime == flTargetSimTime )
+		{
+			flSimulationTimeWithoutFrac = *pflSimulationTime;
+			break;
+		}
+	}
+
+	if ( flSimulationTimeWithoutFrac == 0 )
+	{
+		if ( sv_unlag_debug.GetBool() )
+		{
+			DevMsg( "Couldn't find simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
 		}
 
 		return;
 	}
 
-	// First save up entity variables.
-	LagRecord* restore = &m_RestoreData[loopindex];
+	// Calculate the number of ticks to interpolate with.
+	auto nAmountOfTicks = cmd->interpolated_amount_in_ticks
+						  + TIME_TO_TICKS( pTrack->m_iv_flSimulationTime.GetLastKnownValue()
+										   - flSimulationTimeWithoutFrac );
+	;
 
-	restore->m_vecMinsPreScaled = pEntity->CollisionProp()->OBBMinsPreScaled();
-	restore->m_vecMaxsPreScaled = pEntity->CollisionProp()->OBBMaxsPreScaled();
-	restore->m_vecAngles		= pEntity->GetLocalAngles();
-	restore->m_vecOrigin		= pEntity->GetLocalOrigin();
-
-	auto pAnim = pEntity->GetBaseAnimating();
-
-	if ( pAnim )
+	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
 	{
-		restore->m_nSequence = pAnim->GetSequence();
-		restore->m_flCycle	 = pAnim->GetCycle();
-
-		CStudioHdr* pStudioHdr = pAnim->GetModelPtr();
-
-		if ( pStudioHdr )
+		if ( sv_unlag_debug.GetBool() )
 		{
-			for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
-			{
-				restore->m_flPoseParameter[paramIndex] = pAnim->GetPoseParameterArray()[paramIndex];
-			}
-
-			for ( int encIndex = 0; encIndex < pStudioHdr->GetNumBoneControllers(); encIndex++ )
-			{
-				restore->m_flEncodedController[encIndex] = pAnim->GetBoneControllerArray()[encIndex];
-			}
+			DevMsg( "Couldn't find enough simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
 		}
+
+		return;
 	}
 
-	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+	// if ( sv_unlag_debug.GetBool() )
+	// {
+	// 	DevMsg( "Unlagging simulated time for entity %i for %i ticks (%f)\n",
+	// 			nAmountOfTicks,
+	// 			pEntity->entindex(),
+	// 			flTargetSimTime );
+	// }
 
-	if ( pAnimOverlay )
+	// Interpolate now.
+	pTrack->Interpolate( nAmountOfTicks, flInterpolationAmountFrac, LATCH_SIMULATION_VAR );
+
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+	if ( pInterpolatedRecord->m_flSimulationTime != cmd->simulationdata[loopIndex].sim_time_debugged )
 	{
-		for ( int layerIndex = 0; layerIndex < pAnimOverlay->GetNumAnimOverlays(); ++layerIndex )
+		if ( sv_unlag_debug.GetBool() )
 		{
-			CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
-
-			if ( pCurrentLayer )
-			{
-				restore->m_LayerRecords[layerIndex].m_flCycle			 = pCurrentLayer->m_flCycle;
-				restore->m_LayerRecords[layerIndex].m_nOrder			 = pCurrentLayer->m_nOrder;
-				restore->m_LayerRecords[layerIndex].m_nSequence			 = pCurrentLayer->m_nSequence;
-				restore->m_LayerRecords[layerIndex].m_flWeight			 = pCurrentLayer->m_flWeight;
-				restore->m_LayerRecords[layerIndex].m_fFlags			 = pCurrentLayer->m_fFlags;
-				restore->m_LayerRecords[layerIndex].m_flPrevCycle		 = pCurrentLayer->m_flPrevCycle;
-				restore->m_LayerRecords[layerIndex].m_flLayerAnimtime	 = pCurrentLayer->m_flLayerAnimtime;
-				restore->m_LayerRecords[layerIndex].m_flLayerFadeOuttime = pCurrentLayer->m_flLayerFadeOuttime;
-			}
+			DevMsg( "The entity %i has been unlagged with %i ticks for simulation but probably has floating point "
+					"issues interpolated = %f | target = %f, not perfectly lag compensated. (linear only: %s)\n",
+					pEntity->entindex(),
+					nAmountOfTicks,
+					pInterpolatedRecord->m_flSimulationTime,
+					cmd->simulationdata[loopIndex].sim_time_debugged,
+					bLinearOnly ? "true" : "false" );
 		}
 	}
+#endif
 
+	pEntity->m_flInterpolatedSimulationTime = pInterpolatedRecord->m_flSimulationTime;
+
+	pEntity->SetLocalOrigin( pInterpolatedRecord->m_vecLocalOrigin );
+	pEntity->SetLocalAngles( pInterpolatedRecord->m_angLocalAngles );
+	pEntity->SetSize( pInterpolatedRecord->m_vecMinsPreScaled, pInterpolatedRecord->m_vecMaxsPreScaled );
+
+	// Game specific lag compensation
 #ifdef CSTRIKE_DLL
 	auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
 	if ( csPlayer )
 	{
-		restore->m_angRenderAngles = csPlayer->GetRenderAngles();
+		csPlayer->m_angRenderAngles = pInterpolatedRecord->m_angRenderAngles;
 	}
 #endif
 
-	// Always remember the pristine simulation time in case we need to restore it.
-	restore->m_flSimulationTime = pEntity->GetSimulationTime();
-	restore->m_flAnimTime		= pEntity->GetAnimTime();
+	bNeedsRestore = true;
+}
 
-	Vector org;
-	Vector minsPreScaled;
-	Vector maxsPreScaled;
-	QAngle ang;
-#ifdef CSTRIKE_DLL
-	QAngle angRenderAng;
-#endif
-	// Now interpolate entity.
-	if ( nextRecordSim )
+void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
+													  int loopIndex,
+													  CUserCmd* cmd,
+													  bool& bNeedsRestore )
+{
+	auto flTargetAnimTime		   = cmd->simulationdata[loopIndex].anim_time;
+	auto flInterpolationAmountFrac = cmd->interpolated_amount_frac;
+	auto pTrack					   = &m_EntityTrack[loopIndex];
+	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
+	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
+
+	// Find the corresponding simulation time.
+	float flAnimationTimeWithoutFrac = 0;
+
+	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
 	{
-		auto frac = cmd->interpolated_amount_frac;
+		auto pflAnimTime = pTrack->m_iv_flAnimTime.Get( i );
 
-		ang			  = Interpolate_Linear( frac, recordSim->m_vecAngles, nextRecordSim->m_vecAngles );
-		org			  = Interpolate_Linear( frac, recordSim->m_vecOrigin, nextRecordSim->m_vecOrigin );
-		minsPreScaled = Interpolate_Linear( frac, recordSim->m_vecMinsPreScaled, nextRecordSim->m_vecMinsPreScaled );
-		maxsPreScaled = Interpolate_Linear( frac, recordSim->m_vecMaxsPreScaled, nextRecordSim->m_vecMaxsPreScaled );
-
-#ifdef CSTRIKE_DLL
-		if ( csPlayer )
+		if ( !pflAnimTime )
 		{
-			angRenderAng = Interpolate_Linear( frac, recordSim->m_angRenderAngles, nextRecordSim->m_angRenderAngles );
-		}
-#endif
-
-		// printf( "%i target: %f frac: %f new: %f old: %f\n",
-		// 		pEntity->entindex(),
-		// 		flTargetSimTime,
-		// 		fracSim,
-		// 		recordSim->m_flSimulationTime,
-		// 		prevRecordSim->m_flSimulationTime );
-	}
-	else
-	{
-		// we found the exact record or no other record to interpolate with
-		// just copy these values since they are the best we have
-		org			  = recordSim->m_vecOrigin;
-		ang			  = recordSim->m_vecAngles;
-		minsPreScaled = recordSim->m_vecMinsPreScaled;
-		maxsPreScaled = recordSim->m_vecMaxsPreScaled;
-
-#ifdef CSTRIKE_DLL
-		if ( csPlayer )
-		{
-			angRenderAng = recordSim->m_angRenderAngles;
-		}
-#endif
-	}
-
-	pEntity->SetSize( minsPreScaled, maxsPreScaled );
-	pEntity->SetLocalAngles( ang );
-	pEntity->SetLocalOrigin( org );
-
-#ifdef CSTRIKE_DLL
-	if ( csPlayer )
-	{
-		csPlayer->m_angRenderAngles = angRenderAng;
-	}
-#endif
-
-	auto Finish = [&]()
-	{
-		// Set lag compensated entity's times
-		pEntity->SetSimulationTime( flTargetSimTime );
-		pEntity->SetAnimTime( flTargetAnimTime );
-
-		if ( sv_lagflushbonecache.GetBool() )
-		{
-			if ( pAnim )
-			{
-				pAnim->InvalidateBoneCache();
-			}
+			break;
 		}
 
-		m_RestoreEntity.Set( loopindex ); // remember that we changed this entity
-		m_bNeedToRestore = true;		  // we changed at least one entity
-	};
+		if ( *pflAnimTime == flTargetAnimTime )
+		{
+			flAnimationTimeWithoutFrac = *pflAnimTime;
+			break;
+		}
+	}
 
-	// Somehow the client didn't care or there's nothing to do
-	if ( flTargetAnimTime == 0 || !pAnim )
+	if ( flAnimationTimeWithoutFrac == 0 )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Client has no anim time info ( %i )\n", pEntity->entindex() );
+			DevMsg( "Couldn't find animation time for entity %i (%f)\n", pEntity->entindex(), flTargetAnimTime );
 		}
 
-		Finish();
 		return;
 	}
 
-	bool foundAnim = false;
+	// Calculate the number of ticks to interpolate with.
+	auto nAmountOfTicks = cmd->interpolated_amount_in_ticks
+						  + TIME_TO_TICKS( pTrack->m_iv_flAnimTime.GetLastKnownValue() - flAnimationTimeWithoutFrac );
 
-	for ( int i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
-	{
-		recordAnim = track->Get( i );
-
-		if ( !recordAnim )
-		{
-			break;
-		}
-
-		if ( flTargetAnimTime == recordAnim->m_flAnimTime )
-		{
-			foundAnim = true;
-			break;
-		}
-
-		if ( flTargetAnimTime > recordAnim->m_flAnimTime )
-		{
-			foundAnim	   = true;
-			nextRecordAnim = track->Get( i - 1 );
-			break;
-		}
-	}
-
-	if ( !foundAnim )
+	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Can't lag compensate, no history for animation for client entity ( %i )\n", pEntity->entindex() );
+			DevMsg( "Couldn't find enough animated time for entity %i (%f)\n", pEntity->entindex(), flTargetAnimTime );
 		}
 
-		Finish();
 		return;
 	}
 
-	CStudioHdr* pStudioHdr = pAnim->GetModelPtr();
+	// if ( sv_unlag_debug.GetBool() )
+	// {
+	// 	DevMsg( "Unlagging animated time for entity %i for %i ticks (%f)\n",
+	// 			nAmountOfTicks,
+	// 			pEntity->entindex(),
+	// 			flTargetAnimTime );
+	// }
 
-	// Now interpolate entity animation.
-	if ( nextRecordAnim )
+	auto pAnim		  = dynamic_cast< CBaseAnimating* >( pEntity );
+	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
+
+	// Sadly due to looping sequences we need to interpolate variables seperately.
+	pTrack->m_iv_flAnimTime.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+	if ( pInterpolatedRecord->m_flAnimTime != cmd->simulationdata[loopIndex].anim_time_debugged )
 	{
-		auto frac = cmd->interpolated_amount_frac;
+		if ( sv_unlag_debug.GetBool() )
+		{
+			DevMsg( "The entity %i has been unlagged with %i ticks for animation but probably has floating point "
+					"issues interpolated = %f | target = %f, not perfectly lag compensated. (linear only: %s)\n",
+					pEntity->entindex(),
+					nAmountOfTicks,
+					pInterpolatedRecord->m_flSimulationTime,
+					cmd->simulationdata[loopIndex].anim_time_debugged,
+					bLinearOnly ? "true" : "false" );
+		}
+	}
+#endif
 
-		auto newSequence = Interpolate_Linear( frac, recordAnim->m_nSequence, nextRecordAnim->m_nSequence );
+	pEntity->m_flInterpolatedAnimTime = pInterpolatedRecord->m_flAnimTime;
 
-		auto newCycle = Interpolate_Linear( frac,
-											recordAnim->m_flCycle,
-											nextRecordAnim->m_flCycle,
-											pAnim->IsSequenceLooping( pStudioHdr, recordAnim->m_nSequence ) );
+	if ( pAnim )
+	{
+		pTrack->m_iv_nSequence.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+		pAnim->SetSequence( pInterpolatedRecord->m_nSequence );
 
-		pAnim->SetSequence( newSequence );
-		pAnim->SetCycle( newCycle );
+		// Check if looping
+		pTrack->m_iv_flCycle.SetLooping( pAnim->IsSequenceLooping( pInterpolatedRecord->m_nSequence ) );
+		pTrack->m_iv_flCycle.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+		pAnim->SetCycle( pInterpolatedRecord->m_flCycle );
+
+		auto pStudioHdr = pAnim->GetModelPtr();
 
 		if ( pStudioHdr )
 		{
 			for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
 			{
-				auto&& Pose = pStudioHdr->pPoseParameter( paramIndex );
-
-				auto poseParameter = Interpolate_Linear( frac,
-														 recordAnim->m_flPoseParameter[paramIndex],
-														 nextRecordAnim->m_flPoseParameter[paramIndex],
-														 Pose.loop != 0.0f );
-
-				pAnim->SetPoseParameterRaw( paramIndex, poseParameter );
+				const mstudioposeparamdesc_t& Pose = pStudioHdr->pPoseParameter( paramIndex );
+				pTrack->m_iv_flPoseParameter[paramIndex].SetLooping( Pose.loop != 0.0f );
+				pTrack->m_iv_flPoseParameter[paramIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+				pAnim->SetPoseParameterRaw( paramIndex, pInterpolatedRecord->m_flPoseParameter[paramIndex] );
 			}
 
-			for ( int encIndex = 0; encIndex < pStudioHdr->GetNumBoneControllers(); encIndex++ )
+			for ( int boneIndex = 0; boneIndex < pStudioHdr->GetNumBoneControllers(); boneIndex++ )
 			{
-				auto loop = ( pStudioHdr->pBonecontroller( encIndex )->type & ( STUDIO_XR | STUDIO_YR | STUDIO_ZR ) )
+				bool loop = ( pStudioHdr->pBonecontroller( boneIndex )->type & ( STUDIO_XR | STUDIO_YR | STUDIO_ZR ) )
 							!= 0;
-
-				auto encodedController = Interpolate_Linear( frac,
-															 recordAnim->m_flEncodedController[encIndex],
-															 nextRecordAnim->m_flEncodedController[encIndex],
-															 loop );
-
-				pAnim->SetBoneControllerRaw( encIndex, encodedController );
-			}
-		}
-
-		if ( pAnimOverlay )
-		{
-			for ( int layerIndex = 0; layerIndex < pAnimOverlay->GetNumAnimOverlays(); ++layerIndex )
-			{
-				CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
-
-				if ( pCurrentLayer )
-				{
-					auto newAnimLayer = Interpolate_Linear( frac,
-															recordAnim->m_LayerRecords[layerIndex],
-															nextRecordAnim->m_LayerRecords[layerIndex] );
-
-					pCurrentLayer->m_flCycle			= newAnimLayer.m_flCycle;
-					pCurrentLayer->m_nOrder				= newAnimLayer.m_nOrder;
-					pCurrentLayer->m_nSequence			= newAnimLayer.m_nSequence;
-					pCurrentLayer->m_flWeight			= newAnimLayer.m_flWeight;
-					pCurrentLayer->m_fFlags				= newAnimLayer.m_fFlags;
-					pCurrentLayer->m_flPrevCycle		= newAnimLayer.m_flPrevCycle;
-					pCurrentLayer->m_flLayerAnimtime	= newAnimLayer.m_flLayerAnimtime;
-					pCurrentLayer->m_flLayerFadeOuttime = newAnimLayer.m_flLayerFadeOuttime;
-				}
+				pTrack->m_iv_flEncodedController[boneIndex].SetLooping( loop );
+				pTrack->m_iv_flEncodedController[boneIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+				pAnim->SetPoseParameterRaw( boneIndex, pInterpolatedRecord->m_flEncodedController[boneIndex] );
 			}
 		}
 	}
-	else
+
+	if ( pAnimOverlay )
 	{
-		pAnim->SetSequence( recordAnim->m_nSequence );
-		pAnim->SetCycle( recordAnim->m_flCycle );
+		int layerCount = pAnimOverlay->GetNumAnimOverlays();
 
-		if ( pStudioHdr )
+		for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
 		{
-			for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
+			pTrack->m_iv_LayerRecords[layerIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+			auto layerRecord			   = &pInterpolatedRecord->m_LayerRecords[layerIndex];
+			CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
+
+			if ( pCurrentLayer )
 			{
-				float poseParameter = recordAnim->m_flPoseParameter[paramIndex];
-
-				pAnim->SetPoseParameterRaw( paramIndex, poseParameter );
-			}
-
-			for ( int encIndex = 0; encIndex < pStudioHdr->GetNumBoneControllers(); encIndex++ )
-			{
-				float encodedController = recordAnim->m_flEncodedController[encIndex];
-
-				pAnim->SetBoneControllerRaw( encIndex, encodedController );
-			}
-		}
-
-		if ( pAnimOverlay )
-		{
-			for ( int layerIndex = 0; layerIndex < pAnimOverlay->GetNumAnimOverlays(); ++layerIndex )
-			{
-				CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
-
-				if ( pCurrentLayer )
-				{
-					pCurrentLayer->m_flCycle			= recordAnim->m_LayerRecords[layerIndex].m_flCycle;
-					pCurrentLayer->m_nOrder				= recordAnim->m_LayerRecords[layerIndex].m_nOrder;
-					pCurrentLayer->m_nSequence			= recordAnim->m_LayerRecords[layerIndex].m_nSequence;
-					pCurrentLayer->m_flWeight			= recordAnim->m_LayerRecords[layerIndex].m_flWeight;
-					pCurrentLayer->m_fFlags				= recordAnim->m_LayerRecords[layerIndex].m_fFlags;
-					pCurrentLayer->m_flPrevCycle		= recordAnim->m_LayerRecords[layerIndex].m_flPrevCycle;
-					pCurrentLayer->m_flLayerAnimtime	= recordAnim->m_LayerRecords[layerIndex].m_flLayerAnimtime;
-					pCurrentLayer->m_flLayerFadeOuttime = recordAnim->m_LayerRecords[layerIndex].m_flLayerFadeOuttime;
-				}
+				pCurrentLayer->m_flCycle			= layerRecord->m_flCycle;
+				pCurrentLayer->m_nOrder				= layerRecord->m_nOrder;
+				pCurrentLayer->m_nSequence			= layerRecord->m_nSequence;
+				pCurrentLayer->m_flWeight			= layerRecord->m_flWeight;
+				pCurrentLayer->m_fFlags				= layerRecord->m_fFlags;
+				pCurrentLayer->m_flPrevCycle		= layerRecord->m_flPrevCycle;
+				pCurrentLayer->m_flLayerAnimtime	= layerRecord->m_flLayerAnimtime;
+				pCurrentLayer->m_flLayerFadeOuttime = layerRecord->m_flLayerFadeOuttime;
 			}
 		}
 	}
 
-	Finish();
+	if ( sv_lagflushbonecache.GetBool() )
+	{
+		if ( pAnim )
+		{
+			pAnim->InvalidateBoneCache();
+		}
+	}
+
+	bNeedsRestore = true;
 }
 
 void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
@@ -805,18 +885,21 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			continue;
 		}
 
-		LagRecord* restore = &m_RestoreData[i];
+		auto pTrack = &m_EntityTrack[i];
+		pTrack->RestoreToLastKnownValue();
 
-		pEntity->SetSize( restore->m_vecMinsPreScaled, restore->m_vecMaxsPreScaled );
-		pEntity->SetLocalAngles( restore->m_vecAngles );
-		pEntity->SetLocalOrigin( restore->m_vecOrigin );
+		auto restoreRecord = &pTrack->m_RecordReferenced;
+
+		pEntity->SetSize( restoreRecord->m_vecMinsPreScaled, restoreRecord->m_vecMaxsPreScaled );
+		pEntity->SetLocalAngles( restoreRecord->m_angLocalAngles );
+		pEntity->SetLocalOrigin( restoreRecord->m_vecLocalOrigin );
 
 #ifdef CSTRIKE_DLL
 		auto csPlayer = dynamic_cast< CCSPlayer* >( pEntity );
 
 		if ( csPlayer )
 		{
-			csPlayer->m_angRenderAngles = restore->m_angRenderAngles;
+			csPlayer->m_angRenderAngles = restoreRecord->m_angRenderAngles;
 		}
 #endif
 
@@ -824,8 +907,8 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 		if ( pAnim )
 		{
-			pAnim->SetSequence( restore->m_nSequence );
-			pAnim->SetCycle( restore->m_flCycle );
+			pAnim->SetSequence( restoreRecord->m_nSequence );
+			pAnim->SetCycle( restoreRecord->m_flCycle );
 
 			CStudioHdr* pStudioHdr = pAnim->GetModelPtr();
 
@@ -833,12 +916,12 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			{
 				for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
 				{
-					pAnim->SetPoseParameterRaw( paramIndex, restore->m_flPoseParameter[paramIndex] );
+					pAnim->SetPoseParameterRaw( paramIndex, restoreRecord->m_flPoseParameter[paramIndex] );
 				}
 
 				for ( int encIndex = 0; encIndex < pStudioHdr->GetNumBoneControllers(); encIndex++ )
 				{
-					pAnim->SetBoneControllerRaw( encIndex, restore->m_flEncodedController[encIndex] );
+					pAnim->SetBoneControllerRaw( encIndex, restoreRecord->m_flEncodedController[encIndex] );
 				}
 			}
 		}
@@ -851,23 +934,21 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 			for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
 			{
+				auto layerRecord			   = &restoreRecord->m_LayerRecords[layerIndex];
 				CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
 
 				if ( pCurrentLayer )
 				{
-					pCurrentLayer->m_flCycle			= restore->m_LayerRecords[layerIndex].m_flCycle;
-					pCurrentLayer->m_nOrder				= restore->m_LayerRecords[layerIndex].m_nOrder;
-					pCurrentLayer->m_nSequence			= restore->m_LayerRecords[layerIndex].m_nSequence;
-					pCurrentLayer->m_flWeight			= restore->m_LayerRecords[layerIndex].m_flWeight;
-					pCurrentLayer->m_fFlags				= restore->m_LayerRecords[layerIndex].m_fFlags;
-					pCurrentLayer->m_flPrevCycle		= restore->m_LayerRecords[layerIndex].m_flPrevCycle;
-					pCurrentLayer->m_flLayerAnimtime	= restore->m_LayerRecords[layerIndex].m_flLayerAnimtime;
-					pCurrentLayer->m_flLayerFadeOuttime = restore->m_LayerRecords[layerIndex].m_flLayerFadeOuttime;
+					pCurrentLayer->m_flCycle			= layerRecord->m_flCycle;
+					pCurrentLayer->m_nOrder				= layerRecord->m_nOrder;
+					pCurrentLayer->m_nSequence			= layerRecord->m_nSequence;
+					pCurrentLayer->m_flWeight			= layerRecord->m_flWeight;
+					pCurrentLayer->m_fFlags				= layerRecord->m_fFlags;
+					pCurrentLayer->m_flPrevCycle		= layerRecord->m_flPrevCycle;
+					pCurrentLayer->m_flLayerAnimtime	= layerRecord->m_flLayerAnimtime;
+					pCurrentLayer->m_flLayerFadeOuttime = layerRecord->m_flLayerFadeOuttime;
 				}
 			}
 		}
-
-		pEntity->SetSimulationTime( restore->m_flSimulationTime );
-		pEntity->SetAnimTime( restore->m_flAnimTime );
 	}
 }

@@ -155,7 +155,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		if ( from->simulationdata[i].sim_time != to->simulationdata[i].sim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteBitFloat( to->simulationdata[i].sim_time );
+			buf->WriteFloat( to->simulationdata[i].sim_time );
 		}
 		else
 		{
@@ -165,12 +165,34 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		if ( from->simulationdata[i].anim_time != to->simulationdata[i].anim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteBitFloat( to->simulationdata[i].anim_time );
+			buf->WriteFloat( to->simulationdata[i].anim_time );
 		}
 		else
 		{
 			buf->WriteOneBit( 0 );
 		}
+
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+		if ( from->simulationdata[i].sim_time_debugged != to->simulationdata[i].sim_time_debugged )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].sim_time_debugged );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].anim_time_debugged != to->simulationdata[i].anim_time_debugged )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].anim_time_debugged );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+#endif
 	}
 
 	if ( to->debug_hitboxes != from->debug_hitboxes )
@@ -187,6 +209,16 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	{
 		buf->WriteOneBit( 1 );
 		buf->WriteBitFloat( to->interpolated_amount_frac );
+	}
+	else
+	{
+		buf->WriteOneBit( 0 );
+	}
+
+	if ( from->interpolated_amount_in_ticks != to->interpolated_amount_in_ticks )
+	{
+		buf->WriteOneBit( 1 );
+		buf->WriteVarInt32( to->interpolated_amount_in_ticks );
 	}
 	else
 	{
@@ -287,13 +319,25 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
     {
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].sim_time = buf->ReadBitFloat();
+			move->simulationdata[i].sim_time = buf->ReadFloat();
 		}
 
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].anim_time = buf->ReadBitFloat();
+			move->simulationdata[i].anim_time = buf->ReadFloat();
 		}
+
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].sim_time_debugged = buf->ReadFloat();
+		}
+
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].anim_time_debugged = buf->ReadFloat();
+		}
+#endif
 	}
 
     if ( buf->ReadOneBit() )
@@ -303,7 +347,12 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
     if ( buf->ReadOneBit() )
     {
-        move->interpolated_amount_frac = buf->ReadBitFloat();
+        move->interpolated_amount_frac = buf->ReadFloat();
+	}
+
+    if ( buf->ReadOneBit() )
+    {
+        move->interpolated_amount_in_ticks = buf->ReadVarInt32();
 	}
 
 #if defined( HL2_DLL )

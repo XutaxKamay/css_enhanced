@@ -816,6 +816,8 @@ public:
 	float		m_flPrevAnimTime;
 	CNetworkVar( float, m_flAnimTime );  // this is the point in time that the client will interpolate to position,angle,frame,etc.
 	CNetworkVar( float, m_flSimulationTime );
+	float 		m_flInterpolatedSimulationTime;
+	float		m_flInterpolatedAnimTime;
 
 	void IncrementInterpolationFrame(); // Call this to cause a discontinuity (teleport)
 
