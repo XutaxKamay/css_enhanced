@@ -1172,7 +1172,7 @@ void CServerGameDLL::GameServerSteamAPIShutdown( void )
 //-----------------------------------------------------------------------------
 ConVar  trace_report( "trace_report", "0" );
 
-void CServerGameDLL::GameFrame( bool simulating )
+void CServerGameDLL::GameFrame( bool simulating, bool bFinalTick )
 {
 	VPROF( "CServerGameDLL::GameFrame" );
 
@@ -1228,6 +1228,13 @@ void CServerGameDLL::GameFrame( bool simulating )
 	Physics_RunThinkFunctions( simulating );
 	
 	IGameSystem::FrameUpdatePostEntityThinkAllSystems();
+
+	// Needed for lag compensation, we need to start recording only on the final tick so we get the same
+	// simulation times.
+	if ( bFinalTick )
+	{
+		IGameSystem::FrameUpdatePostEntityThinkOnFinalTickAllSystems();
+	}
 
 	// UNDONE: Make these systems IGameSystems and move these calls into FrameUpdatePostEntityThink()
 	// service event queue, firing off any actions whos time has come

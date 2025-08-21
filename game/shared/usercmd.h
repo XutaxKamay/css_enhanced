@@ -44,8 +44,8 @@ struct SimulationData
 	// For now we send the last received update for animations.
 	// We might optimize this by sending a base counter and round the other entities values to it.
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-	float sim_time_debugged;
-	float anim_time_debugged;
+	float interpolated_sim_time;
+	float interpolated_anim_time;
 #endif
 
 	float sim_time;
@@ -95,7 +95,6 @@ public:
 #endif
 
         interpolated_amount_frac = 0.0f;
-		interpolated_amount_in_ticks = 10;
 	}
 
 	CUserCmd& operator =( const CUserCmd& src )
@@ -126,7 +125,6 @@ public:
 #endif
 
         interpolated_amount_frac = src.interpolated_amount_frac;
-		interpolated_amount_in_ticks = src.interpolated_amount_in_ticks;
 		return *this;
 	}
 
@@ -151,7 +149,6 @@ public:
 		CRC32_ProcessBuffer( &crc, simulationdata, sizeof( simulationdata ) );
 		CRC32_ProcessBuffer( &crc, &debug_hitboxes, sizeof( debug_hitboxes ) );
 		CRC32_ProcessBuffer( &crc, &interpolated_amount_frac, sizeof( interpolated_amount_frac ) );
-		CRC32_ProcessBuffer( &crc, &interpolated_amount_in_ticks, sizeof(interpolated_amount_in_ticks) );
 		CRC32_Final( &crc );
 
 		return crc;
@@ -201,7 +198,6 @@ public:
 
 	// TODO_ENHANCED: check README_ENHANCED in host.cpp!
 	float interpolated_amount_frac;
-	uint32_t interpolated_amount_in_ticks;
 
 	// Back channel to communicate IK state
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )

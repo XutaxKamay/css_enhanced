@@ -414,14 +414,14 @@ void CServerPlugin::ServerActivate( edict_t *pEdictList, int edictCount, int cli
 	serverGameDLL->ServerActivate( pEdictList, edictCount, clientMax );
 }
 
-void CServerPlugin::GameFrame( bool simulating )
+void CServerPlugin::GameFrame( bool simulating, bool bFinalTick )
 {
 	FORALL_PLUGINS
 	{
-		CALL_PLUGIN_IF_ENABLED( GameFrame( simulating ) );
+		CALL_PLUGIN_IF_ENABLED( GameFrame( simulating, bFinalTick ) );
 	}
 
-	serverGameDLL->GameFrame( simulating );
+	serverGameDLL->GameFrame( simulating, bFinalTick );
 }
 
 void CServerPlugin::LevelShutdown( void )

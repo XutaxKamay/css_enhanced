@@ -17,6 +17,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+static ConVar cl_keep_predict("cl_keep_predict", "1");
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : world_start_state - 
@@ -42,10 +44,12 @@ void CL_RunPrediction( PREDICTION_REASON reason )
 {
 	tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s", __FUNCTION__ );
 
+	auto bShouldKeepPredicting = cl_keep_predict.GetBool();
+
 	if ( !cl.IsActive() )
 		return;
 
-	if ( cl.m_nDeltaTick < 0 ) 
+	if ( cl.m_nDeltaTick < 0 && !bShouldKeepPredicting )
 	{
 		// no valid snapshot received yet
 		return;
@@ -68,7 +72,7 @@ void CL_RunPrediction( PREDICTION_REASON reason )
 	//	cl.netchan->m_nOutSequenceNr - 1 );
 
 	CL_Predict( cl.m_nDeltaTick, 
-		valid,  
+		bShouldKeepPredicting ? true : valid,  
 		cl.last_command_ack, 
 		cl.lastoutgoingcommand + cl.chokedcommands );
 }

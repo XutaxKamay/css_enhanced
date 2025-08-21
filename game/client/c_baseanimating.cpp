@@ -4300,7 +4300,7 @@ bool C_BaseAnimating::Interpolate( size_t nAmountOfTicks, float flInterpolationA
 	float flOldCycle = GetCycle();
     int nChangeFlags = 0;
 
-	// if ( !m_bClientSideAnimation )
+	if ( !m_bClientSideAnimation )
 	{
 		// TODO_ENHANCED: this should be okay and lag compensated now.
 		m_iv_flCycle.SetLooping( IsSequenceLooping( GetSequence() ) );

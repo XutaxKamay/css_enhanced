@@ -490,7 +490,7 @@ public:
 	virtual void			ServerActivate( edict_t *pEdictList, int edictCount, int clientMax ) = 0;
 
 	// The server should run physics/think on all edicts
-	virtual void			GameFrame( bool simulating ) = 0;
+	virtual void			GameFrame( bool simulating, bool bFinalTick ) = 0;
 
 	// Called once per simulation frame on the final tick
 	virtual void			PreClientUpdate( bool simulating ) = 0;

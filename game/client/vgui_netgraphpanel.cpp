@@ -812,31 +812,28 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 		g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
 
 		y += textTall;
-
-		if ( graphvalue > 3 )
-		{
-			Q_snprintf( sz, sizeof( sz ), "sv  : %5.1f   var: %4.2f msec", m_flServerFramerate, m_flServerFramerateStdDeviation * 1000.0f );
-
-			int servercolor[ 3 ] = { (int)GRAPH_RED, (int)GRAPH_GREEN, (int)GRAPH_BLUE };
-
-			if ( m_flServerFramerate < 10.0f )
-			{
-				servercolor[ 0 ] = 255;
-				servercolor[ 1 ] = 31;
-				servercolor[ 2 ] = 31;
-			}
-			else if ( m_flServerFramerate < 20.0f )
-			{
-				servercolor[ 0 ] = 255;
-				servercolor[ 1 ] = 255;
-				servercolor[ 2 ] = 0;
-			}
-
-			g_pMatSystemSurface->DrawColoredText( font, x, y, servercolor[ 0 ], servercolor[ 1 ], servercolor[ 2 ], 255, "%s", sz );
-
-			y += textTall;
-		}
 	}
+
+	Q_snprintf( sz, sizeof( sz ), "sv  : %5.1f   var: %4.2f msec", m_flServerFramerate, m_flServerFramerateStdDeviation * 1000.0f );
+
+	int servercolor[ 3 ] = { (int)GRAPH_RED, (int)GRAPH_GREEN, (int)GRAPH_BLUE };
+
+	if ( m_flServerFramerate < 10.0f )
+	{
+		servercolor[ 0 ] = 255;
+		servercolor[ 1 ] = 31;
+		servercolor[ 2 ] = 31;
+	}
+	else if ( m_flServerFramerate < 20.0f )
+	{
+		servercolor[ 0 ] = 255;
+		servercolor[ 1 ] = 255;
+		servercolor[ 2 ] = 0;
+	}
+
+	g_pMatSystemSurface->DrawColoredText( font, x, y, servercolor[ 0 ], servercolor[ 1 ], servercolor[ 2 ], 255, "%s", sz );
+
+	y += textTall;
 
 	// Draw legend
 	if ( graphvalue >= 3 )

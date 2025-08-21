@@ -80,7 +80,7 @@ public:
 	virtual const char     *GetPluginDescription( void );      
 	virtual void			LevelInit( char const *pMapName );
 	virtual void			ServerActivate( edict_t *pEdictList, int edictCount, int clientMax );
-	virtual void			GameFrame( bool simulating );
+	virtual void			GameFrame( bool simulating, bool bFinalTick );
 	virtual void			LevelShutdown( void );
 	virtual void			ClientActive( edict_t *pEntity );
 	virtual void			ClientDisconnect( edict_t *pEntity );
@@ -228,7 +228,7 @@ void CEmptyServerPlugin::ServerActivate( edict_t *pEdictList, int edictCount, in
 //---------------------------------------------------------------------------------
 // Purpose: called once per server frame, do recurring work here (like checking for timeouts)
 //---------------------------------------------------------------------------------
-void CEmptyServerPlugin::GameFrame( bool simulating )
+void CEmptyServerPlugin::GameFrame( bool simulating, bool bFinalTick )
 {
 	if ( simulating )
 	{

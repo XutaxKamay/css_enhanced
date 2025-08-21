@@ -2063,6 +2063,8 @@ void C_BasePlayer::PostThink( void )
 		}
 
 		StudioFrameAdvance();
+
+		SetSimulationTime( gpGlobals->curtime );
 	}
 
 	// Even if dead simulate entities

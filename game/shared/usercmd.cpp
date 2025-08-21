@@ -173,20 +173,20 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		}
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		if ( from->simulationdata[i].sim_time_debugged != to->simulationdata[i].sim_time_debugged )
+		if ( from->simulationdata[i].interpolated_sim_time != to->simulationdata[i].interpolated_sim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].sim_time_debugged );
+			buf->WriteFloat( to->simulationdata[i].interpolated_sim_time );
 		}
 		else
 		{
 			buf->WriteOneBit( 0 );
 		}
 
-		if ( from->simulationdata[i].anim_time_debugged != to->simulationdata[i].anim_time_debugged )
+		if ( from->simulationdata[i].interpolated_anim_time != to->simulationdata[i].interpolated_anim_time )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].anim_time_debugged );
+			buf->WriteFloat( to->simulationdata[i].interpolated_anim_time );
 		}
 		else
 		{
@@ -209,16 +209,6 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	{
 		buf->WriteOneBit( 1 );
 		buf->WriteBitFloat( to->interpolated_amount_frac );
-	}
-	else
-	{
-		buf->WriteOneBit( 0 );
-	}
-
-	if ( from->interpolated_amount_in_ticks != to->interpolated_amount_in_ticks )
-	{
-		buf->WriteOneBit( 1 );
-		buf->WriteVarInt32( to->interpolated_amount_in_ticks );
 	}
 	else
 	{
@@ -330,12 +320,12 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].sim_time_debugged = buf->ReadFloat();
+			move->simulationdata[i].interpolated_sim_time = buf->ReadFloat();
 		}
 
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].anim_time_debugged = buf->ReadFloat();
+			move->simulationdata[i].interpolated_anim_time = buf->ReadFloat();
 		}
 #endif
 	}
@@ -348,11 +338,6 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
     if ( buf->ReadOneBit() )
     {
         move->interpolated_amount_frac = buf->ReadFloat();
-	}
-
-    if ( buf->ReadOneBit() )
-    {
-        move->interpolated_amount_in_ticks = buf->ReadVarInt32();
 	}
 
 #if defined( HL2_DLL )

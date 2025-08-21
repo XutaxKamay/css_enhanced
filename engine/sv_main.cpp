@@ -1848,11 +1848,16 @@ void CGameServer::SendClientMessages ( bool bSendSnapshots )
 	for (int i=0; i< GetClientCount(); i++ )
 	{
 		CGameClient* client = Client(i);
-		
+
 		// Update Host client send state...
-		if ( !client->ShouldSendMessages() )
-			continue;
-		
+		// TODO_ENHANCED: this is unwanted, we need to send every updates possible so that lag compensation and smooth
+		// interpolation can work. This makes also possible for the client to recover from bad server framerate.
+
+		// if ( !client->ShouldSendMessages() )
+		// {
+		// 	continue;
+		// }
+
 		// Append the unreliable data (player updates and packet entities)
 		if ( bSendSnapshots && client->IsActive() )
 		{
@@ -2795,7 +2800,7 @@ bool SV_HasPlayers()
 // Purpose: Run physics code (simulating == false means we're paused, but we'll still
 //  allow player usercmds to be processed
 //-----------------------------------------------------------------------------
-void SV_Think( bool bIsSimulating )
+void SV_Think( bool bIsSimulating, bool bFinalTick )
 {
 	VPROF( "SV_Physics" );
 	tmZone( TELEMETRY_LEVEL1, TMZF_NONE, "SV_Think(%s)", bIsSimulating ? "simulating" : "not simulating" );
@@ -2839,7 +2844,7 @@ void SV_Think( bool bIsSimulating )
 	// in singleplayer only run think/simulation if localplayer is connected
 	bIsSimulating =  bIsSimulating && ( sv.IsMultiplayer() || cl.IsActive() );
 
-	g_pServerPluginHandler->GameFrame( bIsSimulating );
+	g_pServerPluginHandler->GameFrame( bIsSimulating, bFinalTick );
 
 	if( bIsSimulating )
 		GetBenchResultsMgr()->Frame();
@@ -2935,18 +2940,18 @@ void SV_Frame( bool finalTick )
 			networkStringTableContainerServer->SetTick( sv.m_nTickCount );
 		}
 
-		SV_Think( bIsSimulating );
+		SV_Think( bIsSimulating, finalTick );
 	}
 	else if ( sv.IsMultiplayer() )
 	{
-		SV_Think( false );	// let the game.dll systems think
+		SV_Think( false, finalTick );	// let the game.dll systems think
 	}
 
 	// This value is read on another thread, so this needs to only happen once per frame and be atomic.
 	sv.m_bSimulatingTicks = simulated;
 
 	// Send the results of movement and physics to the clients
-	if ( finalTick )
+	// if ( finalTick )
 	{
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause );

@@ -1284,17 +1284,36 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-#ifdef USERCMD_DEBUG_SIMULATION_DATA
-		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
-#endif
+		auto pflSimulationTime = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
+		auto pflAnimTime	   = pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks );
 
-		cmd->simulationdata[i].sim_time			  = pEntity->m_flSimulationTime;
-		cmd->simulationdata[i].anim_time		  = pEntity->m_flAnimTime;
+		cmd->simulationdata[i].sim_time	 = pflSimulationTime ? *pflSimulationTime : pEntity->m_iv_flSimulationTime.GetLastKnownValue();
+		cmd->simulationdata[i].anim_time = pflAnimTime ? *pflAnimTime : pEntity->m_iv_flAnimTime.GetLastKnownValue();
 
 		// Debugging purpose
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		cmd->simulationdata[i].sim_time_debugged  = pEntity->m_flInterpolatedAnimTime;
-		cmd->simulationdata[i].anim_time_debugged = pEntity->m_flInterpolatedSimulationTime;
+		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
+
+		cmd->simulationdata[i].interpolated_sim_time  = pEntity->m_flInterpolatedAnimTime;
+		cmd->simulationdata[i].interpolated_anim_time = pEntity->m_flInterpolatedSimulationTime;
+
+		static ConVar cl_unlag_debug( "cl_unlag_debug", "0" );
+
+		if ( cl_unlag_debug.GetBool() && cmd->simulationdata[i].sim_time != 0 )
+		{
+			auto pStart = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
+			auto pEnd	= pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks - 1 );
+			auto pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+
+			if ( pStart && pEnd && pLocalPlayer )
+			{
+				DevMsg( "Lag compensating simulation entity (tickbase: %i) %i with start = %f | end = %f\n",
+						pLocalPlayer->m_nFinalPredictedTick,
+						pEntity->entindex(),
+						*pStart,
+						*pEnd );
+			}
+		}
 #endif
 	}
 
@@ -1316,12 +1335,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 #endif
 
-	// TODO_ENHANCED: this is left in CUserCmd for debugging, but it needs to be get from cl_interpolation_amount.
-	// The actual latency too can be calculated with predicted local player's m_nTickBase instead of taking sim_time/anim_time.
-	cmd->interpolated_amount_in_ticks = GetClientInterpolationAmountInTicks();
-
 	// InterpolateServerEntities starts after prediction during rendering (OnRenderStart)
-	cmd->interpolated_amount_frac = cmd->interpolated_amount_in_ticks ? flInterpolationAmountFrac : 0;
+	cmd->interpolated_amount_frac = nInterpolationAmountOfTicks ? flInterpolationAmountFrac : 0;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

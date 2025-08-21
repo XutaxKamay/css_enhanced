@@ -494,7 +494,4 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		player->m_nTickBase++;
 	}
-
-	// Be sure to track this guy.
-	lagcompensation->TrackEntity( player );
 }

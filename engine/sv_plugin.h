@@ -73,7 +73,7 @@ public:
 									char const *pMapEntities, char const *pOldLevel, 
 									char const *pLandmarkName, bool loadGame, bool background );
 	virtual void			ServerActivate( edict_t *pEdictList, int edictCount, int clientMax );
-	virtual void			GameFrame( bool simulating );
+	virtual void			GameFrame( bool simulating, bool bFinalTick );
 	virtual void			LevelShutdown( void );
 
 	virtual void			ClientActive( edict_t *pEntity, bool bLoadGame );
