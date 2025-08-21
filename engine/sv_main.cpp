@@ -1867,6 +1867,11 @@ void CGameServer::SendClientMessages ( bool bSendSnapshots )
 		}
 		else
 		{
+			if ( !client->m_NetChannel )
+			{
+				continue;
+			}
+
 			// Connected, but inactive, just send reliable, sequenced info.
 			if ( client->IsFakeClient() )
 				continue;

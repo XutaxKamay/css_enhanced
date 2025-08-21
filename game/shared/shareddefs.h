@@ -225,7 +225,7 @@ enum CastVote
 //This is ok since MAX_PLAYERS is used for code specific things like arrays and loops, but it doesn't really means that this is the max number of players allowed
 //Since this is decided by the gamerules (and it can be whatever number as long as its less than MAX_PLAYERS).
 #if defined( CSTRIKE_DLL )
-	#define MAX_PLAYERS				65  // Absolute max players supported
+	#define MAX_PLAYERS				255  // Absolute max players supported
 #else
 	#define MAX_PLAYERS				33  // Absolute max players supported
 #endif
