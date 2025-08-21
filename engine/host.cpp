@@ -3297,12 +3297,12 @@ void _Host_RunFrame (float time)
 #endif
 
 				_Host_RunFrame_Input( host_frametime, bFinalTick );
-
+#ifndef SWDS
 				//---------------------------------------------------------
 				// Run prediction, useful when fps is lower than tickrate.
 				//---------------------------------------------------------
 				CL_RunPrediction( PREDICTION_NORMAL );
-
+#endif
 				//-------------------
 				//
 				// server operations
@@ -3516,10 +3516,12 @@ void _Host_RunFrame (float time)
 				g_ClientGlobalVariables.tickcount = host_tickcount;
 				bool bFinalTick = tick==(serverticks-1) ? true : false;
 				_Host_RunFrame_Input( host_frametime, bFinalTick );
+#ifndef SWDS
 				//---------------------------------------------------------
 				// Run prediction, useful when fps is lower than tickrate.
 				//---------------------------------------------------------
 				CL_RunPrediction( PREDICTION_NORMAL );
+#endif
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame(  Plat_FloatTime() );
 			}
