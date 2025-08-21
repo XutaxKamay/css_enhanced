@@ -1307,7 +1307,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 			if ( pStart && pEnd && pLocalPlayer )
 			{
-				DevMsg( "Lag compensating simulation entity (tickbase: %i) %i with start = %f | end = %f\n",
+				ConMsg( "Lag compensating simulation entity (tickbase: %i) %i with start = %f | end = %f\n",
 						pLocalPlayer->m_nFinalPredictedTick,
 						pEntity->entindex(),
 						*pStart,

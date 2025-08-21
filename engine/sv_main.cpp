@@ -1815,7 +1815,7 @@ void CGameServer::CopyTempEntities( CFrameSnapshot* pSnapshot )
 //   are running many instances anyway. It's off in Dota and CSGO dedicated servers.
 //
 // Bruce also had a patch to disable this in //ValveGames/staging/game/tf/cfg/unencrypted/print_instance_config.py
-static ConVar sv_parallel_sendsnapshot( "sv_parallel_sendsnapshot", "0" );
+static ConVar sv_parallel_sendsnapshot( "sv_parallel_sendsnapshot", "1" );
 
 static void SV_ParallelSendSnapshot( CGameClient *& pClient )
 {
@@ -2956,7 +2956,7 @@ void SV_Frame( bool finalTick )
 	sv.m_bSimulatingTicks = simulated;
 
 	// Send the results of movement and physics to the clients
-	// if ( finalTick )
+	if ( finalTick )
 	{
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause );

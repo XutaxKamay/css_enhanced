@@ -3182,7 +3182,7 @@ void _Host_RunFrame (float time)
 		// the second doesn't at the expense of some unprecisions due to floats.
 		// The first one is the easier route to avoid issues.
 
-        g_ClientGlobalVariables.interpolation_amount_frac = cl.m_tickRemainder / host_state.interval_per_tick;
+        g_ClientGlobalVariables.interpolation_amount_frac = host_remainder / host_state.interval_per_tick;
     };
 #endif
     {
@@ -3299,9 +3299,9 @@ void _Host_RunFrame (float time)
 				_Host_RunFrame_Input( host_frametime, bFinalTick );
 #ifndef SWDS
 				//---------------------------------------------------------
-				// Run prediction, useful when fps is lower than tickrate.
+				// Run prediction, (might) useful when fps is lower than tickrate.
 				//---------------------------------------------------------
-				CL_RunPrediction( PREDICTION_NORMAL );
+				// CL_RunPrediction( PREDICTION_NORMAL );
 #endif
 				//-------------------
 				//
@@ -3413,21 +3413,16 @@ void _Host_RunFrame (float time)
 #ifndef SWDS
 		else
 		{
-			static int numticks_last_frame = 0;
-			static float host_remainder_last_frame = 0, prev_remainder_last_frame = 0, last_frame_time = 0;
-
 			int clientticks;
 			int serverticks;
 
-			clientticks = numticks_last_frame;
-			cl.m_tickRemainder = host_remainder_last_frame;
-			cl.SetFrameTime( last_frame_time );
+			clientticks = numticks;
+			cl.m_tickRemainder = host_remainder;
+			cl.SetFrameTime( host_frametime );
 			if ( g_ClientDLL )
 			{
-				g_ClientDLL->IN_SetSampleTime(last_frame_time);
+				g_ClientDLL->IN_SetSampleTime(host_frametime);
 			}
-
-			last_frame_time = host_frametime;
 
 			serverticks = numticks;
 			g_ClientGlobalVariables.simTicksThisFrame = clientticks;
@@ -3442,7 +3437,7 @@ void _Host_RunFrame (float time)
 			// but they have a cap applied by IN_SetSampleTime() so they are not also
 			// simulated during input gathering
 			g_ClientGlobalVariables.frametime = host_frametime;
-			CL_ExtraMovementUpdate( host_frametime );
+			CL_ExtraMovementUpdate( g_ClientGlobalVariables.frametime );
 
 			// THREADED: Run Client
 			// -------------------
@@ -3491,15 +3486,6 @@ void _Host_RunFrame (float time)
 
 			CalcInterpolationAmount();
 
-			//-------------------
-			// Run prediction if it hasn't been run yet
-			//-------------------
-			// If we haven't predicted/simulated the player (multiplayer with prediction enabled and
-			//  not a listen server with zero frame lag, then go ahead and predict now
-			CL_RunPrediction( PREDICTION_NORMAL );
-
-			CL_ApplyAddAngle();
-
 			Host_SetClientInSimulation( true );
 
 			// THREADED: Run Input
@@ -3518,9 +3504,9 @@ void _Host_RunFrame (float time)
 				_Host_RunFrame_Input( host_frametime, bFinalTick );
 #ifndef SWDS
 				//---------------------------------------------------------
-				// Run prediction, useful when fps is lower than tickrate.
+				// Run prediction, (might) useful when fps is lower than tickrate.
 				//---------------------------------------------------------
-				CL_RunPrediction( PREDICTION_NORMAL );
+				// CL_RunPrediction( PREDICTION_NORMAL );
 #endif
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame(  Plat_FloatTime() );
@@ -3528,9 +3514,16 @@ void _Host_RunFrame (float time)
 
 			Host_SetClientInSimulation( false );
 
+			//-------------------
+			// Run prediction if it hasn't been run yet
+			//-------------------
+			// If we haven't predicted/simulated the player (multiplayer with prediction enabled and
+			//  not a listen server with zero frame lag, then go ahead and predict now
+			CL_RunPrediction( PREDICTION_NORMAL );
+
+			CL_ApplyAddAngle();
+
 			g_ClientGlobalVariables.tickcount = saveTick;
-			numticks_last_frame = numticks;
-			host_remainder_last_frame = host_remainder;
 
 			// THREADED: Run Server
 			// -------------------

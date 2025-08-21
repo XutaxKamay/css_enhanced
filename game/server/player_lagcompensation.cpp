@@ -335,7 +335,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 		}
 	}
 
-	void FrameUpdatePostEntityThink() override
+	void FrameUpdatePostEntityThinkOnFinalTick() override
 	{
 		for ( int i = 0; i < MAX_EDICTS; i++ )
 		{
@@ -346,7 +346,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 				continue;
 			}
 
-			// Players will be tracked differently
+			// // Players will be tracked during after PhysicsSimulate
 			// if ( pEntity->IsPlayer() )
 			// {
 			// 	continue;
@@ -409,6 +409,14 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		if ( !pflSimulationTime || ( *pflSimulationTime != pRecord->m_flSimulationTime ) )
 		{
 			pTrack->Push( LATCH_SIMULATION_VAR );
+
+			if ( sv_unlag_debug.GetInt() >= 2 )
+			{
+				ConMsg( "%f: Pushing entity %i for lag compensation with simulation time %f\n",
+						gpGlobals->curtime,
+						index,
+						*pflSimulationTime );
+			}
 		}
 	}
 
@@ -469,9 +477,17 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	if constexpr ( bPush )
 	{
-		if ( !pflSimulationTime || ( *pflSimulationTime != pRecord->m_flAnimTime ) )
+		if ( !pflAnimTime || ( *pflAnimTime != pRecord->m_flAnimTime ) )
 		{
 			pTrack->Push( LATCH_ANIMATION_VAR );
+
+			if ( sv_unlag_debug.GetInt() >= 3 )
+			{
+				ConMsg( "%f: Pushing entity %i for lag compensation with animation time %f\n",
+						gpGlobals->curtime,
+						index,
+						*pflAnimTime );
+			}
 		}
 	}
 
@@ -583,7 +599,7 @@ void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int loopInd
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Client has refused to lag compensate simulation data this entity, probably already predicted ( %i "
+			ConMsg( "Client has refused to lag compensate simulation data this entity, probably already predicted ( %i "
 					")\n",
 					pEntity->entindex() );
 		}
@@ -598,7 +614,7 @@ void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int loopInd
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Client has refused to lag compensate animation data this entity, probably already predicted ( %i "
+			ConMsg( "Client has refused to lag compensate animation data this entity, probably already predicted ( %i "
 					")\n",
 					pEntity->entindex() );
 		}
@@ -626,8 +642,9 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
 	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
 
-	// Find the corresponding simulation time.
-	float flSimulationTimeWithoutFrac = 0;
+	// Find the corresponding simulation time, with the corresponding amount of ticks to interpolate with.
+	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
+	size_t nAmountOfTicks = 0;
 
 	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
 	{
@@ -640,29 +657,16 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 
 		if ( *pflSimulationTime == flTargetSimTime )
 		{
-			flSimulationTimeWithoutFrac = *pflSimulationTime;
+			nAmountOfTicks = i;
 			break;
 		}
 	}
-
-	if ( flSimulationTimeWithoutFrac == 0 )
-	{
-		if ( sv_unlag_debug.GetBool() )
-		{
-			DevMsg( "Couldn't find simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
-		}
-
-		return;
-	}
-
-	// Calculate the number of ticks to interpolate with.
-	auto nAmountOfTicks = TIME_TO_TICKS( *pTrack->m_iv_flSimulationTime.Get() - flSimulationTimeWithoutFrac );
 
 	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Couldn't find enough simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
+			ConMsg( "Couldn't find enough simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
 		}
 
 		return;
@@ -670,7 +674,7 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 
 	// if ( sv_unlag_debug.GetBool() )
 	// {
-	// 	DevMsg( "Unlagging simulated time for entity %i for %i ticks (%f)\n",
+	// 	ConMsg( "Unlagging simulated time for entity %i for %i ticks (%f)\n",
 	// 			nAmountOfTicks,
 	// 			pEntity->entindex(),
 	// 			flTargetSimTime );
@@ -687,7 +691,7 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for simulation but probably has "
+			ConMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for simulation but probably has "
 					"floating point issues interpolated = %f | target = %f, start = %f | end = %f, not perfectly lag "
 					"compensated. (linear only: %s)\n",
 					m_LagPlayer->GetPlayerName(),
@@ -733,8 +737,9 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
 	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
 
-	// Find the corresponding simulation time.
-	float flAnimationTimeWithoutFrac = 0;
+	// Find the corresponding simulation time, with the corresponding amount of ticks to interpolate with.
+	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
+	size_t nAmountOfTicks = 0;
 
 	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
 	{
@@ -747,29 +752,16 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 		if ( *pflAnimTime == flTargetAnimTime )
 		{
-			flAnimationTimeWithoutFrac = *pflAnimTime;
+			nAmountOfTicks = i;
 			break;
 		}
 	}
-
-	if ( flAnimationTimeWithoutFrac == 0 )
-	{
-		if ( sv_unlag_debug.GetBool() )
-		{
-			DevMsg( "Couldn't find animation time for entity %i (%f)\n", pEntity->entindex(), flTargetAnimTime );
-		}
-
-		return;
-	}
-
-	// Calculate the number of ticks to interpolate with.
-	auto nAmountOfTicks = TIME_TO_TICKS( *pTrack->m_iv_flAnimTime.Get() - flAnimationTimeWithoutFrac );
 
 	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "Couldn't find enough animated time for entity %i (%f)\n", pEntity->entindex(), flTargetAnimTime );
+			ConMsg( "Couldn't find enough animated time for entity %i (%f)\n", pEntity->entindex(), flTargetAnimTime );
 		}
 
 		return;
@@ -777,7 +769,7 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 	// if ( sv_unlag_debug.GetBool() )
 	// {
-	// 	DevMsg( "Unlagging animated time for entity %i for %i ticks (%f)\n",
+	// 	ConMsg( "Unlagging animated time for entity %i for %i ticks (%f)\n",
 	// 			nAmountOfTicks,
 	// 			pEntity->entindex(),
 	// 			flTargetAnimTime );
@@ -797,7 +789,7 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 		if ( sv_unlag_debug.GetBool() )
 		{
-			DevMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for animation but probably has "
+			ConMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for animation but probably has "
 					"floating point issues interpolated = %f | target = %f, start = %f | end = %f, not perfectly lag "
 					"compensated. (linear only: %s)\n",
 					m_LagPlayer->GetPlayerName(),
