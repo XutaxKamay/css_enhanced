@@ -33,6 +33,7 @@
 ConVar sv_unlag( "sv_unlag", "1", 0, "Enables entity lag compensation" );
 // Enable by default to avoid some bugs.
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", 0, "Flushes entity bone cache on lag compensation" );
+constexpr auto MAX_UNLAG_TICKS = 128; // 1 second almost
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -149,9 +150,9 @@ struct LagTrack : public BaseLagTrack
 	LagRecord m_RecordReferenced;
 
 #define INTERPOLATED_VAR( type, name, ltype )                                                                          \
-	CInterpolatedVar< type > m_iv_##name { "LagTrack::m_iv_" #name, &m_RecordReferenced.m_##name, ltype };
+	CInterpolatedVar< type, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name, &m_RecordReferenced.m_##name, ltype };
 #define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
-	CInterpolatedVarArray< type, size > m_iv_##name { "LagTrack::m_iv_" #name, m_RecordReferenced.m_##name, ltype };
+	CInterpolatedVarArray< type, size, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name, m_RecordReferenced.m_##name, ltype };
 
 	INTERPOLATED_VARIABLE_LIST
 
@@ -646,7 +647,7 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
 	size_t nAmountOfTicks = 0;
 
-	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
+	for ( size_t i = 0; i < MAX_UNLAG_TICKS; i++ )
 	{
 		auto pflSimulationTime = pTrack->m_iv_flSimulationTime.Get( i );
 
@@ -741,7 +742,7 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
 	size_t nAmountOfTicks = 0;
 
-	for ( size_t i = 0; i < MAX_INTERPOLATION_TICK_HISTORY; i++ )
+	for ( size_t i = 0; i < MAX_UNLAG_TICKS; i++ )
 	{
 		auto pflAnimTime = pTrack->m_iv_flAnimTime.Get( i );
 
