@@ -309,7 +309,7 @@ C_SDKPlayer::C_SDKPlayer() :
 	m_PlayerAnimState = CreatePlayerAnimState( this, this, LEGANIM_9WAY, true );
 
 	m_angEyeAngles.Init();
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, CIVLatchType::SIMULATION );
 }
 
 

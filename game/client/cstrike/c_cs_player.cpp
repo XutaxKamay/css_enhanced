@@ -735,8 +735,8 @@ END_RECV_TABLE()
 
 
 C_CSPlayer::C_CSPlayer() :
-	m_iv_angEyeAngles( "C_CSPlayer::m_iv_angEyeAngles", &m_angEyeAngles, LATCH_SIMULATION_VAR ),
-	m_iv_angRenderAngles( "C_CSPlayer::m_iv_angRenderAngles", &m_angRenderAngles, LATCH_SIMULATION_VAR )
+	m_iv_angEyeAngles( "C_CSPlayer::m_iv_angEyeAngles", &m_angEyeAngles, CIVLatchType::SIMULATION ),
+	m_iv_angRenderAngles( "C_CSPlayer::m_iv_angRenderAngles", &m_angRenderAngles, CIVLatchType::SIMULATION )
 {
 	m_angEyeAngles.Init();
 	m_angRenderAngles.Init();
@@ -1675,7 +1675,7 @@ void C_CSPlayer::UpdateClientSideAnimation()
 	if ( GetSequence() != -1 )
 	{
 		// latch old values
-		OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR );
+		OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
 	}
 }
 

@@ -2127,6 +2127,7 @@ void CBasePlayer::SetPunchAngleVel( const QAngle &punchAngleVel )
 #endif
 }
 
+
 void CBasePlayer::StartInterpolatingCommand( void )
 {
 	m_pInterpolationCommandContext->Start( this );
@@ -2147,30 +2148,21 @@ void CBasePlayer::FinishInterpolatingCommand( void )
 BasePlayerInterpolationCommandContext::BasePlayerInterpolationCommandContext()
  : m_iv_vecLocalOrigin( "BasePlayerInterpolationCommandContext:m_iv_vecLocalOrigin",
 						&m_InterpolatedData.m_vecLocalOrigin,
-						LATCH_SIMULATION_VAR ),
+						CIVLatchType::SIMULATION ),
    m_iv_vecViewOffset( "BasePlayerInterpolationCommandContext:m_iv_vecViewOffset",
 					   &m_InterpolatedData.m_vecViewOffset,
-					   LATCH_SIMULATION_VAR )
+					   CIVLatchType::SIMULATION )
 {
 	m_InterpolatedVariableList.AddVar( &m_iv_vecLocalOrigin );
 	m_InterpolatedVariableList.AddVar( &m_iv_vecViewOffset );
 }
 
-void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )
-{
-	auto&& data = m_InterpolatedData;
-
-	// TODO_ENHANCED if we ever simulate people commands client side, m_bUseLinearInterpolationOnly will need to be networked.
-	// If m_iv_viewtarget gets used, this one is linear only so we need to ignore hermite interpolation on it.
 #ifdef CLIENT_DLL
-	static ConVarRef cl_interp_linear_only( "cl_interp_linear_only" );
-	player->m_bUseLinearInterpolationOnly = cl_interp_linear_only.GetBool();
+static ConVarRef cl_interp_type( "cl_interp_type" );
 #endif
 
-	for ( auto&& variable : m_InterpolatedVariableList.variables )
-	{
-		variable->SetHermite( !player->m_bUseLinearInterpolationOnly );
-	}
+void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )
+{
 }
 
 void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
@@ -2186,8 +2178,44 @@ void BasePlayerInterpolationCommandContext::Interpolate( CBasePlayer* player )
 	m_InterpolatedVariableList.SaveLastKnownValue();
 	m_InterpolatedVariableList.Push();
 
-	m_InterpolatedVariableList.Interpolate( player->m_bUseLinearInterpolationOnly ? 1 : 2,
-											player->GetCurrentCommand()->interpolated_amount_frac );
+	size_t nAmountOfTicks = 0;
+
+	auto InterpolationType =
+#ifdef CLIENT_DLL
+	  cl_interp_type.GetInt();
+#else
+	  player->m_iCurrentInterpolationType;
+#endif
+
+	switch ( InterpolationType )
+	{
+		case CInterpolationType::LINEAR:
+		{
+			nAmountOfTicks	  = 1;
+			break;
+		}
+		case CInterpolationType::HERMITE:
+		{
+			nAmountOfTicks	  = 2;
+			break;
+		}
+		default:
+		{
+#ifdef CLIENT_DLL
+#define GAME_DLL_NAME "client"
+#else
+#define GAME_DLL_NAME "server"
+#endif
+			Error( "(%s) BasePlayerInterpolationCommandContext::Interpolate: Unsupported interpolation %i\n",
+				   GAME_DLL_NAME,
+				   InterpolationType );
+			break;
+#undef GAME_DLL_NAME
+		}
+	}
+
+	m_InterpolatedVariableList.SetInterpolationType( InterpolationType );
+	m_InterpolatedVariableList.Interpolate( nAmountOfTicks, player->GetCurrentCommand()->interpolated_amount_frac );
 
 	// player->SetLocalAngles( pDataApplied->m_angLocalRotation );
 	player->SetLocalOrigin( data.m_vecLocalOrigin );
@@ -2249,6 +2277,7 @@ void BasePlayerInterpolationCommandContext::Finish( CBasePlayer* player )
 	// player->SetPunchAngleVel( pDataAfter->m_vecPunchAngleVel );
 	player->SetViewOffset( data.m_vecViewOffset );
 }
+
 
 bool fogparams_t::operator !=( const fogparams_t& other ) const
 {

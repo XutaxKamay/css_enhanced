@@ -118,8 +118,8 @@ bool GetHWMExpressionFileName( const char *pFilename, char *pHWMFilename )
 }
 
 C_BaseFlex::C_BaseFlex() : 
-	m_iv_viewtarget( "C_BaseFlex::m_iv_viewtarget", &m_viewtarget, LATCH_ANIMATION_VAR ), 
-	m_iv_flexWeight("C_BaseFlex:m_iv_flexWeight", m_flexWeight, LATCH_ANIMATION_VAR ),
+	m_iv_viewtarget( "C_BaseFlex::m_iv_viewtarget", &m_viewtarget, CIVLatchType::ANIMATION ), 
+	m_iv_flexWeight("C_BaseFlex:m_iv_flexWeight", m_flexWeight, CIVLatchType::ANIMATION ),
 #ifdef HL2_CLIENT_DLL
 	m_iv_vecLean("C_BaseFlex:m_iv_vecLean" ),
 	m_iv_vecShift("C_BaseFlex:m_iv_vecShift" ),
@@ -145,8 +145,8 @@ C_BaseFlex::C_BaseFlex() :
 
 #ifdef HL2_CLIENT_DLL
 	// Get general lean vector
-	AddVar( &m_vecLean, &m_iv_vecLean, LATCH_ANIMATION_VAR );
-	AddVar( &m_vecShift, &m_iv_vecShift, LATCH_ANIMATION_VAR );
+	AddVar( &m_vecLean, &m_iv_vecLean, CIVLatchType::ANIMATION );
+	AddVar( &m_vecShift, &m_iv_vecShift, CIVLatchType::ANIMATION );
 #endif
 }
 

@@ -79,7 +79,7 @@ C_HL1MP_Player::C_HL1MP_Player( void ) :
 	m_fLastPredFreeze = -1;
 
 // cant interpolate ... buggy?  it keeps resetting the angle to 0,0,0
-//	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+//	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, CIVLatchType::SIMULATION );
 }
 
 C_HL1MP_Player::~C_HL1MP_Player()

@@ -103,7 +103,7 @@ END_RECV_TABLE()
 
 C_NPC_Hydra::C_NPC_Hydra() : m_iv_vecHeadDir( "C_NPC_Hydra::m_iv_vecHeadDir" )
 {
-	AddVar( &m_vecHeadDir, &m_iv_vecHeadDir, LATCH_ANIMATION_VAR );
+	AddVar( &m_vecHeadDir, &m_iv_vecHeadDir, CIVLatchType::ANIMATION );
 
 	m_numHydraBones = 0;
 	m_boneLength = NULL;
@@ -191,7 +191,7 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 		m_iv_vecPos = new CInterpolatedVar< Vector >[m_numHydraBones];
 		for ( i = 0; i < m_numHydraBones; i++ )
 		{
-			m_iv_vecPos[ i ].Setup( &m_vecPos[ i ], LATCH_SIMULATION_VAR | EXCLUDE_AUTO_LATCH | EXCLUDE_AUTO_INTERPOLATE );
+			m_iv_vecPos[ i ].Setup( &m_vecPos[ i ], CIVLatchType::SIMULATION | EXCLUDE_AUTO_LATCH | EXCLUDE_AUTO_INTERPOLATE );
 		}
 
 		// calc models bone lengths
@@ -215,7 +215,7 @@ void  C_NPC_Hydra::StandardBlendingRules( Vector pos[], Quaternion q[], float cu
 		//	debugoverlay->AddLineOverlay( m_vecPos[i], m_vecPos[i<m_numHydraBones-1?i+1:m_numHydraBones-1], 0, 255, 0, false, 0.1 );
 			m_vecPos[i] = m_vecPos[i] - GetAbsOrigin();
 
-			if ( m_fLatchFlags & LATCH_SIMULATION_VAR )
+			if ( m_fLatchFlags & CIVLatchType::SIMULATION )
 			{
 				m_iv_vecPos[i].NoteChanged( currentTime, true );
 			}

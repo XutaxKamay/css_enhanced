@@ -2805,7 +2805,7 @@ void CServerGameClients::ClientSettingsChanged( edict_t *pEdict )
 	if ( pMinUpdateRate && pMaxUpdateRate )
 		player->m_nUpdateRate = clamp( player->m_nUpdateRate, (int) pMinUpdateRate->GetFloat(), (int) pMaxUpdateRate->GetFloat() );
 
-	player->m_bUseLinearInterpolationOnly = Q_atoi( QUICKGETCVARVALUE("cl_interp_linear_only")) != 0;
+	player->m_iCurrentInterpolationType = Q_atoi( QUICKGETCVARVALUE( "cl_interp_type" ) );
 
 #if !defined( NO_ENTITY_PREDICTION )
 	bool usePrediction = Q_atoi( QUICKGETCVARVALUE("cl_predict")) != 0;

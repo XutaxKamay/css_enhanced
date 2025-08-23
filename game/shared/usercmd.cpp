@@ -192,6 +192,46 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		{
 			buf->WriteOneBit( 0 );
 		}
+
+		if ( from->simulationdata[i].start_sim_time != to->simulationdata[i].start_sim_time )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].start_sim_time );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].start_anim_time != to->simulationdata[i].start_anim_time )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].start_anim_time );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].end_sim_time != to->simulationdata[i].end_sim_time )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].end_sim_time );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].end_anim_time != to->simulationdata[i].end_anim_time )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteFloat( to->simulationdata[i].end_anim_time );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
 #endif
 	}
 
@@ -326,6 +366,26 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 		if (buf->ReadOneBit())
 		{
 			move->simulationdata[i].interpolated_anim_time = buf->ReadFloat();
+		}
+
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].start_sim_time = buf->ReadFloat();
+		}
+
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].start_anim_time = buf->ReadFloat();
+		}
+
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].end_sim_time = buf->ReadFloat();
+		}
+
+		if (buf->ReadOneBit())
+		{
+			move->simulationdata[i].end_anim_time = buf->ReadFloat();
 		}
 #endif
 	}

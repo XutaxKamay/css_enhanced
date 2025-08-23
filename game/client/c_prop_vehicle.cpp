@@ -67,7 +67,7 @@ ConVar r_VehicleViewClamp( "r_VehicleViewClamp", "1", FCVAR_CHEAT );
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
 C_PropVehicleDriveable::C_PropVehicleDriveable() :
-	m_iv_vecGunCrosshair( "C_PropVehicleDriveable::m_iv_vecGunCrosshair", &m_vecGunCrosshair, LATCH_SIMULATION_VAR )
+	m_iv_vecGunCrosshair( "C_PropVehicleDriveable::m_iv_vecGunCrosshair", &m_vecGunCrosshair, CIVLatchType::SIMULATION )
 
 {
 	m_hPrevPlayer = NULL;

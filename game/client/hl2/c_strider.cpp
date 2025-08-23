@@ -626,10 +626,10 @@ C_Strider::C_Strider() :
 		m_iv_vecHitPos("C_Strider::m_iv_vecHitPos"),
 		m_iv_vecIKTarget("C_Strider::m_iv_vecIKTarget")
 {
-	AddVar( &m_vecHitPos, &m_iv_vecHitPos, LATCH_ANIMATION_VAR );
+	AddVar( &m_vecHitPos, &m_iv_vecHitPos, CIVLatchType::ANIMATION );
 
 	memset(m_vecIKTarget, 0, sizeof(m_vecIKTarget));
-	AddVar( &m_vecIKTarget, &m_iv_vecIKTarget, LATCH_ANIMATION_VAR );
+	AddVar( &m_vecIKTarget, &m_iv_vecIKTarget, CIVLatchType::ANIMATION );
 
 	m_flNextRopeCutTime = 0;
 }

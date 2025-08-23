@@ -660,7 +660,6 @@ public:
 	float					m_fLastUpdateServerTime;
 	int						m_nLastUpdateTickBase;
 	int						m_nLastUpdateServerTickCount;
-	bool					m_bUseLinearInterpolationOnly; // user uses linear interp only
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

@@ -457,7 +457,7 @@ void C_BaseViewModel::OnDataChanged( DataUpdateType_t updateType )
 void C_BaseViewModel::PostDataUpdate( DataUpdateType_t updateType )
 {
 	BaseClass::PostDataUpdate(updateType);
-	OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR );
+	OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
 }
 
 

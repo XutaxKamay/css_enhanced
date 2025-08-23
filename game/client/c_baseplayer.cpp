@@ -411,7 +411,7 @@ LINK_ENTITY_TO_CLASS( player, C_BasePlayer );
 // -------------------------------------------------------------------------------- //
 // Functions.
 // -------------------------------------------------------------------------------- //
-C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset", &m_vecViewOffset, LATCH_SIMULATION_VAR )
+C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset", &m_vecViewOffset, CIVLatchType::SIMULATION )
 {
 	AddVar( &m_iv_vecViewOffset );
 	AddVar( &m_Local.m_iv_vecPunchAngle );
@@ -453,7 +453,6 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	ListenForGameEvent( "base_player_teleported" );
 
 	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
-	m_bUseLinearInterpolationOnly = true;
 }
 
 //-----------------------------------------------------------------------------

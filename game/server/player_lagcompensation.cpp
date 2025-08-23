@@ -63,41 +63,22 @@ struct BaseLagTrack
 		m_InterpolatedVarList.RemoveVar( var );
 	}
 
-	inline void Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac, InterpolatedVarType type )
+	inline void Push( const CIVLatchType& LatchType )
 	{
 		for ( auto&& variable : m_InterpolatedVarList.variables )
 		{
-			if ( variable->Type() == type )
-			{
-				variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
-			}
-		}
-	}
-
-	inline void Push( InterpolatedVarType type )
-	{
-		for ( auto&& variable : m_InterpolatedVarList.variables )
-		{
-			if ( variable->Type() == type )
+			if ( variable->LatchType() == LatchType )
 			{
 				variable->Push();
 			}
 		}
 	}
 
-	inline void SetHermite( bool bHermite )
+	inline void SaveLastKnownValue( const CIVLatchType& LatchType )
 	{
 		for ( auto&& variable : m_InterpolatedVarList.variables )
 		{
-			variable->SetHermite( bHermite );
-		}
-	}
-
-	inline void SaveLastKnownValue( InterpolatedVarType type )
-	{
-		for ( auto&& variable : m_InterpolatedVarList.variables )
-		{
-			if ( variable->Type() == type )
+			if ( variable->LatchType() == LatchType )
 			{
 				variable->SaveLastKnownValue();
 			}
@@ -120,19 +101,25 @@ struct BaseLagTrack
 	CInterpolatedVarList m_InterpolatedVarList;
 };
 
+#define INTERPOLATED_VARIABLE_LIST_BASE                                                                                \
+	INTERPOLATED_VAR( Vector, vecLocalOrigin, CIVLatchType::SIMULATION )                                               \
+	INTERPOLATED_VAR( QAngle, angLocalAngles, CIVLatchType::SIMULATION )                                               \
+	INTERPOLATED_VAR( Vector, vecMinsPreScaled, CIVLatchType::SIMULATION )                                             \
+	INTERPOLATED_VAR( Vector, vecMaxsPreScaled, CIVLatchType::SIMULATION )                                             \
+	INTERPOLATED_VAR( float, flSimulationTime, CIVLatchType::SIMULATION )                                              \
+	INTERPOLATED_VAR( int, nSequence, CIVLatchType::ANIMATION )                                                        \
+	INTERPOLATED_VAR( float, flCycle, CIVLatchType::ANIMATION )                                                        \
+	INTERPOLATED_VAR_ARRAY( float, flPoseParameter, MAXSTUDIOPOSEPARAM, CIVLatchType::ANIMATION )                      \
+	INTERPOLATED_VAR_ARRAY( float, flEncodedController, MAXSTUDIOBONECTRLS, CIVLatchType::ANIMATION )                  \
+	INTERPOLATED_VAR_ARRAY( LayerRecord, LayerRecords, MAX_LAYER_RECORDS, CIVLatchType::ANIMATION )                    \
+	INTERPOLATED_VAR( float, flAnimTime, CIVLatchType::ANIMATION )
+
+#if defined( CSTRIKE_DLL )
 #define INTERPOLATED_VARIABLE_LIST                                                                                     \
-	INTERPOLATED_VAR( Vector, vecLocalOrigin, LATCH_SIMULATION_VAR )                                                   \
-	INTERPOLATED_VAR( QAngle, angLocalAngles, LATCH_SIMULATION_VAR )                                                   \
-	INTERPOLATED_VAR( Vector, vecMinsPreScaled, LATCH_SIMULATION_VAR )                                                 \
-	INTERPOLATED_VAR( Vector, vecMaxsPreScaled, LATCH_SIMULATION_VAR )                                                 \
-	INTERPOLATED_VAR( float, flSimulationTime, LATCH_SIMULATION_VAR )                                                  \
-	INTERPOLATED_VAR( QAngle, angRenderAngles, LATCH_SIMULATION_VAR )                                                  \
-	INTERPOLATED_VAR( int, nSequence, LATCH_ANIMATION_VAR )                                                            \
-	INTERPOLATED_VAR( float, flCycle, LATCH_ANIMATION_VAR )                                                            \
-	INTERPOLATED_VAR_ARRAY( float, flPoseParameter, MAXSTUDIOPOSEPARAM, LATCH_ANIMATION_VAR )                          \
-	INTERPOLATED_VAR_ARRAY( float, flEncodedController, MAXSTUDIOBONECTRLS, LATCH_ANIMATION_VAR )                      \
-	INTERPOLATED_VAR_ARRAY( LayerRecord, LayerRecords, MAX_LAYER_RECORDS, LATCH_ANIMATION_VAR )                        \
-	INTERPOLATED_VAR( float, flAnimTime, LATCH_ANIMATION_VAR )
+	INTERPOLATED_VARIABLE_LIST_BASE                                                                                    \
+	INTERPOLATED_VAR( QAngle, angRenderAngles, CIVLatchType::SIMULATION )
+#else
+#endif
 
 struct LagRecord
 {
@@ -150,9 +137,13 @@ struct LagTrack : public BaseLagTrack
 	LagRecord m_RecordReferenced;
 
 #define INTERPOLATED_VAR( type, name, ltype )                                                                          \
-	CInterpolatedVar< type, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name, &m_RecordReferenced.m_##name, ltype };
+	CInterpolatedVar< type, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name,                                   \
+															&m_RecordReferenced.m_##name,                              \
+															ltype };
 #define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
-	CInterpolatedVarArray< type, size, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name, m_RecordReferenced.m_##name, ltype };
+	CInterpolatedVarArray< type, size, MAX_UNLAG_TICKS > m_iv_##name { "LagTrack::m_iv_" #name,                        \
+																	   m_RecordReferenced.m_##name,                    \
+																	   ltype };
 
 	INTERPOLATED_VARIABLE_LIST
 
@@ -181,6 +172,21 @@ struct LagTrack : public BaseLagTrack
 	for ( size_t i = 0; i < size; i++ )                                                                                \
 	{                                                                                                                  \
 		m_iv_##name[i].GetLastKnownValue() = {};                                                                       \
+	}
+
+		INTERPOLATED_VARIABLE_LIST
+
+#undef INTERPOLATED_VAR
+#undef INTERPOLATED_VAR_ARRAY
+	}
+
+	void SetInterpolationType( const CInterpolationType& InterpolationType )
+	{
+#define INTERPOLATED_VAR( type, name, ltype ) m_iv_##name.SetInterpolationType( InterpolationType );
+#define INTERPOLATED_VAR_ARRAY( type, name, size, ltype )                                                              \
+	for ( size_t i = 0; i < size; i++ )                                                                                \
+	{                                                                                                                  \
+		m_iv_##name[i].SetInterpolationType( InterpolationType );                                                      \
 	}
 
 		INTERPOLATED_VARIABLE_LIST
@@ -326,6 +332,16 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 	void BacktrackEntity( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd );
 	void BacktrackSimulationData( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd, bool& bNeedsRestore );
 	void BacktrackAnimationData( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd, bool& bNeedsRestore );
+	void SpewBacktrackData( const std::string& pszContext,
+							CBaseEntity* pEntity,
+							size_t nAmountOfTicks,
+							float flClientStart,
+							float flClientEnd,
+							float flServerStart,
+							float flServerEnd,
+							float flTargetTime,
+							float flInterpolatedServerTime,
+							float flInterpolatedClientTime );
 
 	void ClearHistory()
 	{
@@ -346,12 +362,6 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 			{
 				continue;
 			}
-
-			// // Players will be tracked during after PhysicsSimulate
-			// if ( pEntity->IsPlayer() )
-			// {
-			// 	continue;
-			// }
 
 			TrackEntity< true >( pEntity );
 		}
@@ -381,12 +391,12 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		return;
 	}
 
-	VPROF_BUDGET( "TrackEntities", "CLagCompensationManager" );
+	VPROF_BUDGET( "TrackEntity", "CLagCompensationManager" );
 
 	auto index = pEntity->entindex();
 
-	auto pTrack	 = &m_EntityTrack[index];
-	auto pRecord = &pTrack->m_RecordReferenced;
+	auto pLagTrack = &m_EntityTrack[index];
+	auto pRecord   = &pLagTrack->m_RecordReferenced;
 
 	pRecord->m_flSimulationTime = pEntity->GetSimulationTime();
 	pRecord->m_angLocalAngles	= pEntity->GetLocalAngles();
@@ -403,13 +413,13 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 	}
 #endif
 
-	auto pflSimulationTime = pTrack->m_iv_flSimulationTime.Get();
+	auto pflSimulationTime = pLagTrack->m_iv_flSimulationTime.Get();
 
 	if constexpr ( bPush )
 	{
 		if ( !pflSimulationTime || ( *pflSimulationTime != pRecord->m_flSimulationTime ) )
 		{
-			pTrack->Push( LATCH_SIMULATION_VAR );
+			pLagTrack->Push( CIVLatchType::SIMULATION );
 
 			if ( sv_unlag_debug.GetInt() >= 2 )
 			{
@@ -421,7 +431,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		}
 	}
 
-	pTrack->SaveLastKnownValue( LATCH_SIMULATION_VAR );
+	pLagTrack->SaveLastKnownValue( CIVLatchType::SIMULATION );
 
 	// Save animation vars now
 	pRecord->m_flAnimTime = pEntity->GetAnimTime();
@@ -474,13 +484,13 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		}
 	}
 
-	auto pflAnimTime = pTrack->m_iv_flAnimTime.Get();
+	auto pflAnimTime = pLagTrack->m_iv_flAnimTime.Get();
 
 	if constexpr ( bPush )
 	{
 		if ( !pflAnimTime || ( *pflAnimTime != pRecord->m_flAnimTime ) )
 		{
-			pTrack->Push( LATCH_ANIMATION_VAR );
+			pLagTrack->Push( CIVLatchType::ANIMATION );
 
 			if ( sv_unlag_debug.GetInt() >= 3 )
 			{
@@ -492,7 +502,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		}
 	}
 
-	pTrack->SaveLastKnownValue( LATCH_ANIMATION_VAR );
+	pLagTrack->SaveLastKnownValue( CIVLatchType::ANIMATION );
 }
 
 // Called during player movement to set up/restore after lag compensation
@@ -591,9 +601,9 @@ void CLagCompensationManager::BacktrackEntity( CBaseEntity* pEntity, int loopInd
 	bool bNeedsRestore	   = false;
 	float flTargetSimTime  = cmd->simulationdata[loopIndex].sim_time;
 	float flTargetAnimTime = cmd->simulationdata[loopIndex].anim_time;
-	auto pTrack			   = &m_EntityTrack[loopIndex];
+	auto pLagTrack		   = &m_EntityTrack[loopIndex];
 
-	pTrack->SetHermite( !m_LagPlayer->m_bUseLinearInterpolationOnly );
+	pLagTrack->SetInterpolationType( m_LagPlayer->m_iCurrentInterpolationType );
 
 	// Somehow the client didn't care, might due to prediction or some other things like client created entities.
 	if ( flTargetSimTime == 0 )
@@ -639,9 +649,8 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 {
 	auto flTargetSimTime		   = cmd->simulationdata[loopIndex].sim_time;
 	auto flInterpolationAmountFrac = cmd->interpolated_amount_frac;
-	auto pTrack					   = &m_EntityTrack[loopIndex];
-	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
-	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
+	auto pLagTrack				   = &m_EntityTrack[loopIndex];
+	auto pInterpolatedRecord	   = &pLagTrack->m_RecordReferenced;
 
 	// Find the corresponding simulation time, with the corresponding amount of ticks to interpolate with.
 	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
@@ -649,7 +658,7 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 
 	for ( size_t i = 0; i < MAX_UNLAG_TICKS; i++ )
 	{
-		auto pflSimulationTime = pTrack->m_iv_flSimulationTime.Get( i );
+		auto pflSimulationTime = pLagTrack->m_iv_flSimulationTime.Get( i );
 
 		if ( !pflSimulationTime )
 		{
@@ -663,49 +672,63 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 		}
 	}
 
-	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
+	size_t nMinimumAmountOfTicks = 0;
+
+	switch ( m_LagPlayer->m_iCurrentInterpolationType )
+	{
+		case CInterpolationType::LINEAR:
+		{
+			nMinimumAmountOfTicks = 1;
+			break;
+		}
+		case CInterpolationType::HERMITE:
+		{
+			nMinimumAmountOfTicks = 2;
+			break;
+		}
+		default:
+		{
+			Error( "CLagCompensationManager::BacktrackSimulationData: Unsupported interpolation %i\n",
+				   m_LagPlayer->m_iCurrentInterpolationType );
+			break;
+		}
+	}
+
+	if ( nAmountOfTicks < nMinimumAmountOfTicks )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
-			ConMsg( "Couldn't find enough simulated time for entity %i (%f)\n", pEntity->entindex(), flTargetSimTime );
+			ConMsg( "Couldn't find (enough) simulated time for entity %i: target = %f | last = %f\n",
+					pEntity->entindex(),
+					flTargetSimTime,
+					pLagTrack->m_iv_flSimulationTime.GetLastKnownValue() );
 		}
 
 		return;
 	}
 
-	// if ( sv_unlag_debug.GetBool() )
-	// {
-	// 	ConMsg( "Unlagging simulated time for entity %i for %i ticks (%f)\n",
-	// 			nAmountOfTicks,
-	// 			pEntity->entindex(),
-	// 			flTargetSimTime );
-	// }
-
-	// Interpolate now.
-	pTrack->Interpolate( nAmountOfTicks, flInterpolationAmountFrac, LATCH_SIMULATION_VAR );
+	pLagTrack->m_iv_flSimulationTime.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-	if ( pInterpolatedRecord->m_flSimulationTime != cmd->simulationdata[loopIndex].interpolated_sim_time )
-	{
-		auto pStartTime = pTrack->m_iv_flSimulationTime.Get( nAmountOfTicks );
-		auto pEndTime	= pTrack->m_iv_flSimulationTime.Get( nAmountOfTicks - 1 );
+	SpewBacktrackData( "simulation",
+					   pEntity,
+					   nAmountOfTicks,
+					   cmd->simulationdata[loopIndex].start_sim_time,
+					   cmd->simulationdata[loopIndex].end_sim_time,
+					   *pLagTrack->m_iv_flSimulationTime.Get( nAmountOfTicks ),
+					   *pLagTrack->m_iv_flSimulationTime.Get( nAmountOfTicks - 1 ),
+					   flTargetSimTime,
+					   pInterpolatedRecord->m_flSimulationTime,
+					   cmd->simulationdata[loopIndex].interpolated_sim_time );
+#endif
 
-		if ( sv_unlag_debug.GetBool() )
-		{
-			ConMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for simulation but probably has "
-					"floating point issues interpolated = %f | target = %f, start = %f | end = %f, not perfectly lag "
-					"compensated. (linear only: %s)\n",
-					m_LagPlayer->GetPlayerName(),
-					TIME_TO_TICKS( m_LagPlayer->GetTimeBase() ),
-					pEntity->entindex(),
-					nAmountOfTicks,
-					pInterpolatedRecord->m_flSimulationTime,
-					cmd->simulationdata[loopIndex].interpolated_sim_time,
-					pStartTime ? *pStartTime : -1.0f,
-					pEndTime ? *pEndTime : -1.0f,
-					bLinearOnly ? "true" : "false" );
-		}
-	}
+	pLagTrack->m_iv_vecLocalOrigin.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+	pLagTrack->m_iv_angLocalAngles.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+	pLagTrack->m_iv_vecMinsPreScaled.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+	pLagTrack->m_iv_vecMaxsPreScaled.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+
+#ifdef CSTRIKE_DLL
+	pLagTrack->m_iv_angRenderAngles.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 #endif
 
 	pEntity->m_flInterpolatedSimulationTime = pInterpolatedRecord->m_flSimulationTime;
@@ -734,9 +757,8 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 {
 	auto flTargetAnimTime		   = cmd->simulationdata[loopIndex].anim_time;
 	auto flInterpolationAmountFrac = cmd->interpolated_amount_frac;
-	auto pTrack					   = &m_EntityTrack[loopIndex];
-	auto pInterpolatedRecord	   = &pTrack->m_RecordReferenced;
-	auto bLinearOnly			   = m_LagPlayer->m_bUseLinearInterpolationOnly;
+	auto pLagTrack				   = &m_EntityTrack[loopIndex];
+	auto pInterpolatedRecord	   = &pLagTrack->m_RecordReferenced;
 
 	// Find the corresponding simulation time, with the corresponding amount of ticks to interpolate with.
 	// We need to count it this way because we have no idea how much time passed by due to server fps loss.
@@ -744,7 +766,7 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 	for ( size_t i = 0; i < MAX_UNLAG_TICKS; i++ )
 	{
-		auto pflAnimTime = pTrack->m_iv_flAnimTime.Get( i );
+		auto pflAnimTime = pLagTrack->m_iv_flAnimTime.Get( i );
 
 		if ( !pflAnimTime )
 		{
@@ -758,7 +780,29 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 		}
 	}
 
-	if ( nAmountOfTicks < ( bLinearOnly ? 1 : 2 ) )
+	size_t nMinimumAmountOfTicks = 0;
+
+	switch ( m_LagPlayer->m_iCurrentInterpolationType )
+	{
+		case CInterpolationType::LINEAR:
+		{
+			nMinimumAmountOfTicks = 1;
+			break;
+		}
+		case CInterpolationType::HERMITE:
+		{
+			nMinimumAmountOfTicks = 2;
+			break;
+		}
+		default:
+		{
+			Error( "CLagCompensationManager::BacktrackAnimationData: Unsupported interpolation %i\n",
+				   m_LagPlayer->m_iCurrentInterpolationType );
+			break;
+		}
+	}
+
+	if ( nAmountOfTicks < nMinimumAmountOfTicks )
 	{
 		if ( sv_unlag_debug.GetBool() )
 		{
@@ -768,54 +812,37 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 		return;
 	}
 
-	// if ( sv_unlag_debug.GetBool() )
-	// {
-	// 	ConMsg( "Unlagging animated time for entity %i for %i ticks (%f)\n",
-	// 			nAmountOfTicks,
-	// 			pEntity->entindex(),
-	// 			flTargetAnimTime );
-	// }
-
 	auto pAnim		  = dynamic_cast< CBaseAnimating* >( pEntity );
 	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
 
 	// Sadly due to looping sequences we need to interpolate variables seperately.
-	pTrack->m_iv_flAnimTime.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+	pLagTrack->m_iv_flAnimTime.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-	if ( pInterpolatedRecord->m_flAnimTime != cmd->simulationdata[loopIndex].interpolated_anim_time )
-	{
-		auto pStartTime = pTrack->m_iv_flAnimTime.Get( nAmountOfTicks );
-		auto pEndTime	= pTrack->m_iv_flAnimTime.Get( nAmountOfTicks - 1 );
 
-		if ( sv_unlag_debug.GetBool() )
-		{
-			ConMsg( "The player %s (tickbase: %i) has unlagged entity %i with %i ticks for animation but probably has "
-					"floating point issues interpolated = %f | target = %f, start = %f | end = %f, not perfectly lag "
-					"compensated. (linear only: %s)\n",
-					m_LagPlayer->GetPlayerName(),
-					TIME_TO_TICKS( m_LagPlayer->GetTimeBase() ),
-					pEntity->entindex(),
-					nAmountOfTicks,
-					pInterpolatedRecord->m_flAnimTime,
-					cmd->simulationdata[loopIndex].interpolated_anim_time,
-					pStartTime ? *pStartTime : -1.0f,
-					pEndTime ? *pEndTime : -1.0f,
-					bLinearOnly ? "true" : "false" );
-		}
-	}
+	SpewBacktrackData( "animation",
+					   pEntity,
+					   nAmountOfTicks,
+					   cmd->simulationdata[loopIndex].start_anim_time,
+					   cmd->simulationdata[loopIndex].end_anim_time,
+					   *pLagTrack->m_iv_flAnimTime.Get( nAmountOfTicks ),
+					   *pLagTrack->m_iv_flAnimTime.Get( nAmountOfTicks - 1 ),
+					   flTargetAnimTime,
+					   pInterpolatedRecord->m_flAnimTime,
+					   cmd->simulationdata[loopIndex].interpolated_anim_time );
+
 #endif
 
 	pEntity->m_flInterpolatedAnimTime = pInterpolatedRecord->m_flAnimTime;
 
 	if ( pAnim )
 	{
-		pTrack->m_iv_nSequence.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+		pLagTrack->m_iv_nSequence.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 		pAnim->SetSequence( pInterpolatedRecord->m_nSequence );
 
 		// Check if looping
-		pTrack->m_iv_flCycle.SetLooping( pAnim->IsSequenceLooping( pInterpolatedRecord->m_nSequence ) );
-		pTrack->m_iv_flCycle.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+		pLagTrack->m_iv_flCycle.SetLooping( pAnim->IsSequenceLooping( pInterpolatedRecord->m_nSequence ) );
+		pLagTrack->m_iv_flCycle.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 		pAnim->SetCycle( pInterpolatedRecord->m_flCycle );
 
 		auto pStudioHdr = pAnim->GetModelPtr();
@@ -825,8 +852,8 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 			for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
 			{
 				const mstudioposeparamdesc_t& Pose = pStudioHdr->pPoseParameter( paramIndex );
-				pTrack->m_iv_flPoseParameter[paramIndex].SetLooping( Pose.loop != 0.0f );
-				pTrack->m_iv_flPoseParameter[paramIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+				pLagTrack->m_iv_flPoseParameter[paramIndex].SetLooping( Pose.loop != 0.0f );
+				pLagTrack->m_iv_flPoseParameter[paramIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 				pAnim->SetPoseParameterRaw( paramIndex, pInterpolatedRecord->m_flPoseParameter[paramIndex] );
 			}
 
@@ -834,8 +861,8 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 			{
 				bool loop = ( pStudioHdr->pBonecontroller( boneIndex )->type & ( STUDIO_XR | STUDIO_YR | STUDIO_ZR ) )
 							!= 0;
-				pTrack->m_iv_flEncodedController[boneIndex].SetLooping( loop );
-				pTrack->m_iv_flEncodedController[boneIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+				pLagTrack->m_iv_flEncodedController[boneIndex].SetLooping( loop );
+				pLagTrack->m_iv_flEncodedController[boneIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 				pAnim->SetPoseParameterRaw( boneIndex, pInterpolatedRecord->m_flEncodedController[boneIndex] );
 			}
 		}
@@ -847,7 +874,7 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 		for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
 		{
-			pTrack->m_iv_LayerRecords[layerIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+			pLagTrack->m_iv_LayerRecords[layerIndex].Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 			auto layerRecord			   = &pInterpolatedRecord->m_LayerRecords[layerIndex];
 			CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
 
@@ -905,10 +932,10 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 			continue;
 		}
 
-		auto pTrack = &m_EntityTrack[i];
-		pTrack->RestoreToLastKnownValue();
+		auto pLagTrack = &m_EntityTrack[i];
+		pLagTrack->RestoreToLastKnownValue();
 
-		auto restoreRecord = &pTrack->m_RecordReferenced;
+		auto restoreRecord = &pLagTrack->m_RecordReferenced;
 
 		pEntity->SetSize( restoreRecord->m_vecMinsPreScaled, restoreRecord->m_vecMaxsPreScaled );
 		pEntity->SetLocalAngles( restoreRecord->m_angLocalAngles );
@@ -969,6 +996,60 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 					pCurrentLayer->m_flLayerFadeOuttime = layerRecord->m_flLayerFadeOuttime;
 				}
 			}
+		}
+	}
+}
+
+void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
+												 CBaseEntity* pEntity,
+												 size_t nAmountOfTicks,
+												 float flClientStart,
+												 float flClientEnd,
+												 float flServerStart,
+												 float flServerEnd,
+												 float flTargetTime,
+												 float flInterpolatedServerTime,
+												 float flInterpolatedClientTime )
+{
+	std::string result;
+
+	bool bIsAnError = false;
+
+	if ( flInterpolatedClientTime != flInterpolatedServerTime )
+	{
+		result += "[ " + std::to_string( m_LagPlayer->GetTimeBase() ) + " ]: player "
+				  + std::string( m_LagPlayer->GetPlayerName() );
+		result += " unlagged " + pszContext + " data on entity " + std::to_string( pEntity->entindex() ) + " with "
+				  + std::to_string( nAmountOfTicks ) + " ticks ";
+
+		auto flDiff = flInterpolatedClientTime - flInterpolatedServerTime;
+
+		// Means TrackEntity doesn't track at the right time the client data or client data isn't sent or received correctly somehow.
+		if ( flClientStart != flServerStart || flClientEnd != flServerEnd )
+		{
+			result	   += "where client has a problematic server timeline -> ";
+			bIsAnError	= true;
+		}
+		else
+		{
+			result += "has floating point problems but probably under tolerance -> ";
+		}
+
+		result += "target = " + std::to_string( flTargetTime ) + " |";
+		result += " cl(" + std::to_string( flInterpolatedClientTime ) + ") - sv("
+				  + std::to_string( flInterpolatedServerTime ) + ") = " + std::to_string( flDiff ) + " |";
+		result += " server interval = [ " + std::to_string( flServerStart ) + ", " + std::to_string( flServerEnd )
+				  + " ] |";
+		result += " client interval = [ " + std::to_string( flClientStart ) + ", " + std::to_string( flClientEnd )
+				  + " ]";
+
+		if ( bIsAnError )
+		{
+			Warning( "%s\n", result.c_str() );
+		}
+		else
+		{
+			ConMsg( "%s\n", result.c_str() );
 		}
 	}
 }

@@ -39,7 +39,7 @@ C_BaseAnimatingOverlay::C_BaseAnimatingOverlay()
 	//}
 
 	// FIXME: where does this initialization go now?
-	// AddVar( m_Layer, &m_iv_AnimOverlay, LATCH_ANIMATION_VAR );
+	// AddVar( m_Layer, &m_iv_AnimOverlay, CIVLatchType::ANIMATION );
 }
 
 #undef CBaseAnimatingOverlay
@@ -113,7 +113,7 @@ void ResizeAnimationLayerCallback( void *pStruct, int offsetToUtlVector, int len
 		IInterpolatedVar* pWatcher = &pVecIV->Element( i );
 		pWatcher->SetDebugName( s_m_iv_AnimOverlayNames[i] );
 		pWatcher->SetReferenceData( &pVec->Element( i ), sizeof( pVec->Element( i ) ) );
-		pWatcher->SetType( LATCH_ANIMATION_VAR );
+		pWatcher->SetLatchType( CIVLatchType::ANIMATION );
 		pWatcher->Enable();
 		pWatcher->EnableInterpolation();
 		pEnt->AddVar( pWatcher );

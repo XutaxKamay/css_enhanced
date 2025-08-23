@@ -85,7 +85,7 @@ CMultiPlayerAnimState::CMultiPlayerAnimState( CBasePlayer *pPlayer, MultiPlayerM
 
 	// Ground speed interpolators.
 #ifdef CLIENT_DLL
-	m_iv_flMaxGroundSpeed.Setup( &m_flMaxGroundSpeed, LATCH_ANIMATION_VAR | INTERPOLATE_LINEAR_ONLY );
+	m_iv_flMaxGroundSpeed.Setup( &m_flMaxGroundSpeed, CIVLatchType::ANIMATION | INTERPOLATE_LINEAR_ONLY );
 	m_flLastGroundSpeedUpdateTime = 0.0f;
 #endif
 

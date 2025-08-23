@@ -289,7 +289,7 @@ BEGIN_DATADESC( CBasePlayer )
 	DEFINE_FIELD( m_nUpdateRate, FIELD_INTEGER ),
 	DEFINE_FIELD( m_bLagCompensation, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bPredictWeapons, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_bUseLinearInterpolationOnly, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_iCurrentInterpolationType, FIELD_INTEGER ),
 
 	DEFINE_FIELD( m_vecAdditionalPVSOrigin, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_vecCameraPVSOrigin, FIELD_POSITION_VECTOR ),
@@ -598,7 +598,7 @@ CBasePlayer::CBasePlayer( )
 	m_nUpdateRate = 20;  // cl_updaterate defualt
 	m_bPredictWeapons = true;
 	m_bLagCompensation = false;
-	m_bUseLinearInterpolationOnly = true;
+	m_iCurrentInterpolationType = CInterpolationType::LINEAR;
 	m_flLaggedMovementValue = 1.0f;
 	m_StuckLast = 0;
 	m_impactEnergyScale = 1.0f;

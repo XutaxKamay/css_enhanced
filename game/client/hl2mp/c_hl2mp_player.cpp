@@ -52,7 +52,7 @@ C_HL2MP_Player::C_HL2MP_Player() : m_PlayerAnimState( this ), m_iv_angEyeAngles(
 
 	m_angEyeAngles.Init();
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, CIVLatchType::SIMULATION );
 
 	DisableServerIK();
 	m_blinkTimer.Invalidate();

@@ -109,10 +109,57 @@ inline T Interpolate_Hermite( float frac, T& prev, T& start, T& end, bool bLoopi
 	return out;
 }
 
-enum InterpolatedVarType
+struct CIVLatchType
 {
-	LATCH_SIMULATION_VAR,
-	LATCH_ANIMATION_VAR
+	enum : int
+	{
+		SIMULATION,
+		ANIMATION
+	};
+
+	inline CIVLatchType( int value = SIMULATION )
+	 : m_value( value )
+	{
+	}
+
+	explicit inline operator int&()
+	{
+		return m_value;
+	}
+
+	inline operator int() const
+	{
+		return m_value;
+	}
+
+	int m_value;
+};
+
+struct CInterpolationType
+{
+	enum : int
+	{
+		LINEAR,
+		HERMITE,
+		MAX_AND_NOT_SET
+	};
+
+	inline CInterpolationType( int value = MAX_AND_NOT_SET )
+	 : m_value( value )
+	{
+	}
+
+	explicit inline operator int&()
+	{
+		return m_value;
+	}
+
+	inline operator int() const
+	{
+		return m_value;
+	}
+
+	int m_value;
 };
 
 struct IInterpolatedVar
@@ -122,8 +169,6 @@ struct IInterpolatedVar
 	virtual void ClearHistory()														   = 0;
 	virtual void SetLooping( bool bLooping )										   = 0;
 	virtual bool IsLooping()														   = 0;
-	virtual void SetHermite( bool bIsHermite )										   = 0;
-	virtual bool IsHermite()														   = 0;
 	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
 	virtual void RestoreToLastKnownValue()											   = 0;
 	virtual void SaveLastKnownValue()												   = 0;
@@ -142,9 +187,11 @@ struct IInterpolatedVar
 	virtual void Enable()															   = 0;
 	virtual bool IsEnabled()														   = 0;
 	virtual void Reset()															   = 0;
-	virtual InterpolatedVarType Type()												   = 0;
-	virtual void SetType( const InterpolatedVarType& type )							   = 0;
+	virtual CIVLatchType LatchType()												   = 0;
+	virtual void SetLatchType( const CIVLatchType& LatchType )						   = 0;
 	virtual std::string DebugValue()												   = 0;
+	virtual CInterpolationType InterpolationType()									   = 0;
+	virtual void SetInterpolationType( const CInterpolationType& InterpolationType )   = 0;
 };
 
 template < typename T, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
@@ -154,42 +201,40 @@ class CInterpolatedVar : public IInterpolatedVar
 	CInterpolatedVar()
 	 : m_szDebugName( {} ),
 	   m_pReferencedVariable( &m_LastKnownValue ),
-	   m_IVType( LATCH_SIMULATION_VAR ),
+	   m_LatchType( CIVLatchType::SIMULATION ),
 	   m_bLooping( false ),
-	   m_bHermite( true ),
 	   m_bDisabledInterpolation( false ),
-	   m_bEnabled( true )
+	   m_bEnabled( true ),
+	   m_InterpolationType( CInterpolationType::MAX_AND_NOT_SET )
 	{
 	}
 
 	CInterpolatedVar( const std::string& szDebugName,
-					  const InterpolatedVarType& IVtype,
+					  const CIVLatchType& LatchType,
 					  bool bLooping				  = false,
-					  bool bHermite				  = true,
 					  bool bDisabledInterpolation = false )
 	 : m_szDebugName( szDebugName ),
 	   m_pReferencedVariable( &m_LastKnownValue ),
-	   m_IVType( IVtype ),
+	   m_LatchType( LatchType ),
 	   m_bLooping( bLooping ),
-	   m_bHermite( bHermite ),
 	   m_bDisabledInterpolation( bDisabledInterpolation ),
-	   m_bEnabled( true )
+	   m_bEnabled( true ),
+	   m_InterpolationType( CInterpolationType::MAX_AND_NOT_SET )
 	{
 	}
 
 	CInterpolatedVar( const std::string& szDebugName,
 					  T* pReferenceVariable,
-					  const InterpolatedVarType& IVtype,
+					  const CIVLatchType& LatchType,
 					  bool bLooping				  = false,
-					  bool bHermite				  = true,
 					  bool bDisabledInterpolation = false )
 	 : m_szDebugName( szDebugName ),
 	   m_pReferencedVariable( pReferenceVariable ),
-	   m_IVType( IVtype ),
+	   m_LatchType( LatchType ),
 	   m_bLooping( bLooping ),
-	   m_bHermite( bHermite ),
 	   m_bDisabledInterpolation( bDisabledInterpolation ),
-	   m_bEnabled( true )
+	   m_bEnabled( true ),
+	   m_InterpolationType( CInterpolationType::MAX_AND_NOT_SET )
 	{
 	}
 
@@ -242,16 +287,6 @@ class CInterpolatedVar : public IInterpolatedVar
 		return m_bLooping;
 	}
 
-	virtual void SetHermite( bool bIsHermite ) override
-	{
-		m_bHermite = bIsHermite;
-	}
-
-	virtual bool IsHermite() override
-	{
-		return m_bHermite;
-	}
-
 	bool Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
 		ErrorIfNot( nAmountOfTicks >= 1 || nAmountOfTicks - 1 < MAX_HISTORY,
@@ -291,8 +326,30 @@ class CInterpolatedVar : public IInterpolatedVar
 
 	bool InterpolateCopy( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
-		return m_bHermite ? Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out ) :
-							Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
+		bool bResult = false;
+
+		switch ( m_InterpolationType )
+		{
+			case CInterpolationType::LINEAR:
+			{
+				bResult = Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
+				break;
+			}
+
+			case CInterpolationType::HERMITE:
+			{
+				bResult = Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out );
+				break;
+			}
+
+			case CInterpolationType::MAX_AND_NOT_SET:
+			{
+				Error( "Interpolation must be set for CInterpolatedVar::%s", m_szDebugName.c_str() );
+				break;
+			}
+		}
+
+		return bResult;
 	}
 
 	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
@@ -402,14 +459,14 @@ class CInterpolatedVar : public IInterpolatedVar
 		m_LastKnownValue = *m_pReferencedVariable;
 	}
 
-	virtual InterpolatedVarType Type() override
+	virtual CIVLatchType LatchType() override
 	{
-		return m_IVType;
+		return m_LatchType;
 	}
 
-	virtual void SetType( const InterpolatedVarType& type ) override
+	virtual void SetLatchType( const CIVLatchType& LatchType ) override
 	{
-		m_IVType = type;
+		m_LatchType = LatchType;
 	}
 
 	virtual std::string DebugValue() override
@@ -428,16 +485,26 @@ class CInterpolatedVar : public IInterpolatedVar
 		return m_History.Get( nSlot );
 	}
 
+	virtual CInterpolationType InterpolationType() override
+	{
+		return m_InterpolationType;
+	}
+
+	virtual void SetInterpolationType( const CInterpolationType& InterpolationType ) override
+	{
+		m_InterpolationType = InterpolationType;
+	}
+
   private:
 	CUtlCircularBuffer< T, MAX_HISTORY > m_History;
 	std::string m_szDebugName;
 	T* m_pReferencedVariable;
 	bool m_bLooping;
-	bool m_bHermite;
 	bool m_bDisabledInterpolation;
 	bool m_bEnabled;
-	InterpolatedVarType m_IVType;
+	CIVLatchType m_LatchType;
 	T m_LastKnownValue;
+	CInterpolationType m_InterpolationType;
 };
 
 template < typename T, size_t ARRAY_SIZE, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
@@ -452,48 +519,28 @@ class CInterpolatedVarArray
 		{
 			m_Array[i].SetDebugName( "unknown_" + std::to_string( i ) );
 			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
-			m_Array[i].SetType( LATCH_SIMULATION_VAR );
-			m_Array[i].SetLooping( false );
-			m_Array[i].SetHermite( true );
-			m_Array[i].Enable();
-			m_Array[i].EnableInterpolation();
 		}
 	}
 
-	CInterpolatedVarArray( const std::string& szDebugName,
-						   const InterpolatedVarType& IVtype,
-						   bool bLooping			   = false,
-						   bool bHermite			   = true,
-						   bool bDisabledInterpolation = false )
+	CInterpolatedVarArray( const std::string& szDebugName, const CIVLatchType& LatchType )
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
 			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
 			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
-			m_Array[i].SetType( IVtype );
-			m_Array[i].SetLooping( bLooping );
-			m_Array[i].SetHermite( bHermite );
-			m_Array[i].Enable();
-			bDisabledInterpolation ? m_Array[i].DisableInterpolation() : m_Array[i].EnableInterpolation();
+			m_Array[i].SetLatchType( LatchType );
 		}
 	}
 
 	CInterpolatedVarArray( const std::string& szDebugName,
 						   T ( &pReferenceVariable )[ARRAY_SIZE],
-						   const InterpolatedVarType& IVtype,
-						   bool bLooping			   = false,
-						   bool bHermite			   = true,
-						   bool bDisabledInterpolation = false )
+						   const CIVLatchType& LatchType )
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
 			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
 			m_Array[i].SetReferenceData( &pReferenceVariable[i], sizeof( T ) );
-			m_Array[i].SetType( IVtype );
-			m_Array[i].SetLooping( bLooping );
-			m_Array[i].SetHermite( bHermite );
-			m_Array[i].Enable();
-			bDisabledInterpolation ? m_Array[i].DisableInterpolation() : m_Array[i].EnableInterpolation();
+			m_Array[i].SetLatchType( LatchType );
 		}
 	}
 
@@ -583,17 +630,22 @@ struct CInterpolatedVarList
 	template < typename T >
 	inline void RemoveVar( T* ref )
 	{
-		size_t i;
-
-		for ( i = 0; i < variables.Size(); i++ )
+		for ( int i = 0; i < variables.Size(); i++ )
 		{
 			if ( variables[i]->ReferenceData() == ref )
 			{
+				variables.FastRemove( i );
 				break;
 			}
 		}
+	}
 
-		variables.FastRemove( i );
+	inline void SetInterpolationType( const CInterpolationType& InterpolationType )
+	{
+		for ( auto&& variable : variables )
+		{
+			variable->SetInterpolationType( InterpolationType );
+		}
 	}
 };
 

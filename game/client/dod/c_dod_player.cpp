@@ -681,7 +681,7 @@ C_DODPlayer::C_DODPlayer() :
 	m_iProgressBarDuration = 0;
 	m_flProgressBarStartTime = 0.0f;
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, CIVLatchType::SIMULATION );
 
 	m_flProneViewOffset = 0.0;
 	m_bProneSwayingRight = true;

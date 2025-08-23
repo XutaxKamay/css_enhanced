@@ -322,7 +322,7 @@ C_Portal_Player::C_Portal_Player()
 
 	m_angEyeAngles.Init();
 
-	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, LATCH_SIMULATION_VAR );
+	AddVar( &m_angEyeAngles, &m_iv_angEyeAngles, CIVLatchType::SIMULATION );
 
 	DisableServerIK();
 	m_blinkTimer.Invalidate();

@@ -428,8 +428,8 @@ END_RECV_TABLE()
 
 
 C_ServerRagdoll::C_ServerRagdoll( void ) :
-	m_iv_ragPos("C_ServerRagdoll::m_iv_ragPos", m_ragPos, LATCH_SIMULATION_VAR),
-	m_iv_ragAngles("C_ServerRagdoll::m_iv_ragAngles", m_ragAngles, LATCH_SIMULATION_VAR)
+	m_iv_ragPos("C_ServerRagdoll::m_iv_ragPos", m_ragPos, CIVLatchType::SIMULATION),
+	m_iv_ragAngles("C_ServerRagdoll::m_iv_ragAngles", m_ragAngles, CIVLatchType::SIMULATION)
 {
 	m_elementCount = 0;
 	m_flLastBoneChangeTime = -FLT_MAX;

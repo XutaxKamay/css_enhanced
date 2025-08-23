@@ -94,7 +94,8 @@ struct inputdata_t
 
 
 // How many data slots to use when in multiplayer.
-#define MULTIPLAYER_BACKUP			90
+// This was increased because now svc_PacketEntities are reliable data.
+#define MULTIPLAYER_BACKUP			1024
 
 
 struct serialentity_t;
@@ -663,7 +664,7 @@ public:
 	virtual bool					IsSelfAnimating();
 
 	// Set appropriate flags and store off data when these fields are about to change
-	virtual	void					OnLatchInterpolatedVariables( InterpolatedVarType type, bool bUpdateLastNetworkedValue = true );
+	virtual	void					OnLatchInterpolatedVariables( CIVLatchType LatchType, bool bUpdateLastNetworkedValue = true );
 	// For predictable entities, stores last networked value
 	void							OnStoreLastNetworkedValue();
 

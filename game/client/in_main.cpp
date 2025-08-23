@@ -1297,23 +1297,19 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i].interpolated_sim_time  = pEntity->m_flInterpolatedAnimTime;
 		cmd->simulationdata[i].interpolated_anim_time = pEntity->m_flInterpolatedSimulationTime;
 
-		static ConVar cl_unlag_debug( "cl_unlag_debug", "0" );
+		auto pSimStart = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
+		auto pSimEnd   = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks - 1 );
 
-		if ( cl_unlag_debug.GetBool() && cmd->simulationdata[i].sim_time != 0 )
-		{
-			auto pStart = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
-			auto pEnd	= pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks - 1 );
-			auto pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+		cmd->simulationdata[i].start_sim_time = pSimStart ? *pSimStart :
+															pEntity->m_iv_flSimulationTime.GetLastKnownValue();
+		cmd->simulationdata[i].end_sim_time	  = pSimEnd ? *pSimEnd : pEntity->m_iv_flSimulationTime.GetLastKnownValue();
 
-			if ( pStart && pEnd && pLocalPlayer )
-			{
-				ConMsg( "Lag compensating simulation entity (tickbase: %i) %i with start = %f | end = %f\n",
-						pLocalPlayer->m_nFinalPredictedTick,
-						pEntity->entindex(),
-						*pStart,
-						*pEnd );
-			}
-		}
+		auto pAnimStart = pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks );
+		auto pAnimEnd	= pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks - 1 );
+
+		cmd->simulationdata[i].start_anim_time = pAnimStart ? *pAnimStart :
+															  pEntity->m_iv_flAnimTime.GetLastKnownValue();
+		cmd->simulationdata[i].end_anim_time   = pAnimEnd ? *pAnimEnd : pEntity->m_iv_flAnimTime.GetLastKnownValue();
 #endif
 	}
 

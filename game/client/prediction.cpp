@@ -1330,8 +1330,8 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 		// IF there's a prediction error, well, it's going to rollback anyway.
 		if ( IsFirstTimePredicted() )
 		{
-			entity->OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR, false );
-			entity->OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR, false );
+			entity->OnLatchInterpolatedVariables( CIVLatchType::SIMULATION, false );
+			entity->OnLatchInterpolatedVariables( CIVLatchType::ANIMATION, false );
 		}
 	}
 

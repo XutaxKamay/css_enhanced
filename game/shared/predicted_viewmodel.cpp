@@ -20,9 +20,11 @@ END_NETWORK_TABLE()
 // Purpose: 
 //-----------------------------------------------------------------------------
 #ifdef CLIENT_DLL
-CPredictedViewModel::CPredictedViewModel() : m_LagAnglesHistory("CPredictedViewModel::m_LagAnglesHistory", &m_vLagAngles, LATCH_SIMULATION_VAR)
+CPredictedViewModel::CPredictedViewModel() : m_LagAnglesHistory("CPredictedViewModel::m_LagAnglesHistory", &m_vLagAngles, CIVLatchType::SIMULATION)
 {
 	m_vLagAngles.Init();
+	// TODO_ENHANCED: figure out which one is preferable.
+	m_LagAnglesHistory.SetInterpolationType( CInterpolationType::HERMITE );
 }
 #else
 CPredictedViewModel::CPredictedViewModel()
@@ -53,10 +55,14 @@ void CPredictedViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAng
 		// Add an entry to the history.
 		m_vLagAngles = angles;
 		m_LagAnglesHistory.Push();
-		
-		// Interpolate back 100ms.
-		m_LagAnglesHistory.Interpolate( cl_wpn_sway_interp_in_ticks.GetInt(), gpGlobals->interpolation_amount_frac );
-		
+
+		// Interpolate back.
+		if ( cl_wpn_sway_interp_in_ticks.GetInt() >= 2 )
+		{
+			m_LagAnglesHistory.Interpolate( cl_wpn_sway_interp_in_ticks.GetInt(),
+											gpGlobals->interpolation_amount_frac );
+		}
+
 		// Now take the 100ms angle difference and figure out how far the forward vector moved in local space.
 		Vector vLaggedForward;
 		QAngle angleDiff = m_vLagAngles - angles;

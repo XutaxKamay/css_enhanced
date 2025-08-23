@@ -46,6 +46,10 @@ struct SimulationData
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 	float interpolated_sim_time;
 	float interpolated_anim_time;
+	float start_sim_time;
+	float start_anim_time;
+	float end_sim_time;
+	float end_anim_time;
 #endif
 
 	float sim_time;

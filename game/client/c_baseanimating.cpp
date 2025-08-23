@@ -646,10 +646,10 @@ class C_BaseAnimatingGameSystem : public CAutoGameSystem
 // Purpose: convert axis rotations to a quaternion
 //-----------------------------------------------------------------------------
 C_BaseAnimating::C_BaseAnimating()
- : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle", &m_flCycle, LATCH_ANIMATION_VAR ),
-   m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter", m_flPoseParameter, LATCH_ANIMATION_VAR ),
-   m_iv_flEncodedController( "C_BaseAnimating::m_iv_flEncodedController", m_flEncodedController, LATCH_ANIMATION_VAR ),
-   m_iv_Sequence( "C_BaseAnimating::m_iv_Sequence", &m_nSequence, LATCH_ANIMATION_VAR )
+ : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle", &m_flCycle, CIVLatchType::ANIMATION ),
+   m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter", m_flPoseParameter, CIVLatchType::ANIMATION ),
+   m_iv_flEncodedController( "C_BaseAnimating::m_iv_flEncodedController", m_flEncodedController, CIVLatchType::ANIMATION ),
+   m_iv_Sequence( "C_BaseAnimating::m_iv_Sequence", &m_nSequence, CIVLatchType::ANIMATION )
 {
 	m_vecForce.Init();
 	m_nForceBone = -1;
@@ -4954,7 +4954,7 @@ void C_BaseAnimating::UpdateClientSideAnimation()
 		if ( GetSequence() != -1 )
 		{
 			// latch old values
-			OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR );
+			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
 			// move frame forward
 			FrameAdvance( 0.0f ); // 0 means to use the time we last advanced instead of a constant
 		}

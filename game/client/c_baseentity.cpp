@@ -49,8 +49,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar cl_interp_linear_only( "cl_interp_linear_only", "1", FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE | FCVAR_USERINFO );
-
 static bool g_bWasSkipping = (bool)-1;
 static bool g_bWasThreaded =(bool)-1;
 static int  g_nThreadModeTicks = 0;
@@ -576,11 +574,11 @@ void C_BaseEntity::SetTextureFrameIndex( int iIndex )
 // Functions.
 //-----------------------------------------------------------------------------
 C_BaseEntity::C_BaseEntity() : 
-	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin", &m_vecOrigin, LATCH_SIMULATION_VAR ),
-	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation", &m_angRotation, LATCH_SIMULATION_VAR ),
-	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity", &m_vecVelocity, LATCH_SIMULATION_VAR ),
-	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime", &m_flInterpolatedSimulationTime, LATCH_SIMULATION_VAR ),
-	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime", &m_flInterpolatedAnimTime, LATCH_ANIMATION_VAR )
+	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin", &m_vecOrigin, CIVLatchType::SIMULATION ),
+	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation", &m_angRotation, CIVLatchType::SIMULATION ),
+	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity", &m_vecVelocity, CIVLatchType::SIMULATION ),
+	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime", &m_flInterpolatedSimulationTime, CIVLatchType::SIMULATION ),
+	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime", &m_flInterpolatedAnimTime, CIVLatchType::ANIMATION )
 {
 	AddVar( &m_iv_vecOrigin );
 	AddVar( &m_iv_angRotation );
@@ -594,7 +592,7 @@ C_BaseEntity::C_BaseEntity() :
 	// but that re-introduces a third-person hitching bug.  One possible cause is the abrupt change
 	// in player size/position that occurs when ducking, and how prediction tries to work through that.
 	//
-	// AddVar( &m_vecVelocity, &m_iv_vecVelocity, LATCH_SIMULATION_VAR );
+	// AddVar( &m_vecVelocity, &m_iv_vecVelocity, CIVLatchType::SIMULATION );
 
 	m_DataChangeEventRef = -1;
 	m_EntClientFlags = 0;
@@ -2254,12 +2252,12 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		if ( animTimeChanged )
 		{
-			OnLatchInterpolatedVariables( LATCH_ANIMATION_VAR );
+			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
 		}
 
 		if ( simTimeChanged )
 		{
-			OnLatchInterpolatedVariables( LATCH_SIMULATION_VAR );
+			OnLatchInterpolatedVariables( CIVLatchType::SIMULATION );
 		}
 	}
 	// For predictables, we also need to store off the last networked value
@@ -2451,11 +2449,11 @@ void C_BaseEntity::OnStoreLastNetworkedValue()
 // Input  : *pState - the (mostly) previous state data
 //-----------------------------------------------------------------------------
 
-void C_BaseEntity::OnLatchInterpolatedVariables( InterpolatedVarType type, bool bUpdateLastNetworkedValue )
+void C_BaseEntity::OnLatchInterpolatedVariables( CIVLatchType LatchType, bool bUpdateLastNetworkedValue )
 {
 	for ( auto&& variable : m_InterpolatedVariableList.variables )
 	{
-		if ( variable->Type() == type )
+		if ( variable->LatchType() == LatchType )
 		{
 			variable->Push();
 
@@ -2486,15 +2484,37 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 		return INTERPOLATE_STOP;
 	}
 
+	static ConVarRef cl_interp_type( "cl_interp_type" );
+
+	auto CLInterpType = cl_interp_type.GetInt();
+
 	if ( GetPredictable() || IsClientCreated() )
 	{
-		nAmountOfTicks = cl_interp_linear_only.GetBool() ? 1 : 2;
+		switch ( CLInterpType )
+		{
+			case CInterpolationType::LINEAR:
+			{
+				nAmountOfTicks = 1;
+				break;
+			}
+			case CInterpolationType::HERMITE:
+			{
+				nAmountOfTicks = 2;
+				break;
+			}
+			default:
+			{
+				Error( "CBaseEntity::BaseInterpolatePart1: Unsupported interpolation %i\n", CLInterpType );
+				break;
+			}
+		}
 	}
 
 	oldOrigin = m_vecOrigin;
 	oldAngles = m_angRotation;
 	oldVel = m_vecVelocity;
 
+	m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
 	m_InterpolatedVariableList.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 
 	bNoMoreChanges = 0;
@@ -5873,9 +5893,8 @@ void C_BaseEntity::AddVar( IInterpolatedVar* var )
 {
 	// TODO_ENHANCED: this needs proper support, technically we need to send to the server which variables are
 	// interpolated with hermite or not.
-
-	var->SetHermite( !cl_interp_linear_only.GetBool() );
-
+	static ConVarRef cl_interp_type( "cl_interp_type" );
+	var->SetInterpolationType( cl_interp_type.GetInt() );
 	m_InterpolatedVariableList.AddVar( var );
 }
 
