@@ -168,7 +168,6 @@ void CClientState::PacketStart( int incoming_sequence, int outgoing_acknowledged
 {
 	// Ack'd incoming messages.
 	m_nCurrentSequence = incoming_sequence;
-	command_ack = outgoing_acknowledged;
 }
 
 
@@ -181,27 +180,6 @@ void CClientState::PacketEnd()
 
 	// Play any sounds we received this packet
 	CL_DispatchSounds();
-	
-	// Did we get any messages this tick (i.e., did we call PreEntityPacketReceived)?
-	if ( GetServerTickCount() != m_nDeltaTick )
-		return;
-
-	// How many commands total did we run this frame
-	int commands_acknowledged = command_ack - last_command_ack;
-
-//	COM_Log( "cl.log", "Server ack'd %i commands this frame\n", commands_acknowledged );
-
-	//Msg( "%i/%i CL_PostReadMessages:  last ack %i most recent %i acked %i commands\n", 
-	//	host_framecount, cl.tickcount,
-	//	cl.last_command_ack, 
-	//	cl.netchan->outgoing_sequence - 1,
-	//	commands_acknowledged );
-
-	// Highest command parsed from messages
-	last_command_ack = command_ack;
-	
-	// Let prediction copy off pristine data and report any errors, etc.
-	g_pClientSidePrediction->PostNetworkDataReceived( commands_acknowledged );
 
 #ifndef _XBOX
 	demoaction->DispatchEvents();
@@ -831,52 +809,75 @@ bool CClientState::ProcessEntityMessage(SVC_EntityMessage *msg)
 
 bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 {
-	if ( !msg->m_bIsDelta )
+	m_nCmdSequenceAck	 = msg->m_nLastCmdSequence;
+	bool bShouldCallPost = false;
+
+	auto DoProcessPacketEntities = [&]()
 	{
-		// Delta too old or is initial message
-#ifndef _XBOX			
-		// we can start recording now that we've received an uncompressed packet
-		demorecorder->SetSignonState( SIGNONSTATE_FULL );
+		if ( !msg->m_bIsDelta )
+		{
+			// Delta too old or is initial message
+#ifndef _XBOX
+			// we can start recording now that we've received an uncompressed packet
+			demorecorder->SetSignonState( SIGNONSTATE_FULL );
 #endif
-		// Tell prediction that we're recreating entities due to an uncompressed packet arriving
-		if ( g_pClientSidePrediction  )
-		{
-			g_pClientSidePrediction->OnReceivedUncompressedPacket();
+			// Tell prediction that we're recreating entities due to an uncompressed packet arriving
+			if ( g_pClientSidePrediction )
+			{
+				g_pClientSidePrediction->OnReceivedUncompressedPacket();
+			}
 		}
-	}
-	else
-	{
-		if ( m_nDeltaTick == -1  )
+		else
 		{
-			// we requested a full update but still got a delta compressed packet. ignore it.
+			if ( m_nDeltaTick == -1 )
+			{
+				// we requested a full update but still got a delta compressed packet. ignore it.
+				return true;
+			}
+
+			// Preprocessing primarily does client prediction. So if we're processing deltas--do it
+			// otherwise, we're about to be told exactly what the state of everything is--so skip it.
+			CL_PreprocessEntities(); // setup client prediction
+			bShouldCallPost = true;
+		}
+
+		TRACE_PACKET( ( "CL Receive (%d <-%d)\n", m_nCurrentSequence, msg->m_nDeltaFrom ) );
+		TRACE_PACKET( ( "CL Num Ents (%d)\n", msg->m_nUpdatedEntries ) );
+
+		if ( g_pLocalNetworkBackdoor )
+		{
+			if ( m_nSignonState == SIGNONSTATE_SPAWN )
+			{
+				// We are done with signon sequence.
+				SetSignonState( SIGNONSTATE_FULL, m_nServerCount );
+			}
+
+			// ignore message, all entities are transmitted using fast local memcopy routines
+			m_nDeltaTick = GetServerTickCount();
 			return true;
 		}
 
-		// Preprocessing primarily does client prediction. So if we're processing deltas--do it
-		// otherwise, we're about to be told exactly what the state of everything is--so skip it.
-		CL_PreprocessEntities(); // setup client prediction
-	}
-	
-	TRACE_PACKET(( "CL Receive (%d <-%d)\n", m_nCurrentSequence, msg->m_nDeltaFrom ));
-	TRACE_PACKET(( "CL Num Ents (%d)\n", msg->m_nUpdatedEntries ));
+		if ( !CL_ProcessPacketEntities( msg ) )
+			return false;
 
-	if ( g_pLocalNetworkBackdoor )
+		return CBaseClientState::ProcessPacketEntities( msg );
+	};
+
+	auto ret = DoProcessPacketEntities();
+
+	// How many commands total did we run this frame
+	int commands_acknowledged = m_nCmdSequenceAck - m_nLastCmdSequenceAck;
+
+	// Highest command parsed from messages
+	m_nLastCmdSequenceAck = m_nCmdSequenceAck;
+
+	if ( bShouldCallPost )
 	{
-		if ( m_nSignonState == SIGNONSTATE_SPAWN  )
-		{	
-			// We are done with signon sequence.
-			SetSignonState( SIGNONSTATE_FULL, m_nServerCount );
-		}
-
-		// ignore message, all entities are transmitted using fast local memcopy routines
-		m_nDeltaTick = GetServerTickCount();
-		return true;
+		// Let prediction copy off pristine data and report any errors, etc.
+		g_pClientSidePrediction->PostNetworkDataReceived( commands_acknowledged );
 	}
-	
-	if ( !CL_ProcessPacketEntities ( msg ) )
-		return false;
 
-	return CBaseClientState::ProcessPacketEntities( msg );
+	return ret;
 }
 
 

@@ -77,6 +77,7 @@ bool CLC_Move::WriteToBuffer( bf_write &buffer )
 	
 	buffer.WriteUBitLong( m_nNewCommands, NUM_NEW_COMMAND_BITS );
 	buffer.WriteUBitLong( m_nBackupCommands, NUM_BACKUP_COMMAND_BITS );
+	buffer.WriteSignedVarInt32( m_nLastSequenceNumber );
 	
 	buffer.WriteLong( m_nLength );	
 
@@ -89,6 +90,7 @@ bool CLC_Move::ReadFromBuffer( bf_read &buffer )
 
 	m_nNewCommands = buffer.ReadUBitLong( NUM_NEW_COMMAND_BITS );
 	m_nBackupCommands = buffer.ReadUBitLong( NUM_BACKUP_COMMAND_BITS );
+	m_nLastSequenceNumber = buffer.ReadSignedVarInt32();
 	m_nLength = buffer.ReadLong();
 	m_DataIn = 	buffer;
 	return buffer.SeekRelative( m_nLength );
@@ -1648,6 +1650,8 @@ bool SVC_PacketEntities::WriteToBuffer( bf_write &buffer )
 {
 	buffer.WriteUBitLong( GetType(), NETMSG_TYPE_BITS );
 
+	buffer.WriteSignedVarInt32( m_nLastCmdSequence );
+
 	buffer.WriteUBitLong( m_nMaxEntries, MAX_EDICT_BITS );
 	
 	buffer.WriteOneBit( m_bIsDelta?1:0 );
@@ -1673,6 +1677,8 @@ bool SVC_PacketEntities::WriteToBuffer( bf_write &buffer )
 bool SVC_PacketEntities::ReadFromBuffer( bf_read &buffer )
 {
 	VPROF( "SVC_PacketEntities::ReadFromBuffer" );
+
+	m_nLastCmdSequence = buffer.ReadSignedVarInt32();
 
 	m_nMaxEntries = buffer.ReadUBitLong( MAX_EDICT_BITS );
 	
@@ -1702,8 +1708,8 @@ bool SVC_PacketEntities::ReadFromBuffer( bf_read &buffer )
 
 const char *SVC_PacketEntities::ToString(void) const
 {
-	Q_snprintf(s_text, sizeof(s_text), "%s: delta %i, max %i, changed %i,%s bytes %i",
-		GetName(), m_nDeltaFrom, m_nMaxEntries, m_nUpdatedEntries, m_bUpdateBaseline?" BL update,":"", Bits2Bytes(m_nLength) );
+	Q_snprintf(s_text, sizeof(s_text), "%s: cmdseq %i, delta %i, max %i, changed %i,%s bytes %i",
+		GetName(), m_nLastCmdSequence, m_nDeltaFrom, m_nMaxEntries, m_nUpdatedEntries, m_bUpdateBaseline?" BL update,":"", Bits2Bytes(m_nLength) );
 	return s_text;
 } 
 

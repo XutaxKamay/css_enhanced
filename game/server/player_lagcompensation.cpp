@@ -1024,8 +1024,13 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 
 		auto flDiff = flInterpolatedClientTime - flInterpolatedServerTime;
 
-		// Means TrackEntity doesn't track at the right time the client data or client data isn't sent or received correctly somehow.
-		if ( flClientStart != flServerStart || flClientEnd != flServerEnd )
+		// TODO_ENHANCED: fix the case when a player spawn, interpolation is disabled. maybe add to simulation data is_interpolated and set frac to 0 ?
+		if ( flClientStart == flClientEnd || flTargetTime == flClientStart || flTargetTime == flClientEnd )
+		{
+			result += "where client disabled interpolation or doesn't have enough history (could be a full entity update, spawn, etc ...) ";
+		}
+		// Should never happen anymore, it means TrackEntity doesn't track at the right time the client data or client data isn't sent or received correctly somehow.
+		else if ( flClientStart != flServerStart || flClientEnd != flServerEnd )
 		{
 			result	   += "where client has a problematic server timeline -> ";
 			bIsAnError	= true;
@@ -1045,7 +1050,7 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 
 		if ( bIsAnError )
 		{
-			Warning( "%s\n", result.c_str() );
+			AssertFatalMsg( false, "%s\n", result.c_str() );
 		}
 		else
 		{

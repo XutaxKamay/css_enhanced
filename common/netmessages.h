@@ -225,6 +225,7 @@ class CLC_Move : public CNetMessage
 public:
 	int				m_nBackupCommands;
 	int				m_nNewCommands;
+	int				m_nLastSequenceNumber;
 	int				m_nLength;
 	bf_read			m_DataIn;
 	bf_write		m_DataOut;
@@ -735,6 +736,7 @@ class SVC_PacketEntities: public CNetMessage
 	
 public:
 
+	int			m_nLastCmdSequence;
 	int			m_nMaxEntries;
 	int			m_nUpdatedEntries;
 	bool		m_bIsDelta;	

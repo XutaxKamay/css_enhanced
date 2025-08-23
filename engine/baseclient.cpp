@@ -278,6 +278,8 @@ void CBaseClient::Clear()
 	m_szPendingNameChange[0] = '\0';
 
 	Q_memset( m_nCustomFiles, 0, sizeof(m_nCustomFiles) );
+
+	m_nLastCmdSequence = 0;
 }
 
 bool CBaseClient::SetSignonState(int state, int spawncount)
@@ -1307,8 +1309,9 @@ write_again:
 	{
 		VPROF_BUDGET( "SendSnapshot Transmit Delta", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
-		// just send it as unreliable snapshot
-		bSendOK = m_NetChannel->SendDatagram( &msg ) > 0;
+		// TODO_ENHANCED: force reliable entity data for lag compensation
+		bSendOK = m_NetChannel->SendData( msg );
+		bSendOK = bSendOK && m_NetChannel->Transmit();
 	}
 		
 	if ( bSendOK )

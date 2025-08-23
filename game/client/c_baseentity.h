@@ -1483,9 +1483,6 @@ private:
 #if !defined( NO_ENTITY_PREDICTION )
 	// It's still in the list for "fixup purposes" and simulation, but don't try to render it any more...
 	bool							m_bDormantPredictable;
-
-	// So we can clean it up
-	int								m_nIncomingPacketEntityBecameDormant;
 #endif
 
 	// The spawn time of the entity

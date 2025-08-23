@@ -690,7 +690,7 @@ public:
 	}
 
 private:
-	tchar m_szBuf[256];
+	tchar m_szBuf[8192];
 };
 #include "tier0/valve_on.h"
 

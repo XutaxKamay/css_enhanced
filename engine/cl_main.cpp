@@ -2129,6 +2129,7 @@ void CL_SendMove( void )
 	CLC_Move moveMsg;
 
 	moveMsg.m_DataOut.StartWriting( data, sizeof( data ) );
+	moveMsg.m_nLastSequenceNumber = nextcommandnr;
 
 	// Determine number of backup commands to send along
 	int cl_cmdbackup = 2;

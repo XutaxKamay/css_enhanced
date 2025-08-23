@@ -55,16 +55,12 @@ public:
 
 	virtual void	OnReceivedUncompressedPacket( void );
 
-	virtual void	PreEntityPacketReceived( int commands_acknowledged, int current_world_update_packet );
+	virtual void	PreEntityPacketReceived( int commands_acknowledged );
 	virtual void	PostEntityPacketReceived( void );
 	virtual void	PostNetworkDataReceived( int commands_acknowledged );
 
 	virtual bool	InPrediction( void ) const;
 	virtual bool	IsFirstTimePredicted( void ) const;
-
-#if !defined( NO_ENTITY_PREDICTION )
-	virtual int		GetIncomingPacketNumber( void ) const;
-#endif
 
 	float			GetIdealPitch( void ) const 
 	{
@@ -150,7 +146,6 @@ private:
 	int				m_nCommandsPredicted;
 	int				m_nServerCommandsAcknowledged;
 	int				m_bPreviousAckHadErrors;
-	int				m_nIncomingPacketNumber;
 
 #endif
 	float			m_flIdealPitch;

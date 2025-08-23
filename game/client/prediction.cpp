@@ -103,7 +103,6 @@ CPrediction::CPrediction( void )
 	m_bInPrediction = false;
 	m_bFirstTimePredicted = false;
 
-	m_nIncomingPacketNumber = 0;
 	m_flIdealPitch = 0.0f;
 
 	m_nPreviousStartFrame = -1;
@@ -305,7 +304,7 @@ void CPrediction::OnReceivedUncompressedPacket( void )
 //			current_world_update_packet - 
 // Output : void CPrediction::PreEntityPacketReceived
 //-----------------------------------------------------------------------------
-void CPrediction::PreEntityPacketReceived ( int commands_acknowledged, int current_world_update_packet )
+void CPrediction::PreEntityPacketReceived ( int commands_acknowledged )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 #if defined( _DEBUG )
@@ -314,9 +313,6 @@ void CPrediction::PreEntityPacketReceived ( int commands_acknowledged, int curre
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
 #endif
 	VPROF( "CPrediction::PreEntityPacketReceived" );
-
-	// Cache off incoming packet #
-	m_nIncomingPacketNumber = current_world_update_packet;
 
 	// Don't screw up memory of current player from history buffers if not filling in history buffers
 	//  during prediction!!!
@@ -2073,18 +2069,6 @@ void CPrediction::SetLocalViewAngles( QAngle& ang )
 
 	player->SetLocalViewAngles( ang );
 }
-
-#if !defined( NO_ENTITY_PREDICTION )
-//-----------------------------------------------------------------------------
-// Purpose: For determining that predicted creation entities are un-acked and should
-//  be deleted
-// Output : int
-//-----------------------------------------------------------------------------
-int CPrediction::GetIncomingPacketNumber( void ) const
-{
-	return m_nIncomingPacketNumber;
-}
-#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 

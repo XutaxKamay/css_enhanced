@@ -73,6 +73,6 @@ void CL_RunPrediction( PREDICTION_REASON reason )
 
 	CL_Predict( cl.m_nDeltaTick, 
 		bShouldKeepPredicting ? true : valid,  
-		cl.last_command_ack, 
+		cl.m_nLastCmdSequenceAck, 
 		cl.lastoutgoingcommand + cl.chokedcommands );
 }

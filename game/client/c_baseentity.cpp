@@ -4754,7 +4754,6 @@ void C_BaseEntity::SetDormantPredictable( bool dormant )
 	Assert( IsClientCreated() );
 
 	m_bDormantPredictable = true;
-	m_nIncomingPacketEntityBecameDormant = prediction->GetIncomingPacketNumber();
 
 // Do we need to do the following kinds of things?
 #if 0
@@ -4773,16 +4772,8 @@ void C_BaseEntity::SetDormantPredictable( bool dormant )
 //-----------------------------------------------------------------------------
 bool C_BaseEntity::BecameDormantThisPacket( void ) const
 {
-#if !defined( NO_ENTITY_PREDICTION )
-	Assert( IsDormantPredictable() );
-
-	if ( m_nIncomingPacketEntityBecameDormant != prediction->GetIncomingPacketNumber() )
-		return false;
-
-	return true;
-#else
+	// TODO_ENHANCED:
 	return false;
-#endif
 }
 
 //-----------------------------------------------------------------------------

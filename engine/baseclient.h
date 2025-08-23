@@ -272,7 +272,8 @@ public:
 	double         m_fNextMessageTime;   
 	// Default time to wait for next message
 	float          m_fSnapshotInterval;
-	float          m_flTimeConnected;  
+	float          m_flTimeConnected;
+	int            m_nLastCmdSequence;
 
 	enum
 	{

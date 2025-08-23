@@ -160,7 +160,8 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 		return true;
 	}
 
-	m_LastMovementTick = sv.m_nTickCount; 
+	m_LastMovementTick = sv.m_nTickCount;
+	m_nLastCmdSequence = msg->m_nLastSequenceNumber; 
 
 	if ( hltv && hltv->m_DemoRecorder.IsRecording() )
 	{
