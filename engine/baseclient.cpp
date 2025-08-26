@@ -1313,7 +1313,7 @@ write_again:
 		bSendOK = m_NetChannel->SendReliableIMMM( msg );
 		// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence numbers for
 		// user commands) we still need to send some (fake) data to client.
-		bSendOK = m_NetChannel->SendDatagram( NULL ) > 0;
+		bSendOK = bSendOK && m_NetChannel->SendDatagram( NULL ) > 0;
 	}
 
 	if ( bSendOK )
