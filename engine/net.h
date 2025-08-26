@@ -39,7 +39,7 @@
 #define TCP_CONNECT_TIMEOUT		4.0f
 #define	PORT_ANY				-1
 #define PORT_TRY_MAX			32
-#define TCP_MAX_ACCEPTS			8
+#define TCP_MAX_ACCEPTS			256
 
 #define LOOPBACK_SOCKETS	2
 
