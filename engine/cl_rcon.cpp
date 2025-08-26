@@ -159,7 +159,7 @@ void CRConClient::SetAddress( const netadr_t &netAdr )
 	m_Address = netAdr;
 	if ( m_Address.GetPort() == 0  )
 	{
-		m_Address.SetPort( PORT_SERVER ); // override the port setting, by default rcon tries to bind to the same port as the server
+		m_Address.SetPort( PORT_RCON ); // override the port setting, by default rcon tries to bind to the same port as the server
 	}
 }
 

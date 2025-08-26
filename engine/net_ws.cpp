@@ -3153,7 +3153,7 @@ void NET_Config ( void )
 		if ( net_dedicated || CommandLine()->FindParm( "-usercon" ) )
 		{
 			netadr_t rconAddr = net_local_adr;
-			rconAddr.SetPort( net_sockets[NS_SERVER].nPort );
+			rconAddr.SetPort( PORT_RCON );
 			RCONServer().SetAddress( rconAddr.ToString() );
 			RCONServer().CreateSocket();
 		}

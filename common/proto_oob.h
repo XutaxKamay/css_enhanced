@@ -18,7 +18,7 @@
 
 #define HB_TIMEOUT 15
 
-#define PORT_RCON			27015	// defualt RCON port, TCP
+#define PORT_RCON			27024	// defualt RCON port, TCP
 #define	PORT_MASTER			27011	// Default master port, UDP
 #define PORT_CLIENT			27005	// Default client port, UDP/TCP
 #define PORT_SERVER			27015	// Default server port, UDP/TCP
