@@ -1430,7 +1430,7 @@ bool NET_GetLoopPacket ( netpacket_t * packet )
 	// copy data from loopback buffer to packet 
 	packet->from.SetType( NA_LOOPBACK );
 	// Needed for TCP stream
-	packet->from.SetIP( BigLong( INADDR_LOOPBACK ) );
+	packet->from.SetIP( INADDR_LOOPBACK );
 	packet->size = loop->datalen;
 	packet->wiresize = loop->datalen;
 	Q_memcpy ( packet->data, loop->data, packet->size );
@@ -3233,7 +3233,7 @@ int NET_ListenSocket( int sock, bool bListen )
 		if ( ret == -1 )
 		{
 			NET_GetLastError();
-			Msg ("WARNING: NET_ListenSocket bind failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
+			Msg ("WARNING: NET_ListenSocket bind failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
 			return -1;
 		}
 
@@ -3241,7 +3241,7 @@ int NET_ListenSocket( int sock, bool bListen )
 		if ( ret == -1 )
 		{
 			NET_GetLastError();
-			Msg ("WARNING: NET_ListenSocket listen failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
+			Msg ("WARNING: NET_ListenSocket listen failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
 			return -1;
 		}
 

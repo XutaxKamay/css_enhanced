@@ -689,7 +689,7 @@ bool CBaseClientState::FullConnect( netadr_t &adr, int iServerTCPPort )
 
 	Assert( m_NetChannel );
 
-	if ( !m_NetChannel->StartStreaming( m_nChallengeNr, adr.GetIPNetworkByteOrder(), iServerTCPPort ) )
+	if ( !m_NetChannel->StartStreaming( m_nChallengeNr, adr.GetIPHostByteOrder(), iServerTCPPort ) )
 	{
 		ConMsg( "CBaseClientState::FullConnect couldn't start streaming channel\n" );
 		return false;
