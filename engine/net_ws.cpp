@@ -795,16 +795,7 @@ int NET_SendStream( int nSock, const char * buf, int len, int flags )
 
 	if ( net_showtcp.GetBool() )
 	{
-		sockaddr_in addr;
-		socklen_t slen = sizeof( addr );
-		memset( &addr, 0, slen );
-		getpeername( nSock, ( struct sockaddr* )&addr, &slen );
-
-		char ip_str[INET_ADDRSTRLEN];
-		const char* ip = inet_ntop( AF_INET, &addr.sin_addr, ip_str, sizeof( ip_str ) );
-		int port	   = ntohs( addr.sin_port );
-
-		ConMsg( "NET_SendStream TCP -> %s:%i sz=%i\n", ip, port, ret );
+		ConMsg( "NET_SendStream TCP -> sz=%i\n", ret );
 	}
 
 	return ret;
@@ -829,16 +820,7 @@ int NET_ReceiveStream( int nSock, char * buf, int len, int flags )
 
 	if ( net_showtcp.GetBool() && ret != 0 )
 	{
-		sockaddr_in addr;
-		socklen_t slen = sizeof( addr );
-		memset( &addr, 0, slen );
-		getpeername( nSock, ( struct sockaddr* )&addr, &slen );
-
-		char ip_str[INET_ADDRSTRLEN];
-		const char* ip = inet_ntop( AF_INET, &addr.sin_addr, ip_str, sizeof( ip_str ) );
-		int port	   = ntohs( addr.sin_port );
-
-		ConMsg( "NET_ReceiveStream TCP <- %s:%i sz=%i\n", ip, port, ret );
+		ConMsg( "NET_ReceiveStream TCP <- sz=%i\n", ret );
 	}
 
 	return ret;
