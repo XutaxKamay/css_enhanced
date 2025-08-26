@@ -30,11 +30,13 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+static constexpr auto IMMMHeaderSize = 32;
+
 ConVar net_showudp( "net_showudp", "0", 0, "Dump UDP packets summary to console" );
 ConVar net_showtcp( "net_showtcp", "0", 0, "Dump TCP stream summary to console" );
 ConVar net_blocksize( "net_maxfragments", NETSTRING( MAX_ROUTABLE_PAYLOAD ), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
 
-static ConVar net_showmsg( "net_showmsg", "0", 0, "Show incoming message: <0|1|name>" );
+static ConVar net_showmsg( "net_showmsg", "0", 0, "Show incoming and outcoming message: <0|1|name>" );
 static ConVar net_showfragments( "net_showfragments", "0", 0, "Show netchannel fragments" );
 static ConVar net_showpeaks( "net_showpeaks", "0", 0, "Show messages for large packets only: <size>" );
 static ConVar net_blockmsg( "net_blockmsg", "none", FCVAR_CHEAT, "Discards incoming message: <0|1|name>" );
@@ -452,8 +454,6 @@ CNetChan::CNetChan()
 	m_StreamSocket = 0;
 	m_StreamActive = false;
 
-	ResetStreaming();
-
 	m_MaxReliablePayloadSize = 	NET_MAX_PAYLOAD;
 
 	m_FileRequestCounter = 0;
@@ -549,8 +549,6 @@ void CNetChan::Setup(int sock, netadr_t *adr, const char * name, INetChannelHand
 		m_SubChannels[i].index = i; // set index once
 		m_SubChannels[i].Free();
 	}
-	
-	ResetStreaming();
 
 	if ( NET_IsMultiplayer() )
 	{
@@ -567,20 +565,8 @@ void CNetChan::Setup(int sock, netadr_t *adr, const char * name, INetChannelHand
 	m_MessageHandler->ConnectionStart( this );
 }
 
-void CNetChan::ResetStreaming( void )
-{
-	m_SteamType = STREAM_CMD_NONE;
-	m_StreamLength = 0;	
-	m_StreamReceived = 0;
-	m_StreamSeqNr = 0;
-	m_SteamFile[0] = 0;	
-}
-
 bool CNetChan::StartStreaming( unsigned int challengeNr )
 {
-	// reset stream state maschine
-	ResetStreaming();
-
 	m_ChallengeNr = challengeNr;
 	
 	if ( !NET_IsMultiplayer() )
@@ -597,7 +583,6 @@ bool CNetChan::StartStreaming( unsigned int challengeNr )
 	MEM_ALLOC_CREDIT();
 
 	m_StreamSocket = NET_ConnectSocket( m_Socket, remote_address );
-	m_StreamData.EnsureCapacity( NET_MAX_PAYLOAD );
 
 	return (m_StreamSocket != 0);
 }
@@ -1082,7 +1067,7 @@ bool CNetChan::CreateFragmentsFromBuffer( bf_write *buffer, int stream )
 	data->bytes = Bits2Bytes(data->bits);
 	
 	// check if send as stream or with snapshot
-	data->asTCP = m_StreamActive && ( data->bytes > m_MaxReliablePayloadSize );
+	data->asTCP = false; // TODO_ENHANCED: m_StreamActive && ( data->bytes > m_MaxReliablePayloadSize );
 
 	// calc number of fragments needed
 	data->numFragments = BYTES2FRAGMENTS(data->bytes);
@@ -1140,7 +1125,7 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 	m_WaitingList[stream].AddToTail( data );	// that's it for now
 
 	// check if send as stream or with snapshot
-	data->asTCP = false; // m_StreamActive && ( Bits2Bytes(data->length) > m_MaxReliablePayloadSize );
+	data->asTCP = false; // TODO_ENHANCED: m_StreamActive && ( Bits2Bytes(data->length) > m_MaxReliablePayloadSize );
 
 	// calc number of fragments needed
 	data->numFragments = BYTES2FRAGMENTS(data->bytes);
@@ -1148,23 +1133,6 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 	data->pendingFragments = 0;
 
 	return true;
-}
-
-void CNetChan::SendTCPData( void )
-{
-	if ( m_WaitingList[FRAG_NORMAL_STREAM].Count() == 0 )
-		return; // nothing in line
-
-	dataFragments_t *data = m_WaitingList[FRAG_NORMAL_STREAM][0];
-
-	if ( !data->asTCP )
-		return; // not as TCP
-
-	if ( data->pendingFragments > 0 )
-		return; // already send, wait for ACK
-
-	// OK send it now
-	SendReliableViaStream( data );
 }
 
 bool CNetChan::SendSubChannelData( bf_write &buf )
@@ -1175,8 +1143,6 @@ bool CNetChan::SendSubChannelData( bf_write &buf )
 	int i;
 
 	CompressFragments();
-
-	SendTCPData();
 
 	UpdateSubChannels();
 
@@ -2618,205 +2584,245 @@ bool CNetChan::SendData( bf_write &msg, bool bReliable )
 	return buf->WriteBits( msg.GetData(), msg.GetNumBitsWritten() );
 }
 
-bool CNetChan::SendReliableViaStream( dataFragments_t *data)
+bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 {
-	// Always queue any pending reliable data ahead of the fragmentation buffer
+	ALIGN4 char cBuffer[NET_MAX_PAYLOAD] ALIGN4_POST;
+	char* pCurrentBuffer = NULL;
+	int nBufferSize		 = 0;
 
-	ALIGN4 char		headerBuf[32] ALIGN4_POST;
-	bf_write	header( "outDataHeader", headerBuf, sizeof(headerBuf) );
+	if ( m_StreamSocket == 0 )
+	{
+		ConMsg( "CNetChan::SendReliableIMMM: invalid stream socket\n" );
+		return false;
+	}
 
-	
-	data->transferID = m_nOutSequenceNr; // used for acknowledging
-	data->pendingFragments = data->numFragments; // send, but not ACKed yet
-
-	header.WriteByte( STREAM_CMD_DATA );
-	header.WriteWord( data->bytes );			// bytes
-	header.WriteLong( data->transferID );	
+	char cmd = STREAM_CMD_IMMM;
 
 	if ( net_showtcp.GetInt() )
 	{
-		ConMsg ("TCP -> %s: sz=%i seq=%i\n", remote_address.ToString(), data->bytes, m_nOutSequenceNr );
+		ConMsg( "TCP -> %s: sending IMMM cmd sz=%i\n", remote_address.ToString(), sizeof( cmd ) );
 	}
-	
-	NET_SendStream( m_StreamSocket, (char*)header.GetData(), header.GetNumBytesWritten(), 0	);
 
-	return NET_SendStream( m_StreamSocket, data->buffer, data->bytes, 0 ) != -1;
+	if ( NET_SendStream( m_StreamSocket, &cmd, sizeof( cmd ), 0 ) == -1 )
+	{
+		return false;
+	}
+
+	ALIGN4 char IMMHeaderBuffer[IMMMHeaderSize] ALIGN4_POST;
+
+	for ( size_t i = 0; i < IMMMHeaderSize; i++ )
+	{
+		IMMHeaderBuffer[i] = 0;
+	}
+
+	bf_write IMMMHeader( "STREAM_IMMM_HEADER", IMMHeaderBuffer, IMMMHeaderSize );
+	IMMMHeader.WriteSignedVarInt32( msg.GetNumBitsWritten() );
+	IMMMHeader.WriteSignedVarInt32( msg.GetNumBytesWritten() );
+	IMMMHeader.WriteOneBit( bWantsCompression );
+
+	if ( bWantsCompression )
+	{
+		uint32 nCompressedSize = sizeof( cBuffer );
+
+		if ( !COM_BufferToBufferCompress_ZSTD( cBuffer, &nCompressedSize, msg.GetData(), msg.GetNumBytesWritten() ) )
+		{
+			ConMsg( "CNetChan::SendReliableIMMM: failed to compress stream IMMM data\n" );
+			return false;
+		}
+
+		IMMMHeader.WriteVarInt32( nCompressedSize );
+		pCurrentBuffer = cBuffer;
+		nBufferSize	   = nCompressedSize;
+	}
+	else
+	{
+		pCurrentBuffer = ( char* )msg.GetData();
+		nBufferSize	   = msg.GetNumBytesWritten();
+	}
+
+	if ( net_showtcp.GetInt() )
+	{
+		ConMsg( "TCP -> %s: sending IMMM header sz=%i\n", remote_address.ToString(), IMMMHeaderSize );
+	}
+
+	if ( NET_SendStream( m_StreamSocket, IMMHeaderBuffer, IMMMHeaderSize, 0 ) == -1 )
+	{
+		return false;
+	}
+
+	if ( net_showtcp.GetInt() )
+	{
+		ConMsg( "TCP -> %s: sending IMMM %s data sz=%i\n",
+				remote_address.ToString(),
+				bWantsCompression ? "compressed" : "",
+				nBufferSize );
+	}
+
+	return NET_SendStream( m_StreamSocket, pCurrentBuffer, nBufferSize, 0 ) != -1;
 }
 
-bool CNetChan::SendReliableAcknowledge(int seqnr)
+bool CNetChan::SendReliableAcknowledge()
 {
 	// Always queue any pending reliable data ahead of the fragmentation buffer
 
-	ALIGN4 char		headerBuf[32] ALIGN4_POST;
-	bf_write	header( "outAcknHeader", headerBuf, sizeof(headerBuf) );
+	ALIGN4 char headerBuf[32] ALIGN4_POST;
+	bf_write header( "STREAM_CMD_ACKN", headerBuf, sizeof( headerBuf ) );
 
 	header.WriteByte( STREAM_CMD_ACKN );
-	header.WriteLong( seqnr );	// used for acknowledging
 
 	if ( net_showtcp.GetInt() )
 	{
-		ConMsg ("TCP -> %s: ACKN seq=%i\n", remote_address.ToString(), seqnr );
+		ConMsg( "TCP -> %s: ACKN\n", remote_address.ToString() );
 	}
 
-	return NET_SendStream( m_StreamSocket, (char*)header.GetData(), header.GetNumBytesWritten(), 0 ) > 0;
+	return NET_SendStream( m_StreamSocket, ( char* )header.GetData(), header.GetNumBytesWritten(), 0 ) > 0;
 }
 
 bool CNetChan::ProcessStream( void )
 {
-	char		cmd;
-	ALIGN4 char	headerBuf[512] ALIGN4_POST;
-	
+	ALIGN4 char buffer[NET_MAX_PAYLOAD] ALIGN4_POST;
+
 	if ( !m_StreamSocket )
+	{
 		return true;
-
-	if ( m_SteamType == STREAM_CMD_NONE )
-	{
-		// read command byte
-		int ret = NET_ReceiveStream( m_StreamSocket, &cmd, 1, 0 );
-
-		if ( ret == 0)
-		{
-			// nothing received, but ok
-			return true;
-		}
-		else if ( ret == -1 )
-		{
-			// something failed with the TCP connection
-			return false;
-		}
-		
-		ResetStreaming();	// clear all state values
-
-		m_SteamType = cmd;
-
 	}
 
-	bf_read		header( "inDataHeader", headerBuf, sizeof(headerBuf) );
+	int nBytes = NET_ReceiveStream( m_StreamSocket, buffer, sizeof( char ), 0 );
 
-	// now check command type
-
-	if ( m_SteamType==STREAM_CMD_AUTH )
+	if ( nBytes == 0 )
 	{
-		// server accpeted connection, send challenge nr
-		m_StreamActive = true;
-		
-		ResetStreaming();
-
-		return SendReliableAcknowledge( m_ChallengeNr );
+		// nothing received, but ok
+		return true;
 	}
-
-	if ( (m_SteamType==STREAM_CMD_DATA) && (m_StreamLength==0) )
+	else if ( nBytes == -1 )
 	{
-		int ret = NET_ReceiveStream( m_StreamSocket, (char*)&headerBuf, 6, 0 ) ;
-		
-		if ( ret == 0)
-		{
-			// nothing received, but ok
-			return true;
-		}
-		else if ( ret == -1 )
-		{
-			// something failed with the TCP connection
-			return false;
-		}
-
-		m_StreamLength = header.ReadWord();
-		m_StreamSeqNr = header.ReadLong();
-
-		const int cMaxPayload = GetProtocolVersion() > PROTOCOL_VERSION_23 ? NET_MAX_PAYLOAD : NET_MAX_PAYLOAD_V23;
-		if ( m_StreamLength	> cMaxPayload )
-		{
-			ConMsg( "ERROR! Stream indata too big (%i)", m_StreamLength );
-			return false;
-		}
-	}
-
-	if ( (m_SteamType==STREAM_CMD_FILE) && (m_SteamFile[0]==0) )
-	{
-		Assert ( 0 );
+		// something failed with the TCP connection
 		return false;
 	}
 
-	if ( (m_SteamType==STREAM_CMD_ACKN) && (m_StreamSeqNr==0) )
+	auto cmd = buffer[0];
+
+	// Accept server connnection
+	if ( cmd == STREAM_CMD_AUTH )
 	{
-		int ret = NET_ReceiveStream( m_StreamSocket, (char*)&headerBuf, 4, 0 );
-		
-		if ( ret == 0)
+		m_StreamActive = true;
+
+		if ( net_showtcp.GetInt() )
 		{
-			// nothing received, but ok
+			ConMsg( "TCP <- %s: AUTH\n", remote_address.ToString() );
+		}
+
+		return SendReliableAcknowledge();
+	}
+
+	// Immediate data, svc_PacketEntities and others, should be with small sizes but fast.
+	if ( cmd == STREAM_CMD_IMMM )
+	{
+		if ( net_showtcp.GetInt() )
+		{
+			ConMsg( "TCP <- %s: IMMM cmd sz=%i\n", remote_address.ToString(), nBytes );
+		}
+
+		nBytes = NET_ReceiveStream( m_StreamSocket, buffer, IMMMHeaderSize, 0 );
+
+		if ( nBytes == 0 )
+		{
 			return true;
 		}
-		else if ( ret == -1 )
+		else if ( nBytes == -1 )
 		{
-			// something failed with the TCP connection
 			return false;
 		}
 
-		m_StreamSeqNr = header.ReadLong();
-
-		dataFragments_t * data = m_WaitingList[FRAG_NORMAL_STREAM][0]; 
-
-		if ( data->transferID == (unsigned)m_StreamSeqNr )
+		if ( net_showtcp.GetInt() )
 		{
-			if ( net_showtcp.GetInt() )
+			ConMsg( "TCP <- %s: IMMM header sz=%i\n", remote_address.ToString(), nBytes );
+		}
+
+		bf_read IMMMHeader( "STREAM_IMMM_HEADER", buffer, IMMMHeaderSize );
+
+		auto nNetMsgBits		 = IMMMHeader.ReadSignedVarInt32();
+		auto nNetMsgBytes		 = IMMMHeader.ReadSignedVarInt32();
+		auto bWantsDecompression = IMMMHeader.ReadOneBit();
+		uint32 nCompressedSize	 = 0;
+
+		if ( bWantsDecompression )
+		{
+			nCompressedSize = IMMMHeader.ReadVarInt32();
+		}
+
+		if ( nNetMsgBytes <= 0 || nNetMsgBytes >= NET_MAX_PAYLOAD )
+		{
+			ConMsg( "CNetChan::ProcessStream IMMM data invalid size!\n" );
+			return false;
+		}
+
+		nBytes = NET_ReceiveStream( m_StreamSocket, buffer, bWantsDecompression ? nCompressedSize : nNetMsgBytes, 0 );
+
+		if ( nBytes == 0 )
+		{
+			return true;
+		}
+		else if ( nBytes == -1 )
+		{
+			return false;
+		}
+
+		if ( net_showtcp.GetInt() )
+		{
+			ConMsg( "TCP <- %s: IMMM data sz=%i\n", remote_address.ToString(), nBytes );
+		}
+
+		char* pCurrentBuffer = NULL;
+
+		if ( bWantsDecompression )
+		{
+			ALIGN4 char dcBuffer[NET_MAX_PAYLOAD] ALIGN4_POST;
+			uint32 nBufferSize = sizeof( dcBuffer );
+
+			if ( !COM_BufferToBufferDecompress( dcBuffer, &nBufferSize, buffer, nBytes ) )
 			{
-				ConMsg ("TCP <- %s: ACKN seqnr=%i\n", remote_address.ToString(), m_StreamSeqNr );
+				ConMsg( "CNetChan::ProcessStream: failed to dcompress stream IMMM data\n" );
+				return false;
 			}
 
-			Assert( data->pendingFragments == data->numFragments );
+			if ( nBufferSize != nNetMsgBytes )
+			{
+				ConMsg( "CNetChan::ProcessStream: IMMM compressed size sent isn't the same as the one calculated on "
+						"decompression %i != %i\n",
+						nBufferSize,
+						nNetMsgBytes );
+				return false;
+			}
 
-			RemoveHeadInWaitingList( FRAG_NORMAL_STREAM );
+			pCurrentBuffer = dcBuffer;
 		}
 		else
 		{
-			ConMsg ("TCP <- %s: invalid ACKN seqnr=%i\n", remote_address.ToString(), m_StreamSeqNr );
+			pCurrentBuffer = buffer;
 		}
 
-		ResetStreaming();
+		bf_read IMMMData( "STREAM_CMD_IMMM_DATA", pCurrentBuffer, nNetMsgBytes, nNetMsgBits );
+
+		// TODO_ENHANCED: FlowUpdate and others...
+
+		m_MessageHandler->PacketStart( m_nInSequenceNr, m_nOutSequenceNrAck );
+
+		if ( !ProcessMessages( IMMMData ) )
+		{
+			return false;
+		}
+
+		m_MessageHandler->PacketEnd();
+
 		return true;
 	}
-	
 
-	if ( m_StreamReceived < m_StreamLength )
-	{
-		// read in 4kB chuncks
-		int bytesLeft = ( m_StreamLength - m_StreamReceived );	
+	// TODO_ENHANCED: Huge data fragment incoming.
 
-		int bytesRecv = NET_ReceiveStream( m_StreamSocket, (char*)m_StreamData.Base() + m_StreamReceived, bytesLeft, 0 );
-		
-		if ( bytesRecv == 0 )
-		{
-			return true;
-		}
-		else if ( bytesRecv == -1 )
-		{
-			return false;
-		}
+	ConMsg( "CNetChan::ProcessStream unknown cmd: %i\n", cmd );
 
-		m_StreamReceived+= bytesRecv;
-
-		if ( m_StreamReceived > m_StreamLength )
-		{
-			ConMsg( "ERROR! Stream indata oversize." );
-			return false;
-		}
-
-		if ( m_StreamReceived == m_StreamLength	)
-		{
-			int ackseqnr =m_StreamSeqNr;
-
-			bf_read buffer( m_StreamData.Base(), m_StreamLength );
-
-			ProcessMessages( buffer );
-
-			// reset stream state
-			ResetStreaming();
-
-			return SendReliableAcknowledge( ackseqnr );	// tell sender that we have it
-		}
-	}
-
-	return true;
+	return false;
 }
 
 int CNetChan::GetDataRate() const

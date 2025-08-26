@@ -29,7 +29,6 @@ public:
 	virtual void	SetDataRate(float rate) = 0;
 	virtual bool	RegisterMessage(INetMessage *msg) = 0;
 	virtual bool	StartStreaming( unsigned int challengeNr ) = 0;
-	virtual void	ResetStreaming( void ) = 0;
 	virtual void	SetTimeout(float seconds) = 0;
 	virtual void	SetDemoRecorder(IDemoRecorder *recorder) = 0;
 	virtual void	SetChallengeNr(unsigned int chnr) = 0;
@@ -85,6 +84,7 @@ public:
 	virtual int		GetMaxRoutablePayloadSize() = 0;
 
 	virtual int		GetProtocolVersion() = 0;
+	virtual bool	SendReliableIMMM( bf_write &msg, bool bWantsCompression = true ) = 0;
 };
 
 

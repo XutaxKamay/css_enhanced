@@ -2956,7 +2956,8 @@ void SV_Frame( bool finalTick )
 	sv.m_bSimulatingTicks = simulated;
 
 	// Send the results of movement and physics to the clients
-	if ( finalTick )
+	// TODO_ENHANCED: this now should be safe now to ignore final tick
+	// if ( finalTick )
 	{
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause );

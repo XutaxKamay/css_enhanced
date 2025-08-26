@@ -45,9 +45,8 @@
 
 #define STREAM_CMD_NONE		0	// waiting for next blob
 #define STREAM_CMD_AUTH		1	// first command, send back challengenr
-#define STREAM_CMD_DATA		2	// receiving a data blob
-#define STREAM_CMD_FILE		3	// receiving a file blob
-#define STREAM_CMD_ACKN		4	// acknowledged a recveived blob
+#define STREAM_CMD_ACKN		2	// acknowledged getting an auth
+#define STREAM_CMD_IMMM		3	// immediate message
 
 // NETWORKING INFO
 // TODO_ENHANCED: Before we had little 54k modems. It's different today.

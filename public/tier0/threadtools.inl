@@ -358,12 +358,13 @@ INLINE_ON_PS3 bool CThread::SetPriority(int priority)
 // Suspend a thread
 INLINE_ON_PS3 unsigned CThread::Suspend()
 {
+	// TODO_ENHANCED:
 	AssertMsg( ThreadGetCurrentId() == (ThreadId_t)m_threadId, "Cannot call CThread::Suspend from outside thread" );
 
-	if ( ThreadGetCurrentId() != (ThreadId_t)m_threadId )
-	{
-		DebuggerBreakIfDebugging();
-	}
+	// if ( ThreadGetCurrentId() != (ThreadId_t)m_threadId )
+	// {
+	// 	DebuggerBreakIfDebugging();
+	// }
 
 	m_NotSuspendedEvent.Reset();
 	m_NotSuspendedEvent.Wait();

@@ -679,7 +679,7 @@ void CBaseClientState::ForceFullUpdate( void )
 	DevMsg( "Requesting full game update...\n");
 }
 
-void CBaseClientState::FullConnect( netadr_t &adr )
+bool CBaseClientState::FullConnect( netadr_t &adr )
 {
 	// Initiate the network channel
 	
@@ -688,8 +688,12 @@ void CBaseClientState::FullConnect( netadr_t &adr )
 	m_NetChannel = NET_CreateNetChannel( m_Socket, &adr, "CLIENT", this );
 
 	Assert( m_NetChannel );
-	
-	m_NetChannel->StartStreaming( m_nChallengeNr );	// open TCP stream
+
+	if ( !m_NetChannel->StartStreaming( m_nChallengeNr ) )
+	{
+		ConMsg( "CBaseClientState::FullConnect couldn't start streaming channel\n" );
+		return false;
+	}
 
 	// Bump connection time to now so we don't resend a connection
 	// Request	
@@ -716,7 +720,8 @@ void CBaseClientState::FullConnect( netadr_t &adr )
 		event->SetInt(    "port", m_NetChannel->GetRemoteAddress().GetPort() );
 		g_GameEventManager.FireEventClientSide( event );
 	}
-	
+
+	return true;
 }
 
 void CBaseClientState::ConnectionCrashed(const char *reason)
@@ -912,7 +917,11 @@ bool CBaseClientState::ProcessConnectionlessPacket( netpacket_t *packet )
 								}
 
 								// server accepted our connection request
-								FullConnect( packet->from );
+								if ( !FullConnect( packet->from ) )
+								{
+									Msg( "Server connection did not have streaming socket ?\n" );
+									return false;
+								}
 							}
 							break;
 		

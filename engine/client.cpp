@@ -722,9 +722,13 @@ bool CClientState::ProcessConnectionlessPacket( netpacket_t *packet )
 	return CBaseClientState::ProcessConnectionlessPacket( packet );
 }
 
-void CClientState::FullConnect( netadr_t &adr )
+bool CClientState::FullConnect( netadr_t &adr )
 {
-	CBaseClientState::FullConnect( adr );
+	if ( !CBaseClientState::FullConnect( adr ) )
+	{
+		return false;
+	}
+
 	m_NetChannel->SetDemoRecorder( g_pClientDemoRecorder );
 	m_NetChannel->SetDataRate( cl_rate->GetFloat() );
 
@@ -742,6 +746,8 @@ void CClientState::FullConnect( netadr_t &adr )
 	{
 		ConMsg( "Connected to %s\n", adr.ToString() );
 	}
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------

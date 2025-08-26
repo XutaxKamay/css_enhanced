@@ -352,7 +352,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 		}
 	}
 
-	void FrameUpdatePostEntityThinkOnFinalTick() override
+	void FrameUpdatePostEntityThink() override
 	{
 		for ( int i = 0; i < MAX_EDICTS; i++ )
 		{

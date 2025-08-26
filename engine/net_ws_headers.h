@@ -59,6 +59,7 @@ typedef int socklen_t;
 #include <string.h>
 #include <stdlib.h>
 
+#define WSAEINPROGRESS      EINPROGRESS
 #define WSAEWOULDBLOCK		EWOULDBLOCK
 #define WSAEMSGSIZE			EMSGSIZE
 #define WSAEADDRNOTAVAIL	EADDRNOTAVAIL

@@ -1190,7 +1190,7 @@ write_again:
 	}
 
 	// send tick time
-	NET_Tick tickmsg( pFrame->tick_count, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tickmsg( g_ServerGlobalVariables.tickcount, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 
 	StartTrace( msg );
 
@@ -1309,11 +1309,13 @@ write_again:
 	{
 		VPROF_BUDGET( "SendSnapshot Transmit Delta", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
-		// TODO_ENHANCED: force reliable entity data for lag compensation
-		bSendOK = m_NetChannel->SendData( msg );
-		bSendOK = bSendOK && m_NetChannel->Transmit();
+		// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
+		bSendOK = m_NetChannel->SendReliableIMMM( msg );
+		// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence numbers for
+		// user commands) we still need to send some (fake) data to client.
+		bSendOK = m_NetChannel->SendDatagram( NULL ) > 0;
 	}
-		
+
 	if ( bSendOK )
 	{
 		if ( IsTracing() )

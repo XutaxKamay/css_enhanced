@@ -151,7 +151,6 @@ public:	// INetChannel interface
 	void		SetDataRate(float rate);
 	bool		RegisterMessage(INetMessage *msg);
 	bool		StartStreaming( unsigned int challengeNr );
-	void		ResetStreaming( void );
 	void		SetTimeout(float seconds);
 	void		SetDemoRecorder(IDemoRecorder *recorder);
 	void		SetChallengeNr(unsigned int chnr);
@@ -168,6 +167,7 @@ public:	// INetChannel interface
 	void		SetFileTransmissionMode(bool bBackgroundMode);
 	bool		SendNetMsg( INetMessage &msg, bool bForceReliable = false, bool bVoice = false ); // send a net message
 	bool		SendData(bf_write &msg, bool bReliable = true); // send a chunk of data
+	bool		SendReliableIMMM( bf_write &msg, bool bWantsCompression = true );
 	bool		SendFile(const char *filename, unsigned int transferID); // transmit a local file
 	void		SetChoked( void ); // choke a packet
 	int			SendDatagram(bf_write *data); // build and send datagram packet
@@ -220,8 +220,7 @@ private:
 	
 	bool	ProcessMessages( bf_read &buf );
 	bool	ProcessControlMessage( int cmd, bf_read &buf);
-	bool	SendReliableViaStream( dataFragments_t *data);
-	bool	SendReliableAcknowledge( int seqnr );
+	bool	SendReliableAcknowledge();
 	int		ProcessPacketHeader( netpacket_t *packet );
 	void	AcknowledgeSubChannel(int seqnr, int list );
 
@@ -240,7 +239,6 @@ private:
 	bool	IsFileInWaitingList( const char *filename );
 	subChannel_s *GetFreeSubChannel(); // NULL == all subchannels in use
 	void	UpdateSubChannels( void );
-	void	SendTCPData( void );
 
 	INetMessage *FindMessage(int type);
 
@@ -314,12 +312,6 @@ public:
 	
 	// TCP stream state maschine:
 	bool		m_StreamActive;		// true if TCP is active
-	int			m_SteamType;		// STREAM_CMD_*
-	int			m_StreamSeqNr;		// each blob send of TCP as an increasing ID
-	int			m_StreamLength;		// total length of current stream blob
-	int			m_StreamReceived;	// length of already received bytes
-	char		m_SteamFile[MAX_OSPATH];	// if receiving file, this is it's name
-	CUtlMemory<byte> m_StreamData;			// Here goes the stream data (if not file). Only allocated if we're going to use it.
 
 	// packet history
 	netflow_t		m_DataFlow[ MAX_FLOWS ];  
