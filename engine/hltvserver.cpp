@@ -583,7 +583,7 @@ void CHLTVServer::StartMaster(CGameClient *client)
 	Q_strncpy( m_szMapname, m_Server->m_szMapname, sizeof(m_szMapname) );
 	Q_strncpy( m_szSkyname, m_Server->m_szSkyname, sizeof(m_szSkyname) );
 
-	NET_ListenSocket( m_Socket, true );	// activated HLTV TCP socket
+	// NET_ListenSocket( m_Socket, true );	// activated HLTV TCP socket TODO_ENHANCED: this might be good in the future to make this TCP and reliable.
 
 	m_MasterClient->ExecuteStringCommand( "spectate" ); // become a spectator
 

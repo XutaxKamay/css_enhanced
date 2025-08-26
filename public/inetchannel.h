@@ -28,7 +28,7 @@ public:
 
 	virtual void	SetDataRate(float rate) = 0;
 	virtual bool	RegisterMessage(INetMessage *msg) = 0;
-	virtual bool	StartStreaming( unsigned int challengeNr ) = 0;
+	virtual bool	StartStreaming( unsigned int challengeNr, uint32 ip, uint16 port ) = 0;
 	virtual void	SetTimeout(float seconds) = 0;
 	virtual void	SetDemoRecorder(IDemoRecorder *recorder) = 0;
 	virtual void	SetChallengeNr(unsigned int chnr) = 0;

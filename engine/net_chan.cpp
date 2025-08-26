@@ -565,7 +565,7 @@ void CNetChan::Setup(int sock, netadr_t *adr, const char * name, INetChannelHand
 	m_MessageHandler->ConnectionStart( this );
 }
 
-bool CNetChan::StartStreaming( unsigned int challengeNr )
+bool CNetChan::StartStreaming( unsigned int challengeNr, uint32 ip, uint16 port )
 {
 	m_ChallengeNr = challengeNr;
 	
@@ -582,9 +582,13 @@ bool CNetChan::StartStreaming( unsigned int challengeNr )
 
 	MEM_ALLOC_CREDIT();
 
-	m_StreamSocket = NET_ConnectSocket( m_Socket, remote_address );
+	netadr_t netadr( ip, port );
 
-	return (m_StreamSocket != 0);
+	ConMsg( "CNetChan::StartStreaming with ip %s\n", netadr.ToString() );
+
+	m_StreamSocket = NET_ConnectSocket( m_Socket, netadr );
+
+	return ( m_StreamSocket != 0 );
 }
 
 void CNetChan::SetChallengeNr(unsigned int chnr)
@@ -2725,12 +2729,9 @@ bool CNetChan::ProcessStream( void )
 
 		nBytes = NET_ReceiveStream( m_StreamSocket, buffer, IMMMHeaderSize, 0 );
 
-		if ( nBytes == 0 )
+		if ( nBytes <= 0 )
 		{
-			return true;
-		}
-		else if ( nBytes == -1 )
-		{
+			ConMsg("CNetChan::ProcessStream: failed to receive IMMM header\n");
 			return false;
 		}
 
@@ -2759,12 +2760,9 @@ bool CNetChan::ProcessStream( void )
 
 		nBytes = NET_ReceiveStream( m_StreamSocket, buffer, bWantsDecompression ? nCompressedSize : nNetMsgBytes, 0 );
 
-		if ( nBytes == 0 )
+		if ( nBytes <= 0 )
 		{
-			return true;
-		}
-		else if ( nBytes == -1 )
-		{
+			ConMsg("CNetChan::ProcessStream: failed to receive IMMM data\n");
 			return false;
 		}
 
@@ -2810,6 +2808,7 @@ bool CNetChan::ProcessStream( void )
 
 		if ( !ProcessMessages( IMMMData ) )
 		{
+			ConMsg("CNetChan::ProcessStream: failed to process IMMM\n");
 			return false;
 		}
 

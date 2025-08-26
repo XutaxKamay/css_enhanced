@@ -130,7 +130,7 @@ void		NET_Shutdown (void);
 // Read any incoming packets, dispatch to known netchannels and call handler for connectionless packets
 void		NET_ProcessSocket( int sock, IConnectionlessPacketHandler * handler );
 // Set a port to listen mode
-void		NET_ListenSocket( int sock, bool listen );
+int			NET_ListenSocket( int sock, bool listen );
 // Send connectionsless string over the wire
 void		NET_OutOfBandPrintf(int sock, const netadr_t &adr, PRINTF_FORMAT_STRING const char *format, ...) FMTFUNCTION( 3, 4 );
 // Send a raw packet, connectionless must be provided (chan can be NULL)

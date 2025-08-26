@@ -150,7 +150,7 @@ public:	// INetChannel interface
 
 	void		SetDataRate(float rate);
 	bool		RegisterMessage(INetMessage *msg);
-	bool		StartStreaming( unsigned int challengeNr );
+	bool		StartStreaming( unsigned int challengeNr, uint32 ip, uint16 port );
 	void		SetTimeout(float seconds);
 	void		SetDemoRecorder(IDemoRecorder *recorder);
 	void		SetChallengeNr(unsigned int chnr);

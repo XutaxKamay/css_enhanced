@@ -679,7 +679,7 @@ void CBaseClientState::ForceFullUpdate( void )
 	DevMsg( "Requesting full game update...\n");
 }
 
-bool CBaseClientState::FullConnect( netadr_t &adr )
+bool CBaseClientState::FullConnect( netadr_t &adr, int iServerTCPPort )
 {
 	// Initiate the network channel
 	
@@ -689,7 +689,7 @@ bool CBaseClientState::FullConnect( netadr_t &adr )
 
 	Assert( m_NetChannel );
 
-	if ( !m_NetChannel->StartStreaming( m_nChallengeNr ) )
+	if ( !m_NetChannel->StartStreaming( m_nChallengeNr, adr.GetIPNetworkByteOrder(), iServerTCPPort ) )
 	{
 		ConMsg( "CBaseClientState::FullConnect couldn't start streaming channel\n" );
 		return false;
@@ -910,6 +910,7 @@ bool CBaseClientState::ProcessConnectionlessPacket( netpacket_t *packet )
 	case S2C_CONNECTION:	if ( m_nSignonState == SIGNONSTATE_CHALLENGE )
 							{
 								int myChallenge = msg.ReadLong();
+								auto iServerTCPPort = msg.ReadLong();
 								if ( myChallenge != m_retryChallenge )
 								{
 									Msg( "Server connection did not have the correct challenge, ignoring.\n" );
@@ -917,7 +918,7 @@ bool CBaseClientState::ProcessConnectionlessPacket( netpacket_t *packet )
 								}
 
 								// server accepted our connection request
-								if ( !FullConnect( packet->from ) )
+								if ( !FullConnect( packet->from, iServerTCPPort ) )
 								{
 									Msg( "Server connection did not have streaming socket ?\n" );
 									return false;

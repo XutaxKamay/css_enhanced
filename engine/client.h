@@ -71,7 +71,7 @@ public: // IConnectionlessPacketHandler interface:
 
 public: // CBaseClientState overrides:
 	void Disconnect( const char *pszReason, bool bShowMainMenu );
-	bool FullConnect( netadr_t &adr );
+	bool FullConnect( netadr_t &adr, int iServerTCPPort );
 	bool SetSignonState ( int state, int count );
 	void PacketStart(int incoming_sequence, int outgoing_acknowledged);
 	void PacketEnd( void );

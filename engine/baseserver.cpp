@@ -572,6 +572,8 @@ IClient *CBaseServer::ConnectClient ( netadr_t &adr, int protocol, int challenge
 		msg.WriteLong( CONNECTIONLESS_HEADER );
 		msg.WriteByte( S2C_CONNECTION );
 		msg.WriteLong( clientChallenge );
+		extern int g_iServerTCPPort;
+		msg.WriteLong( g_iServerTCPPort );
 		msg.WriteString( "0000000000" ); // pad out
 
 		NET_SendPacket ( NULL, m_Socket, adr, msg.GetData(), msg.GetNumBytesWritten() );

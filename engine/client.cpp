@@ -722,9 +722,9 @@ bool CClientState::ProcessConnectionlessPacket( netpacket_t *packet )
 	return CBaseClientState::ProcessConnectionlessPacket( packet );
 }
 
-bool CClientState::FullConnect( netadr_t &adr )
+bool CClientState::FullConnect( netadr_t &adr, int iServerTCPPort )
 {
-	if ( !CBaseClientState::FullConnect( adr ) )
+	if ( !CBaseClientState::FullConnect( adr, iServerTCPPort ) )
 	{
 		return false;
 	}

@@ -118,7 +118,7 @@ public:
 	inline	bool IsActive( void ) const { return m_nSignonState == SIGNONSTATE_FULL; };
 	inline	bool IsConnected( void ) const { return m_nSignonState >= SIGNONSTATE_CONNECTED; };
 	virtual	void Clear( void );
-	virtual bool FullConnect( netadr_t &adr ); // a connection was established
+	virtual bool FullConnect( netadr_t &adr, int iServerTCPPort ); // a connection was established
 	virtual void Connect(const char* adr, const char *pszSourceTag); // start a connection challenge
 	virtual bool SetSignonState ( int state, int count );
 	virtual void Disconnect( const char *pszReason, bool bShowMainMenu );

@@ -755,7 +755,7 @@ int NET_ConnectSocket( int sock, const netadr_t &addr )
 
 	if ( !netsock->hTCP )
 	{
-		Msg( "Warning! NET_ConnectSocket failed opening socket %i, port %i.\n", sock, net_sockets[sock].nPort );
+		ConMsg( "Warning! NET_ConnectSocket failed opening socket %i, port %i.\n", sock, net_sockets[sock].nPort );
 		return 0;
 	}
 
@@ -765,9 +765,9 @@ int NET_ConnectSocket( int sock, const netadr_t &addr )
 	{
 		NET_GetLastError();
 
-		if ( net_error != WSAEWOULDBLOCK && net_error != WSAEINPROGRESS )
+		if ( !( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS ) )
 		{
-			Msg ("NET_ConnectSocket: %s\n", NET_ErrorString( net_error ) );
+			ConMsg ("NET_ConnectSocket: %s\n", NET_ErrorString( net_error ) );
 			return 0;
 		}
 	}
@@ -1429,6 +1429,8 @@ bool NET_GetLoopPacket ( netpacket_t * packet )
 
 	// copy data from loopback buffer to packet 
 	packet->from.SetType( NA_LOOPBACK );
+	// Needed for TCP stream
+	packet->from.SetIP( BigLong( INADDR_LOOPBACK ) );
 	packet->size = loop->datalen;
 	packet->wiresize = loop->datalen;
 	Q_memcpy ( packet->data, loop->data, packet->size );
@@ -1770,7 +1772,7 @@ void NET_ProcessPending( void )
 
 				if ( !chan->m_StreamSocket )
 				{
-					if ( psock->addr.CompareAdr( chan->remote_address, true ) )
+					if ( chan->remote_address.GetType() == NA_LOOPBACK || psock->addr.CompareAdr( chan->remote_address, true ) )
 					{
 						chan->m_StreamSocket = psock->newsock;
 						chan->m_StreamActive = true;
@@ -1786,7 +1788,7 @@ void NET_ProcessPending( void )
 					}
 					else
 					{
-						ConMsg ("TCP <- %s: IP address mismatch.\n", psock->addr.ToString() );
+						ConMsg ("TCP <- %s != %s: IP address mismatch.\n", psock->addr.ToString(), chan->remote_address.ToString() );
 					}
 				}
 			}
@@ -3186,7 +3188,7 @@ void NET_SetDedicated ()
 	net_dedicated = true;
 }
 
-void NET_ListenSocket( int sock, bool bListen )
+int NET_ListenSocket( int sock, bool bListen )
 {
 	Assert( (sock >= 0) && (sock < net_sockets.Count()) );
 
@@ -3198,7 +3200,7 @@ void NET_ListenSocket( int sock, bool bListen )
 	}
 
 	if ( (!NET_IsMultiplayer() && sock != NS_CLIENT) )
-		return;
+		return -1;
 
 	if ( bListen )
 	{
@@ -3209,7 +3211,7 @@ void NET_ListenSocket( int sock, bool bListen )
 		if ( !netsock->hTCP )
 		{
 			Msg( "Warning! NET_ListenSocket failed opening socket %i, port %i.\n", sock, net_sockets[sock].nPort );
-			return;
+			return -1;
 		}
 
 		struct sockaddr_in	address;
@@ -3232,7 +3234,7 @@ void NET_ListenSocket( int sock, bool bListen )
 		{
 			NET_GetLastError();
 			Msg ("WARNING: NET_ListenSocket bind failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
-			return;
+			return -1;
 		}
 
 		VCR_NONPLAYBACKFN( listen( netsock->hTCP, TCP_MAX_ACCEPTS), ret, "listen" );
@@ -3240,11 +3242,13 @@ void NET_ListenSocket( int sock, bool bListen )
 		{
 			NET_GetLastError();
 			Msg ("WARNING: NET_ListenSocket listen failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
-			return;
+			return -1;
 		}
 
 		netsock->bListening = true;
 	}
+
+	return netsock->nPort;
 }
 
 void NET_SetMutiplayer(bool multiplayer)
