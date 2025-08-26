@@ -4771,6 +4771,11 @@ bool Host_NewGame( char *mapName, bool loadGame, bool bBackgroundLevel, const ch
 
 	g_iServerTCPPort = NET_ListenSocket( sv.m_Socket, true );	// activated server TCP socket
 
+	if ( g_iServerTCPPort == -1 )
+	{
+		Error( "NET_ListenSocket failed\n" );
+	}
+
 	// let's not have any servers with no name
 	if ( host_name.GetString()[0] == 0 )
 	{
