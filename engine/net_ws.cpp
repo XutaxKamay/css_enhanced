@@ -101,15 +101,6 @@ typedef struct
 	int			hTCP;		// handle to TCP socket from socket()
 } netsocket_t;
 
-typedef struct 
-{
-	int				newsock;	// handle of new socket
-	int				netsock;	// handle of listen socket
-	float			time;
-	netadr_t		addr;
-} pendingsocket_t;
-
-
 #include "tier0/memdbgoff.h"
 
 struct loopback_t
@@ -191,8 +182,7 @@ static	bool net_dedicated = false;	// true is dedicated system
 static	int  net_error = 0;			// global error code updated with NET_GetLastError()
 
 
-static CUtlVectorMT< CUtlVector< CNetChan* > >			s_NetChannels;
-static CUtlVectorMT< CUtlVector< pendingsocket_t > >	s_PendingSockets;
+CUtlVectorMT< CUtlVector< CNetChan* > >			s_NetChannels;
 
 CTSQueue<loopback_t *> s_LoopBacks[LOOPBACK_SOCKETS];
 static netpacket_t*	s_pLagData[MAX_SOCKETS];  // List of lag structures, if fakelag is set.
@@ -471,11 +461,11 @@ void NET_CloseSocket( int hSocket, int sock = -1)
 int NET_SetSocketOptions( int newsocket, int protocol )
 {
 	int ret;
-	unsigned int opt =  1; // make it non-blocking
+	unsigned int opt = 1; // make it non-blocking
 
 #ifdef _WIN32
-	VCR_NONPLAYBACKFN( ioctlsocket (newsocket, FIONBIO, (unsigned long*)&opt), ret, "ioctlsocket" );
-#elif defined(POSIX)
+	VCR_NONPLAYBACKFN( ioctlsocket( newsocket, FIONBIO, ( unsigned long* )&opt ), ret, "ioctlsocket" );
+#elif defined( POSIX )
 	int flags = fcntl( newsocket, F_GETFL, 0 );
 	if ( flags != -1 )
 	{
@@ -491,7 +481,7 @@ int NET_SetSocketOptions( int newsocket, int protocol )
 	if ( ret == -1 )
 	{
 		NET_GetLastError();
-		Msg ("WARNING: NET_SetSocketOptions: ioctl FIONBIO: %s\n", NET_ErrorString(net_error) );
+		Msg( "WARNING: NET_SetSocketOptions: ioctl FIONBIO: %s\n", NET_ErrorString( net_error ) );
 		return -1;
 	}
 
@@ -765,11 +755,13 @@ int NET_ConnectSocket( int sock, const netadr_t &addr )
 	{
 		NET_GetLastError();
 
-		if ( !( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS ) )
+		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS )
 		{
-			ConMsg ("NET_ConnectSocket: %s\n", NET_ErrorString( net_error ) );
-			return 0;
+			return net_sockets[sock].hTCP;
 		}
+
+		ConMsg ("ERROR! NET_ConnectSocket: %s\n", NET_ErrorString( net_error ) );
+		return 0;
 	}
 
 	return net_sockets[sock].hTCP;
@@ -777,20 +769,19 @@ int NET_ConnectSocket( int sock, const netadr_t &addr )
 
 int NET_SendStream( int nSock, const char * buf, int len, int flags )
 {
-	//int ret = send( nSock, buf, len, flags );
-
 	int ret = VCRHook_send( nSock, buf, len, flags );
 
 	if ( ret == -1 )
 	{
 		NET_GetLastError();
 
-		if ( net_error != WSAEWOULDBLOCK && net_error != WSAEINPROGRESS )
+		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS )
 		{
-			return 0; // ignore EWOULDBLOCK
+			return 0;
 		}
 
 		ConMsg ("NET_SendStream: %s\n", NET_ErrorString( net_error ) );
+		return -1;
 	}
 
 	if ( net_showtcp.GetBool() )
@@ -804,18 +795,18 @@ int NET_SendStream( int nSock, const char * buf, int len, int flags )
 int NET_ReceiveStream( int nSock, char * buf, int len, int flags )
 {
 	int ret = VCRHook_recv( nSock, buf, len, flags );
+
 	if ( ret == -1 )
 	{
 		NET_GetLastError();
 
-		if ( net_error == WSAEWOULDBLOCK || 
-			 net_error == WSAENOTCONN || net_error == WSAEINPROGRESS )
+		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS )
 		{
-			return 0; // ignore EWOULDBLOCK
+			return 0;
 		}
-
 	
 		ConMsg ("NET_ReceiveStream: %s\n", NET_ErrorString( net_error ) );
+		return -1;
 	}
 
 	if ( net_showtcp.GetBool() && ret != 0 )
@@ -1726,84 +1717,6 @@ netpacket_t *NET_GetPacket (int sock, byte *scratch )
 	return &inpacket;
 }
 
-void NET_ProcessPending( void )
-{
-	AUTO_LOCK_FM( s_PendingSockets );
-	for ( int i=0; i<s_PendingSockets.Count();i++ )
-	{
-		pendingsocket_t * psock = &s_PendingSockets[i];
-
-		ALIGN4 char	headerBuf[5] ALIGN4_POST;
-
-		if ( (net_time - psock->time) > TCP_CONNECT_TIMEOUT )
-		{
-			NET_CloseSocket( psock->newsock );
-			s_PendingSockets.Remove( i );
-			continue;
-		}
-
-		int ret = NET_ReceiveStream( psock->newsock, headerBuf, sizeof(headerBuf), 0 );
-
-		if ( ret == 0 )
-		{
-			continue;	// nothing received
-		}
-		else if ( ret == -1 )
-		{
-			NET_CloseSocket( psock->newsock );
-			s_PendingSockets.Remove( i );
-			continue;	// connection closed somehow
-		}
-		
-		bf_read		header( headerBuf, sizeof(headerBuf) );
-
-		int cmd = header.ReadByte();
-		bool bOK = false;	
-
-		if ( cmd == STREAM_CMD_ACKN )
-		{
-			AUTO_LOCK_FM( s_NetChannels );
-			for ( int j = 0; j < s_NetChannels.Count(); j++ )
-			{
-				CNetChan * chan = s_NetChannels[j];
-
-				if ( chan->GetSocket() != psock->netsock )
-					continue;
-
-				if ( !chan->m_StreamSocket )
-				{
-					if ( chan->remote_address.GetType() == NA_LOOPBACK || psock->addr.CompareAdr( chan->remote_address, true ) )
-					{
-						chan->m_StreamSocket = psock->newsock;
-						chan->m_StreamActive = true;
-
-						bOK = true;
-
-						if ( net_showtcp.GetInt() )
-						{
-							ConMsg ("TCP <- %s: connection accepted\n", psock->addr.ToString() );
-						}
-						
-						break;
-					}
-					else
-					{
-						ConMsg ("TCP <- %s != %s: IP address mismatch.\n", psock->addr.ToString(), chan->remote_address.ToString() );
-					}
-				}
-			}
-		}
-
-		if ( !bOK )
-		{
-			ConMsg ("TCP <- %s: invalid connection request.\n", psock->addr.ToString() );
-			NET_CloseSocket( psock->newsock );
-		}
-
-		s_PendingSockets.Remove( i );
-	}
-}
-
 void NET_ProcessListen(int sock)
 {
 	netsocket_t * netsock = &net_sockets[sock];
@@ -1842,45 +1755,45 @@ void NET_ProcessListen(int sock)
 
 	// new connection TCP request, put in pending queue
 
-	pendingsocket_t psock;
+	netadr_t addr;
+	addr.SetFromSockadr( &sa );
 
-	psock.newsock = newSocket;
-	psock.netsock = sock;
-	psock.addr.SetFromSockadr( &sa );
-	psock.time = net_time;
+	bool bFoundAddress = false;
 
-	AUTO_LOCK_FM( s_PendingSockets );
-	s_PendingSockets.AddToTail( psock );
-
-	// tell client to send challenge number to identify
-
-	char cmd = STREAM_CMD_AUTH;
-
-	int nBytes = NET_SendStream( newSocket, &cmd, sizeof(cmd), 0 );
-
-	if ( nBytes == -1 )
+	for ( int j = 0; j < s_NetChannels.Count(); j++ )
 	{
-		NET_GetLastError();
-		ConMsg( "NET_ProcessListen: Failed to send auth: %s\n", NET_ErrorString( net_error ) );
+		CNetChan* chan = s_NetChannels[j];
 
-		AUTO_LOCK_FM( s_PendingSockets );
-
-		for ( int i = 0; i < s_PendingSockets.Count(); i++ )
+		if ( chan->GetSocket() != sock )
 		{
-			if ( s_PendingSockets[i].newsock == newSocket )
-			{
-				s_PendingSockets.Remove( i );
-				break;
-			}
+			continue;
 		}
 
-		NET_CloseSocket( newSocket, -1 );
-		return;
+		if ( chan
+			 && ( chan->remote_address.GetType() == NA_LOOPBACK || addr.CompareAdr( chan->remote_address, true ) ) )
+		{
+			// Override stream socket
+			if ( chan->m_StreamSocket )
+			{
+				chan->CloseStreamingSocket();
+			}
+
+			chan->m_StreamSocket = newSocket;
+
+			if ( net_showtcp.GetInt() )
+			{
+				ConMsg( "TCP -> %s: connection accepted.\n", addr.ToString() );
+			}
+
+			bFoundAddress = true;
+			break;
+		}
 	}
 
-	if ( net_showtcp.GetInt() )
+	if ( !bFoundAddress )
 	{
-		ConMsg( "TCP -> %s: connection request.\n", psock.addr.ToString() );
+		NET_CloseSocket( newSocket );
+		ConMsg( "TCP -> %s: connection refused.\n", addr.ToString() );
 	}
 }
 
@@ -1908,6 +1821,9 @@ void NET_ProcessSocket( int sock, IConnectionlessPacketHandler *handler )
 		for ( int i = (numChannels-1); i >= 0 ; i-- )
 		{
 			CNetChan *netchan = s_NetChannels[i];
+
+			if ( !netchan )
+				continue;
 
 			// sockets must match
 			if ( sock != netchan->GetSocket() )
@@ -2638,15 +2554,6 @@ void NET_CloseAllSockets (void)
 			net_sockets[i].hTCP = 0;
 		}
 	}
-
-	// shut down all pending sockets
-	AUTO_LOCK_FM( s_PendingSockets );
-	for(int j=0; j<s_PendingSockets.Count();j++ )
-	{
-		NET_CloseSocket( s_PendingSockets[j].newsock );
-	}
-
-	s_PendingSockets.RemoveAll();
 }
 
 /*
@@ -3095,8 +3002,6 @@ void NET_RunFrame( double flRealtime )
 			NET_ProcessListen( i );
 		}
 	}
-
-	NET_ProcessPending();
 }
 
 void NET_ClearLoopbackBuffers()
@@ -3210,7 +3115,7 @@ int NET_ListenSocket( int sock, bool bListen )
 
 		if ( !netsock->hTCP )
 		{
-			Msg( "Warning! NET_ListenSocket failed opening socket %i, port %i.\n", sock, net_sockets[sock].nPort );
+			ConMsg( "Warning! NET_ListenSocket failed opening socket %i, port %i.\n", sock, net_sockets[sock].nPort );
 			return -1;
 		}
 
@@ -3233,7 +3138,7 @@ int NET_ListenSocket( int sock, bool bListen )
 		if ( ret == -1 )
 		{
 			NET_GetLastError();
-			Msg ("WARNING: NET_ListenSocket bind failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
+			ConMsg ("WARNING: NET_ListenSocket bind failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
 			return -1;
 		}
 
@@ -3241,7 +3146,7 @@ int NET_ListenSocket( int sock, bool bListen )
 		if ( ret == -1 )
 		{
 			NET_GetLastError();
-			Msg ("WARNING: NET_ListenSocket listen failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
+			ConMsg ("WARNING: NET_ListenSocket listen failed on socket %i, port %i error: %s.\n", netsock->hTCP, netsock->nPort, NET_ErrorString(net_error) );
 			return -1;
 		}
 

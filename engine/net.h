@@ -44,9 +44,7 @@
 #define LOOPBACK_SOCKETS	2
 
 #define STREAM_CMD_NONE		0	// waiting for next blob
-#define STREAM_CMD_AUTH		1	// first command, send back challengenr
-#define STREAM_CMD_ACKN		2	// acknowledged getting an auth
-#define STREAM_CMD_IMMM		3	// immediate message
+#define STREAM_CMD_IMMM		1	// immediate message
 
 // NETWORKING INFO
 // TODO_ENHANCED: Before we had little 54k modems. It's different today.
@@ -173,6 +171,7 @@ int NET_AddExtraSocket( int port );
 void NET_RemoveAllExtraSockets();
 
 const char *NET_ErrorString (int code); // translate a socket error into a friendly string
+int NET_GetLastError( void );
 
 //============================================================================
 

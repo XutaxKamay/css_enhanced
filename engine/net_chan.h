@@ -10,6 +10,8 @@
 #pragma once
 #endif
 
+#include <queue>
+
 #include "net.h"
 #include "netadr.h"
 #include "qlimits.h"
@@ -77,6 +79,25 @@ private: // netchan structurs
 			}
 		}
 	};
+
+	struct CTCPQueue
+	{
+		// I don't trust much CUtlVector, sorry
+		struct SendBuffer
+		{
+			std::vector< char > data;
+			int nBytesLeft;
+		};
+
+		std::queue< SendBuffer > m_SendQueue;
+		// Let's keep some data
+		std::vector<char> m_ReceivedData;
+
+		void AddToSendQueue( char* pBuffer, int nBufferSize );
+		void Received( int nBufferSize );
+		void Process( int hSocket );
+
+	} m_TCPQueue;
 
 	// Client's now store the command they sent to the server and the entire results set of
 	//  that command. 
@@ -157,6 +178,7 @@ public:	// INetChannel interface
 	
 	void		Reset( void );
 	void		Clear( void );
+	void		CloseStreamingSocket( void );
 	void		Shutdown(const char * reason);
 	
 	void		ProcessPlayback( void );
@@ -220,7 +242,6 @@ private:
 	
 	bool	ProcessMessages( bf_read &buf );
 	bool	ProcessControlMessage( int cmd, bf_read &buf);
-	bool	SendReliableAcknowledge();
 	int		ProcessPacketHeader( netpacket_t *packet );
 	void	AcknowledgeSubChannel(int seqnr, int list );
 
@@ -309,9 +330,6 @@ public:
 	unsigned int	m_FileRequestCounter;	// increasing counter with each file request
 	bool			m_bFileBackgroundTranmission; // if true, only send 1 fragment per packet
 	bool			m_bUseCompression;	// if true, larger reliable data will be bzip compressed
-	
-	// TCP stream state maschine:
-	bool		m_StreamActive;		// true if TCP is active
 
 	// packet history
 	netflow_t		m_DataFlow[ MAX_FLOWS ];  

@@ -172,7 +172,7 @@ void CDialogAddServer::OnOK()
 	if ( !netaddr.GetPort() && !AllowInvalidIPs() )
 	{
 		// use the default port since it was not entered
-		netaddr.SetPort( 27015 );
+		netaddr.SetPort( PORT_SERVER );
 	}
 
 	if ( AllowInvalidIPs() || netaddr.IsValid() )

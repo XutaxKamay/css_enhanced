@@ -1311,10 +1311,17 @@ write_again:
 
 		// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
 		bSendOK = m_NetChannel->SendReliableIMMM( msg );
-		// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence numbers for
-		// user commands) we still need to send some (fake) data to client.
-		bSendOK = bSendOK && m_NetChannel->SendDatagram( NULL ) > 0;
 	}
+
+	// TODO_ENHANCED:
+	// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence
+	// numbers for user commands) we still need to send some (fake) data to client.
+	char buffer[32];
+	bf_write nopBuffer( buffer, sizeof( buffer ) );
+
+	nopBuffer.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+
+	bSendOK = bSendOK && m_NetChannel->SendDatagram( &nopBuffer ) > 0;
 
 	if ( bSendOK )
 	{
