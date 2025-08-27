@@ -2156,14 +2156,8 @@ void CL_SendMove( void )
 
 	if ( bOK )
 	{
-		byte buffer[MAX_CMD_BUFFER + 128];
-		bf_write finalMsg(buffer, sizeof(buffer));
-
-		moveMsg.WriteToBuffer( finalMsg );
-
-		// only write message if all usercmds were written correctly, otherwise parsing would fail
 		// TODO_ENHANCED: let's test this.
-		cl.m_NetChannel->SendReliableIMMM( finalMsg );
+		cl.m_NetChannel->SendNetMsg( moveMsg );
 	}
 }
 
