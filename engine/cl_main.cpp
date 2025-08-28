@@ -2156,8 +2156,12 @@ void CL_SendMove( void )
 
 	if ( bOK )
 	{
+		byte moveData[MAX_CMD_BUFFER + 128];
+		bf_write bfMoveData( moveData, sizeof( moveData ) );
+		moveMsg.WriteToBuffer( bfMoveData );
+
 		// TODO_ENHANCED: let's test this.
-		cl.m_NetChannel->SendNetMsg( moveMsg );
+		cl.m_NetChannel->SendReliableIMMM( bfMoveData );
 	}
 }
 
