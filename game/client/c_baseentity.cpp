@@ -2258,7 +2258,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 		// Did we went backwards ?
 		if ( m_flSimulationTime < m_flOldSimulationTime )
 		{
-			Error( "Entity %i has relled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
+			Error( "Entity %i has rolled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
 				   index,
 				   m_flSimulationTime,
 				   m_flOldSimulationTime );
