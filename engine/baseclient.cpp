@@ -1238,11 +1238,15 @@ write_again:
 	// TODO_ENHANCED: FIXME This is sadly required to send incoming sequences so that CL_Move can work properly.
 	// At least we send game sounds, I guess ...
 	ALIGN4 char pDatagramBuffer[0x10000] ALIGN4_POST;
-	bf_write bf_datagram(pDatagramBuffer, sizeof(pDatagramBuffer));
+	bf_write bf_datagram( pDatagramBuffer, sizeof( pDatagramBuffer ) );
 
 	WriteGameSounds( bf_datagram );
-	m_NetChannel->SendDatagram( &bf_datagram );
-	
+
+	if ( m_NetChannel )
+	{
+		m_NetChannel->SendDatagram( &bf_datagram );
+	}
+
 	// write message to packet and check for overflow
 	if ( msg.IsOverflowed() )
 	{
