@@ -1025,7 +1025,7 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 		auto flDiff = flInterpolatedClientTime - flInterpolatedServerTime;
 
 		// TODO_ENHANCED: fix the case when a player spawn, interpolation is disabled. maybe add to simulation data is_interpolated and set frac to 0 ?
-		if ( flClientStart == flClientEnd || flTargetTime == flClientStart || flTargetTime == flClientEnd )
+		if ( flClientStart == flClientEnd )
 		{
 			result += "where client disabled interpolation or doesn't have enough history (could be a full entity update, spawn, etc ...) ";
 		}
@@ -1047,6 +1047,9 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 				  + " ] |";
 		result += " client interval = [ " + std::to_string( flClientStart ) + ", " + std::to_string( flClientEnd )
 				  + " ]";
+		result += " interpolation type: "
+				  + std::string( m_LagPlayer->m_iCurrentInterpolationType == CInterpolationType::LINEAR ? "linear" :
+																										  "hermite" );
 
 		if ( bIsAnError )
 		{
