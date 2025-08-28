@@ -694,8 +694,8 @@ void CClientState::Clear( void )
 #endif
 	cdtrack = 0;
 	V_memset( serverMD5.bits, 0, MD5_DIGEST_LENGTH );
-	m_nLastCmdSequenceAck = 0;
-	m_nCmdSequenceAck = 0;
+	m_nCmdSequencesAck = 0;
+	m_nLastCmdSequencesAck = 0;
 	m_nSoundSequence = 0;
 
 	// make sure the client isn't active anymore, but stay

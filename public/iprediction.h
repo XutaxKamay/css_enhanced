@@ -45,9 +45,9 @@ public:
 
 	// We are about to get a network update from the server.  We know the update #, so we can pull any
 	//  data purely predicted on the client side and transfer it to the new from data state.
-	virtual void	PreEntityPacketReceived( int commands_acknowledged ) = 0;
+	virtual void	PreEntityPacketReceived( int nCmdSequencesAck ) = 0;
 	virtual void	PostEntityPacketReceived( void ) = 0;
-	virtual void	PostNetworkDataReceived( int commands_acknowledged ) = 0;
+	virtual void	PostNetworkDataReceived( int nCmdSequencesAck ) = 0;
 
 	virtual void	OnReceivedUncompressedPacket( void ) = 0;
 

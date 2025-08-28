@@ -169,7 +169,7 @@ struct IInterpolatedVar
 	virtual void ClearHistory()														   = 0;
 	virtual void SetLooping( bool bLooping )										   = 0;
 	virtual bool IsLooping()														   = 0;
-	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
+	virtual size_t Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
 	virtual void RestoreToLastKnownValue()											   = 0;
 	virtual void SaveLastKnownValue()												   = 0;
 	virtual void DisableInterpolation()												   = 0;
@@ -287,58 +287,95 @@ class CInterpolatedVar : public IInterpolatedVar
 		return m_bLooping;
 	}
 
-	bool Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	size_t Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
-		ErrorIfNot( nAmountOfTicks >= 1 || nAmountOfTicks - 1 < MAX_HISTORY,
-					( "Need atleast 1 tick of history for CInterpolatedVar::%s", m_szDebugName.c_str() ) );
+		if ( nAmountOfTicks >= MAX_HISTORY )
+		{
+			*out = m_LastKnownValue;
+			return 0;
+		}
 
-		auto start = m_History.Get( nAmountOfTicks );
-		auto end   = m_History.Get( nAmountOfTicks - 1 );
+		T* start = NULL;
+		T* end	 = NULL;
+
+		// Get the latest history data possible if we can't interpolate this amount
+		while ( nAmountOfTicks >= 1 )
+		{
+			start = m_History.Get( nAmountOfTicks );
+			end	  = m_History.Get( nAmountOfTicks - 1 );
+
+			if ( start && end )
+			{
+				break;
+			}
+
+			// Keep searching in history
+			nAmountOfTicks--;
+		}
 
 		if ( !start || !end )
 		{
-			return false;
+			return 0;
 		}
 
 		*out = ::Interpolate_Linear( flInterpolationAmountFrac, *start, *end, m_bLooping );
 
-		return true;
+		return nAmountOfTicks;
 	}
 
-	bool Interpolate_Hermite( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	size_t Interpolate_Hermite( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
-		ErrorIfNot( nAmountOfTicks >= 2 || nAmountOfTicks - 2 < MAX_HISTORY,
-					( "Need atleast 2 ticks of history for CInterpolatedVar::%s", m_szDebugName.c_str() ) );
+		if ( nAmountOfTicks >= MAX_HISTORY )
+		{
+			*out = m_LastKnownValue;
+			return 0;
+		}
 
-		auto prev  = m_History.Get( nAmountOfTicks );
-		auto start = m_History.Get( nAmountOfTicks - 1 );
-		auto end   = m_History.Get( nAmountOfTicks - 2 );
+		T* prev	 = NULL;
+		T* start = NULL;
+		T* end	 = NULL;
+
+		// Get the latest history data possible if we can't interpolate this amount
+		while ( nAmountOfTicks >= 2 )
+		{
+			prev  = m_History.Get( nAmountOfTicks );
+			start = m_History.Get( nAmountOfTicks - 1 );
+			end	  = m_History.Get( nAmountOfTicks - 2 );
+
+			if ( prev && start && end )
+			{
+				break;
+			}
+
+			// Keep searching in history
+			nAmountOfTicks--;
+		}
 
 		if ( !prev || !start || !end )
 		{
-			return false;
+			return 0;
 		}
 
 		*out = ::Interpolate_Hermite( flInterpolationAmountFrac, *prev, *start, *end, m_bLooping );
 
-		return true;
+		return nAmountOfTicks;
 	}
 
-	bool InterpolateCopy( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	size_t InterpolateCopy( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
-		bool bResult = false;
+		size_t result = 0;
 
 		switch ( m_InterpolationType )
 		{
 			case CInterpolationType::LINEAR:
 			{
-				bResult = Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
+				result = Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
 				break;
 			}
 
 			case CInterpolationType::HERMITE:
 			{
-				bResult = Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out );
+				result = Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out );
 				break;
 			}
 
@@ -349,14 +386,14 @@ class CInterpolatedVar : public IInterpolatedVar
 			}
 		}
 
-		return bResult;
+		return result;
 	}
 
-	virtual bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
+	virtual size_t Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
 	{
 		if ( !IsInterpolationEnabled() || !IsEnabled() )
 		{
-			return false;
+			return 0;
 		}
 
 		return InterpolateCopy( nAmountOfTicks, flInterpolationAmountFrac, m_pReferencedVariable );
@@ -587,7 +624,7 @@ struct CInterpolatedVarList
 
 		for ( auto&& variable : variables )
 		{
-			if ( !variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ) )
+			if ( variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ) > 0 )
 			{
 				bCouldInterpolate = false;
 			}

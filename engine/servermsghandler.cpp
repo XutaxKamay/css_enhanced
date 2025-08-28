@@ -809,8 +809,7 @@ bool CClientState::ProcessEntityMessage(SVC_EntityMessage *msg)
 
 bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 {
-	m_nCmdSequenceAck	 = msg->m_nLastCmdSequence;
-	bool bShouldCallPost = false;
+	m_nCmdSequencesAck	 = msg->m_nLastCmdSequence;
 
 	auto DoProcessPacketEntities = [&]()
 	{
@@ -838,7 +837,6 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 			// Preprocessing primarily does client prediction. So if we're processing deltas--do it
 			// otherwise, we're about to be told exactly what the state of everything is--so skip it.
 			CL_PreprocessEntities(); // setup client prediction
-			bShouldCallPost = true;
 		}
 
 		TRACE_PACKET( ( "CL Receive (%d <-%d)\n", m_nCurrentSequence, msg->m_nDeltaFrom ) );
@@ -865,17 +863,10 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 
 	auto ret = DoProcessPacketEntities();
 
-	// How many commands total did we run this frame
-	int commands_acknowledged = m_nCmdSequenceAck - m_nLastCmdSequenceAck;
+	// Let prediction copy off pristine data and report any errors, etc.
+	g_pClientSidePrediction->PostNetworkDataReceived( m_nCmdSequencesAck );
 
-	// Highest command parsed from messages
-	m_nLastCmdSequenceAck = m_nCmdSequenceAck;
-
-	if ( bShouldCallPost )
-	{
-		// Let prediction copy off pristine data and report any errors, etc.
-		g_pClientSidePrediction->PostNetworkDataReceived( commands_acknowledged );
-	}
+	m_nLastCmdSequencesAck = m_nCmdSequencesAck;
 
 	return ret;
 }

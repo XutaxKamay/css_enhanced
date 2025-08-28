@@ -212,7 +212,7 @@ void CPDumpPanel::PredictionDumpColor( bool networked, bool errorchecked, bool d
 // Input  : *ent - 
 //			last_predicted - 
 //-----------------------------------------------------------------------------
-void CPDumpPanel::DumpEntity( C_BaseEntity *ent, int commands_acknowledged )
+void CPDumpPanel::DumpEntity( C_BaseEntity *ent, int nCmdSequencesAck )
 {
 	if ( IsXbox() )
 	{
@@ -233,7 +233,7 @@ void CPDumpPanel::DumpEntity( C_BaseEntity *ent, int commands_acknowledged )
 	if ( ent->GetPredictable() )
 	{
 		original_state_data		= ent->GetOriginalNetworkDataObject();	
-		predicted_state_data	= ent->GetPredictedFrame( commands_acknowledged - 1 );	
+		predicted_state_data	= ent->GetPredictedFrame( nCmdSequencesAck );	
 	}
 	else
 	{

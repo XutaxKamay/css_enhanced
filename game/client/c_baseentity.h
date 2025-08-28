@@ -763,7 +763,6 @@ public:
 
 	void							AllocateIntermediateData( void );
 	void							DestroyIntermediateData( void );
-	void							ShiftIntermediateDataForward( int slots_to_remove, int previous_last_slot );
 
 	void							*GetPredictedFrame( int framenumber );
 	void							*GetOriginalNetworkDataObject( void );
@@ -774,9 +773,9 @@ public:
 
 	virtual void					SetPredictable( bool state );
 	bool							GetPredictable( void ) const;
-	void							PreEntityPacketReceived( int commands_acknowledged );
+	void							PreEntityPacketReceived( int nCmdSequencesAck );
 	void							PostEntityPacketReceived( void );
-	bool							PostNetworkDataReceived( int commands_acknowledged );
+	bool							PostNetworkDataReceived( int nCmdSequencesAck );
 	bool							GetPredictionEligible( void ) const;
 	void							SetPredictionEligible( bool canpredict );
 

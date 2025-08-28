@@ -714,7 +714,7 @@ void CL_PreprocessEntities( void )
 {
 	// Zero latency!!! (single player or listen server?)
 	bool bIsUsingMultiplayerNetworking = NET_IsMultiplayer();
-	bool bLastOutgoingCommandEqualsLastAcknowledgedCommand = cl.lastoutgoingcommand == cl.m_nCmdSequenceAck;
+	bool bLastOutgoingCommandEqualsLastAcknowledgedCommand = cl.lastoutgoingcommand == cl.m_nCmdSequencesAck;
 
 	// We always want to re-run prediction when using the multiplayer networking, or if we're the listen server and we get a packet
 	//  before any frames have run
@@ -731,8 +731,6 @@ void CL_PreprocessEntities( void )
 	// Anything not sent over the network from server to client must be specified here.
 	//if ( cl.last_command_ack  )
 	{
-		int number_of_commands_executed = ( cl.m_nCmdSequenceAck - cl.m_nLastCmdSequenceAck );
-
 #if 0
 		COM_Log( "cl.log", "Receiving frame acknowledging %i commands\n",
 			number_of_commands_executed );
@@ -748,7 +746,7 @@ void CL_PreprocessEntities( void )
 #endif
 
 		// Copy last set of changes right into current frame.
-		g_pClientSidePrediction->PreEntityPacketReceived( number_of_commands_executed );
+		g_pClientSidePrediction->PreEntityPacketReceived( cl.m_nCmdSequencesAck );
 	}
 
 	CDebugOverlay::PurgeServerOverlays();

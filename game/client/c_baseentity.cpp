@@ -4237,31 +4237,15 @@ bool C_BaseEntity::GetPredictable( void ) const
 // Input  : copyintermediate - 
 //			last_predicted - 
 //-----------------------------------------------------------------------------
-void C_BaseEntity::PreEntityPacketReceived( int commands_acknowledged )					
+void C_BaseEntity::PreEntityPacketReceived( int nCmdSequencesAck )					
 {				
 #if !defined( NO_ENTITY_PREDICTION )
-	// Don't need to copy intermediate data if server did ack any new commands
-	bool copyintermediate = ( commands_acknowledged > 0 ) ? true : false;
-
 	Assert( GetPredictable() );
 	Assert( cl_predict->GetInt() );
 
 	// First copy in any intermediate predicted data for non-networked fields
-	if ( copyintermediate )
-	{
-		RestoreData( "PreEntityPacketReceived", commands_acknowledged - 1, PC_NON_NETWORKED_ONLY );
-		RestoreData( "PreEntityPacketReceived", SLOT_ORIGINALDATA, PC_NETWORKED_ONLY );
-	}
-	else
-	{
-		RestoreData( "PreEntityPacketReceived(no commands ack)", SLOT_ORIGINALDATA, PC_EVERYTHING );
-	}
-
-	// At this point the entity has original network data restored as of the last time the 
-	// networking was updated, and it has any intermediate predicted values properly copied over
-	// Unpacked and OnDataChanged will fill in any changed, networked fields.
-
-	// That networked data will be copied forward into the starting slot for the next prediction round
+	RestoreData( "PreEntityPacketReceived", nCmdSequencesAck, PC_NON_NETWORKED_ONLY );
+	RestoreData( "PreEntityPacketReceived", SLOT_ORIGINALDATA, PC_NETWORKED_ONLY );
 #endif
 }	
 
@@ -4290,15 +4274,13 @@ void C_BaseEntity::PostEntityPacketReceived( void )
 // Input  : errorcheck - 
 //			last_predicted - 
 //-----------------------------------------------------------------------------
-bool C_BaseEntity::PostNetworkDataReceived( int commands_acknowledged )
+bool C_BaseEntity::PostNetworkDataReceived( int nCmdSequencesAck )
 {
 	bool haderrors = false;
 #if !defined( NO_ENTITY_PREDICTION )
 	Assert( GetPredictable() );
 
-	bool errorcheck = ( commands_acknowledged > 0 ) ? true : false;
-
-	// Store network data into post networking pristine state slot (slot 64) 
+	// Store network data into post networking pristine state slot (slot 64)
 	SaveData( "PostNetworkDataReceived", SLOT_ORIGINALDATA, PC_EVERYTHING );
 
 	// Show any networked fields that are different
@@ -4316,28 +4298,30 @@ bool C_BaseEntity::PostNetworkDataReceived( int commands_acknowledged )
 		}
 	}
 
-	if ( errorcheck )
+	void* predicted_state_data = GetPredictedFrame( nCmdSequencesAck );
+	Assert( predicted_state_data );
+	const void* original_state_data = GetOriginalNetworkDataObject();
+	Assert( original_state_data );
+
+	bool counterrors  = true;
+	bool reporterrors = showthis;
+	bool copydata	  = false;
+
+	CPredictionCopy errorCheckHelper( PC_NETWORKED_ONLY,
+									  predicted_state_data,
+									  PC_DATA_PACKED,
+									  original_state_data,
+									  PC_DATA_PACKED,
+									  counterrors,
+									  reporterrors,
+									  copydata );
+	// Suppress debugging output
+	int ecount = errorCheckHelper.TransferData( "", -1, GetPredDescMap() );
+	if ( ecount > 0 )
 	{
-		void *predicted_state_data = GetPredictedFrame( commands_acknowledged - 1 );	
-		Assert( predicted_state_data );												
-		const void *original_state_data = GetOriginalNetworkDataObject();
-		Assert( original_state_data );
-
-		bool counterrors = true;
-		bool reporterrors = showthis;
-		bool copydata	= false;
-
-		CPredictionCopy errorCheckHelper( PC_NETWORKED_ONLY, 
-			predicted_state_data, PC_DATA_PACKED, 
-			original_state_data, PC_DATA_PACKED, 
-			counterrors, reporterrors, copydata );
-		// Suppress debugging output
-		int ecount = errorCheckHelper.TransferData( "", -1, GetPredDescMap() );
-		if ( ecount > 0 )
-		{
-			haderrors = true;
-		//	Msg( "%i errors %i on entity %i %s\n", gpGlobals->tickcount, ecount, index, IsClientCreated() ? "true" : "false" );
-		}
+		haderrors = true;
+		//	Msg( "%i errors %i on entity %i %s\n", gpGlobals->tickcount, ecount, index, IsClientCreated() ? "true" :
+		//"false" );
 	}
 #endif
 	return haderrors;
@@ -4829,46 +4813,6 @@ void C_BaseEntity::DestroyIntermediateData( void )
 	m_pOriginalData = NULL;
 
 	m_nIntermediateDataCount = 0;
-#endif
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : slots_to_remove - 
-//			number_of_commands_run - 
-//-----------------------------------------------------------------------------
-void C_BaseEntity::ShiftIntermediateDataForward( int slots_to_remove, int number_of_commands_run )
-{
-#if !defined( NO_ENTITY_PREDICTION )
-	Assert( m_pIntermediateData );
-	if ( !m_pIntermediateData )
-		return;
-
-	Assert( number_of_commands_run >= slots_to_remove );
-
-	// Just moving pointers, yeah
-	CUtlVector< unsigned char * > saved;
-
-	// Remember first slots
-	int i = 0;
-	for ( ; i < slots_to_remove; i++ )
-	{
-		saved.AddToTail( m_pIntermediateData[ i ] );
-	}
-
-	// Move rest of slots forward up to last slot
-	for ( ; i < number_of_commands_run; i++ )
-	{
-		m_pIntermediateData[ i - slots_to_remove ] = m_pIntermediateData[ i ];
-	}
-
-	// Put remembered slots onto end
-	for ( i = 0; i < slots_to_remove; i++ )
-	{
-		int slot = number_of_commands_run - slots_to_remove + i;
-
-		m_pIntermediateData[ slot ] = saved[ i ];
-	}
 #endif
 }
 

@@ -107,8 +107,6 @@ CPrediction::CPrediction( void )
 
 	m_nPreviousStartFrame = -1;
 
-	m_nCommandsPredicted = 0;
-	m_nServerCommandsAcknowledged = 0;
 	m_bPreviousAckHadErrors = false;
 
 	for (int i = 0; i < MULTIPLAYER_BACKUP; i++)
@@ -141,7 +139,7 @@ void CPrediction::Shutdown( void )
 // Purpose: 
 //-----------------------------------------------------------------------------
 
-void CPrediction::CheckError( int commands_acknowledged )
+void CPrediction::CheckError( int nCmdSequencesAck )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	C_BasePlayer	*player;
@@ -168,7 +166,7 @@ void CPrediction::CheckError( int commands_acknowledged )
 
 	origin = player->GetNetworkOrigin();
 		
-	const void *slot = player->GetPredictedFrame( commands_acknowledged - 1 );
+	const void *slot = player->GetPredictedFrame( nCmdSequencesAck );
 	if ( !slot )
 		return;
 
@@ -292,24 +290,22 @@ void CPrediction::ReinitPredictables( void )
 void CPrediction::OnReceivedUncompressedPacket( void )
 {
 #if !defined( NO_ENTITY_PREDICTION )
-	m_nCommandsPredicted = 0;
-	m_nServerCommandsAcknowledged = 0;
 	m_nPreviousStartFrame = -1;
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
-// Input  : commands_acknowledged - 
+// Input  : nCmdSequencesAck - 
 //			current_world_update_packet - 
 // Output : void CPrediction::PreEntityPacketReceived
 //-----------------------------------------------------------------------------
-void CPrediction::PreEntityPacketReceived ( int commands_acknowledged )
+void CPrediction::PreEntityPacketReceived ( int nCmdSequencesAck )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 #if defined( _DEBUG )
 	char sz[ 32 ];
-	Q_snprintf( sz, sizeof( sz ), "preentitypacket%d", commands_acknowledged );
+	Q_snprintf( sz, sizeof( sz ), "preentitypacket%d", nCmdSequencesAck );
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
 #endif
 	VPROF( "CPrediction::PreEntityPacketReceived" );
@@ -339,7 +335,7 @@ void CPrediction::PreEntityPacketReceived ( int commands_acknowledged )
 		if ( !ent->GetPredictable() )
 			continue;
 
-		ent->PreEntityPacketReceived( commands_acknowledged );
+		ent->PreEntityPacketReceived( nCmdSequencesAck );
 	}
 #endif
 }
@@ -425,15 +421,14 @@ bool CPrediction::ShouldDumpEntity( C_BaseEntity *ent )
 // Input  : error_check - 
 //			last_predicted - 
 //-----------------------------------------------------------------------------
-void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
+void CPrediction::PostNetworkDataReceived( int nCmdSequencesAck )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::PostNetworkDataReceived" );
 
-	bool error_check = ( commands_acknowledged > 0 ) ? true : false;
 #if defined( _DEBUG )
 	char sz[ 32 ];
-	Q_snprintf( sz, sizeof( sz ), "postnetworkdata%d", commands_acknowledged );
+	Q_snprintf( sz, sizeof( sz ), "postnetworkdata%d", nCmdSequencesAck );
 	PREDICTION_TRACKVALUECHANGESCOPE( sz );
 #endif
 #ifndef _XBOX
@@ -442,9 +437,8 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 	//Msg( "%i/%i ack %i commands/slot\n",
 	//	gpGlobals->framecount,
 	//	gpGlobals->tickcount,
-	//	commands_acknowledged - 1 );
+	//	nCmdSequencesAck - 1 );
 
-	m_nServerCommandsAcknowledged += commands_acknowledged;
 	m_bPreviousAckHadErrors = false;
 
 	bool entityDumped = false;
@@ -480,7 +474,7 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 
 			if ( ent->GetPredictable() )
 			{
-				if ( ent->PostNetworkDataReceived( m_nServerCommandsAcknowledged ) )
+				if ( ent->PostNetworkDataReceived( nCmdSequencesAck ) )
 				{
 					m_bPreviousAckHadErrors = true;
 				}
@@ -524,13 +518,12 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 				}
 			}
 #ifndef _XBOX
-			if ( error_check && 
-				!entityDumped &&
+			if (!entityDumped &&
 				dump &&
 				ShouldDumpEntity( ent ) )
 			{
 				entityDumped = true;
-				dump->DumpEntity( ent, m_nServerCommandsAcknowledged );
+				dump->DumpEntity( ent, nCmdSequencesAck );
 			}
 #endif
 		}
@@ -562,16 +555,13 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 			}
 		}
 
-		if ( error_check )
-		{
-			CheckError( m_nServerCommandsAcknowledged );
-		}
+		CheckError( nCmdSequencesAck );
 	}
 
 	// Can also look at regular entities
 #ifndef _XBOX
 	int dumpentindex = cl_predictionentitydump.GetInt();
-	if ( dump && error_check && !entityDumped && dumpentindex != -1 )
+	if ( dump && !entityDumped && dumpentindex != -1 )
 	{
 		int last_entity = ClientEntityList().GetHighestEntityIndex();
 		if ( dumpentindex >= 0 && dumpentindex <= last_entity )
@@ -579,7 +569,7 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 			C_BaseEntity *ent = ClientEntityList().GetBaseEntity( dumpentindex );
 			if ( ent )
 			{
-				dump->DumpEntity( ent, m_nServerCommandsAcknowledged );
+				dump->DumpEntity( ent, nCmdSequencesAck );
 				entityDumped = true;
 			}
 		}
@@ -592,19 +582,20 @@ void CPrediction::PostNetworkDataReceived( int commands_acknowledged )
 			ReinitPredictables();
 		}
 
-		m_nCommandsPredicted = 0;
-		m_nServerCommandsAcknowledged = 0;
 		m_nPreviousStartFrame = -1;
 	}
 
 	m_bOldCLPredictValue = cl_predict->GetInt();
 
 #ifndef _XBOX
-	if ( dump && error_check && !entityDumped )
+	if ( dump && !entityDumped )
 	{
 		dump->Clear();
 	}
 #endif
+
+	// Override prediction results with server data, always trust the server no matter what.
+	StorePredictionResults( nCmdSequencesAck );
 #endif
 
 }
@@ -1342,11 +1333,6 @@ void CPrediction::RestorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
-	if ( m_nCommandsPredicted == 0 )
-	{
-		return;
-	}
-
 	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
@@ -1542,44 +1528,6 @@ void CPrediction::StorePredictionResults( int predicted_frame )
 }
 
 
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : slots_to_remove - 
-//			previous_last_slot - 
-//-----------------------------------------------------------------------------
-void CPrediction::ShiftIntermediateDataForward( int slots_to_remove, int number_of_commands_run )
-{
-#if !defined( NO_ENTITY_PREDICTION )
-	VPROF( "CPrediction::ShiftIntermediateDataForward" );
-	PREDICTION_TRACKVALUECHANGESCOPE( "shift" );
-
-	C_BasePlayer *current = C_BasePlayer::GetLocalPlayer();
-	// No local player object?
-	if ( !current )
-		return;
-
-	// Don't screw up memory of current player from history buffers if not filling in history buffers
-	//  during prediction!!!
-	if ( !cl_predict->GetInt() )
-		return;
-
-	int c = predictables->GetPredictableCount();
-	int i;
-	for ( i = 0; i < c; i++ )
-	{
-		C_BaseEntity *ent = predictables->GetPredictable( i );
-		if ( !ent )
-			continue;
-
-		if ( !ent->GetPredictable() )
-			continue;
-
-		ent->ShiftIntermediateDataForward( slots_to_remove, number_of_commands_run );
-	}
-#endif
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : predicted_frame - 
@@ -1625,98 +1573,62 @@ void CPrediction::RestoreEntityToPredictedFrame( int predicted_frame )
 //-----------------------------------------------------------------------------
 int CPrediction::ComputeFirstCommandToExecute( bool received_new_world_update, int incoming_acknowledged, int outgoing_command )
 {
-	int destination_slot = 1;
+	// Always skip the first command.
+	int skip = 1;
+
 #if !defined( NO_ENTITY_PREDICTION )
-	int skipahead = 0;
-
-	// If we didn't receive a new update ( or we received an update that didn't ack any new CUserCmds -- 
-	//  so for the player it should be just like receiving no update ), just jump right up to the very 
-	//  last command we created for this very frame since we probably wouldn't have had any errors without 
-	//  being notified by the server of such a case.
-	// NOTE:  received_new_world_update only gets set to false if cl_pred_optimize >= 1
-	if ( !received_new_world_update || !m_nServerCommandsAcknowledged )
+	if ( m_bPreviousAckHadErrors || received_new_world_update )
 	{
-		// this is where we would normally start
-		int start = incoming_acknowledged + 1;
-		// outgoing_command is where we really want to start
-		skipahead = MAX( 0, ( outgoing_command - start ) );
-		// Don't start past the last predicted command, though, or we'll get prediction errors
-		skipahead = MIN( skipahead, m_nCommandsPredicted  );
-
-		// Always restore since otherwise we might start prediction using an "interpolated" value instead of a purely predicted value
-		RestoreEntityToPredictedFrame( skipahead - 1 );
-
-		//Msg( "%i/%i no world, skip to %i restore from slot %i\n", 
-		//	gpGlobals->framecount,
-		//	gpGlobals->tickcount,
-		//	skipahead,
-		//	skipahead - 1 );
+		// If we had any prediction error or world update, just rollback to the lastest value we know from the server.
+		RestoreEntityToPredictedFrame( incoming_acknowledged );
 	}
 	else
 	{
-		// Otherwise, there is a second optimization, wherein if we did receive an update, but no
-		//  values differed (or were outside their epsilon) and the server actually acknowledged running
-		//  one or more commands, then we can revert the entity to the predicted state from last frame, 
-		//  shift the # of commands worth of intermediate state off of front the intermediate state array, and
-		//  only predict the usercmd from the latest render frame.
-		if ( cl_pred_optimize.GetInt() >= 2 && 
-			!m_bPreviousAckHadErrors && 
-			m_nCommandsPredicted > 0 && 
-			m_nServerCommandsAcknowledged <= m_nCommandsPredicted )
+		// Skip already predicted commands
+		if ( cl_pred_optimize.GetInt() >= 2 )
 		{
-			// Copy all of the previously predicted data back into entity so we can skip repredicting it
-			// This is the final slot that we previously predicted
-			RestoreEntityToPredictedFrame( m_nCommandsPredicted - 1 );
-
-			// Shift intermediate state blocks down by # of commands ack'd
-			ShiftIntermediateDataForward( m_nServerCommandsAcknowledged, m_nCommandsPredicted );
-			
-			// Only predict new commands (note, this should be the same number that we could compute
-			//  above based on outgoing_command - incoming_acknowledged - 1
-			skipahead = ( m_nCommandsPredicted - m_nServerCommandsAcknowledged );
-
-			//Msg( "%i/%i optimize2, skip to %i restore from slot %i\n", 
-			//	gpGlobals->framecount,
-			//	gpGlobals->tickcount,
-			//	skipahead,
-			//	m_nCommandsPredicted - 1 );
-		}
-		else
-		{
-			if ( m_bPreviousAckHadErrors )
+			while ( true )
 			{
-				C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
-				
-				// If an entity gets a prediction error, then we want to clear out its interpolated variables
-				// so we don't mix different samples at the same timestamps. We subtract 1 tick interval here because
-				// if we don't, we'll have 3 interpolation entries with the same timestamp as this predicted
-				// frame, so we won't be able to interpolate (which leads to jerky movement in the player when
-				// ANY entity like your gun gets a prediction error).
-				float flPrev = gpGlobals->curtime;
-				gpGlobals->curtime = pLocalPlayer->GetTimeBase() - TICK_INTERVAL;
-				
-				for ( int i = 0; i < predictables->GetPredictableCount(); i++ )
+				// Skip the first command.
+				int current_command = incoming_acknowledged + skip;
+
+				// We've caught up to the current command.
+				if ( current_command > outgoing_command )
 				{
-					C_BaseEntity *entity = predictables->GetPredictable( i );
-					if ( entity )
-					{
-						entity->ResetLatched();
-					}
+					break;
 				}
 
-				gpGlobals->curtime = flPrev;
+				// Can't skip more.
+				if ( skip >= MULTIPLAYER_BACKUP )
+				{
+					break;
+				}
+
+				auto cmd = input->GetUserCmd( current_command );
+
+				if ( !cmd )
+				{
+					break;
+				}
+
+				// If it hasn't been predicted yet, it means that future commands aren't also predicted, we need to
+				// predict from here.
+				if ( !cmd->hasbeenpredicted )
+				{
+					break;
+				}
+
+				skip++;
 			}
 		}
+
+		RestoreEntityToPredictedFrame( incoming_acknowledged + skip - 1 );
 	}
 
-	destination_slot += skipahead;
-
-	// Always reset these values now that we handled them
-	m_nCommandsPredicted			= 0;
-	m_bPreviousAckHadErrors			= false;
-	m_nServerCommandsAcknowledged	= 0;
+	m_bPreviousAckHadErrors = false;
 #endif
-	return destination_slot;
+
+	return skip;
 }
 
 //-----------------------------------------------------------------------------
@@ -1783,15 +1695,13 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 			break;	
 		}
 
-        m_nCommandsPredicted = i;
-
 		// Is this the first time predicting this
 		m_bFirstTimePredicted = !cmd->hasbeenpredicted;
 
 		// Set globals appropriately
 		float curtime		= ( localPlayer->m_nTickBase ) * TICK_INTERVAL;
 
-        RestorePredictedTouched( current_command - 1 );
+		RestorePredictedTouched( current_command - 1 );
 
 		RunSimulation( current_command, curtime, cmd, localPlayer );
 
@@ -1805,7 +1715,7 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 		StorePredictedTouched( current_command );
 
 		// Store intermediate data into appropriate slot
-		StorePredictionResults( i - 1 ); // Note that I starts at 1
+		StorePredictionResults( current_command ); // Note that I starts at 1
 
 		if ( current_command == outgoing_command )
 		{

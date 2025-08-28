@@ -1310,8 +1310,18 @@ write_again:
 		VPROF_BUDGET( "SendSnapshot Transmit Delta", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
 		// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
-		bSendOK = m_NetChannel->SendDatagram( &msg ) > 0;
+		bSendOK = m_NetChannel->SendReliableIMMM( msg );
 	}
+
+	// TODO_ENHANCED:
+	// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence
+	// numbers for user commands) we still need to send some (fake) data to client.
+	char buffer[32];
+	bf_write nopBuffer( buffer, sizeof( buffer ) );
+
+	nopBuffer.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+
+	bSendOK = bSendOK && m_NetChannel->SendDatagram( &nopBuffer ) > 0;
 
 	if ( bSendOK )
 	{

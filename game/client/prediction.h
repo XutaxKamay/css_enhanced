@@ -55,9 +55,9 @@ public:
 
 	virtual void	OnReceivedUncompressedPacket( void );
 
-	virtual void	PreEntityPacketReceived( int commands_acknowledged );
+	virtual void	PreEntityPacketReceived( int nCmdSequencesAck );
 	virtual void	PostEntityPacketReceived( void );
-	virtual void	PostNetworkDataReceived( int commands_acknowledged );
+	virtual void	PostNetworkDataReceived( int nCmdSequencesAck );
 
 	virtual bool	InPrediction( void ) const;
 	virtual bool	IsFirstTimePredicted( void ) const;
@@ -84,7 +84,7 @@ protected:
 	virtual void	FinishMove( C_BasePlayer *player, CUserCmd *ucmd, CMoveData *move );
 	virtual void	SetIdealPitch ( C_BasePlayer *player, const Vector& origin, const QAngle& angles, const Vector& viewheight );
 
-	void			CheckError( int commands_acknowledged );
+	void			CheckError( int nCmdSequencesAck );
 
 	// Called before and after any movement processing
 	void			StartCommand( C_BasePlayer *player, CUserCmd *cmd );
@@ -109,11 +109,10 @@ private:
 	// Actually does the prediction work, returns false if an error occurred
 	bool			PerformPrediction( bool received_new_world_update, C_BasePlayer *localPlayer, int incoming_acknowledged, int outgoing_command );
 
-	void			ShiftIntermediateDataForward( int slots_to_remove, int previous_last_slot );
 	void			RestoreEntityToPredictedFrame( int predicted_frame );
 	int				ComputeFirstCommandToExecute( bool received_new_world_update, int incoming_acknowledged, int outgoing_command );
 
-	void			DumpEntity( C_BaseEntity *ent, int commands_acknowledged );
+	void			DumpEntity( C_BaseEntity *ent, int nCmdSequencesAck );
 
 	void			ShutdownPredictables( void );
 	void			ReinitPredictables( void );
@@ -142,9 +141,6 @@ private:
 
 	// Last network origin for local player
 	int				m_nPreviousStartFrame;
-
-	int				m_nCommandsPredicted;
-	int				m_nServerCommandsAcknowledged;
 	int				m_bPreviousAckHadErrors;
 
 #endif

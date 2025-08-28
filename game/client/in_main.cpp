@@ -1284,28 +1284,35 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		auto pflSimulationTime = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
-		auto pflAnimTime	   = pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks );
+		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
 
-		cmd->simulationdata[i].sim_time	 = pflSimulationTime ? *pflSimulationTime : pEntity->m_iv_flSimulationTime.GetLastKnownValue();
+		auto nRealInterpolationAmountSim = pEntity->m_iv_flSimulationTime.Interpolate( nInterpolationAmountOfTicks,
+																					   flInterpolationAmountFrac );
+
+		auto nRealInterpolationAmountAnim = pEntity->m_iv_flAnimTime.Interpolate( nInterpolationAmountOfTicks,
+																				  flInterpolationAmountFrac );
+
+		auto pflSimulationTime = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim );
+		auto pflAnimTime	   = pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim );
+
+		cmd->simulationdata[i].sim_time	 = pflSimulationTime ? *pflSimulationTime :
+															   pEntity->m_iv_flSimulationTime.GetLastKnownValue();
 		cmd->simulationdata[i].anim_time = pflAnimTime ? *pflAnimTime : pEntity->m_iv_flAnimTime.GetLastKnownValue();
 
 		// Debugging purpose
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
-
 		cmd->simulationdata[i].interpolated_sim_time  = pEntity->m_flInterpolatedAnimTime;
 		cmd->simulationdata[i].interpolated_anim_time = pEntity->m_flInterpolatedSimulationTime;
 
-		auto pSimStart = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks );
-		auto pSimEnd   = pEntity->m_iv_flSimulationTime.Get( nInterpolationAmountOfTicks - 1 );
+		auto pSimStart = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim );
+		auto pSimEnd   = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim - 1 );
 
 		cmd->simulationdata[i].start_sim_time = pSimStart ? *pSimStart :
 															pEntity->m_iv_flSimulationTime.GetLastKnownValue();
 		cmd->simulationdata[i].end_sim_time	  = pSimEnd ? *pSimEnd : pEntity->m_iv_flSimulationTime.GetLastKnownValue();
 
-		auto pAnimStart = pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks );
-		auto pAnimEnd	= pEntity->m_iv_flAnimTime.Get( nInterpolationAmountOfTicks - 1 );
+		auto pAnimStart = pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim );
+		auto pAnimEnd	= pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim - 1 );
 
 		cmd->simulationdata[i].start_anim_time = pAnimStart ? *pAnimStart :
 															  pEntity->m_iv_flAnimTime.GetLastKnownValue();

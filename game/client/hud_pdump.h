@@ -43,7 +43,7 @@ public:
 
 	// Remove dump info
 	void		Clear();
-	void		DumpEntity( C_BaseEntity *ent, int commands_acknowledged );
+	void		DumpEntity( C_BaseEntity *ent, int nCmdSequencesAck );
 
 	void DumpComparision( const char *classname, const char *fieldname, const char *fieldtype,
 		bool networked, bool noterrorchecked, bool differs, bool withintolerance, const char *value );
