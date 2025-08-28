@@ -658,6 +658,11 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	ParticleProp()->Init( this );
+
+	m_flOldSimulationTime = 0;
+	m_flOldAnimTime = 0;
+	m_flInterpolatedSimulationTime = 0;
+	m_flInterpolatedAnimTime = 0;
 }
 
 
@@ -2250,6 +2255,15 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	// For non-predicted and non-client only ents, we need to latch network values into the interpolation histories
 	if ( !bPredictable && !IsClientCreated() )
 	{
+		// Did we went backwards ?
+		if ( m_flSimulationTime < m_flOldSimulationTime )
+		{
+			Error( "Entity %i has relled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
+				   index,
+				   m_flSimulationTime,
+				   m_flOldSimulationTime );
+		}
+
 		if ( animTimeChanged )
 		{
 			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );

@@ -127,7 +127,7 @@ inline bool CTCPQueue::Process( int hSocket )
 	}
 
 	auto nOldReceivedSize = m_ReceivedData.size();
-	m_ReceivedData.resize( m_ReceivedData.size() + NET_MAX_PAYLOAD );
+	m_ReceivedData.resize( nOldReceivedSize + NET_MAX_PAYLOAD );
 
 	auto nBytesReceived = NET_ReceiveStream( hSocket, m_ReceivedData.data() + nOldReceivedSize, NET_MAX_PAYLOAD, 0 );
 

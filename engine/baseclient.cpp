@@ -1190,7 +1190,7 @@ write_again:
 	}
 
 	// send tick time
-	NET_Tick tickmsg( g_ServerGlobalVariables.tickcount, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
+	NET_Tick tickmsg( sv.m_nTickCount, m_nClientTick, host_frametime_unbounded, host_frametime_stddeviation );
 
 	StartTrace( msg );
 
