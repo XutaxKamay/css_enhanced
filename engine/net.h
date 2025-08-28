@@ -46,6 +46,13 @@
 #define STREAM_CMD_NONE		0	// waiting for next blob
 #define STREAM_CMD_IMMM		1	// immediate message
 
+enum class STREAM_CMD_STATE
+{
+	FAILED,
+	STILL_WAITING,
+	RECEIVED_COMPLETELY,
+};
+
 // NETWORKING INFO
 // TODO_ENHANCED: Before we had little 54k modems. It's different today.
 

@@ -2738,18 +2738,56 @@ bool CNetChan::ProcessStream( void )
 	// Process some packets
 	m_TCPQueue.Process( m_StreamSocket );
 
-	auto nReceivedBytes = m_TCPQueue.m_ReceivedData.size();
+	if ( net_showtcp.GetBool() )
+	{
+		ConMsg( "CNetChan::ProcessStream: received buffer size=%i\n", m_TCPQueue.m_ReceivedData.size() );
+	}
 
-	if ( nReceivedBytes == 0 )
+	if ( m_TCPQueue.m_ReceivedData.size() == 0 )
 	{
 		// Nothing received, but ok
 		return true;
 	}
 
-	auto cmd = m_TCPQueue.m_ReceivedData[0];
+	STREAM_CMD_STATE state;
 
+	// Force messages to complete, we don't want a buffer that keeps increasing, do it at least once.
+	do
+	{
+		auto cmd = m_TCPQueue.m_ReceivedData[0];
+
+		switch ( cmd )
+		{
+			case STREAM_CMD_IMMM:
+			{
+				state = ProcessIMMM();
+				break;
+			}
+
+				// TODO_ENHANCED: make huge data fragments work too.
+				// case STREAM_CMD_DATA:
+
+			default:
+			{
+				ConMsg( "CNetChan::ProcessStream unknown cmd: %i\n", cmd );
+				state = STREAM_CMD_STATE::FAILED;
+			}
+		}
+
+		if ( state == STREAM_CMD_STATE::FAILED )
+		{
+			return false;
+		}
+	}
+	while ( state == STREAM_CMD_STATE::RECEIVED_COMPLETELY );
+
+	return true;
+}
+
+STREAM_CMD_STATE CNetChan::ProcessIMMM( void )
+{
 	// Immediate data, svc_PacketEntities and others, should be with small sizes but fast.
-	if ( cmd == STREAM_CMD_IMMM && m_TCPQueue.m_ReceivedData.size() >= 1 + IMMMHeaderSize )
+	if ( m_TCPQueue.m_ReceivedData.size() >= 1 + IMMMHeaderSize )
 	{
 		// skip cmd
 		bf_read IMMMHeader( "STREAM_IMMM_HEADER", m_TCPQueue.m_ReceivedData.data() + 1, IMMMHeaderSize );
@@ -2765,7 +2803,7 @@ bool CNetChan::ProcessStream( void )
 		// Wait until we get enough data.
 		if ( m_TCPQueue.m_ReceivedData.size() < nNetworkSize )
 		{
-			return true;
+			return STREAM_CMD_STATE::STILL_WAITING;
 		}
 
 		if ( net_showtcp.GetInt() )
@@ -2775,7 +2813,7 @@ bool CNetChan::ProcessStream( void )
 					bWantsDecompression ? " compressed" : "",
 					nNetworkSize );
 		}
-	
+
 		char* pCurrentBuffer = NULL;
 
 		if ( bWantsDecompression )
@@ -2784,11 +2822,14 @@ bool CNetChan::ProcessStream( void )
 			uint32 nBufferSize = sizeof( dcBuffer );
 
 			// skip cmd and header
-			if ( !COM_BufferToBufferDecompress( dcBuffer, &nBufferSize, m_TCPQueue.m_ReceivedData.data() + 1 + IMMMHeaderSize, nCompressedSize ) )
+			if ( !COM_BufferToBufferDecompress( dcBuffer,
+												&nBufferSize,
+												m_TCPQueue.m_ReceivedData.data() + 1 + IMMMHeaderSize,
+												nCompressedSize ) )
 			{
 				CloseStreamingSocket();
 				ConMsg( "CNetChan::ProcessStream: failed to dcompress stream IMMM data\n" );
-				return false;
+				return STREAM_CMD_STATE::FAILED;
 			}
 
 			if ( nBufferSize != nNetMsgBytes )
@@ -2798,7 +2839,7 @@ bool CNetChan::ProcessStream( void )
 						"decompression %i != %i\n",
 						nBufferSize,
 						nNetMsgBytes );
-				return false;
+				return STREAM_CMD_STATE::FAILED;
 			}
 
 			pCurrentBuffer = dcBuffer;
@@ -2819,7 +2860,7 @@ bool CNetChan::ProcessStream( void )
 		{
 			CloseStreamingSocket();
 			ConMsg( "CNetChan::ProcessStream: failed to process IMMM\n" );
-			return false;
+			return STREAM_CMD_STATE::FAILED;
 		}
 
 		m_MessageHandler->PacketEnd();
@@ -2827,14 +2868,10 @@ bool CNetChan::ProcessStream( void )
 		// Decrease received data;
 		m_TCPQueue.Received( nNetworkSize );
 
-		return true;
+		return STREAM_CMD_STATE::RECEIVED_COMPLETELY;
 	}
 
-	// TODO_ENHANCED: Huge data fragment incoming.
-
-	ConMsg( "CNetChan::ProcessStream unknown cmd: %i\n", cmd );
-
-	return false;
+	return STREAM_CMD_STATE::STILL_WAITING;
 }
 
 int CNetChan::GetDataRate() const

@@ -185,6 +185,8 @@ public:	// INetChannel interface
 	bool		ProcessStream( void );
 	void		ProcessPacket( netpacket_t * packet, bool bHasHeader );
 
+	STREAM_CMD_STATE ProcessIMMM( void );
+
 	void		SetCompressionMode( bool bUseCompression );
 	void		SetFileTransmissionMode(bool bBackgroundMode);
 	bool		SendNetMsg( INetMessage &msg, bool bForceReliable = false, bool bVoice = false ); // send a net message
@@ -306,6 +308,7 @@ public:
 
 	int			m_Socket;   // NS_SERVER or NS_CLIENT index, depending on channel.
 	int			m_StreamSocket;	// TCP socket handle
+	size_t 		m_LastReceivedSize; // Keep data small
 
 	unsigned int m_MaxReliablePayloadSize;	// max size of reliable payload in a single packet	
 
