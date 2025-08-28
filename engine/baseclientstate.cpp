@@ -708,7 +708,9 @@ bool CBaseClientState::FullConnect( netadr_t &adr, int iServerTCPPort )
 	// Mark client as connected
 	SetSignonState( SIGNONSTATE_CONNECTED, -1 );
 #if !defined(SWDS)
-	RCONClient().SetAddress( m_NetChannel->GetRemoteAddress() );
+	auto remoteAddr = m_NetChannel->GetRemoteAddress();
+	remoteAddr.SetPort( PORT_RCON );
+	RCONClient().SetAddress( remoteAddr );
 #endif
 
 	// Fire an event when we get our connection

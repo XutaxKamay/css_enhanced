@@ -38,6 +38,29 @@
 #define SUBCHANNEL_WAITING	2   // sbuchannel sent data, waiting for ACK
 #define SUBCHANNEL_DIRTY	3	// subchannel is marked as dirty during changelevel
 
+struct CTCPQueue
+{
+	template < size_t nReservedReceiveSize = NET_MAX_PAYLOAD * 3 >
+	inline CTCPQueue()
+	{
+		m_ReceivedData.reserve( nReservedReceiveSize );
+	}
+
+	// I don't trust much CUtlVector, sorry
+	struct SendBuffer
+	{
+		std::vector< char > data;
+		int nBytesLeft;
+	};
+
+	std::queue< SendBuffer > m_SendQueue;
+	// Let's keep some data
+	std::vector<char> m_ReceivedData;
+
+	void AddToSendQueue( char* pBuffer, int nBufferSize );
+	void Received( int nBufferSize );
+	bool Process( int hSocket );
+};
 
 class CNetChan : public INetChannel
 {
@@ -80,24 +103,7 @@ private: // netchan structurs
 		}
 	};
 
-	struct CTCPQueue
-	{
-		// I don't trust much CUtlVector, sorry
-		struct SendBuffer
-		{
-			std::vector< char > data;
-			int nBytesLeft;
-		};
-
-		std::queue< SendBuffer > m_SendQueue;
-		// Let's keep some data
-		std::vector<char> m_ReceivedData;
-
-		void AddToSendQueue( char* pBuffer, int nBufferSize );
-		void Received( int nBufferSize );
-		void Process( int hSocket );
-
-	} m_TCPQueue;
+	CTCPQueue m_TCPQueue;
 
 	// Client's now store the command they sent to the server and the entire results set of
 	//  that command. 

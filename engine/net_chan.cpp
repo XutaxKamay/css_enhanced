@@ -69,7 +69,7 @@ static bool ShouldChecksumPackets()
 	return NET_IsMultiplayer();
 }
 
-inline void CNetChan::CTCPQueue::AddToSendQueue( char* pBuffer, int nBufferSize )
+inline void CTCPQueue::AddToSendQueue( char* pBuffer, int nBufferSize )
 {
 	if ( pBuffer == NULL || nBufferSize <= 0 )
 	{
@@ -85,7 +85,7 @@ inline void CNetChan::CTCPQueue::AddToSendQueue( char* pBuffer, int nBufferSize 
 	m_SendQueue.push( std::move( buffer ) );
 }
 
-inline void CNetChan::CTCPQueue::Received( int nBufferSize )
+inline void CTCPQueue::Received( int nBufferSize )
 {
 	if ( nBufferSize <= 0 || nBufferSize > m_ReceivedData.size() )
 	{
@@ -95,7 +95,7 @@ inline void CNetChan::CTCPQueue::Received( int nBufferSize )
 	m_ReceivedData.erase( m_ReceivedData.begin(), m_ReceivedData.begin() + nBufferSize );
 }
 
-inline void CNetChan::CTCPQueue::Process( int hSocket )
+inline bool CTCPQueue::Process( int hSocket )
 {
 	// Send and receive some bytes
 	if ( !m_SendQueue.empty() )
@@ -110,10 +110,11 @@ inline void CNetChan::CTCPQueue::Process( int hSocket )
 
 			if ( nBytesSent < 0 )
 			{
-				Error( "CNetChan::CTCPQueue::ProcessQueue: socket %i failed to send %i bytes, reason: %s\n",
-					   hSocket,
-					   SendBuffer.nBytesLeft,
-					   NET_ErrorString( NET_GetLastError() ) );
+				ConMsg( "CTCPQueue::ProcessQueue: socket %i failed to send %i bytes, reason: %s\n",
+						hSocket,
+						SendBuffer.nBytesLeft,
+						NET_ErrorString( NET_GetLastError() ) );
+				return false;
 			}
 
 			SendBuffer.nBytesLeft -= nBytesSent;
@@ -125,19 +126,22 @@ inline void CNetChan::CTCPQueue::Process( int hSocket )
 		}
 	}
 
-	auto nOldSize = m_ReceivedData.size();
+	auto nOldReceivedSize = m_ReceivedData.size();
 	m_ReceivedData.resize( m_ReceivedData.size() + NET_MAX_PAYLOAD );
 
-	auto nBytesReceived = NET_ReceiveStream( hSocket, m_ReceivedData.data() + nOldSize, NET_MAX_PAYLOAD, 0 );
+	auto nBytesReceived = NET_ReceiveStream( hSocket, m_ReceivedData.data() + nOldReceivedSize, NET_MAX_PAYLOAD, 0 );
 
 	if ( nBytesReceived < 0 )
 	{
-		Error( "CNetChan::CTCPQueue::ProcessQueue: socket %i failed to receive bytes, reason: %s\n",
-			   hSocket,
-			   NET_ErrorString( NET_GetLastError() ) );
+		ConMsg( "CTCPQueue::ProcessQueue: socket %i failed to receive bytes, reason: %s\n",
+				hSocket,
+				NET_ErrorString( NET_GetLastError() ) );
+		return false;
 	}
 
-	m_ReceivedData.resize( nOldSize + nBytesReceived );
+	m_ReceivedData.resize( nOldReceivedSize + nBytesReceived );
+
+	return true;
 }
 
 bool CNetChan::IsLoopback() const
@@ -2736,11 +2740,14 @@ bool CNetChan::ProcessStream( void )
 	}
 
 	// Process some packets
-	m_TCPQueue.Process( m_StreamSocket );
+	if ( !m_TCPQueue.Process( m_StreamSocket ) )
+	{
+		return false;
+	}
 
 	if ( net_showtcp.GetBool() )
 	{
-		ConMsg( "CNetChan::ProcessStream: received buffer size=%i\n", m_TCPQueue.m_ReceivedData.size() );
+		ConMsg( "TCP <- %s: received buffer size=%i\n", remote_address.ToString(), m_TCPQueue.m_ReceivedData.size() );
 	}
 
 	if ( m_TCPQueue.m_ReceivedData.size() == 0 )
