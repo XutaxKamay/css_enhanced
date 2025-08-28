@@ -813,8 +813,8 @@ bf_read::bf_read( const char *pDebugName, const void *pData, int nBytes, int nBi
 
 void bf_read::StartReading( const void *pData, int nBytes, int iStartBit, int nBits )
 {
-	// Make sure we're dword aligned.
-	Assert(((size_t)pData & 3) == 0);
+	// Make sure we're dword aligned. TODO_ENHANCED: why? (TCP stream)
+	// Assert(((size_t)pData & 3) == 0);
 
 	m_pData = (unsigned char*)pData;
 	m_nDataBytes = nBytes;

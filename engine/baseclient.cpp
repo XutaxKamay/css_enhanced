@@ -1235,7 +1235,13 @@ write_again:
 		TraceNetworkData( msg, "Temp Entities" );
 	}
 
-	WriteGameSounds( msg );
+	// TODO_ENHANCED: FIXME This is sadly required to send incoming sequences so that CL_Move can work properly.
+	// At least we send game sounds, I guess ...
+	ALIGN4 char pDatagramBuffer[0x10000] ALIGN4_POST;
+	bf_write bf_datagram(pDatagramBuffer, sizeof(pDatagramBuffer));
+
+	WriteGameSounds( bf_datagram );
+	m_NetChannel->SendDatagram( &bf_datagram );
 	
 	// write message to packet and check for overflow
 	if ( msg.IsOverflowed() )
@@ -1312,16 +1318,6 @@ write_again:
 		// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
 		bSendOK = m_NetChannel->SendReliableIMMM( msg );
 	}
-
-	// TODO_ENHANCED:
-	// Due to a bug with how packets are handled (especially ProcessPacketHeader that increases sequence
-	// numbers for user commands) we still need to send some (fake) data to client.
-	char buffer[32];
-	bf_write nopBuffer( buffer, sizeof( buffer ) );
-
-	nopBuffer.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
-
-	bSendOK = bSendOK && m_NetChannel->SendDatagram( &nopBuffer ) > 0;
 
 	if ( bSendOK )
 	{

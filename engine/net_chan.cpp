@@ -2750,17 +2750,17 @@ bool CNetChan::ProcessStream( void )
 		ConMsg( "TCP <- %s: received buffer size=%i\n", remote_address.ToString(), m_TCPQueue.m_ReceivedData.size() );
 	}
 
-	if ( m_TCPQueue.m_ReceivedData.size() == 0 )
-	{
-		// Nothing received, but ok
-		return true;
-	}
-
 	STREAM_CMD_STATE state;
 
 	// Force messages to complete, we don't want a buffer that keeps increasing, do it at least once.
 	do
 	{
+		// Is there any byte data left ?
+		if ( m_TCPQueue.m_ReceivedData.size() == 0 )
+		{
+			return true;
+		}
+
 		auto cmd = m_TCPQueue.m_ReceivedData[0];
 
 		switch ( cmd )

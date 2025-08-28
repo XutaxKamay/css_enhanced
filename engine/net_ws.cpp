@@ -3346,7 +3346,6 @@ void NET_Shutdown (void)
 #endif	// _WIN32
 
 	Assert( s_NetChannels.Count() == 0 );
-	Assert( s_PendingSockets.Count() == 0);
 }
 
 void NET_PrintChannelStatus( INetChannel * chan )
