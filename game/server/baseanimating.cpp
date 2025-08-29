@@ -280,9 +280,9 @@ CBaseAnimating::CBaseAnimating()
 	InitStepHeightAdjust();
 
 	m_flModelScale = 1.0f;
-	// initialize anim clock
-	m_flAnimTime = gpGlobals->curtime;
-	m_flPrevAnimTime = gpGlobals->curtime;
+	// TODO_ENHANCED: always set to zero if new entity for lag compensation
+	m_flAnimTime = 0;
+	m_flPrevAnimTime = 0;
 	m_nNewSequenceParity = 0;
 	m_nResetEventsParity = 0;
 	m_boneCacheHandle = 0;

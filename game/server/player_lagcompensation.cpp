@@ -528,7 +528,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 	}
 	else
 	{
-		pLagTrack->ClearHistory( CIVLatchType::SIMULATION );
+		pLagTrack->ClearHistory( CIVLatchType::ANIMATION );
 	}
 
 	pflAnimTime = pLagTrack->m_iv_flAnimTime.Get();

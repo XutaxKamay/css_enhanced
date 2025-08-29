@@ -2256,13 +2256,40 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	if ( !bPredictable && !IsClientCreated() )
 	{
 		// Did we went backwards ?
-		if ( m_flSimulationTime < m_flOldSimulationTime )
+		if ( m_flSimulationTime == 0 )
 		{
-			ConMsg( "Entity %i has rolled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
+			for ( auto&& variable : m_InterpolatedVariableList.variables )
+			{
+				if ( variable->LatchType() == CIVLatchType::SIMULATION )
+				{
+					variable->ClearHistory();
+				}
+			}
+		}
+		else if ( m_flSimulationTime < m_flOldSimulationTime )
+		{
+			Error( "Entity %i has rolled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
 				   index,
 				   m_flSimulationTime,
 				   m_flOldSimulationTime );
-			m_InterpolatedVariableList.ClearHistory();
+		}
+
+		if ( m_flAnimTime == 0 )
+		{
+			for ( auto&& variable : m_InterpolatedVariableList.variables )
+			{
+				if ( variable->LatchType() == CIVLatchType::ANIMATION )
+				{
+					variable->ClearHistory();
+				}
+			}
+		}
+		else if ( m_flAnimTime < m_flOldAnimTime )
+		{
+			Error( "Entity %i has rolled back, maybe SendSnapshot not working correctly animtime=%f oldanimtime=%f\n",
+				   index,
+				   m_flAnimTime,
+				   m_flOldAnimTime );
 		}
 
 		if ( animTimeChanged )

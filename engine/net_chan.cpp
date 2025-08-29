@@ -2879,9 +2879,9 @@ STREAM_CMD_STATE CNetChan::ProcessIMMM( void )
 	bf_read IMMMData( "STREAM_CMD_IMMM_DATA", pCurrentBuffer, nNetMsgBytes, nNetMsgBits );
 
 	FlowUpdate( FLOW_INCOMING, nNetworkSize );
-	FlowNewPacket( FLOW_INCOMING, nInSequenceNr, nOutSequenceAckNr, 0, 0, nNetworkSize );
+	FlowNewPacket( FLOW_INCOMING, m_nInSequenceNr, m_nOutSequenceNr, 0, 0, nNetworkSize );
 
-	m_MessageHandler->PacketStart( nInSequenceNr, nOutSequenceAckNr );
+	m_MessageHandler->PacketStart( m_nInSequenceNr, m_nOutSequenceNr );
 
 	if ( !ProcessMessages( IMMMData ) )
 	{
