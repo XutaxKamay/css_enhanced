@@ -57,6 +57,7 @@ struct CTCPQueue
 	// Let's keep some data
 	std::vector<char> m_ReceivedData;
 
+	void AddToSendQueue( std::vector<char>&& data );
 	void AddToSendQueue( char* pBuffer, int nBufferSize );
 	void Received( int nBufferSize );
 	bool Process( int hSocket );

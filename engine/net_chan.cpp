@@ -69,6 +69,20 @@ static bool ShouldChecksumPackets()
 	return NET_IsMultiplayer();
 }
 
+inline void CTCPQueue::AddToSendQueue( std::vector< char >&& data )
+{
+	if ( data.size() == 0 )
+	{
+		return;
+	}
+
+	SendBuffer buffer;
+	buffer.nBytesLeft = data.size();
+	buffer.data		  = std::move( data );
+
+	m_SendQueue.push( std::move( buffer ) );
+}
+
 inline void CTCPQueue::AddToSendQueue( char* pBuffer, int nBufferSize )
 {
 	if ( pBuffer == NULL || nBufferSize <= 0 )
@@ -2703,18 +2717,18 @@ bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 
 	// cmd size + header size + buffer size
 	int nFinalSize = 1 + IMMMHeaderSize + nBufferSize;
-	auto pFinalBuffer = ( char* )alloca( nFinalSize );
+	std::vector< char > vFinalBuffer( nFinalSize );
 
 	IMMMHeader.WriteSignedVarInt32( nFinalSize );
 
 	// set cmd
-	pFinalBuffer[0] = STREAM_CMD_IMMM;
+	vFinalBuffer[0] = STREAM_CMD_IMMM;
 
 	// copy header
-	std::copy( IMMHeaderBuffer, IMMHeaderBuffer + IMMMHeaderSize, pFinalBuffer + 1 );
+	std::copy( IMMHeaderBuffer, IMMHeaderBuffer + IMMMHeaderSize, vFinalBuffer.begin() + 1 );
 
 	// copy final data
-	std::copy( pCurrentBuffer, pCurrentBuffer + nBufferSize, pFinalBuffer + 1 + IMMMHeaderSize );
+	std::copy( pCurrentBuffer, pCurrentBuffer + nBufferSize, vFinalBuffer.begin() + 1 + IMMMHeaderSize );
 
 	if ( net_showtcp.GetInt() )
 	{
@@ -2724,7 +2738,7 @@ bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 				nFinalSize );
 	}
 
-	m_TCPQueue.AddToSendQueue( pFinalBuffer, nFinalSize );
+	m_TCPQueue.AddToSendQueue( std::move( vFinalBuffer ) );
 
 	FlowNewPacket( FLOW_OUTGOING, m_nOutSequenceNr, m_nInSequenceNr, 0, 0, nFinalSize );
 	FlowUpdate( FLOW_OUTGOING, nFinalSize );

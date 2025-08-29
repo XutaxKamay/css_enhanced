@@ -98,6 +98,17 @@ struct BaseLagTrack
 		m_InterpolatedVarList.ClearHistory();
 	}
 
+	inline void ClearHistory( const CIVLatchType& LatchType )
+	{
+		for ( auto&& variable : m_InterpolatedVarList.variables )
+		{
+			if ( variable->LatchType() == LatchType )
+			{
+				variable->ClearHistory();
+			}
+		}
+	}
+
 	CInterpolatedVarList m_InterpolatedVarList;
 };
 
@@ -415,6 +426,24 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	auto pflSimulationTime = pLagTrack->m_iv_flSimulationTime.Get();
 
+	// Likely spawn or something else
+	if ( pRecord->m_flSimulationTime != 0 )
+	{
+		if ( pflSimulationTime && *pflSimulationTime > pRecord->m_flSimulationTime )
+		{
+			Error( "Abnormal simulation time that went backwards on entity %i %f %f\n",
+				   index,
+				   *pflSimulationTime,
+				   pRecord->m_flSimulationTime );
+		}
+	}
+	else
+	{
+		pLagTrack->ClearHistory( CIVLatchType::SIMULATION );
+	}
+
+	pflSimulationTime = pLagTrack->m_iv_flSimulationTime.Get();
+
 	if constexpr ( bPush )
 	{
 		if ( !pflSimulationTime || ( *pflSimulationTime != pRecord->m_flSimulationTime ) )
@@ -485,6 +514,24 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 	}
 
 	auto pflAnimTime = pLagTrack->m_iv_flAnimTime.Get();
+
+	// Likely spawn or something else
+	if ( pRecord->m_flAnimTime != 0 )
+	{
+		if ( pflAnimTime && *pflAnimTime > pRecord->m_flAnimTime )
+		{
+			Error( "Abnormal animation time that went backwards on entity %i %f %f\n",
+				   index,
+				   *pflAnimTime,
+				   pRecord->m_flAnimTime );
+		}
+	}
+	else
+	{
+		pLagTrack->ClearHistory( CIVLatchType::SIMULATION );
+	}
+
+	pflAnimTime = pLagTrack->m_iv_flAnimTime.Get();
 
 	if constexpr ( bPush )
 	{
@@ -1024,12 +1071,15 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 
 		auto flDiff = flInterpolatedClientTime - flInterpolatedServerTime;
 
-		// TODO_ENHANCED: fix the case when a player spawn, interpolation is disabled. maybe add to simulation data is_interpolated and set frac to 0 ?
+		// TODO_ENHANCED: fix the case when a player spawn, interpolation is disabled. maybe add to simulation data
+		// is_interpolated and set frac to 0 ?
 		if ( flClientStart == flClientEnd )
 		{
-			result += "where client disabled interpolation or doesn't have enough history (could be a full entity update, spawn, etc ...) ";
+			result += "where client disabled interpolation or doesn't have enough history (could be a full entity "
+					  "update, spawn, etc ...) ";
 		}
-		// Should never happen anymore, it means TrackEntity doesn't track at the right time the client data or client data isn't sent or received correctly somehow.
+		// Should never happen anymore, it means TrackEntity doesn't track at the right time the client data or client
+		// data isn't sent or received correctly somehow.
 		else if ( flClientStart != flServerStart || flClientEnd != flServerEnd )
 		{
 			result	   += "where client has a problematic server timeline -> ";

@@ -381,6 +381,8 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 #endif
 	m_flInterpolatedSimulationTime = 0;
 	m_flInterpolatedAnimTime = 0;
+	m_flAnimTime = 0;
+	m_flSimulationTime = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -5524,7 +5526,8 @@ void CBaseEntity::SetAbsOrigin( const Vector& absOrigin )
 	if (m_vecOrigin != vecNewOrigin)
 	{
 		m_vecOrigin = vecNewOrigin;
-		SetSimulationTime( gpGlobals->curtime );
+		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
+		// SetSimulationTime( gpGlobals->curtime );
 	}
 }
 
@@ -5573,7 +5576,8 @@ void CBaseEntity::SetAbsAngles( const QAngle& absAngles )
 	if (m_angRotation != angNewRotation)
 	{
 		m_angRotation = angNewRotation;
-		SetSimulationTime( gpGlobals->curtime );
+		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
+		// SetSimulationTime( gpGlobals->curtime );
 	}
 }
 
@@ -5674,7 +5678,8 @@ void CBaseEntity::SetLocalOrigin( const Vector& origin )
 		
 		InvalidatePhysicsRecursive( POSITION_CHANGED );
 		m_vecOrigin = origin;
-		SetSimulationTime( gpGlobals->curtime );
+		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
+		// SetSimulationTime( gpGlobals->curtime );
 	}
 }
 
@@ -5703,7 +5708,8 @@ void CBaseEntity::SetLocalAngles( const QAngle& angles )
 	{
 		InvalidatePhysicsRecursive( ANGLES_CHANGED );
 		m_angRotation = angles;
-		SetSimulationTime( gpGlobals->curtime );
+		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
+		// SetSimulationTime( gpGlobals->curtime );
 	}
 }
 
