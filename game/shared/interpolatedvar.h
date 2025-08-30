@@ -311,6 +311,8 @@ class CInterpolatedVar : public IInterpolatedVar
 
 			// Keep searching in history
 			nAmountOfTicks--;
+			// Don't interpolate here though, it might look jittery, wait for the history to fill up.
+			flInterpolationAmountFrac = 0;
 		}
 
 		if ( !start || !end )
@@ -349,6 +351,8 @@ class CInterpolatedVar : public IInterpolatedVar
 
 			// Keep searching in history
 			nAmountOfTicks--;
+			// Don't interpolate here though, it might look jittery, wait for the history to fill up.
+			flInterpolationAmountFrac = 0;
 		}
 
 		if ( !prev || !start || !end )
