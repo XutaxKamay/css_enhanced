@@ -412,14 +412,14 @@ private:
 
 	struct HitboxRecord
 	{
+		uint64 m_nSimulatedTickCount;
+		uint64 m_nAnimatedTickCount;
 		int m_nAttackerTickBase;
 		float m_flInterpolationAmountFrac;
 		Vector m_vecRenderOrigin;
 		QAngle m_angRenderAngles;
-		float m_flSimulationTime;
 		int m_nSequence;
 		float m_flCycle;
-		float m_flAnimTime;
 		AnimLayerRecord m_AnimationLayer[MAX_LAYER_RECORDS];
 		float m_flPoseParameters[MAXSTUDIOPOSEPARAM];
 		float m_flEncodedControllers[MAXSTUDIOBONECTRLS];

@@ -537,6 +537,11 @@ protected:
 public:
 	COutputEvent m_OnIgnite;
 	CNetworkVar( bool, m_bUseIks );
+	// was pev->animtime:  consider moving to CBaseAnimating, TODO_ENHANCED: now moved
+	float		m_flPrevAnimTime;
+	float		m_flAnimTime;  // this is the point in time that the client will interpolate to position,angle,frame,etc.
+
+	CNetworkVar( uint64, m_nAnimatedTickCount ); // keep track how many times we animated this animation entity
 
 protected:
 	CStudioHdr			*m_pStudioHdr;

@@ -328,8 +328,58 @@ void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, void *pO
 }
 
 
+void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut )
+{
+	CBaseEntity *pEntity = (C_BasePlayer *) pStruct;
+
+	Assert( pEntity );
+
+	float flNewVel_x = pData->m_Value.m_Float;
+
+	Vector vecVelocity = pEntity->GetLocalVelocity();
+
+	if( vecVelocity.x != flNewVel_x )	// Should this use an epsilon check?
+	{
+		vecVelocity.x = flNewVel_x;
+		pEntity->SetLocalVelocity( vecVelocity );
+	}
+}
+
+void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut )
+{
+	CBaseEntity *pEntity = (C_BasePlayer *) pStruct;
+
+	Assert( pEntity );
+
+	float flNewVel_y = pData->m_Value.m_Float;
+
+	Vector vecVelocity = pEntity->GetLocalVelocity();
+
+	if( vecVelocity.y != flNewVel_y )	// Should this use an epsilon check?
+	{
+		vecVelocity.y = flNewVel_y;
+		pEntity->SetLocalVelocity( vecVelocity );
+	}
+}
+
+void RecvProxy_LocalVelocityZ( const CRecvProxyData *pData, void *pStruct, void *pOut )
+{
+	CBaseEntity *pEntity = (C_BasePlayer *) pStruct;
+
+	Assert( pEntity );
+
+	float flNewVel_z = pData->m_Value.m_Float;
+
+	Vector vecVelocity = pEntity->GetLocalVelocity();
+
+	if( vecVelocity.z != flNewVel_z )	// Should this use an epsilon check?
+	{
+		vecVelocity.z = flNewVel_z;
+		pEntity->SetLocalVelocity( vecVelocity );
+	}
+}
+
 BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_AnimTimeMustBeFirst )
-	RecvPropFloat( RECVINFO(m_flAnimTime) ),
 END_RECV_TABLE()
 
 #ifndef NO_ENTITY_PREDICTION
@@ -348,7 +398,6 @@ void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
 
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "AnimTimeMustBeFirst", 0, 0, &REFERENCE_RECV_TABLE(DT_AnimTimeMustBeFirst) ),
-	RecvPropFloat( RECVINFO(m_flSimulationTime) ),
 	RecvPropInt( RECVINFO( m_ubInterpolationFrame ) ),
 
 	RecvPropVector( RECVINFO_NAME( m_vecNetworkOrigin, m_vecOrigin ) ),
@@ -393,6 +442,14 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt		( RECVINFO( m_bAnimatedEveryTick ) ),
 	RecvPropBool	( RECVINFO( m_bAlternateSorting ) ),
 
+	RecvPropFloat		( RECVINFO(m_vecVelocity[0]), 0, RecvProxy_LocalVelocityX ),
+	RecvPropFloat		( RECVINFO(m_vecVelocity[1]), 0, RecvProxy_LocalVelocityY ),
+	RecvPropFloat		( RECVINFO(m_vecVelocity[2]), 0, RecvProxy_LocalVelocityZ ),
+
+	RecvPropVector		( RECVINFO( m_vecBaseVelocity ) ),
+	RecvPropInt			( RECVINFO( m_nSimulatedTickCount ) ),
+	RecvPropBool		( RECVINFO( m_bHasJustBeenCreatedThisFrame ) ),
+
 #ifdef TF_CLIENT_DLL
 	RecvPropArray3( RECVINFO_ARRAY(m_nModelIndexOverrides),	RecvPropInt( RECVINFO(m_nModelIndexOverrides[0]) ) ),
 #endif
@@ -413,6 +470,7 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 
 	DEFINE_FIELD( m_vecAbsVelocity, FIELD_VECTOR ),
 	DEFINE_PRED_FIELD_TOL( m_vecVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance ),
+	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance ),
 //	DEFINE_PRED_FIELD( m_fEffects, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_nRenderMode, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_nRenderFX, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
@@ -426,7 +484,8 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 	DEFINE_PRED_FIELD( m_hOwnerEntity, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 
 //	DEFINE_FIELD( m_nSimulationTick, FIELD_INTEGER ),
-
+//	DEFINE_FIELD( m_nSimulatedTickCount, FIELD_INTEGER ),
+	DEFINE_FIELD( m_bHasJustBeenCreatedThisFrame, FIELD_BOOLEAN ),
 	DEFINE_PRED_FIELD( m_hNetworkMoveParent, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 //	DEFINE_PRED_FIELD( m_pMoveParent, FIELD_EHANDLE ),
 //	DEFINE_PRED_FIELD( m_pMoveChild, FIELD_EHANDLE ),
@@ -455,7 +514,6 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 	DEFINE_FIELD( m_bDormant, FIELD_BOOLEAN ),
 //	DEFINE_FIELD( current_position, FIELD_INTEGER ),
 //	DEFINE_FIELD( m_flLastMessageTime, FIELD_FLOAT ),
-	DEFINE_FIELD( m_vecBaseVelocity, FIELD_VECTOR ),
 	DEFINE_FIELD( m_iEFlags, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flGravity, FIELD_FLOAT ),
 //	DEFINE_FIELD( m_ModelInstance, FIELD_SHORT ),
@@ -577,15 +635,11 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_vecOrigin( "C_BaseEntity::m_iv_vecOrigin", &m_vecOrigin, CIVLatchType::SIMULATION ),
 	m_iv_angRotation( "C_BaseEntity::m_iv_angRotation", &m_angRotation, CIVLatchType::SIMULATION ),
 	m_iv_vecVelocity( "C_BaseEntity::m_iv_vecVelocity", &m_vecVelocity, CIVLatchType::SIMULATION ),
-	m_iv_flSimulationTime( "C_BaseEntity::m_iv_flSimulationTime", &m_flInterpolatedSimulationTime, CIVLatchType::SIMULATION ),
-	m_iv_flAnimTime( "C_BaseEntity::m_iv_flAnimTime", &m_flInterpolatedAnimTime, CIVLatchType::ANIMATION )
+	m_iv_nSimulatedTickCount( "C_BaseEntity::m_iv_nSimulatedTickCount", &m_nInterpolatedSimulatedTickCount, CIVLatchType::SIMULATION )
 {
 	AddVar( &m_iv_vecOrigin );
 	AddVar( &m_iv_angRotation );
-
-	// Needed for lag compensation
-	AddVar( &m_iv_flSimulationTime );
-	AddVar( &m_iv_flAnimTime );
+	AddVar( &m_iv_nSimulatedTickCount );
 
 	// Removing this until we figure out why velocity introduces view hitching.
 	// One possible fix is removing the player->ResetLatched() call in CGameMovement::FinishDuck(), 
@@ -658,11 +712,6 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	ParticleProp()->Init( this );
-
-	m_flOldSimulationTime = 0;
-	m_flOldAnimTime = 0;
-	m_flInterpolatedSimulationTime = 0;
-	m_flInterpolatedAnimTime = 0;
 }
 
 
@@ -706,10 +755,6 @@ void C_BaseEntity::Clear( void )
 	m_vecViewOffset.Init();
 	m_vecBaseVelocity.Init();
 	m_nModelIndex = 0;
-	m_flAnimTime = 0;
-	m_flSimulationTime = 0;
-	m_flInterpolatedSimulationTime = 0;
-	m_flInterpolatedAnimTime = 0;
 	SetSolid( SOLID_NONE );
 	SetSolidFlags( 0 );
 	SetMoveCollide( MOVECOLLIDE_DEFAULT );
@@ -1858,9 +1903,6 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 	m_vecOldOrigin = GetNetworkOrigin();
 	m_vecOldAngRotation = GetNetworkAngles();
 
-	m_flOldAnimTime = m_flAnimTime;
-	m_flOldSimulationTime = m_flSimulationTime;
-
 	m_nOldRenderMode = m_nRenderMode;
 
 	if ( m_hRender != INVALID_CLIENT_RENDER_HANDLE )
@@ -2233,71 +2275,34 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 
 	if ( m_nOldRenderMode != m_nRenderMode )
 	{
-		SetRenderMode( (RenderMode_t)m_nRenderMode, true );
+		SetRenderMode( ( RenderMode_t )m_nRenderMode, true );
 	}
 
-	bool animTimeChanged = ( m_flAnimTime != m_flOldAnimTime );
-	bool simTimeChanged = ( m_flSimulationTime != m_flOldSimulationTime );
-	bool bPredictable = GetPredictable();
+	m_nInterpolatedSimulatedTickCount = m_nSimulatedTickCount;
 
-	// if ( !bPredictable )
-	{
-		// Store simulation time for lag compensation.
-		// These should be only set if it's not created by client or isn't a predictable,
-		// Otherwise createmove will send these values without caring and potentially
-		// make the client and server framerate less efficient including prediction errors.
-		// TODO_ENHANCED: apparently IsClientCreated doesn't behave as it should do ...
-		// Predictable like moving triggers/platforms will need lag compensation anyway ...
-		m_flInterpolatedSimulationTime = m_flSimulationTime;
-		m_flInterpolatedAnimTime = m_flAnimTime;
-	}
+	bool simtickCountChanged = m_nSimulatedTickCount != m_iv_nSimulatedTickCount.GetLastKnownValue();
+	bool bPredictable		 = GetPredictable();
 
 	// For non-predicted and non-client only ents, we need to latch network values into the interpolation histories
 	if ( !bPredictable && !IsClientCreated() )
 	{
-		// Did we went backwards ?
-		if ( m_flSimulationTime == 0 )
+		// TODO_ENHANCED: this is just being paranoid right now.
+		if ( m_iv_nSimulatedTickCount.GetLastKnownValue() > m_nSimulatedTickCount && !m_bHasJustBeenCreatedThisFrame )
 		{
-			for ( auto&& variable : m_InterpolatedVariableList.variables )
-			{
-				if ( variable->LatchType() == CIVLatchType::SIMULATION )
-				{
-					variable->ClearHistory();
-				}
-			}
-		}
-		else if ( m_flSimulationTime < m_flOldSimulationTime )
-		{
-			Error( "Entity %i has rolled back, maybe SendSnapshot not working correctly simtime=%f oldsimtime=%f\n",
+			Error( "Simulated entity %i has rolled back which is probably a bug with SendSnapshot sending out of "
+				   "order old(%lld) != new(%lld)",
 				   index,
-				   m_flSimulationTime,
-				   m_flOldSimulationTime );
+				   m_iv_nSimulatedTickCount.GetLastKnownValue(),
+				   m_nSimulatedTickCount );
 		}
 
-		if ( m_flAnimTime == 0 )
+		// If just spawned or created, clear history
+		if ( m_bHasJustBeenCreatedThisFrame )
 		{
-			for ( auto&& variable : m_InterpolatedVariableList.variables )
-			{
-				if ( variable->LatchType() == CIVLatchType::ANIMATION )
-				{
-					variable->ClearHistory();
-				}
-			}
-		}
-		else if ( m_flAnimTime < m_flOldAnimTime )
-		{
-			Error( "Entity %i has rolled back, maybe SendSnapshot not working correctly animtime=%f oldanimtime=%f\n",
-				   index,
-				   m_flAnimTime,
-				   m_flOldAnimTime );
+			ClearInterpolationHistory( CIVLatchType::SIMULATION );
 		}
 
-		if ( animTimeChanged )
-		{
-			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
-		}
-
-		if ( simTimeChanged )
+		if ( simtickCountChanged )
 		{
 			OnLatchInterpolatedVariables( CIVLatchType::SIMULATION );
 		}
@@ -2509,6 +2514,18 @@ void C_BaseEntity::OnLatchInterpolatedVariables( CIVLatchType LatchType, bool bU
 	if ( ShouldInterpolate() )
 	{
 		AddToInterpolationList();
+	}
+}
+
+
+void C_BaseEntity::ClearInterpolationHistory( CIVLatchType LatchType )
+{
+	for ( auto&& variable : m_InterpolatedVariableList.variables )
+	{
+		if ( variable->LatchType() == LatchType )
+		{
+			variable->ClearHistory();
+		}
 	}
 }
 

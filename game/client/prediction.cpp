@@ -1781,6 +1781,12 @@ void CPrediction::Update( int startframe, bool validframe,
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF_BUDGET( "CPrediction::Update", VPROF_BUDGETGROUP_PREDICTION );
 
+	auto oldfrac = gpGlobals->interpolation_amount_frac;
+	gpGlobals->interpolation_amount_frac = gpGlobals->next_interpolation_amount_frac;
+	// We need to interpolate the non predicted entities so that it matches the screen
+	C_BaseEntity::InterpolateServerEntities();
+	gpGlobals->interpolation_amount_frac = oldfrac;
+
 	m_bEnginePaused = engine->IsPaused();
 
 	bool received_new_world_update = true;

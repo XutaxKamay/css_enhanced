@@ -267,8 +267,6 @@ RecvProp RecvPropVectorXY(
 	return ret;
 }
 
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
-
 RecvProp RecvPropQuaternion(
 	const char *pVarName, 
 	int offset, 
@@ -294,7 +292,6 @@ RecvProp RecvPropQuaternion(
 
 	return ret;
 }
-#endif
 
 RecvProp RecvPropInt(
 	const char *pVarName, 

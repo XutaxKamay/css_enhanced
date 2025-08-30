@@ -862,8 +862,6 @@ void VectorXY_SkipProp( const SendProp *pProp, bf_read *pIn )
 	Float_SkipProp(pProp, pIn);
 }
 
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
-
 // ---------------------------------------------------------------------------------------- //
 // Quaternion type abstraction.
 // ---------------------------------------------------------------------------------------- //
@@ -937,8 +935,6 @@ void Quaternion_SkipProp( const SendProp *pProp, bf_read *pIn )
 	Float_SkipProp(pProp, pIn);
 	Float_SkipProp(pProp, pIn);
 }
-#endif
-
 
 // ---------------------------------------------------------------------------------------- //
 // String type abstraction.
@@ -1284,15 +1280,16 @@ const char* DataTable_GetTypeNameString()
 	return "DPT_DataTable";
 }
 
-
 // ---------------------------------------------------------------------------------------- //
 // Int 64 property type abstraction.
 // ---------------------------------------------------------------------------------------- //
 
-void Int64_Encode( const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID )
+#define BITMASK64( N ) ( ( ( uint64 )1 << ( N ) ) - 1ULL )
+
+void Int64_Encode( const unsigned char* pStruct, DVariant* pVar, const SendProp* pProp, bf_write* pOut, int objectID )
 {
 #ifdef SUPPORTS_INT64
-	if ( pProp->GetFlags() & SPROP_VARINT)
+	if ( pProp->GetFlags() & SPROP_VARINT )
 	{
 		if ( pProp->GetFlags() & SPROP_UNSIGNED )
 		{
@@ -1300,71 +1297,146 @@ void Int64_Encode( const unsigned char *pStruct, DVariant *pVar, const SendProp 
 		}
 		else
 		{
-			pOut->WriteSignedVarInt32( pVar->m_Int64 );
+			pOut->WriteSignedVarInt64( pVar->m_Int64 );
+		}
+		return;
+	}
+
+	int nBits	 = pProp->m_nBits;
+	bool bSigned = pProp->IsSigned();
+
+	if ( nBits <= 32 )
+	{
+		if ( bSigned )
+		{
+			int32 iVal = ( int32 )pVar->m_Int64;
+
+			pOut->WriteSBitLong( iVal, nBits );
+		}
+		else
+		{
+			uint32 uVal = ( uint32 )( pVar->m_Int64 & BITMASK64( nBits ) );
+
+			pOut->WriteUBitLong( uVal, nBits );
+		}
+
+		return;
+	}
+
+	uint64 uVal	   = ( uint64 )pVar->m_Int64;
+	uint32 lowInt  = ( uint32 )( uVal & 0xFFFFFFFFULL );
+	uint32 highInt = ( uint32 )( ( uVal >> 32 ) & 0xFFFFFFFFULL );
+
+	if ( bSigned )
+	{
+		bool bNeg = ( ( int64 )uVal < 0 );
+
+		pOut->WriteOneBit( bNeg );
+		pOut->WriteUBitLong( lowInt, 32 );
+
+		int highBits = nBits - 32 - 1;
+
+		if ( highBits > 0 )
+		{
+			pOut->WriteUBitLong( highInt, highBits );
 		}
 	}
 	else
 	{
-		bool bNeg = pVar->m_Int64 < 0;
-		int64 iCopy = bNeg ? -pVar->m_Int64 : pVar->m_Int64;
-		uint32 *pInt = (uint32*)&iCopy;
-		uint32 lowInt = *pInt++;
-		uint32 highInt = *pInt;
-		if( pProp->IsSigned() )
+		pOut->WriteUBitLong( lowInt, 32 );
+
+		int highBits = nBits - 32;
+
+		if ( highBits > 0 )
 		{
-			pOut->WriteOneBit( bNeg );
-			pOut->WriteUBitLong( (unsigned int)lowInt, 32 );
-			pOut->WriteUBitLong( (unsigned int)highInt, pProp->m_nBits - 32 - 1 );	// For the sign bit
-		}
-		else
-		{
-			pOut->WriteUBitLong( (unsigned int)lowInt, 32 );
-			pOut->WriteUBitLong( (unsigned int)highInt, pProp->m_nBits - 32 );
+			pOut->WriteUBitLong( highInt, highBits );
 		}
 	}
 #endif
 }
 
-
-void Int64_Decode( DecodeInfo *pInfo )
+void Int64_Decode( DecodeInfo* pInfo )
 {
 #ifdef SUPPORTS_INT64
 	if ( pInfo->m_pProp->GetFlags() & SPROP_VARINT )
 	{
 		if ( pInfo->m_pProp->GetFlags() & SPROP_UNSIGNED )
 		{
-			pInfo->m_Value.m_Int64 = (int64)pInfo->m_pIn->ReadVarInt64();
+			pInfo->m_Value.m_Int64 = ( int64 )pInfo->m_pIn->ReadVarInt64();
 		}
 		else
 		{
 			pInfo->m_Value.m_Int64 = pInfo->m_pIn->ReadSignedVarInt64();
 		}
-	}
-	else
-	{
-		uint32 highInt = 0;
-		uint32 lowInt = 0;
-		bool bNeg = false;
-		if(pInfo->m_pProp->IsSigned())
+
+		if ( pInfo->m_pRecvProp )
 		{
-			bNeg = pInfo->m_pIn->ReadOneBit() != 0;
-			lowInt = pInfo->m_pIn->ReadUBitLong( 32 );
-			highInt = pInfo->m_pIn->ReadUBitLong( pInfo->m_pProp->m_nBits - 32 - 1 );
+			pInfo->m_pRecvProp->GetProxyFn()( pInfo, pInfo->m_pStruct, pInfo->m_pData );
+		}
+
+		return;
+	}
+
+	int nBits	 = pInfo->m_pProp->m_nBits;
+	bool bSigned = pInfo->m_pProp->IsSigned();
+
+	if ( nBits <= 32 )
+	{
+		if ( bSigned )
+		{
+			int32 iVal = pInfo->m_pIn->ReadSBitLong( nBits );
+
+			pInfo->m_Value.m_Int64 = ( int64 )iVal;
 		}
 		else
 		{
-			lowInt = pInfo->m_pIn->ReadUBitLong( 32 );
-			highInt = pInfo->m_pIn->ReadUBitLong( pInfo->m_pProp->m_nBits - 32 );
+			uint32 uVal = pInfo->m_pIn->ReadUBitLong( nBits );
+
+			pInfo->m_Value.m_Int64 = ( int64 )uVal;
 		}
 
-		uint32 *pInt = (uint32*)&pInfo->m_Value.m_Int64;
-		*pInt++ = lowInt;
-		*pInt = highInt;
-
-		if ( bNeg )
+		if ( pInfo->m_pRecvProp )
 		{
-			pInfo->m_Value.m_Int64 = -pInfo->m_Value.m_Int64;
+			pInfo->m_pRecvProp->GetProxyFn()( pInfo, pInfo->m_pStruct, pInfo->m_pData );
 		}
+
+		return;
+	}
+
+	uint32 lowInt = 0, highInt = 0;
+	bool bNeg = false;
+
+	if ( bSigned )
+	{
+		bNeg   = ( pInfo->m_pIn->ReadOneBit() != 0 );
+		lowInt = pInfo->m_pIn->ReadUBitLong( 32 );
+
+		int highBits = nBits - 32 - 1;
+
+		if ( highBits > 0 )
+		{
+			highInt = pInfo->m_pIn->ReadUBitLong( highBits );
+		}
+	}
+	else
+	{
+		lowInt = pInfo->m_pIn->ReadUBitLong( 32 );
+
+		int highBits = nBits - 32;
+
+		if ( highBits > 0 )
+		{
+			highInt = pInfo->m_pIn->ReadUBitLong( highBits );
+		}
+	}
+
+	uint64 uVal = ( ( uint64 )highInt << 32 ) | lowInt;
+
+	pInfo->m_Value.m_Int64 = ( int64 )uVal;
+
+	if ( bSigned && bNeg )
+	{
+		pInfo->m_Value.m_Int64 = -pInfo->m_Value.m_Int64;
 	}
 
 	if ( pInfo->m_pRecvProp )
@@ -1374,23 +1446,45 @@ void Int64_Decode( DecodeInfo *pInfo )
 #endif
 }
 
-
-int Int64_CompareDeltas( const SendProp *pProp, bf_read *p1, bf_read *p2 )
+int Int64_CompareDeltas( const SendProp* pProp, bf_read* p1, bf_read* p2 )
 {
-	if ( pProp->GetFlags() & SPROP_VARINT)
+	if ( pProp->GetFlags() & SPROP_VARINT )
 	{
 		if ( pProp->GetFlags() & SPROP_UNSIGNED )
 		{
 			return p1->ReadVarInt64() != p2->ReadVarInt64();
 		}
+
 		return p1->ReadSignedVarInt64() != p2->ReadSignedVarInt64();
 	}
 
-	uint32 highInt1 = p1->ReadUBitLong( pProp->m_nBits - 32 );
-	uint32 lowInt1 = p1->ReadUBitLong( 32 );
-	uint32 highInt2 = p2->ReadUBitLong( pProp->m_nBits - 32 );
-	uint32 lowInt2 = p2->ReadUBitLong( 32 );
-	return highInt1 != highInt2 || lowInt1 != lowInt2;
+	int nBits	 = pProp->m_nBits;
+	bool bSigned = pProp->IsSigned();
+
+	if ( nBits <= 32 )
+	{
+		if ( bSigned )
+		{
+			int32 a = p1->ReadSBitLong( nBits );
+			int32 b = p2->ReadSBitLong( nBits );
+
+			return a != b;
+		}
+		else
+		{
+			uint32 a = p1->ReadUBitLong( nBits );
+			uint32 b = p2->ReadUBitLong( nBits );
+
+			return a != b;
+		}
+	}
+
+	uint32 low1	 = p1->ReadUBitLong( 32 );
+	uint32 high1 = p1->ReadUBitLong( nBits - 32 );
+	uint32 low2	 = p2->ReadUBitLong( 32 );
+	uint32 high2 = p2->ReadUBitLong( nBits - 32 );
+
+	return ( high1 != high2 ) || ( low1 != low2 );
 }
 
 const char* Int64_GetTypeNameString()
@@ -1398,22 +1492,19 @@ const char* Int64_GetTypeNameString()
 	return "DPT_Int64";
 }
 
-
-bool Int64_IsZero( const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp )
+bool Int64_IsZero( const unsigned char* pStruct, DVariant* pVar, const SendProp* pProp )
 {
 #ifdef SUPPORTS_INT64
-	return (pVar->m_Int64 == 0);
+	return ( pVar->m_Int64 == 0 );
 #else
 	return false;
 #endif
 }
 
-
-void Int64_DecodeZero( DecodeInfo *pInfo )
+void Int64_DecodeZero( DecodeInfo* pInfo )
 {
 #ifdef SUPPORTS_INT64
 	pInfo->m_Value.m_Int64 = 0;
-
 	if ( pInfo->m_pRecvProp )
 	{
 		pInfo->m_pRecvProp->GetProxyFn()( pInfo, pInfo->m_pStruct, pInfo->m_pData );
@@ -1421,9 +1512,9 @@ void Int64_DecodeZero( DecodeInfo *pInfo )
 #endif
 }
 
-bool Int64_IsEncodedZero( const SendProp *pProp, bf_read *pIn )
+bool Int64_IsEncodedZero( const SendProp* pProp, bf_read* pIn )
 {
-	if ( pProp->GetFlags() & SPROP_VARINT)
+	if ( pProp->GetFlags() & SPROP_VARINT )
 	{
 		if ( pProp->GetFlags() & SPROP_UNSIGNED )
 		{
@@ -1432,14 +1523,34 @@ bool Int64_IsEncodedZero( const SendProp *pProp, bf_read *pIn )
 		return pIn->ReadSignedVarInt64() == 0;
 	}
 
-	uint32 highInt1 = pIn->ReadUBitLong( pProp->m_nBits - 32 );
-	uint32 lowInt1 = pIn->ReadUBitLong( 32 );
-	return (highInt1 == 0 && lowInt1 == 0);
+	int nBits	 = pProp->m_nBits;
+	bool bSigned = pProp->IsSigned();
+
+	if ( nBits <= 32 )
+	{
+		if ( bSigned )
+		{
+			int32 v = pIn->ReadSBitLong( nBits );
+
+			return v == 0;
+		}
+		else
+		{
+			uint32 v = pIn->ReadUBitLong( nBits );
+
+			return v == 0;
+		}
+	}
+
+	uint32 high = pIn->ReadUBitLong( nBits - 32 );
+	uint32 low	= pIn->ReadUBitLong( 32 );
+
+	return ( high == 0 && low == 0 );
 }
 
-void Int64_SkipProp( const SendProp *pProp, bf_read *pIn )
+void Int64_SkipProp( const SendProp* pProp, bf_read* pIn )
 {
-	if ( pProp->GetFlags() & SPROP_VARINT)
+	if ( pProp->GetFlags() & SPROP_VARINT )
 	{
 		if ( pProp->GetFlags() & SPROP_UNSIGNED )
 		{
@@ -1449,14 +1560,33 @@ void Int64_SkipProp( const SendProp *pProp, bf_read *pIn )
 		{
 			pIn->ReadSignedVarInt64();
 		}
+		return;
+	}
+
+	int nBits = pProp->m_nBits;
+
+	if ( nBits <= 0 )
+	{
+		return;
+	}
+
+	if ( pProp->IsSigned() && nBits > 32 )
+	{
+		pIn->ReadOneBit();
+		pIn->SeekRelative( 32 );
+
+		int highBits = nBits - 32 - 1;
+
+		if ( highBits > 0 )
+		{
+			pIn->SeekRelative( highBits );
+		}
 	}
 	else
 	{
-		pIn->SeekRelative( pProp->m_nBits );
+		pIn->SeekRelative( nBits );
 	}
 }
-
-
 
 PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes] =
 {
@@ -1550,8 +1680,6 @@ PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes] =
 		NULL,
 		NULL,
 	},
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
-
 	// DPT_Quaternion
 	{
 		Quaternion_Encode,
@@ -1564,7 +1692,6 @@ PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes] =
 		Quaternion_IsEncodedZero,
 		Quaternion_SkipProp,
 	},
-#endif
 
 #ifdef SUPPORTS_INT64
 	// DPT_Int64

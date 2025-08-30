@@ -82,8 +82,8 @@ void CHudProgressBar::Paint()
 
 	if( pPlayer->m_iProgressBarDuration > 0 )
 	{
-		// ProgressBarStartTime is now with respect to m_flSimulationTime rather than local time
-		float percent = (pPlayer->m_flSimulationTime - pPlayer->m_flProgressBarStartTime) / (float)pPlayer->m_iProgressBarDuration;
+		// ProgressBarStartTime is now with respect to timebase rather than local time
+		float percent = (pPlayer->GetTimeBase() - pPlayer->m_flProgressBarStartTime) / (float)pPlayer->m_iProgressBarDuration;
 		percent = clamp( percent, 0, 1 );
 		
 		clr[3] = 240;

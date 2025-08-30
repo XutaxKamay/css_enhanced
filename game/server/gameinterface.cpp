@@ -1298,6 +1298,27 @@ void CServerGameDLL::PreClientUpdate( bool simulating )
 	IGameSystem::PreClientUpdateAllSystems();
 }
 
+void CServerGameDLL::PostClientUpdate( bool simulating, bool bFinalTick )
+{
+	if ( !simulating || !bFinalTick )
+	{
+		return;
+	}
+
+	// Client ack. that it has been created this frame.
+	auto entities = g_pFastEntityLookUp->entities;
+
+	for ( size_t i = 0; i < MAX_EDICTS; i++ )
+	{
+		auto pEntity = entities[i];
+
+		if ( pEntity )
+		{
+			entities[i]->m_bHasJustBeenCreatedThisFrame = false;
+		}
+	}
+}
+
 void CServerGameDLL::Think( bool finalTick )
 {
 	if ( m_fAutoSaveDangerousTime != 0.0f && m_fAutoSaveDangerousTime < gpGlobals->curtime )

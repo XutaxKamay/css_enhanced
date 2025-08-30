@@ -313,15 +313,14 @@ void FX_FireBullets(
 
 			C_CSPlayer::HitboxRecord record;
 
+			record.m_nSimulatedTickCount	   = lagPlayer->m_nInterpolatedSimulatedTickCount;
+			record.m_nAnimatedTickCount		   = lagPlayer->m_nInterpolatedAnimatedTickCount;
 			record.m_flInterpolationAmountFrac = playerCmd->interpolated_amount_frac;
-			record.m_vecRenderOrigin	   = lagPlayer->GetRenderOrigin();
-			record.m_angRenderAngles	   = lagPlayer->GetRenderAngles();
-
-			record.m_nAttackerTickBase = pPlayer->m_nTickBase;
-			record.m_flSimulationTime  = lagPlayer->m_flInterpolatedSimulationTime;
-			record.m_flAnimTime		   = lagPlayer->m_flInterpolatedAnimTime;
-			record.m_flCycle		   = lagPlayer->GetCycle();
-			record.m_nSequence		   = lagPlayer->GetSequence();
+			record.m_vecRenderOrigin		   = lagPlayer->GetRenderOrigin();
+			record.m_angRenderAngles		   = lagPlayer->GetRenderAngles();
+			record.m_nAttackerTickBase		   = pPlayer->m_nTickBase;
+			record.m_flCycle				   = lagPlayer->GetCycle();
+			record.m_nSequence				   = lagPlayer->GetSequence();
 
 			lagPlayer->GetPoseParameters( lagPlayer->GetModelPtr(), record.m_flPoseParameters );
 			lagPlayer->GetBoneControllers( record.m_flEncodedControllers );

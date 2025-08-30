@@ -2276,8 +2276,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					int pos = 0;
 
 					auto origin		  = player->GetRenderOrigin();
-					auto simtime	  = event->GetFloat( "simtime" );
-					auto animtime	  = event->GetFloat( "animtime" );
+					auto simtickc	  = event->GetInt( "simtickc" );
+					auto animtickc	  = event->GetInt( "animtickc" );
 					auto interpamount = event->GetFloat( "interpamount" );
 
 					bool bShouldShowPlayerConMsg = false;
@@ -2296,10 +2296,10 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						pos++;
 					}
 
-					if ( pRecord->m_flSimulationTime != simtime )
+					if ( pRecord->m_nSimulatedTickCount != simtickc )
 					{
 						char buffer[256];
-						V_sprintf_safe( buffer, "simtime: %f != %f", simtime, pRecord->m_flSimulationTime );
+						V_sprintf_safe( buffer, "simtickc: %lld != %lld", simtickc, pRecord->m_nSimulatedTickCount );
 
 						bShouldShowPlayerConMsg = true;
 						ConMsg( "    %s\n", buffer );
@@ -2307,10 +2307,10 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						pos++;
 					}
 
-					if ( pRecord->m_flAnimTime != animtime )
+					if ( pRecord->m_nAnimatedTickCount != animtickc )
 					{
 						char buffer[256];
-						V_sprintf_safe( buffer, "animtime: %f != %f", animtime, pRecord->m_flAnimTime );
+						V_sprintf_safe( buffer, "animtickc: %lld != %lld", animtickc, pRecord->m_nAnimatedTickCount );
 
 						bShouldShowPlayerConMsg = true;
 						ConMsg( "    %s\n", buffer );

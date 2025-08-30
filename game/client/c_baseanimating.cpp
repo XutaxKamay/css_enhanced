@@ -182,7 +182,8 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
 	RecvPropFloat( RECVINFO( m_flFadeScale ) ),
-	RecvPropBool( RECVINFO(m_bUseIks) )
+	RecvPropBool( RECVINFO(m_bUseIks) ),
+	RecvPropInt( RECVINFO( m_nAnimatedTickCount ) )
 
 END_RECV_TABLE()
 
@@ -208,6 +209,7 @@ BEGIN_PREDICTION_DATA( C_BaseAnimating )
 	// DEFINE_PRED_FIELD( m_nPrevResetEventsParity, FIELD_INTEGER, 0 ),
 
 	DEFINE_PRED_FIELD( m_nMuzzleFlashParity, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
+	//DEFINE_FIELD( m_nAnimatedTickCount, FIELD_TICK )
 	//DEFINE_FIELD( m_nOldMuzzleFlashParity, FIELD_CHARACTER ),
 
 	//DEFINE_FIELD( m_nPrevNewSequenceParity, FIELD_INTEGER ),
@@ -649,7 +651,8 @@ C_BaseAnimating::C_BaseAnimating()
  : m_iv_flCycle( "C_BaseAnimating::m_iv_flCycle", &m_flCycle, CIVLatchType::ANIMATION ),
    m_iv_flPoseParameter( "C_BaseAnimating::m_iv_flPoseParameter", m_flPoseParameter, CIVLatchType::ANIMATION ),
    m_iv_flEncodedController( "C_BaseAnimating::m_iv_flEncodedController", m_flEncodedController, CIVLatchType::ANIMATION ),
-   m_iv_Sequence( "C_BaseAnimating::m_iv_Sequence", &m_nSequence, CIVLatchType::ANIMATION )
+   m_iv_Sequence( "C_BaseAnimating::m_iv_Sequence", &m_nSequence, CIVLatchType::ANIMATION ),
+   m_iv_nAnimatedTickCount( "C_BaseAnimating::m_iv_nAnimatedTickCount", &m_nInterpolatedAnimatedTickCount, CIVLatchType::ANIMATION )
 {
 	m_vecForce.Init();
 	m_nForceBone = -1;
@@ -714,7 +717,6 @@ C_BaseAnimating::C_BaseAnimating()
 	m_bReceivedSequence = false;
 
 	m_boneIndexAttached = -1;
-	m_flOldModelScale = 0.0f;
 
 	m_pAttachedTo = NULL;
 
@@ -724,13 +726,13 @@ C_BaseAnimating::C_BaseAnimating()
 
 	Q_memset(&m_mouth, 0, sizeof(m_mouth));
 	m_flCycle = 0;
-	m_flOldCycle = 0;
 	m_flAnimTime = gpGlobals->curtime;
-    m_flOldAnimTime = gpGlobals->curtime;
+    m_flPrevAnimTime = gpGlobals->curtime;
 
 	AddBaseAnimatingInterpolatedVars();
 
 	m_bForceSequenceTransitions = false;
+	m_nAnimatedTickCount = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -864,6 +866,7 @@ void C_BaseAnimating::AddBaseAnimatingInterpolatedVars()
 	{
 		AddVar( &m_iv_flCycle );
 		AddVar( &m_iv_Sequence );
+		AddVar( &m_iv_nAnimatedTickCount );
 	}
 }
 
@@ -4483,21 +4486,6 @@ void C_BaseAnimating::PreDataUpdate( DataUpdateType_t updateType )
 {
 	VPROF( "C_BaseAnimating::PreDataUpdate" );
 
-	m_flOldCycle = GetCycle();
-	m_nOldSequence = GetSequence();
-	m_flOldModelScale = GetModelScale();
-
-	int i;
-	for ( i=0;i<MAXSTUDIOBONECTRLS;i++ )
-	{
-		m_flOldEncodedController[i] = m_flEncodedController[i];
-	}
-
-	for ( i=0;i<MAXSTUDIOPOSEPARAM;i++ )
-	{
-		 m_flOldPoseParameters[i] = m_flPoseParameter[i];
-    }
-
 	BaseClass::PreDataUpdate( updateType );
 }
 
@@ -4526,7 +4514,6 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 
 	if ( m_bClientSideAnimation )
 	{
-		SetCycle( m_flOldCycle );
 		AddToClientSideAnimationList();
 	}
 	else
@@ -4534,45 +4521,44 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 		RemoveFromClientSideAnimationList();
 	}
 
-	bool bBoneControllersChanged = false;
+	m_nInterpolatedAnimatedTickCount = m_nAnimatedTickCount;
 
-	int i;
-	for ( i=0;i<MAXSTUDIOBONECTRLS && !bBoneControllersChanged;i++ )
-	{
-		if ( m_flOldEncodedController[i] != m_flEncodedController[i] )
-		{
-            bBoneControllersChanged = true;
-            break;
-		}
-	}
+	// tick count changed ?
+	bool animTickCountChanged = m_nAnimatedTickCount != m_iv_nAnimatedTickCount.GetLastKnownValue();
 
-	bool bPoseParametersChanged = false;
-
-	for ( i=0;i<MAXSTUDIOPOSEPARAM && !bPoseParametersChanged;i++ )
-	{
-		if ( m_flOldPoseParameters[i] != m_flPoseParameter[i] )
-		{
-            bPoseParametersChanged = true;
-            break;
-		}
-    }
-
-    // Cycle change? Then re-render
-	bool bAnimationChanged = m_flOldCycle != GetCycle() || bBoneControllersChanged || bPoseParametersChanged;
-	bool bSequenceChanged = m_nOldSequence != GetSequence();
-	bool bScaleChanged = ( m_flOldModelScale != GetModelScale() );
-	if ( bAnimationChanged || bSequenceChanged || bScaleChanged )
+	// If client side animation always force animation changes
+	if ( animTickCountChanged || m_bClientSideAnimation )
 	{
 		InvalidatePhysicsRecursive( ANIMATION_CHANGED );
 	}
 
-	if ( bAnimationChanged || bSequenceChanged )
+	if ( m_bClientSideAnimation )
 	{
-		if ( m_bClientSideAnimation )
+		ClientSideAnimationChanged();
+	}
+
+	if ( !GetPredictable() && !IsClientCreated() && !m_bClientSideAnimation )
+	{
+		if ( m_iv_nAnimatedTickCount.GetLastKnownValue() > m_nAnimatedTickCount && !m_bHasJustBeenCreatedThisFrame )
 		{
-			ClientSideAnimationChanged();
+			// TODO_ENHANCED: this is just being paranoid right now.
+			Error( "Animation entity %i has rolled back which is probably a bug with SendSnapshot sending out of "
+				   "order old(%lld) != new(%lld)",
+				   m_iv_nAnimatedTickCount.GetLastKnownValue(),
+				   m_nAnimatedTickCount );
 		}
-    }
+
+		// If animation just been created or spawned, clear history
+		if ( m_bHasJustBeenCreatedThisFrame )
+		{
+			ClearInterpolationHistory( CIVLatchType::ANIMATION );
+		}
+
+		if ( animTickCountChanged )
+		{
+			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
+		}
+	}
 
 	// TODO_ENHANCED: breaks lag comp.
 	// // reset prev cycle if new sequence
@@ -5086,7 +5072,7 @@ float C_BaseAnimating::GetAnimTimeInterval( void ) const
 	else
 	{
 		// report actual
-		flInterval = clamp( m_flAnimTime - m_flOldAnimTime, 0.f, MAX_ANIMTIME_INTERVAL );
+		flInterval = clamp( m_flAnimTime - m_flPrevAnimTime, 0.f, MAX_ANIMTIME_INTERVAL );
 	}
 	return flInterval;
 }
@@ -5307,9 +5293,9 @@ float C_BaseAnimating::FrameAdvance( float flInterval )
 
 	UpdateModelScale();
 
-	if ( !m_flOldAnimTime )
+	if ( !m_flPrevAnimTime )
 	{
-		m_flOldAnimTime = m_flAnimTime;
+		m_flPrevAnimTime = m_flAnimTime;
 	}
 
 	if (flInterval == 0.0f)
@@ -5325,7 +5311,7 @@ float C_BaseAnimating::FrameAdvance( float flInterval )
 	m_flAnimTime = gpGlobals->curtime;
 
 	// Latch prev
-	m_flOldAnimTime = m_flAnimTime - flInterval;
+	m_flPrevAnimTime = m_flAnimTime - flInterval;
 
 	float flCycleRate = GetSequenceCycleRate( hdr, GetSequence() );
     float flAddCycle  = flInterval * flCycleRate * m_flPlaybackRate;
@@ -5718,7 +5704,6 @@ void C_BaseAnimating::Clear( void )
 	InvalidateMdlCache();
 	Q_memset(&m_mouth, 0, sizeof(m_mouth));
 	m_flCycle = 0;
-	m_flOldCycle = 0;
 	m_bResetSequenceInfoOnLoad = false;
 	m_bDynamicModelPending = false;
 	m_AutoRefModelIndex.Clear();

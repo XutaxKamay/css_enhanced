@@ -493,5 +493,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	if ( gpGlobals->frametime > 0 )
 	{
 		player->m_nTickBase++;
+		player->m_nSimulatedTickCount++;
 	}
 }

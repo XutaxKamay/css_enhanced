@@ -223,6 +223,7 @@ BEGIN_DATADESC( CBaseAnimating )
 	DEFINE_INPUTFUNC( FIELD_VECTOR, "SetModelScale", InputSetModelScale ),
 
 	DEFINE_FIELD( m_fBoneCacheFlags, FIELD_SHORT ),
+//	DEFINE_FIELD( m_nAnimatedTickCount, FIELD_TICK ),
 
 	END_DATADESC()
 
@@ -263,7 +264,8 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	SendPropFloat( SENDINFO( m_fadeMinDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_fadeMaxDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
-	SendPropBool( SENDINFO( m_bUseIks ) )
+	SendPropBool( SENDINFO( m_bUseIks ) ),
+	SendPropInt( SENDINFO( m_nAnimatedTickCount ) )
 END_SEND_TABLE()
 
 
@@ -280,9 +282,8 @@ CBaseAnimating::CBaseAnimating()
 	InitStepHeightAdjust();
 
 	m_flModelScale = 1.0f;
-	// TODO_ENHANCED: always set to zero if new entity for lag compensation
-	m_flAnimTime = 0;
-	m_flPrevAnimTime = 0;
+	m_flAnimTime = gpGlobals->curtime;
+	m_flPrevAnimTime = gpGlobals->curtime;
 	m_nNewSequenceParity = 0;
 	m_nResetEventsParity = 0;
 	m_boneCacheHandle = 0;
@@ -292,6 +293,9 @@ CBaseAnimating::CBaseAnimating()
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
 	m_bUseIks = true;
+	m_nSimulatedTickCount = 0;
+	m_nAnimatedTickCount = 0;
+	m_bHasJustBeenCreatedThisFrame = true;
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -454,6 +458,8 @@ void CBaseAnimating::StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float f
 	InvalidatePhysicsRecursive( ANIMATION_CHANGED );
 
 	InvalidateBoneCacheIfOlderThan( 0 );
+
+	m_nAnimatedTickCount++;
 }
 
 void CBaseAnimating::InvalidateBoneCacheIfOlderThan( float deltaTime )
@@ -3131,7 +3137,7 @@ int CBaseAnimating::DrawDebugTextOverlays(void)
 			text_offset++;
 		}
 
-		Q_snprintf(tempstr, sizeof(tempstr), "Cycle: %.5f (%.5f)", (float)GetCycle(), m_flAnimTime.Get() );
+		Q_snprintf(tempstr, sizeof(tempstr), "Cycle: %.5f (%.5f)", (float)GetCycle(), m_flAnimTime );
 		EntityText(text_offset,tempstr,0);
 		text_offset++;
 	}

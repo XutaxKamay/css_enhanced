@@ -2867,6 +2867,13 @@ void SV_PreClientUpdate(bool bIsSimulating )
 	serverGameDLL->PreClientUpdate( bIsSimulating );
 }
 
+void SV_PostClientUpdate(bool bIsSimulating, bool bFinalTick )
+{
+	if ( !serverGameDLL )
+		return;
+
+	serverGameDLL->PostClientUpdate( bIsSimulating, bFinalTick );
+}
 
 //-----------------------------------------------------------------------------
 // 
@@ -2889,7 +2896,7 @@ void SV_FrameExecuteThreadDeferred()
 	}
 }
 
-void SV_SendClientUpdates( bool bIsSimulating, bool bSendDuringPause )
+void SV_SendClientUpdates( bool bIsSimulating, bool bSendDuringPause, bool bFinalTick )
 {
 	bool bForcedSend = s_bForceSend;
 	s_bForceSend = false;
@@ -2904,6 +2911,8 @@ void SV_SendClientUpdates( bool bIsSimulating, bool bSendDuringPause )
 	// so changes made after this point are not counted to this server
 	// frame since we already send out the client snapshots
 	networkStringTableContainerServer->SetTick( sv.m_nTickCount + 1 );
+
+	SV_PostClientUpdate( bIsSimulating, bFinalTick );
 }
 
 void SV_Frame( bool finalTick )
@@ -2960,9 +2969,9 @@ void SV_Frame( bool finalTick )
 	if ( finalTick )
 	{
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
-			SV_SendClientUpdates( bIsSimulating, bSendDuringPause );
+			SV_SendClientUpdates( bIsSimulating, bSendDuringPause, finalTick );
 		else
-			g_pDeferredServerWork = CreateFunctor( SV_SendClientUpdates, bIsSimulating, bSendDuringPause );
+			g_pDeferredServerWork = CreateFunctor( SV_SendClientUpdates, bIsSimulating, bSendDuringPause, finalTick );
 
 	}
 

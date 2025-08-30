@@ -559,10 +559,9 @@ void CCSPlayer::FireBullet(
 			event->SetInt( "player_index", lagPlayer->entindex() );
 			event->SetInt( "tickbase", TIME_TO_TICKS( GetTimeBase() ) );
 			event->SetInt( "bullet", iBullet );
-
-			event->SetFloat( "simtime", lagPlayer->m_flInterpolatedSimulationTime );
-			event->SetFloat( "animtime", lagPlayer->m_flInterpolatedAnimTime );
 			event->SetFloat( "interpamount", m_pCurrentCommand->interpolated_amount_frac );
+			event->SetInt( "simtickc", lagPlayer->m_nSimulatedTickCount );
+			event->SetInt( "animtickc", lagPlayer->m_nAnimatedTickCount );
 
 			Vector positions[MAXSTUDIOBONES];
 			QAngle angles[MAXSTUDIOBONES];

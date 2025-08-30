@@ -101,8 +101,8 @@
 
 class SendProp;
 
-// The day we do this, we break all mods until they recompile.
-//#define SUPPORTS_INT64
+// The day we do this, we break all mods until they recompile. TODO_ENHANCED: we do.
+#define SUPPORTS_INT64
 
 typedef enum
 {
@@ -113,9 +113,7 @@ typedef enum
 	DPT_String,
 	DPT_Array,	// An array of the base types (can't be of datatables).
 	DPT_DataTable,
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
-	DPT_Quaternion,
-#endif
+	DPT_Quaternion, // makes DPT 16 to 20 bytes
 
 #ifdef SUPPORTS_INT64
 	DPT_Int64,
@@ -152,12 +150,10 @@ public:
 							Q_snprintf( text, sizeof(text), "(%.3f,%.3f)", 
 								m_Vector[0], m_Vector[1] );
 							break;
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
 						case DPT_Quaternion :
 							Q_snprintf( text, sizeof(text), "(%.3f,%.3f,%.3f %.3f)", 
 								m_Vector[0], m_Vector[1], m_Vector[2], m_Vector[3] );
 							break;
-#endif
 						case DPT_String : 
 							if ( m_pString ) 
 								return m_pString;
@@ -189,11 +185,7 @@ public:
 		int		m_Int;
 		const char	*m_pString;
 		void	*m_pData;	// For DataTables.
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
 		float	m_Vector[4];
-#else
-		float	m_Vector[3];
-#endif
 
 #ifdef SUPPORTS_INT64
 		int64	m_Int64;

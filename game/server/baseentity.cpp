@@ -115,7 +115,6 @@ BEGIN_SEND_TABLE_NOBASE( CBaseEntity, DT_AnimTimeMustBeFirst )
 	//  proxy on the client that stores off the old values before writing in the new values and
 	//  if it is sent after the new values, then it will only have the new origin and studio model, etc.
 	//  interpolation will be busted
-	SendPropFloat (SENDINFO(m_flAnimTime)),
 END_SEND_TABLE()
 
 #if !defined( NO_ENTITY_PREDICTION )
@@ -225,7 +224,6 @@ void SendProxy_Angles( const SendProp *pProp, const void *pStruct, const void *p
 // This table encodes the CBaseEntity data.
 IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropDataTable( "AnimTimeMustBeFirst", 0, &REFERENCE_SEND_TABLE(DT_AnimTimeMustBeFirst), SendProxy_ClientSideAnimation ),
-	SendPropFloat	(SENDINFO(m_flSimulationTime)),
 
 #if PREDICTION_ERROR_CHECK_LEVEL > 1 
 	SendPropVector	(SENDINFO(m_vecOrigin), -1,  SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_Origin ),
@@ -270,6 +268,17 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropInt		(SENDINFO(m_bSimulatedEveryTick),		1, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO(m_bAnimatedEveryTick),		1, SPROP_UNSIGNED ),
 	SendPropBool( SENDINFO( m_bAlternateSorting )),
+	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 0), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
+	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 1), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
+	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 2), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
+
+#if PREDICTION_ERROR_CHECK_LEVEL > 1 
+	SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
+#else
+	SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
+#endif
+	SendPropInt			( SENDINFO( m_nSimulatedTickCount ) ),
+	SendPropBool		( SENDINFO( m_bHasJustBeenCreatedThisFrame ) ),
 
 #ifdef TF_DLL
 	SendPropArray3( SENDINFO_ARRAY3(m_nModelIndexOverrides), SendPropInt( SENDINFO_ARRAY(m_nModelIndexOverrides), SP_MODEL_INDEX_BITS, 0 ) ),
@@ -379,10 +388,10 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 #ifndef _XBOX
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
 #endif
-	m_flInterpolatedSimulationTime = 0;
-	m_flInterpolatedAnimTime = 0;
-	m_flAnimTime = 0;
-	m_flSimulationTime = 0;
+	m_flSimulationTime = gpGlobals->curtime;
+
+	m_nSimulatedTickCount = 0;
+	m_bHasJustBeenCreatedThisFrame = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1741,10 +1750,6 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	DEFINE_KEYFIELD( m_flSpeed, FIELD_FLOAT, "speed" ),
 	DEFINE_KEYFIELD( m_nRenderFX, FIELD_CHARACTER, "renderfx" ),
 	DEFINE_KEYFIELD( m_nRenderMode, FIELD_CHARACTER, "rendermode" ),
-
-	// Consider moving to CBaseAnimating?
-	DEFINE_FIELD( m_flPrevAnimTime, FIELD_TIME ),
-	DEFINE_FIELD( m_flAnimTime, FIELD_TIME ),
 	DEFINE_FIELD( m_flSimulationTime, FIELD_TIME ),
 	DEFINE_FIELD( m_nLastThinkTick, FIELD_TICK ),
 
@@ -1852,6 +1857,8 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 #endif
 	// DEFINE_FIELD( m_pTimedOverlay, TimedOverlay_t* ),
 	DEFINE_FIELD( m_nSimulationTick, FIELD_TICK ),
+	// DEFINE_FIELD( m_nSimulatedTickCount, FIELD_TICK ),
+	// DEFINE_FIELD( m_bHasJustBeenCreatedThisFrame, FIELD_BOOLEAN ),
 	// DEFINE_FIELD( m_RefEHandle, CBaseHandle ),
 
 //	DEFINE_FIELD( m_nWaterTouch,		FIELD_INTEGER ),

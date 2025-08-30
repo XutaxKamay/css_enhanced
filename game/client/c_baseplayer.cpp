@@ -132,10 +132,6 @@ ConVar demo_fov_override( "demo_fov_override", "0", FCVAR_CLIENTDLL | FCVAR_DONT
 ConVar cl_meathook_neck_pivot_ingame_up( "cl_meathook_neck_pivot_ingame_up", "7.0" );
 ConVar cl_meathook_neck_pivot_ingame_fwd( "cl_meathook_neck_pivot_ingame_fwd", "3.0" );
 
-void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut );
-void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut );
-void RecvProxy_LocalVelocityZ( const CRecvProxyData *pData, void *pStruct, void *pOut );
-
 void RecvProxy_ObserverTarget( const CRecvProxyData *pData, void *pStruct, void *pOut );
 void RecvProxy_ObserverMode  ( const CRecvProxyData *pData, void *pStruct, void *pOut );
 const float coordTolerance = 2.0f / (float)( 1 << COORD_FRACTIONAL_BITS );
@@ -237,12 +233,6 @@ END_RECV_TABLE()
 
 		RecvPropEHandle		( RECVINFO( m_hLastWeapon ) ),
 		RecvPropEHandle		( RECVINFO( m_hGroundEntity ) ),
-
- 		RecvPropFloat		( RECVINFO(m_vecVelocity[0]), 0, RecvProxy_LocalVelocityX ),
- 		RecvPropFloat		( RECVINFO(m_vecVelocity[1]), 0, RecvProxy_LocalVelocityY ),
- 		RecvPropFloat		( RECVINFO(m_vecVelocity[2]), 0, RecvProxy_LocalVelocityZ ),
-
-		RecvPropVector		( RECVINFO( m_vecBaseVelocity ) ),
 
 		RecvPropEHandle		( RECVINFO( m_hConstraintEntity)),
 		RecvPropVector		( RECVINFO( m_vecConstraintCenter) ),
@@ -372,8 +362,6 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 	DEFINE_PRED_FIELD( m_nNextThinkTick, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_lifeState, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_nWaterLevel, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
-	
-	DEFINE_PRED_FIELD_TOL( m_vecBaseVelocity, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, 0.05 ),
 	DEFINE_PRED_FIELD_TOL(m_vecPreviouslyPredictedOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance),
 	DEFINE_FIELD( m_nButtons, FIELD_INTEGER ),
 	DEFINE_FIELD( m_flWaterJumpTime, FIELD_FLOAT ),
@@ -832,14 +820,7 @@ void C_BasePlayer::PostDataUpdate( DataUpdateType_t updateType )
 	else
 	{
 		SetSimulatedEveryTick( false );
-
-		// estimate velocity for non local players
-		float flTimeDelta = m_flSimulationTime - m_flOldSimulationTime;
-		if ( flTimeDelta > 0  &&  !( IsNoInterpolationFrame() || bForceEFNoInterp ) )
-		{
-			Vector newVelo = (GetNetworkOrigin() - GetOldOrigin()  ) / flTimeDelta;
-			SetAbsVelocity( newVelo);
-		}
+		// TODO_ENHANCED: no need to estimate anymore, m_vecVelocity is sent
 	}
 
 	BaseClass::PostDataUpdate( updateType );
@@ -2062,8 +2043,6 @@ void C_BasePlayer::PostThink( void )
 		}
 
 		StudioFrameAdvance();
-
-		SetSimulationTime( gpGlobals->curtime );
 	}
 
 	// Even if dead simulate entities
@@ -2448,57 +2427,6 @@ float C_BasePlayer::GetFOV( void )
 	}
 
 	return fFOV;
-}
-
-void RecvProxy_LocalVelocityX( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	C_BasePlayer *pPlayer = (C_BasePlayer *) pStruct;
-
-	Assert( pPlayer );
-
-	float flNewVel_x = pData->m_Value.m_Float;
-
-	Vector vecVelocity = pPlayer->GetLocalVelocity();
-
-	if( vecVelocity.x != flNewVel_x )	// Should this use an epsilon check?
-	{
-		vecVelocity.x = flNewVel_x;
-		pPlayer->SetLocalVelocity( vecVelocity );
-	}
-}
-
-void RecvProxy_LocalVelocityY( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	C_BasePlayer *pPlayer = (C_BasePlayer *) pStruct;
-
-	Assert( pPlayer );
-
-	float flNewVel_y = pData->m_Value.m_Float;
-
-	Vector vecVelocity = pPlayer->GetLocalVelocity();
-
-	if( vecVelocity.y != flNewVel_y )
-	{
-		vecVelocity.y = flNewVel_y;
-		pPlayer->SetLocalVelocity( vecVelocity );
-	}
-}
-
-void RecvProxy_LocalVelocityZ( const CRecvProxyData *pData, void *pStruct, void *pOut )
-{
-	C_BasePlayer *pPlayer = (C_BasePlayer *) pStruct;
-	
-	Assert( pPlayer );
-
-	float flNewVel_z = pData->m_Value.m_Float;
-
-	Vector vecVelocity = pPlayer->GetLocalVelocity();
-
-	if( vecVelocity.z != flNewVel_z )
-	{
-		vecVelocity.z = flNewVel_z;
-		pPlayer->SetLocalVelocity( vecVelocity );
-	}
 }
 
 void RecvProxy_ObserverTarget( const CRecvProxyData *pData, void *pStruct, void *pOut )

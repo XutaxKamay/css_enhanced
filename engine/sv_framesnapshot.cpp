@@ -20,7 +20,7 @@
 DEFINE_FIXEDSIZE_ALLOCATOR( CFrameSnapshot, 64, 64 );
 
 
-static ConVar sv_creationtickcheck( "sv_creationtickcheck", "1", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Do extended check for encoding of timestamps against tickcount" );
+static ConVar sv_creationtickcheck( "sv_creationtickcheck", "0", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Do extended check for encoding of timestamps against tickcount" );
 extern	CGlobalVars g_ServerGlobalVariables;
 
 // Expose interface

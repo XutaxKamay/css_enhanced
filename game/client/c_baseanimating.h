@@ -559,7 +559,6 @@ protected:
 	// Animation blending factors
 	float							m_flPoseParameter[MAXSTUDIOPOSEPARAM];
 	CInterpolatedVarArray< float, MAXSTUDIOPOSEPARAM >		m_iv_flPoseParameter;
-	float							m_flOldPoseParameters[MAXSTUDIOPOSEPARAM];
 
 	int								m_nPrevSequence;
 	int								m_nRestoreSequence;
@@ -573,7 +572,6 @@ protected:
 
 	float							m_flEncodedController[MAXSTUDIOBONECTRLS];	
 	CInterpolatedVarArray< float, MAXSTUDIOBONECTRLS >		m_iv_flEncodedController;
-	float							m_flOldEncodedController[MAXSTUDIOBONECTRLS];
 
 	// Clientside animation
 	bool							m_bLastClientSideFrameReset;
@@ -597,12 +595,9 @@ protected:
 protected:
 	float							m_flCycle;
 	CInterpolatedVar< float >		m_iv_flCycle;
-	float							m_flOldCycle;
 	bool							m_bNoModelParticles;
 
 private:
-	float							m_flOldModelScale;
-	int								m_nOldSequence;
 	CBoneMergeCache					*m_pBoneMergeCache;	// This caches the strcmp lookups that it has to do
 														// when merg
 	
@@ -646,6 +641,12 @@ private:
 
 public:
 	bool m_bForceSequenceTransitions;
+	// TODO_ENHANCED: Time animation values should be used only for client side animations
+	float m_flAnimTime;
+	float m_flPrevAnimTime;
+	uint64 m_nAnimatedTickCount;
+	uint64 m_nInterpolatedAnimatedTickCount;
+	CInterpolatedVar< uint64 > m_iv_nAnimatedTickCount;
 };
 
 enum 

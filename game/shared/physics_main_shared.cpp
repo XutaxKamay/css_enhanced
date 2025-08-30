@@ -1787,6 +1787,9 @@ void CBaseEntity::PhysicsSimulate( void )
 		return;
 
 	m_nSimulationTick = gpGlobals->tickcount;
+#ifndef CLIENT_DLL
+	m_nSimulatedTickCount++;
+#endif
 
 	Assert( !IsPlayer() );
 

@@ -40,20 +40,16 @@ class bf_write;
 
 struct SimulationData
 {
+	uint64 sim_tick_count;
+	uint64 anim_tick_count;
+
 	// TODO_ENHANCED:
 	// For now we send the last received update for animations.
 	// We might optimize this by sending a base counter and round the other entities values to it.
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-	float interpolated_sim_time;
-	float interpolated_anim_time;
-	float start_sim_time;
-	float start_anim_time;
-	float end_sim_time;
-	float end_anim_time;
+	uint64 end_sim_tick_count;
+	uint64 end_anim_tick_count;
 #endif
-
-	float sim_time;
-	float anim_time;
 };
 
 class CEntityGroundContact

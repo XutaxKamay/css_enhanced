@@ -160,26 +160,6 @@ inline void CBaseEntity::SetAnimatedEveryTick( bool anim )
 	}
 }
 
-inline float CBaseEntity::GetAnimTime() const
-{
-	return m_flAnimTime;
-}
-
-inline float CBaseEntity::GetSimulationTime() const
-{
-	return m_flSimulationTime;
-}
-
-inline void CBaseEntity::SetAnimTime( float at )
-{
-	m_flAnimTime = at;
-}
-
-inline void CBaseEntity::SetSimulationTime( float st )
-{
-	m_flSimulationTime = st;
-}
-
 inline int CBaseEntity::GetEffects( void ) const
 { 
 	return m_fEffects; 

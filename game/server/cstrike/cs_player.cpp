@@ -5096,7 +5096,7 @@ ReturnSpot:
 void CCSPlayer::SetProgressBarTime( int barTime )
 {
 	m_iProgressBarDuration = barTime;
-	m_flProgressBarStartTime = this->m_flSimulationTime;
+	m_flProgressBarStartTime = GetTimeBase();
 }
 
 

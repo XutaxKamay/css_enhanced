@@ -1270,7 +1270,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 
 	auto nInterpolationAmountOfTicks = GetClientInterpolationAmountInTicks();
-	auto flInterpolationAmountFrac = gpGlobals->next_interpolation_amount_frac;
+	auto flInterpolationAmountFrac	 = gpGlobals->next_interpolation_amount_frac;
 
 	auto entities = g_pFastEntityLookUp->entities;
 
@@ -1284,39 +1284,40 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		pEntity->Interpolate( nInterpolationAmountOfTicks, flInterpolationAmountFrac );
+		auto nInterpolatedSimulatedTickCount = pEntity->m_iv_nSimulatedTickCount.GetLastKnownValue();
+		auto nRealAmountOfTicks = pEntity->m_iv_nSimulatedTickCount.InterpolateCopy( nInterpolationAmountOfTicks,
+																					 flInterpolationAmountFrac,
+																					 &nInterpolatedSimulatedTickCount );
 
-		auto nRealInterpolationAmountSim = pEntity->m_iv_flSimulationTime.Interpolate( nInterpolationAmountOfTicks,
-																					   flInterpolationAmountFrac );
+		cmd->simulationdata[i].sim_tick_count = nInterpolatedSimulatedTickCount;
 
-		auto nRealInterpolationAmountAnim = pEntity->m_iv_flAnimTime.Interpolate( nInterpolationAmountOfTicks,
-																				  flInterpolationAmountFrac );
-
-		auto pflSimulationTime = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim );
-		auto pflAnimTime	   = pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim );
-
-		cmd->simulationdata[i].sim_time	 = pflSimulationTime ? *pflSimulationTime :
-															   pEntity->m_iv_flSimulationTime.GetLastKnownValue();
-		cmd->simulationdata[i].anim_time = pflAnimTime ? *pflAnimTime : pEntity->m_iv_flAnimTime.GetLastKnownValue();
-
-		// Debugging purpose
+		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		cmd->simulationdata[i].interpolated_sim_time  = pEntity->m_flInterpolatedAnimTime;
-		cmd->simulationdata[i].interpolated_anim_time = pEntity->m_flInterpolatedSimulationTime;
+		cmd->simulationdata[i].end_sim_tick_count = nRealAmountOfTicks != 0 ?
+													  *pEntity->m_iv_nSimulatedTickCount.Get( nRealAmountOfTicks - 1 ) :
+													  nInterpolatedSimulatedTickCount;
+#endif
 
-		auto pSimStart = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim );
-		auto pSimEnd   = pEntity->m_iv_flSimulationTime.Get( nRealInterpolationAmountSim - 1 );
+		auto pBaseAnimation = pEntity->GetBaseAnimating();
 
-		cmd->simulationdata[i].start_sim_time = pSimStart ? *pSimStart :
-															pEntity->m_iv_flSimulationTime.GetLastKnownValue();
-		cmd->simulationdata[i].end_sim_time	  = pSimEnd ? *pSimEnd : pEntity->m_iv_flSimulationTime.GetLastKnownValue();
+		if ( !pBaseAnimation )
+		{
+			continue;
+		}
 
-		auto pAnimStart = pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim );
-		auto pAnimEnd	= pEntity->m_iv_flAnimTime.Get( nRealInterpolationAmountAnim - 1 );
+		auto nInterpolatedAnimatedTickCount = pBaseAnimation->m_iv_nAnimatedTickCount.GetLastKnownValue();
+		nRealAmountOfTicks = pBaseAnimation->m_iv_nAnimatedTickCount.InterpolateCopy( nInterpolationAmountOfTicks,
+																					  flInterpolationAmountFrac,
+																					  &nInterpolatedAnimatedTickCount );
 
-		cmd->simulationdata[i].start_anim_time = pAnimStart ? *pAnimStart :
-															  pEntity->m_iv_flAnimTime.GetLastKnownValue();
-		cmd->simulationdata[i].end_anim_time   = pAnimEnd ? *pAnimEnd : pEntity->m_iv_flAnimTime.GetLastKnownValue();
+		cmd->simulationdata[i].anim_tick_count = nInterpolatedAnimatedTickCount;
+
+		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+		cmd->simulationdata[i].end_anim_tick_count = nRealAmountOfTicks != 0 ?
+													   *pBaseAnimation->m_iv_nAnimatedTickCount.Get( nRealAmountOfTicks
+																									 - 1 ) :
+													   nInterpolatedAnimatedTickCount;
 #endif
 	}
 

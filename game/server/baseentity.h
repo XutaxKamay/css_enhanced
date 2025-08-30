@@ -767,11 +767,15 @@ public:
 	int		GetNextThinkTick( const char *szContext = NULL );
 	int		GetLastThinkTick( const char *szContext = NULL );
 
-	float				GetAnimTime() const;
-	void				SetAnimTime( float at );
+	inline float GetSimulationTime() const
+	{
+		return m_flSimulationTime;
+	}
 
-	float				GetSimulationTime() const;
-	void				SetSimulationTime( float st );
+	inline void SetSimulationTime( float st )
+	{
+		m_flSimulationTime = st;
+	}
 
 	void				SetRenderMode( RenderMode_t nRenderMode );
 	RenderMode_t		GetRenderMode() const;
@@ -812,12 +816,7 @@ public:
 	void SetRenderColorB( byte b );
 	void SetRenderColorA( byte a );
 
-	// was pev->animtime:  consider moving to CBaseAnimating
-	float		m_flPrevAnimTime;
-	CNetworkVar( float, m_flAnimTime );  // this is the point in time that the client will interpolate to position,angle,frame,etc.
-	CNetworkVar( float, m_flSimulationTime );
-	float 		m_flInterpolatedSimulationTime;
-	float		m_flInterpolatedAnimTime;
+	float 		m_flSimulationTime;
 
 	void IncrementInterpolationFrame(); // Call this to cause a discontinuity (teleport)
 
@@ -1845,6 +1844,9 @@ public:
 	{
 		return s_bAbsQueriesValid;
 	}
+
+	CNetworkVar( uint64, m_nSimulatedTickCount ); // keep track how many times we simulated entity
+	CNetworkVar( bool, m_bHasJustBeenCreatedThisFrame );
 };
 
 // Send tables exposed in this module.

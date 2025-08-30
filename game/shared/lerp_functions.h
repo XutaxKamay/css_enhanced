@@ -80,6 +80,10 @@ inline void Lerp_Clamp( int val )
 {
 }
 
+inline void Lerp_Clamp( uint64 val )
+{
+}
+
 inline void Lerp_Clamp( float val )
 {
 }
@@ -179,6 +183,31 @@ inline int LoopingLerp_Hermite( float flPercent, int prev, int from, int to )
 
 template <>
 inline int Lerp_Hermite( float flPercent, const int& prev, const int& from, const int& to )
+{
+	return from;
+}
+
+
+template <>
+inline uint64 LoopingLerp( float flPercent, uint64 from, uint64 to )
+{
+	return from;
+}
+
+template <>
+inline uint64 Lerp( float flPercent, uint64 const &from, uint64 const &to )
+{
+	return from;
+}
+
+template <>
+inline uint64 LoopingLerp_Hermite( float flPercent, uint64 prev, uint64 from, uint64 to )
+{
+	return from;
+}
+
+template <>
+inline uint64 Lerp_Hermite( float flPercent, const uint64& prev, const uint64& from, const uint64& to )
 {
 	return from;
 }

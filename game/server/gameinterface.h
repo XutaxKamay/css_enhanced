@@ -152,6 +152,7 @@ public:
 
 	// Called to see if the game server is okay with a manual changelevel or map command
 	virtual bool			IsManualMapChangeOkay( const char **pszReason ) OVERRIDE;
+	virtual void			PostClientUpdate( bool simulating, bool bFinalTick ) OVERRIDE;
 
 private:
 

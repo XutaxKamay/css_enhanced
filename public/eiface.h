@@ -634,6 +634,8 @@ public:
 
 	// Called to see if the game server is okay with a manual changelevel or map command
 	virtual bool			IsManualMapChangeOkay( const char **pszReason ) = 0;
+
+	virtual void			PostClientUpdate( bool simulating, bool bFinalTick ) = 0;
 };
 
 typedef IServerGameDLL IServerGameDLL008;

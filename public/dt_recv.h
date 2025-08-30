@@ -344,8 +344,6 @@ RecvProp RecvPropVectorXY(
 // This is here so the RecvTable can look more like the SendTable.
 #define RecvPropQAngles RecvPropVector
 
-#if 0 // We can't ship this since it changes the size of DTVariant to be 20 bytes instead of 16 and that breaks MODs!!!
-
 RecvProp RecvPropQuaternion(
 	const char *pVarName, 
 	int offset, 
@@ -353,7 +351,6 @@ RecvProp RecvPropQuaternion(
 	int flags=0, 
 	RecvVarProxyFn varProxy=RecvProxy_QuaternionToQuaternion
 	);
-#endif
 
 RecvProp RecvPropInt(
 	const char *pVarName, 

@@ -152,20 +152,20 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	// Write finally simulation data with entity index
 	for ( unsigned int i = 0; i <= highestEntityIndex; i++ )
 	{
-		if ( from->simulationdata[i].sim_time != to->simulationdata[i].sim_time )
+		if ( from->simulationdata[i].sim_tick_count != to->simulationdata[i].sim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].sim_time );
+			buf->WriteVarInt64( to->simulationdata[i].sim_tick_count );
 		}
 		else
 		{
 			buf->WriteOneBit( 0 );
 		}
 
-		if ( from->simulationdata[i].anim_time != to->simulationdata[i].anim_time )
+		if ( from->simulationdata[i].anim_tick_count != to->simulationdata[i].anim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].anim_time );
+			buf->WriteVarInt64( to->simulationdata[i].anim_tick_count );
 		}
 		else
 		{
@@ -173,60 +173,20 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		}
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		if ( from->simulationdata[i].interpolated_sim_time != to->simulationdata[i].interpolated_sim_time )
+		if ( from->simulationdata[i].end_sim_tick_count != to->simulationdata[i].end_sim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].interpolated_sim_time );
+			buf->WriteVarInt64( to->simulationdata[i].end_sim_tick_count );
 		}
 		else
 		{
 			buf->WriteOneBit( 0 );
 		}
 
-		if ( from->simulationdata[i].interpolated_anim_time != to->simulationdata[i].interpolated_anim_time )
+		if ( from->simulationdata[i].end_anim_tick_count != to->simulationdata[i].end_anim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].interpolated_anim_time );
-		}
-		else
-		{
-			buf->WriteOneBit( 0 );
-		}
-
-		if ( from->simulationdata[i].start_sim_time != to->simulationdata[i].start_sim_time )
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].start_sim_time );
-		}
-		else
-		{
-			buf->WriteOneBit( 0 );
-		}
-
-		if ( from->simulationdata[i].start_anim_time != to->simulationdata[i].start_anim_time )
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].start_anim_time );
-		}
-		else
-		{
-			buf->WriteOneBit( 0 );
-		}
-
-		if ( from->simulationdata[i].end_sim_time != to->simulationdata[i].end_sim_time )
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].end_sim_time );
-		}
-		else
-		{
-			buf->WriteOneBit( 0 );
-		}
-
-		if ( from->simulationdata[i].end_anim_time != to->simulationdata[i].end_anim_time )
-		{
-			buf->WriteOneBit( 1 );
-			buf->WriteFloat( to->simulationdata[i].end_anim_time );
+			buf->WriteVarInt64( to->simulationdata[i].end_anim_tick_count );
 		}
 		else
 		{
@@ -349,43 +309,23 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
     {
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].sim_time = buf->ReadFloat();
+			move->simulationdata[i].sim_tick_count = buf->ReadVarInt64();
 		}
 
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].anim_time = buf->ReadFloat();
+			move->simulationdata[i].anim_tick_count = buf->ReadVarInt64();
 		}
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].interpolated_sim_time = buf->ReadFloat();
+			move->simulationdata[i].end_sim_tick_count = buf->ReadVarInt64();
 		}
 
 		if (buf->ReadOneBit())
 		{
-			move->simulationdata[i].interpolated_anim_time = buf->ReadFloat();
-		}
-
-		if (buf->ReadOneBit())
-		{
-			move->simulationdata[i].start_sim_time = buf->ReadFloat();
-		}
-
-		if (buf->ReadOneBit())
-		{
-			move->simulationdata[i].start_anim_time = buf->ReadFloat();
-		}
-
-		if (buf->ReadOneBit())
-		{
-			move->simulationdata[i].end_sim_time = buf->ReadFloat();
-		}
-
-		if (buf->ReadOneBit())
-		{
-			move->simulationdata[i].end_anim_time = buf->ReadFloat();
+			move->simulationdata[i].end_anim_tick_count = buf->ReadVarInt64();
 		}
 #endif
 	}

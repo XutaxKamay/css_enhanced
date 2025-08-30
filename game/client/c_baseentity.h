@@ -667,6 +667,7 @@ public:
 	virtual	void					OnLatchInterpolatedVariables( CIVLatchType LatchType, bool bUpdateLastNetworkedValue = true );
 	// For predictable entities, stores last networked value
 	void							OnStoreLastNetworkedValue();
+	void							ClearInterpolationHistory( CIVLatchType LatchType );
 
 	// Initialize things given a new model.
 	virtual CStudioHdr				*OnNewModel();
@@ -1102,12 +1103,6 @@ public:
 	bool	WillSimulateGamePhysics();
 	int		GetFirstThinkTick();	// get first tick thinking on any context
 
-	float	GetAnimTime() const;
-	void	SetAnimTime( float at );
-
-	float	GetSimulationTime() const;
-	void	SetSimulationTime( float st );
-
 	float	GetCreateTime()										{ return m_flCreateTime; }
 	void	SetCreateTime( float flCreateTime )					{ m_flCreateTime = flCreateTime; }
 
@@ -1245,18 +1240,7 @@ private:
 	// Model for rendering
 	const model_t					*model;
 
-public:
-	// Time animation sequence or frame was last changed
-	float							m_flAnimTime;
-	float							m_flOldAnimTime;
-	float							m_flInterpolatedAnimTime;
-	CInterpolatedVar<float>			m_iv_flAnimTime;
-
-	float							m_flSimulationTime;
-	float							m_flOldSimulationTime;
-	float							m_flInterpolatedSimulationTime;
-	CInterpolatedVar<float>			m_iv_flSimulationTime;
-	
+public:	
 	float							m_flCreateTime;
 
 	byte							m_ubInterpolationFrame;
@@ -1736,6 +1720,10 @@ protected:
 #endif
   public:
 	CInterpolatedVarList m_InterpolatedVariableList;
+	uint64 m_nSimulatedTickCount;
+	uint64 m_nInterpolatedSimulatedTickCount;
+	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
+	bool m_bHasJustBeenCreatedThisFrame;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
