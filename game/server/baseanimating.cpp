@@ -40,6 +40,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+uint64 CBaseAnimating::m_nAnimatedTickCounts[NUM_ENT_ENTRIES] = { 0 };
+
 ConVar ai_sequence_debug( "ai_sequence_debug", "0" );
 
 class CIKSaveRestoreOps : public CClassPtrSaveRestoreOps
@@ -293,9 +295,7 @@ CBaseAnimating::CBaseAnimating()
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
 	m_bUseIks = true;
-	m_nSimulatedTickCount = 0;
 	m_nAnimatedTickCount = 0;
-	m_bHasJustBeenCreatedThisFrame = true;
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -459,7 +459,7 @@ void CBaseAnimating::StudioFrameAdvanceInternal( CStudioHdr *pStudioHdr, float f
 
 	InvalidateBoneCacheIfOlderThan( 0 );
 
-	m_nAnimatedTickCount++;
+	m_nAnimatedTickCount = ++m_nAnimatedTickCounts[ entindex() ];
 }
 
 void CBaseAnimating::InvalidateBoneCacheIfOlderThan( float deltaTime )

@@ -423,11 +423,11 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	if constexpr ( bPush )
 	{
-		auto pnSimulatedTickCount = pLagTrack->m_iv_nSimulatedTickCount.Get();
-
 		// Has the entity just been created ?
-		if ( !pEntity->m_bHasJustBeenCreatedThisFrame )
+		if ( pEntity->m_nSimulatedTickCount != 0 )
 		{
+			auto pnSimulatedTickCount = pLagTrack->m_iv_nSimulatedTickCount.Get();
+
 			if ( pnSimulatedTickCount && *pnSimulatedTickCount > pRecord->m_nSimulatedTickCount )
 			{
 				// TODO_ENHANCED: this is just being paranoid right now.
@@ -442,7 +442,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 			pLagTrack->ClearHistory( CIVLatchType::SIMULATION );
 		}
 
-		pnSimulatedTickCount = pLagTrack->m_iv_nSimulatedTickCount.Get();
+		auto pnSimulatedTickCount = pLagTrack->m_iv_nSimulatedTickCount.Get();
 
 		if ( !pnSimulatedTickCount || ( *pnSimulatedTickCount != pRecord->m_nSimulatedTickCount ) )
 		{
@@ -512,11 +512,11 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	if constexpr ( bPush )
 	{
-		auto pnAnimatedTickCount = pLagTrack->m_iv_nAnimatedTickCount.Get();
-
 		// Has the entity just been created ?
-		if ( !pEntity->m_bHasJustBeenCreatedThisFrame )
+		if ( pAnim && pAnim->m_nAnimatedTickCount != 0 )
 		{
+			auto pnAnimatedTickCount = pLagTrack->m_iv_nAnimatedTickCount.Get();
+
 			if ( pnAnimatedTickCount && *pnAnimatedTickCount > pRecord->m_nAnimatedTickCount )
 			{
 				// TODO_ENHANCED: this is just being paranoid right now.
@@ -531,7 +531,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 			pLagTrack->ClearHistory( CIVLatchType::ANIMATION );
 		}
 
-		pnAnimatedTickCount = pLagTrack->m_iv_nAnimatedTickCount.Get();
+		auto pnAnimatedTickCount = pLagTrack->m_iv_nAnimatedTickCount.Get();
 
 		if ( !pnAnimatedTickCount || ( *pnAnimatedTickCount != pRecord->m_nAnimatedTickCount ) )
 		{

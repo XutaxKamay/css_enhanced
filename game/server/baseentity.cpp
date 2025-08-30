@@ -94,6 +94,7 @@ int g_nInsideDispatchUpdateTransmitState = 0;
 // When this is false, throw an assert in debug when GetAbsAnything is called. Used when hierachy is incomplete/invalid.
 bool CBaseEntity::s_bAbsQueriesValid = true;
 
+uint64 CBaseEntity::m_nSimulatedTickCounts[NUM_ENT_ENTRIES] = { 0 };
 
 ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Test networking visibility distance" );
 
@@ -278,7 +279,6 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
 #endif
 	SendPropInt			( SENDINFO( m_nSimulatedTickCount ) ),
-	SendPropBool		( SENDINFO( m_bHasJustBeenCreatedThisFrame ) ),
 
 #ifdef TF_DLL
 	SendPropArray3( SENDINFO_ARRAY3(m_nModelIndexOverrides), SendPropInt( SENDINFO_ARRAY(m_nModelIndexOverrides), SP_MODEL_INDEX_BITS, 0 ) ),
@@ -389,9 +389,7 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
 #endif
 	m_flSimulationTime = gpGlobals->curtime;
-
 	m_nSimulatedTickCount = 0;
-	m_bHasJustBeenCreatedThisFrame = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1858,7 +1856,6 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	// DEFINE_FIELD( m_pTimedOverlay, TimedOverlay_t* ),
 	DEFINE_FIELD( m_nSimulationTick, FIELD_TICK ),
 	// DEFINE_FIELD( m_nSimulatedTickCount, FIELD_TICK ),
-	// DEFINE_FIELD( m_bHasJustBeenCreatedThisFrame, FIELD_BOOLEAN ),
 	// DEFINE_FIELD( m_RefEHandle, CBaseHandle ),
 
 //	DEFINE_FIELD( m_nWaterTouch,		FIELD_INTEGER ),

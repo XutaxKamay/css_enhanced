@@ -4539,7 +4539,7 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 
 	if ( !GetPredictable() && !IsClientCreated() && !m_bClientSideAnimation )
 	{
-		if ( m_iv_nAnimatedTickCount.GetLastKnownValue() > m_nAnimatedTickCount && !m_bHasJustBeenCreatedThisFrame )
+		if ( m_iv_nAnimatedTickCount.GetLastKnownValue() > m_nAnimatedTickCount && m_nAnimatedTickCount != 0 )
 		{
 			// TODO_ENHANCED: this is just being paranoid right now.
 			Error( "Animation entity %i has rolled back which is probably a bug with SendSnapshot sending out of "
@@ -4549,7 +4549,7 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 		}
 
 		// If animation just been created or spawned, clear history
-		if ( m_bHasJustBeenCreatedThisFrame )
+		if ( m_nAnimatedTickCount == 0 )
 		{
 			ClearInterpolationHistory( CIVLatchType::ANIMATION );
 		}

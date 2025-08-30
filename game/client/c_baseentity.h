@@ -1723,7 +1723,6 @@ protected:
 	uint64 m_nSimulatedTickCount;
 	uint64 m_nInterpolatedSimulatedTickCount;
 	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
-	bool m_bHasJustBeenCreatedThisFrame;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);

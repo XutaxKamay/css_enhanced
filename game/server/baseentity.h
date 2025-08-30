@@ -359,7 +359,13 @@ public:
 	static bool				m_bInDebugSelect;
 	static int				m_nDebugPlayer;
 
-protected:
+	// TODO_ENHANCED: I'm starting to get crazy so we're doing this way otherwise it's going to be hard to track if send
+	// snapshot failed because the server might call CBaseEntity constructor, but the client never ack it properly.
+	// Worst case scenario 1000t (2^64-1)/1000/60/60/24/365 = 584942417 ~ years before it fails, should be enough,
+	// I won't be alive to see it anyway.
+	static uint64 			m_nSimulatedTickCounts[NUM_ENT_ENTRIES];
+
+  protected:
 
 	static bool				m_bDebugPause;		// Whether entity i/o is paused for debugging.
 	static int				m_nDebugSteps;		// Number of entity outputs to fire before pausing again.
@@ -1846,7 +1852,6 @@ public:
 	}
 
 	CNetworkVar( uint64, m_nSimulatedTickCount ); // keep track how many times we simulated entity
-	CNetworkVar( bool, m_bHasJustBeenCreatedThisFrame );
 };
 
 // Send tables exposed in this module.

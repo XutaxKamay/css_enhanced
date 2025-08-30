@@ -448,7 +448,6 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 
 	RecvPropVector		( RECVINFO( m_vecBaseVelocity ) ),
 	RecvPropInt			( RECVINFO( m_nSimulatedTickCount ) ),
-	RecvPropBool		( RECVINFO( m_bHasJustBeenCreatedThisFrame ) ),
 
 #ifdef TF_CLIENT_DLL
 	RecvPropArray3( RECVINFO_ARRAY(m_nModelIndexOverrides),	RecvPropInt( RECVINFO(m_nModelIndexOverrides[0]) ) ),
@@ -485,7 +484,6 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 
 //	DEFINE_FIELD( m_nSimulationTick, FIELD_INTEGER ),
 //	DEFINE_FIELD( m_nSimulatedTickCount, FIELD_INTEGER ),
-	DEFINE_FIELD( m_bHasJustBeenCreatedThisFrame, FIELD_BOOLEAN ),
 	DEFINE_PRED_FIELD( m_hNetworkMoveParent, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 //	DEFINE_PRED_FIELD( m_pMoveParent, FIELD_EHANDLE ),
 //	DEFINE_PRED_FIELD( m_pMoveChild, FIELD_EHANDLE ),
@@ -2287,7 +2285,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	if ( !bPredictable && !IsClientCreated() )
 	{
 		// TODO_ENHANCED: this is just being paranoid right now.
-		if ( m_iv_nSimulatedTickCount.GetLastKnownValue() > m_nSimulatedTickCount && !m_bHasJustBeenCreatedThisFrame )
+		if ( m_iv_nSimulatedTickCount.GetLastKnownValue() > m_nSimulatedTickCount && m_nSimulatedTickCount != 0 )
 		{
 			Error( "Simulated entity %i has rolled back which is probably a bug with SendSnapshot sending out of "
 				   "order old(%lld) != new(%lld)",
@@ -2297,7 +2295,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 		}
 
 		// If just spawned or created, clear history
-		if ( m_bHasJustBeenCreatedThisFrame )
+		if ( m_nSimulatedTickCount == 0 )
 		{
 			ClearInterpolationHistory( CIVLatchType::SIMULATION );
 		}
