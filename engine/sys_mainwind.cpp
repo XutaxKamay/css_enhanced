@@ -920,10 +920,14 @@ bool CGame::CreateGameWindow( void )
 
 	if ( IsOpenGL() )
 	{
-#ifdef TOGLES
+#if defined(TOGLES)
 		V_strcat( windowName, " - OpenGLES", sizeof( windowName ) );
-#else
+#elif defined(TOGL)
 		V_strcat( windowName, " - OpenGL", sizeof( windowName ) );
+#elif defined(DXVK_ENABLED)
+		V_strcat( windowName, " - DXVK", sizeof( windowName ) );
+#else
+		V_strcat( windowName, " - DirectX", sizeof( windowName ) );
 #endif
 	}
 
