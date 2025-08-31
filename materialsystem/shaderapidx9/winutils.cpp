@@ -5,10 +5,16 @@
 //===========================================================================//
 
 #include "winutils.h"
+#include "platform.h"
 
 #ifndef _WIN32
 
 #include "appframework/ilaunchermgr.h"
+
+#ifdef DXVK_ENABLED
+#include <stdlib.h>
+#include <ctype.h>
+#endif
 
 // LINUX path taken from //Steam/main/src/tier0/platform_posix.cpp - Returns installed RAM in MB. 
 static unsigned long GetInstalledRAM()
@@ -61,6 +67,28 @@ void Sleep( unsigned int ms )
 	ThreadSleep( ms );
 }
 
+#ifdef DXVK_ENABLED
+bool IsIconic( HWND hWnd )
+{
+	// FIXME for now just act non-minimized all the time
+	//DebuggerBreak();
+	return false;
+}
+
+BOOL ClientToScreen( HWND hWnd, LPPOINT pPoint )
+{
+	DebuggerBreak();
+	return true;
+}
+BOOL GetClientRect(HWND hWnd, LPRECT pRect) {
+	pRect->left = 0;
+	pRect->top = 0;
+	pRect->right = 0;
+	pRect->bottom = 0;
+	DebuggerBreak();
+	return FALSE;
+}
+#else
 bool IsIconic( VD3DHWND hWnd )
 {
 	// FIXME for now just act non-minimized all the time
@@ -73,6 +101,7 @@ BOOL ClientToScreen( VD3DHWND hWnd, LPPOINT pPoint )
 	DebuggerBreak();
 	return true;
 }
+#endif
 
 void* GetCurrentThread()
 {
