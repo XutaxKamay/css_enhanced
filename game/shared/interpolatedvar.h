@@ -164,40 +164,65 @@ struct CInterpolationType
 
 struct IInterpolatedVar
 {
-	virtual void Push()																   = 0;
-	virtual void Push( void* pData, size_t size )									   = 0;
-	virtual void ClearHistory()														   = 0;
-	virtual void SetLooping( bool bLooping )										   = 0;
-	virtual bool IsLooping()														   = 0;
-	virtual size_t Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
-	virtual void RestoreToLastKnownValue()											   = 0;
-	virtual void SaveLastKnownValue()												   = 0;
-	virtual void DisableInterpolation()												   = 0;
-	virtual void EnableInterpolation()												   = 0;
-	virtual bool IsInterpolationEnabled()											   = 0;
-	virtual void* ReferenceData()													   = 0;
-	virtual size_t ReferenceSize()													   = 0;
-	virtual void SetReferenceData( void* pData, size_t size )						   = 0;
-	virtual void SetDebugName( const std::string& szDebugName )						   = 0;
-	virtual std::string DebugName()													   = 0;
-	virtual size_t MaxHistory()														   = 0;
-	virtual size_t CurrentHistorySize()												   = 0;
-	virtual void Copy( IInterpolatedVar* varDst )									   = 0;
-	virtual void Disable()															   = 0;
-	virtual void Enable()															   = 0;
-	virtual bool IsEnabled()														   = 0;
-	virtual void Reset()															   = 0;
-	virtual CIVLatchType LatchType()												   = 0;
-	virtual void SetLatchType( const CIVLatchType& LatchType )						   = 0;
-	virtual std::string DebugValue()												   = 0;
-	virtual CInterpolationType InterpolationType()									   = 0;
-	virtual void SetInterpolationType( const CInterpolationType& InterpolationType )   = 0;
+	struct Result
+	{
+		size_t nAmountOfTicks;
+		float frac;
+	};
+
+	virtual void Push()																	 = 0;
+	virtual void Push( void* pData, size_t size )										 = 0;
+	virtual void ClearHistory()															 = 0;
+	virtual void SetLooping( bool bLooping )											 = 0;
+	virtual bool IsLooping()															 = 0;
+	virtual Result Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
+	virtual void RestoreToLastKnownValue()												 = 0;
+	virtual void SaveLastKnownValue()													 = 0;
+	virtual void DisableInterpolation()													 = 0;
+	virtual void EnableInterpolation()													 = 0;
+	virtual bool IsInterpolationEnabled()												 = 0;
+	virtual void* ReferenceData()														 = 0;
+	virtual size_t ReferenceSize()														 = 0;
+	virtual void SetReferenceData( void* pData, size_t size )							 = 0;
+	virtual void SetDebugName( const std::string& szDebugName )							 = 0;
+	virtual std::string DebugName()														 = 0;
+	virtual size_t MaxHistory()															 = 0;
+	virtual size_t CurrentHistorySize()													 = 0;
+	virtual void Copy( IInterpolatedVar* varDst )										 = 0;
+	virtual void Disable()																 = 0;
+	virtual void Enable()																 = 0;
+	virtual bool IsEnabled()															 = 0;
+	virtual void Reset()																 = 0;
+	virtual CIVLatchType LatchType()													 = 0;
+	virtual void SetLatchType( const CIVLatchType& LatchType )							 = 0;
+	virtual std::string DebugValue()													 = 0;
+	virtual CInterpolationType InterpolationType()										 = 0;
+	virtual void SetInterpolationType( const CInterpolationType& InterpolationType )	 = 0;
 };
 
 template < typename T, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
 class CInterpolatedVar : public IInterpolatedVar
 {
   public:
+	struct HermiteResult : public Result
+	{
+		T prev;
+		T start;
+		T end;
+	};
+
+	struct LinearResult : public Result
+	{
+		T start;
+		T end;
+	};
+
+	struct ReferenceResult : public Result
+	{
+		T startref;
+		T endref;
+	};
+
 	CInterpolatedVar()
 	 : m_szDebugName( {} ),
 	   m_pReferencedVariable( &m_LastKnownValue ),
@@ -287,12 +312,12 @@ class CInterpolatedVar : public IInterpolatedVar
 		return m_bLooping;
 	}
 
-	size_t Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	LinearResult Interpolate_Linear( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
 		if ( nAmountOfTicks >= MAX_HISTORY )
 		{
 			*out = m_LastKnownValue;
-			return 0;
+			return {};
 		}
 
 		T* start = NULL;
@@ -317,20 +342,28 @@ class CInterpolatedVar : public IInterpolatedVar
 
 		if ( !start || !end )
 		{
-			return 0;
+			*out = m_LastKnownValue;
+			return {};
 		}
 
 		*out = ::Interpolate_Linear( flInterpolationAmountFrac, *start, *end, m_bLooping );
 
-		return nAmountOfTicks;
+		LinearResult result;
+
+		result.nAmountOfTicks = nAmountOfTicks;
+		result.frac			  = flInterpolationAmountFrac;
+		result.start		  = *start;
+		result.end			  = *end;
+
+		return result;
 	}
 
-	size_t Interpolate_Hermite( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	HermiteResult Interpolate_Hermite( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
 		if ( nAmountOfTicks >= MAX_HISTORY )
 		{
 			*out = m_LastKnownValue;
-			return 0;
+			return {};
 		}
 
 		T* prev	 = NULL;
@@ -357,29 +390,49 @@ class CInterpolatedVar : public IInterpolatedVar
 
 		if ( !prev || !start || !end )
 		{
-			return 0;
+			*out = m_LastKnownValue;
+			return {};
 		}
 
 		*out = ::Interpolate_Hermite( flInterpolationAmountFrac, *prev, *start, *end, m_bLooping );
 
-		return nAmountOfTicks;
+		HermiteResult result;
+
+		result.nAmountOfTicks = nAmountOfTicks;
+		result.frac			  = flInterpolationAmountFrac;
+		result.prev			  = *prev;
+		result.start		  = *start;
+		result.end			  = *end;
+
+		return result;
 	}
 
-	size_t InterpolateCopy( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
+	ReferenceResult InterpolateCopy( size_t nAmountOfTicks, float flInterpolationAmountFrac, T* out )
 	{
-		size_t result = 0;
+		ReferenceResult result;
 
 		switch ( m_InterpolationType )
 		{
 			case CInterpolationType::LINEAR:
 			{
-				result = Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
+				auto linearResult = Interpolate_Linear( nAmountOfTicks, flInterpolationAmountFrac, out );
+
+				result.nAmountOfTicks = linearResult.nAmountOfTicks;
+				result.frac			  = linearResult.frac;
+				result.startref		  = linearResult.start;
+				result.endref		  = linearResult.end;
 				break;
 			}
 
 			case CInterpolationType::HERMITE:
 			{
-				result = Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out );
+				// Prev for hermite, prev is the actual starting point.
+				auto hermiteResult = Interpolate_Hermite( nAmountOfTicks, flInterpolationAmountFrac, out );
+
+				result.nAmountOfTicks = hermiteResult.nAmountOfTicks;
+				result.frac			  = hermiteResult.frac;
+				result.startref		  = hermiteResult.prev;
+				result.endref		  = hermiteResult.end;
 				break;
 			}
 
@@ -393,14 +446,29 @@ class CInterpolatedVar : public IInterpolatedVar
 		return result;
 	}
 
-	virtual size_t Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
+	ReferenceResult InterpolateReference( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 	{
+		m_LastReferencedResult = {};
+
 		if ( !IsInterpolationEnabled() || !IsEnabled() )
 		{
-			return 0;
+			return {};
 		}
 
-		return InterpolateCopy( nAmountOfTicks, flInterpolationAmountFrac, m_pReferencedVariable );
+		m_LastReferencedResult = InterpolateCopy( nAmountOfTicks, flInterpolationAmountFrac, m_pReferencedVariable );
+
+		return m_LastReferencedResult;
+	}
+
+	virtual Result Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
+	{
+		Result result;
+		auto referenceResult = InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+
+		result.nAmountOfTicks = referenceResult.nAmountOfTicks;
+		result.frac			  = referenceResult.frac;
+
+		return result;
 	}
 
 	virtual void RestoreToLastKnownValue() override
@@ -536,6 +604,11 @@ class CInterpolatedVar : public IInterpolatedVar
 		m_InterpolationType = InterpolationType;
 	}
 
+	const ReferenceResult& GetLastReferencedResult() const
+	{
+		return m_LastReferencedResult;
+	}
+
   private:
 	CUtlCircularBuffer< T, MAX_HISTORY > m_History;
 	std::string m_szDebugName;
@@ -546,6 +619,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	CIVLatchType m_LatchType;
 	T m_LastKnownValue;
 	CInterpolationType m_InterpolationType;
+	ReferenceResult m_LastReferencedResult;
 };
 
 template < typename T, size_t ARRAY_SIZE, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
@@ -628,7 +702,7 @@ struct CInterpolatedVarList
 
 		for ( auto&& variable : variables )
 		{
-			if ( variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ) > 0 )
+			if ( variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ).frac == 0 )
 			{
 				bCouldInterpolate = false;
 			}

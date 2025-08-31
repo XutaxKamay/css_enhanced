@@ -1269,6 +1269,12 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i] = {};
 	}
 
+	auto oldfrac						 = gpGlobals->interpolation_amount_frac;
+	gpGlobals->interpolation_amount_frac = gpGlobals->next_interpolation_amount_frac;
+	// We need to interpolate the entities so that it matches client screen
+	C_BaseEntity::InterpolateServerEntities();
+	gpGlobals->interpolation_amount_frac = oldfrac;
+
 	auto nInterpolationAmountOfTicks = GetClientInterpolationAmountInTicks();
 	auto flInterpolationAmountFrac	 = gpGlobals->next_interpolation_amount_frac;
 
@@ -1284,18 +1290,19 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		auto nInterpolatedSimulatedTickCount = pEntity->m_iv_nSimulatedTickCount.GetLastKnownValue();
-		auto nRealAmountOfTicks = pEntity->m_iv_nSimulatedTickCount.InterpolateCopy( nInterpolationAmountOfTicks,
-																					 flInterpolationAmountFrac,
-																					 &nInterpolatedSimulatedTickCount );
+		const auto& simulatedResult			 = pEntity->m_iv_nSimulatedTickCount.GetLastReferencedResult();
+		auto nInterpolatedSimulatedTickCount = pEntity->m_nInterpolatedSimulatedTickCount;
 
-		cmd->simulationdata[i].sim_tick_count = nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].sim_tick_count	   = simulatedResult.nAmountOfTicks != 0 ? simulatedResult.startref :
+																						   nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].is_sim_interpolated = simulatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		cmd->simulationdata[i].end_sim_tick_count = nRealAmountOfTicks != 0 ?
-													  *pEntity->m_iv_nSimulatedTickCount.Get( nRealAmountOfTicks - 1 ) :
-													  nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].interpolated_sim_tick_count = nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].end_sim_tick_count		   = simulatedResult.nAmountOfTicks != 0 ?
+															   simulatedResult.endref :
+															   nInterpolatedSimulatedTickCount;
 #endif
 
 		auto pBaseAnimation = pEntity->GetBaseAnimating();
@@ -1305,19 +1312,19 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 			continue;
 		}
 
-		auto nInterpolatedAnimatedTickCount = pBaseAnimation->m_iv_nAnimatedTickCount.GetLastKnownValue();
-		nRealAmountOfTicks = pBaseAnimation->m_iv_nAnimatedTickCount.InterpolateCopy( nInterpolationAmountOfTicks,
-																					  flInterpolationAmountFrac,
-																					  &nInterpolatedAnimatedTickCount );
+		const auto& animatedResult			= pBaseAnimation->m_iv_nAnimatedTickCount.GetLastReferencedResult();
+		auto nInterpolatedAnimatedTickCount = pBaseAnimation->m_nInterpolatedAnimatedTickCount;
 
-		cmd->simulationdata[i].anim_tick_count = nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].anim_tick_count		= animatedResult.nAmountOfTicks != 0 ? animatedResult.startref :
+																						   nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].is_anim_interpolated = animatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		cmd->simulationdata[i].end_anim_tick_count = nRealAmountOfTicks != 0 ?
-													   *pBaseAnimation->m_iv_nAnimatedTickCount.Get( nRealAmountOfTicks
-																									 - 1 ) :
-													   nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].interpolated_anim_tick_count = nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].end_anim_tick_count			= animatedResult.nAmountOfTicks != 0 ?
+																animatedResult.endref :
+																nInterpolatedAnimatedTickCount;
 #endif
 	}
 

@@ -42,11 +42,15 @@ struct SimulationData
 {
 	uint64 sim_tick_count;
 	uint64 anim_tick_count;
+	bool is_sim_interpolated;
+	bool is_anim_interpolated;
 
 	// TODO_ENHANCED:
 	// For now we send the last received update for animations.
 	// We might optimize this by sending a base counter and round the other entities values to it.
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
+	uint64 interpolated_sim_tick_count;
+	uint64 interpolated_anim_tick_count;
 	uint64 end_sim_tick_count;
 	uint64 end_anim_tick_count;
 #endif

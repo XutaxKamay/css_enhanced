@@ -172,7 +172,31 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 			buf->WriteOneBit( 0 );
 		}
 
+		buf->WriteOneBit( to->simulationdata[i].is_sim_interpolated );
+		buf->WriteOneBit( to->simulationdata[i].is_anim_interpolated );
+
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
+		if ( from->simulationdata[i].interpolated_sim_tick_count != to->simulationdata[i].interpolated_sim_tick_count )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteVarInt64( to->simulationdata[i].interpolated_sim_tick_count );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
+		if ( from->simulationdata[i].interpolated_anim_tick_count
+			 != to->simulationdata[i].interpolated_anim_tick_count )
+		{
+			buf->WriteOneBit( 1 );
+			buf->WriteVarInt64( to->simulationdata[i].interpolated_anim_tick_count );
+		}
+		else
+		{
+			buf->WriteOneBit( 0 );
+		}
+
 		if ( from->simulationdata[i].end_sim_tick_count != to->simulationdata[i].end_sim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
@@ -221,7 +245,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 1 );
 		buf->WriteShort( to->entitygroundcontact.Count() );
 		int i;
-		for (i = 0; i < to->entitygroundcontact.Count(); i++)
+		for ( i = 0; i < to->entitygroundcontact.Count(); i++ )
 		{
 			buf->WriteUBitLong( to->entitygroundcontact[i].entindex, MAX_EDICT_BITS );
 			buf->WriteBitCoord( to->entitygroundcontact[i].minheight );
@@ -237,12 +261,12 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 
 //-----------------------------------------------------------------------------
 // Purpose: Read in a delta compressed usercommand.
-// Input  : *buf - 
-//			*move - 
-//			*from - 
+// Input  : *buf -
+//			*move -
+//			*from -
 // Output : static void ReadUsercmd
 //-----------------------------------------------------------------------------
-void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
+void ReadUsercmd( bf_read* buf, CUserCmd* move, CUserCmd* from )
 {
 	// Assume no change
 	*move = *from;
@@ -303,34 +327,47 @@ void ReadUsercmd( bf_read *buf, CUserCmd *move, CUserCmd *from )
 
 	auto highestEntityIndex = buf->ReadUBitLong( 11 );
 
-	highestEntityIndex = MIN(MAX_EDICTS - 1, highestEntityIndex);
+	highestEntityIndex = MIN( MAX_EDICTS - 1, highestEntityIndex );
 
-    for (unsigned int i = 0; i <= highestEntityIndex; i++)
-    {
-		if (buf->ReadOneBit())
+	for ( unsigned int i = 0; i <= highestEntityIndex; i++ )
+	{
+		if ( buf->ReadOneBit() )
 		{
 			move->simulationdata[i].sim_tick_count = buf->ReadVarInt64();
 		}
 
-		if (buf->ReadOneBit())
+		if ( buf->ReadOneBit() )
 		{
 			move->simulationdata[i].anim_tick_count = buf->ReadVarInt64();
 		}
 
+		move->simulationdata[i].is_sim_interpolated	 = buf->ReadOneBit();
+		move->simulationdata[i].is_anim_interpolated = buf->ReadOneBit();
+
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
-		if (buf->ReadOneBit())
+		if ( buf->ReadOneBit() )
+		{
+			move->simulationdata[i].interpolated_sim_tick_count = buf->ReadVarInt64();
+		}
+
+		if ( buf->ReadOneBit() )
+		{
+			move->simulationdata[i].interpolated_anim_tick_count = buf->ReadVarInt64();
+		}
+
+		if ( buf->ReadOneBit() )
 		{
 			move->simulationdata[i].end_sim_tick_count = buf->ReadVarInt64();
 		}
 
-		if (buf->ReadOneBit())
+		if ( buf->ReadOneBit() )
 		{
 			move->simulationdata[i].end_anim_tick_count = buf->ReadVarInt64();
 		}
 #endif
 	}
 
-    if ( buf->ReadOneBit() )
+	if ( buf->ReadOneBit() )
 	{
 		move->debug_hitboxes = (CUserCmd::debug_hitboxes_t)buf->ReadUBitLong(2);
     }

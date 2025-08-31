@@ -2158,7 +2158,7 @@ BasePlayerInterpolationCommandContext::BasePlayerInterpolationCommandContext()
 }
 
 #ifdef CLIENT_DLL
-static ConVarRef cl_interp_type( "cl_interp_type" );
+extern ConVar cl_interp_type;
 #endif
 
 void BasePlayerInterpolationCommandContext::Start( CBasePlayer* player )

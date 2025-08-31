@@ -710,6 +710,8 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	ParticleProp()->Init( this );
+	m_nCurrentInterpolationAmountOfTicks = 1;
+	m_bReceivedSimulatedUpdateThisTick = false;
 }
 
 
@@ -2281,6 +2283,9 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	bool simtickCountChanged = m_nSimulatedTickCount != m_iv_nSimulatedTickCount.GetLastKnownValue();
 	bool bPredictable		 = GetPredictable();
 
+	// It's going to be decreased naturally by InterpolateServerEntities
+	auto nBaseInterpAmountInTicks = GetClientInterpolationAmountInTicks();
+
 	// For non-predicted and non-client only ents, we need to latch network values into the interpolation histories
 	if ( !bPredictable && !IsClientCreated() )
 	{
@@ -2300,8 +2305,18 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 			ClearInterpolationHistory( CIVLatchType::SIMULATION );
 		}
 
+		// If we received an update, we can safely increase the amount of ticks to interpolate with.
 		if ( simtickCountChanged )
 		{
+			m_nCurrentInterpolationAmountOfTicks++;
+
+			if ( m_nCurrentInterpolationAmountOfTicks >= nBaseInterpAmountInTicks )
+			{
+				m_nCurrentInterpolationAmountOfTicks = nBaseInterpAmountInTicks;
+			}
+
+			m_bReceivedSimulatedUpdateThisTick = true;
+
 			OnLatchInterpolatedVariables( CIVLatchType::SIMULATION );
 		}
 	}
@@ -2541,7 +2556,7 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 		return INTERPOLATE_STOP;
 	}
 
-	static ConVarRef cl_interp_type( "cl_interp_type" );
+	extern ConVar cl_interp_type;
 
 	auto CLInterpType = cl_interp_type.GetInt();
 
@@ -2581,25 +2596,7 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 
 void C_BaseEntity::BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int nChangeFlags )
 {
-	if ( m_vecOrigin != oldOrigin )
-	{
-		nChangeFlags |= POSITION_CHANGED;
-	}
-
-	if( m_angRotation != oldAngles )
-	{
-		nChangeFlags |= ANGLES_CHANGED;
-	}
-
-	if ( m_vecVelocity != oldVel )
-	{
-		nChangeFlags |= VELOCITY_CHANGED;
-	}
-
-	if ( nChangeFlags != 0 )
-	{
-		InvalidatePhysicsRecursive( nChangeFlags );
-	}
+	InvalidatePhysicsRecursive( POSITION_CHANGED|ANGLES_CHANGED|VELOCITY_CHANGED );
 }
 
 
@@ -2796,6 +2793,11 @@ void C_BaseEntity::DebugCheckInterpolatedVar()
 
 	int pos = 0;
 
+	char buffer[512];
+	V_sprintf_safe( buffer, "interpolation amount: %li", pEntity->m_nCurrentInterpolationAmountOfTicks );
+
+	NDebugOverlay::EntityTextAtPosition( pEntity->GetNetworkOrigin(), pos, buffer, gpGlobals->frametime );
+
 	for ( auto&& variable : pEntity->m_InterpolatedVariableList.variables )
 	{
 		if ( !variable->IsEnabled() )
@@ -2803,16 +2805,15 @@ void C_BaseEntity::DebugCheckInterpolatedVar()
 			continue;
 		}
 
-		char buffer[256];
+		pos++;
+
 		V_sprintf_safe( buffer,
 						"%s(%li) => %s",
 						variable->DebugName().c_str(),
 						variable->CurrentHistorySize(),
 						variable->DebugValue().c_str() );
 
-		NDebugOverlay::EntityTextAtPosition( pEntity->GetAbsOrigin(), pos, buffer, gpGlobals->frametime );
-
-		pos++;
+		NDebugOverlay::EntityTextAtPosition( pEntity->GetNetworkOrigin(), pos, buffer, gpGlobals->frametime );
 	}
 }
 
@@ -2821,6 +2822,31 @@ void C_BaseEntity::ProcessInterpolatedList()
 	auto nBaseInterpAmountInTicks = GetClientInterpolationAmountInTicks();
 	float flInterpolationAmountFrac = gpGlobals->interpolation_amount_frac;
 
+	// TODO_ENHANCED: This is in order to continue smooth interpolation if we didn't receive an update every ticks.
+	// Technically animation needs this too since it is simulation based and not animation based.
+	static int iLastTickCount = gpGlobals->tickcount;
+
+	// Did we start a new tick ?
+	if ( iLastTickCount != gpGlobals->tickcount )
+	{
+		int iNext;
+		for ( int iCur = g_InterpolationList.Head(); iCur != g_InterpolationList.InvalidIndex(); iCur = iNext )
+		{
+			iNext			   = g_InterpolationList.Next( iCur );
+			C_BaseEntity* pCur = g_InterpolationList[iCur];
+
+			// If interpolation amount isn't zero and we haven't received any entity updates, decrease until it is zero.
+			if ( pCur->m_nCurrentInterpolationAmountOfTicks != 0 && !pCur->m_bReceivedSimulatedUpdateThisTick )
+			{
+				pCur->m_nCurrentInterpolationAmountOfTicks--;
+			}
+
+			pCur->m_bReceivedSimulatedUpdateThisTick = false;
+		}
+	}
+
+	iLastTickCount = gpGlobals->tickcount;
+
 	// Interpolate the minimal set of entities that need it.
 	int iNext;
 	for ( int iCur=g_InterpolationList.Head(); iCur != g_InterpolationList.InvalidIndex(); iCur=iNext )
@@ -2828,7 +2854,7 @@ void C_BaseEntity::ProcessInterpolatedList()
 		iNext = g_InterpolationList.Next( iCur );
 		C_BaseEntity *pCur = g_InterpolationList[iCur];
 
-		pCur->m_bReadyToDraw = pCur->Interpolate( nBaseInterpAmountInTicks, flInterpolationAmountFrac );
+		pCur->m_bReadyToDraw = pCur->Interpolate( pCur->m_nCurrentInterpolationAmountOfTicks, flInterpolationAmountFrac );
 	}
 
 	DebugCheckInterpolatedVar();
@@ -5885,7 +5911,7 @@ void C_BaseEntity::AddVar( IInterpolatedVar* var )
 {
 	// TODO_ENHANCED: this needs proper support, technically we need to send to the server which variables are
 	// interpolated with hermite or not.
-	static ConVarRef cl_interp_type( "cl_interp_type" );
+	extern ConVar cl_interp_type;
 	var->SetInterpolationType( cl_interp_type.GetInt() );
 	m_InterpolatedVariableList.AddVar( var );
 }

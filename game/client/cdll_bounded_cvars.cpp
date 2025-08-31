@@ -68,38 +68,14 @@ ConVar cl_interpolation_amount( "cl_interpolation_amount",
 								true,
 								( float )( MAX_INTERPOLATION_TICK_HISTORY - 1 ) );
 
-class CBoundedCvar_InterpType : public ConVar_ServerBounded
-{
-public:
-	CBoundedCvar_InterpType() :
-	  ConVar_ServerBounded(  "cl_interp_type",
+ConVar cl_interp_type( "cl_interp_type",
 					   "0",
 					   FCVAR_NOT_CONNECTED | FCVAR_ARCHIVE | FCVAR_USERINFO,
 					   "0) Linear 1) Hermite",
 					   true,
 					   0.0f,
 					   true,
-					   (float)(CInterpolationType::MAX_AND_NOT_SET - 1))
-	  {
-	  }
-
-	  virtual float GetFloat() const
-	  {
-		  auto value = GetBaseFloatValue();
-
-		  if ( value <= 0.0 )
-		  {
-			  return 0.0;
-		  }
-
-		  if ( value >= 1.0 )
-		  {
-			  return 1.0;
-		  }
-	  }
-};
-
-CBoundedCvar_InterpType cl_interp_type;
+					   ( float )( CInterpolationType::MAX_AND_NOT_SET - 1 ) );
 
 int GetClientInterpolationAmountInTicks()
 {

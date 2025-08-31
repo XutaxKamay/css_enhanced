@@ -1617,7 +1617,7 @@ class CUtlCircularBuffer
 
 	inline void Clear()
 	{
-		m_nIndex			= 0;
+		m_nIndex  = 0;
 		m_nFilled = 0;
 	}
 

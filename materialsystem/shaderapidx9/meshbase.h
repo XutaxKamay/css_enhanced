@@ -116,6 +116,11 @@ inline void ComputeVertexDesc( unsigned char * pBuffer, VertexFormat_t vertexFor
 	VertexCompressionType_t compression = CompressionType( vertexFormat );
 	desc.m_CompressionType = compression;
 
+	if ( pBuffer == NULL )
+	{
+		pBuffer = (unsigned char*)dummyData;
+	}
+
 	// We use fvf instead of flags here because we may pad out the fvf
 	// vertex structure to optimize performance
 	int offset = 0;

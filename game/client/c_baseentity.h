@@ -1723,6 +1723,8 @@ protected:
 	uint64 m_nSimulatedTickCount;
 	uint64 m_nInterpolatedSimulatedTickCount;
 	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
+	size_t m_nCurrentInterpolationAmountOfTicks;
+	bool m_bReceivedSimulatedUpdateThisTick;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);
