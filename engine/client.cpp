@@ -636,10 +636,10 @@ float CClientState::GetClientInterpAmount()
 	static const ConVar *s_cl_interpolation_amount = NULL;
 	if ( !s_cl_interpolation_amount )
 	{
-		constexpr auto g_DefaultTicksToInterpolate = 10;
+		constexpr auto g_nDefaultTicksToInterpolate = 20;
 		s_cl_interpolation_amount = g_pCVar->FindVar( "cl_interpolation_amount" );
 		if ( !s_cl_interpolation_amount )
-			return TICKS_TO_TIME( g_DefaultTicksToInterpolate );
+			return TICKS_TO_TIME( g_nDefaultTicksToInterpolate );
 	}
 
 	float flInterp = TICKS_TO_TIME( s_cl_interpolation_amount->GetInt() );

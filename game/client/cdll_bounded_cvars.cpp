@@ -14,8 +14,8 @@
 #include "tier0/icommandline.h"
 #include "interpolatedvar.h"
 
-// 10 ticks should be enough
-constexpr auto g_DefaultTicksToInterpolate = 10;
+// 20 ticks should be enough
+constexpr auto g_nDefaultTicksToInterpolate = 20;
 bool g_bForceCLPredictOff = false;
 
 // ------------------------------------------------------------------------------------------ //
@@ -89,7 +89,7 @@ int GetClientInterpolationAmountInTicks()
 	// Some sane defaults
 	if ( cl_interpolation_amount.GetInt() <= 0 || cl_interpolation_amount.GetInt() >= MAX_INTERPOLATION_TICK_HISTORY )
 	{
-		return g_DefaultTicksToInterpolate;
+		return g_nDefaultTicksToInterpolate;
 	}
 
 	return cl_interpolation_amount.GetInt();
