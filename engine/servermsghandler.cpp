@@ -818,7 +818,7 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 		if ( !msg->m_bIsDelta )
 		{
 			// We might not do that
-			// g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount;
+			g_ClientGlobalVariables.predicted_snapshot_tickcount = 0;
 			// Delta too old or is initial message
 #ifndef _XBOX
 			// we can start recording now that we've received an uncompressed packet
