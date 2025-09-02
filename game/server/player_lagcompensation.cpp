@@ -1115,12 +1115,23 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 	// maybe uninterpolated, but for server history.
 	if ( nClientInterpolatedTickCount != nServerInterpolatedTickCount )
 	{
-		StartResult();
-		result += "where client and server interpolation mistmatches -> server("
-				  + std::to_string( nServerInterpolatedTickCount ) + ") != client("
-				  + std::to_string( nClientInterpolatedTickCount ) + ") -> ";
-		EndResult();
-		bIsAnError = true;
+		if ( nClientStartTickCount != nClientEndTickCount )
+		{
+			StartResult();
+			result += "where client and server interpolation mistmatches, server("
+					  + std::to_string( nServerInterpolatedTickCount ) + ") != client("
+					  + std::to_string( nClientInterpolatedTickCount ) + ") -> ";
+			EndResult();
+			bIsAnError = true;
+		}
+		else
+		{
+			StartResult();
+			result += "where client and server interpolation mistmatches but interpolation disabled / spawn, server("
+					  + std::to_string( nServerInterpolatedTickCount ) + ") != client("
+					  + std::to_string( nClientInterpolatedTickCount ) + ") -> ";
+			EndResult();
+		}
 	}
 	else if ( nClientStartTickCount == nClientEndTickCount )
 	{
