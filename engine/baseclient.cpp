@@ -1308,7 +1308,7 @@ write_again:
 		VPROF_BUDGET( "SendSnapshot Transmit Full", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
 		// transmit snapshot as reliable data chunk
-		bSendOK = m_NetChannel->SendData( msg );
+		bSendOK = m_NetChannel->SendReliableIMMM( msg );
 		bSendOK = bSendOK && m_NetChannel->Transmit();
 
 		// remember this tickcount we send the reliable snapshot
