@@ -3227,7 +3227,7 @@ void _Host_RunFrame (float time)
 		// If we drifted too much from server snapshot tick count, set to latest tick count received and interp window.
 		if ( nCurrentTickDrift >= nTickInterpWindow )
 		{
-			g_ClientGlobalVariables.predicted_snapshot_tickcount = cl.m_nSnapshotTickCount + nTickInterpWindow;
+			g_ClientGlobalVariables.predicted_snapshot_tickcount = cl.m_nSnapshotTickCount;
 		}
 
 		// con_nprint_t np;
