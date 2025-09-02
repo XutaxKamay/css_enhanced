@@ -740,6 +740,8 @@ bool CClientState::FullConnect( netadr_t &adr, int iServerTCPPort )
 
 	// we didn't send commands yet
 	chokedcommands = 0;
+
+	g_ClientGlobalVariables.predicted_snapshot_tickcount = 0;
 	
 	// Report connection success.
 	if ( Q_stricmp("loopback", adr.ToString() ) )

@@ -2546,7 +2546,7 @@ void C_BasePlayer::ForceSetupBonesAtTimeFakeInterpolation( matrix3x4_t *pBonesOu
 	// blow the cached prev bones
 	InvalidateBoneCache();
 	// reset root position to flTime
-	Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
+	Interpolate( GetClientInterpolationAmountInTicks() + TIME_TO_TICKS(curtimeOffset), gpGlobals->interpolation_amount_frac );
 
 	// force cycle back by boneDt
 	m_flCycle = fmod( 10 + cycle + m_flPlaybackRate * curtimeOffset, 1.0f );

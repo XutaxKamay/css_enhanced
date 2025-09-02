@@ -809,7 +809,9 @@ bool CClientState::ProcessEntityMessage(SVC_EntityMessage *msg)
 
 bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 {
-	m_nCmdSequencesAck	 = msg->m_nLastCmdSequence;
+	m_nCmdSequencesAck						   = msg->m_nLastCmdSequence;
+	m_nSnapshotTickCount					   = msg->m_nSnapshotTickCount;
+	g_ClientGlobalVariables.snapshot_tickcount = m_nSnapshotTickCount;
 
 	auto DoProcessPacketEntities = [&]()
 	{
@@ -832,6 +834,15 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 			{
 				// we requested a full update but still got a delta compressed packet. ignore it.
 				return true;
+			}
+
+			// TODO_ENHANCED:
+			// Correct predicted snapshot tick count if we're drifting too much from server tick count.
+			// It's not a precise measurement, because interpolation amount won't be exactly matching with the one client asked,
+			// but it's fine, we target smooth interpolation for non predicted entities.
+			if ( g_ClientGlobalVariables.predicted_snapshot_tickcount < m_nSnapshotTickCount )
+			{
+				g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount;
 			}
 
 			// Preprocessing primarily does client prediction. So if we're processing deltas--do it
@@ -870,7 +881,6 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 
 	return ret;
 }
-
 
 bool CClientState::ProcessTempEntities( SVC_TempEntities *msg )
 {

@@ -170,34 +170,36 @@ struct IInterpolatedVar
 		float frac;
 	};
 
-	virtual void Push()																	 = 0;
-	virtual void Push( void* pData, size_t size )										 = 0;
-	virtual void ClearHistory()															 = 0;
-	virtual void SetLooping( bool bLooping )											 = 0;
-	virtual bool IsLooping()															 = 0;
-	virtual Result Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
-	virtual void RestoreToLastKnownValue()												 = 0;
-	virtual void SaveLastKnownValue()													 = 0;
-	virtual void DisableInterpolation()													 = 0;
-	virtual void EnableInterpolation()													 = 0;
-	virtual bool IsInterpolationEnabled()												 = 0;
-	virtual void* ReferenceData()														 = 0;
-	virtual size_t ReferenceSize()														 = 0;
-	virtual void SetReferenceData( void* pData, size_t size )							 = 0;
-	virtual void SetDebugName( const std::string& szDebugName )							 = 0;
-	virtual std::string DebugName()														 = 0;
-	virtual size_t MaxHistory()															 = 0;
-	virtual size_t CurrentHistorySize()													 = 0;
-	virtual void Copy( IInterpolatedVar* varDst )										 = 0;
-	virtual void Disable()																 = 0;
-	virtual void Enable()																 = 0;
-	virtual bool IsEnabled()															 = 0;
-	virtual void Reset()																 = 0;
-	virtual CIVLatchType LatchType()													 = 0;
-	virtual void SetLatchType( const CIVLatchType& LatchType )							 = 0;
-	virtual std::string DebugValue()													 = 0;
-	virtual CInterpolationType InterpolationType()										 = 0;
-	virtual void SetInterpolationType( const CInterpolationType& InterpolationType )	 = 0;
+	virtual void Push()																					   = 0;
+	virtual void PushWithTickBase( uint64 nTickBase )													   = 0;
+	virtual void Push( void* pData, size_t size )														   = 0;
+	virtual void ClearHistory()																			   = 0;
+	virtual void SetLooping( bool bLooping )															   = 0;
+	virtual bool IsLooping()																			   = 0;
+	virtual Result Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )				   = 0;
+	virtual Result Interpolate( uint64 nTickBase, size_t nAmountOfTicks, float flInterpolationAmountFrac ) = 0;
+	virtual void RestoreToLastKnownValue()																   = 0;
+	virtual void SaveLastKnownValue()																	   = 0;
+	virtual void DisableInterpolation()																	   = 0;
+	virtual void EnableInterpolation()																	   = 0;
+	virtual bool IsInterpolationEnabled()																   = 0;
+	virtual void* ReferenceData()																		   = 0;
+	virtual size_t ReferenceSize()																		   = 0;
+	virtual void SetReferenceData( void* pData, size_t size )											   = 0;
+	virtual void SetDebugName( const std::string& szDebugName )											   = 0;
+	virtual std::string DebugName()																		   = 0;
+	virtual size_t MaxHistory()																			   = 0;
+	virtual size_t CurrentHistorySize()																	   = 0;
+	virtual void Copy( IInterpolatedVar* varDst )														   = 0;
+	virtual void Disable()																				   = 0;
+	virtual void Enable()																				   = 0;
+	virtual bool IsEnabled()																			   = 0;
+	virtual void Reset()																				   = 0;
+	virtual CIVLatchType LatchType()																	   = 0;
+	virtual void SetLatchType( const CIVLatchType& LatchType )											   = 0;
+	virtual std::string DebugValue()																	   = 0;
+	virtual CInterpolationType InterpolationType()														   = 0;
+	virtual void SetInterpolationType( const CInterpolationType& InterpolationType )					   = 0;
 };
 
 template < typename T, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
@@ -283,6 +285,13 @@ class CInterpolatedVar : public IInterpolatedVar
 		m_History.Push( value );
 	}
 
+	virtual void PushWithTickBase( uint64 nTickBase ) override
+	{
+		Push( *m_pReferencedVariable );
+		m_SnapshotTickCountHistory.Push( nTickBase );
+		m_nLastSnapshotTickCount = nTickBase;
+	}
+
 	virtual void Push() override
 	{
 		Push( *m_pReferencedVariable );
@@ -300,6 +309,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	virtual void ClearHistory() override
 	{
 		m_History.Clear();
+		m_SnapshotTickCountHistory.Clear();
 	}
 
 	virtual void SetLooping( bool bLooping ) override
@@ -463,12 +473,41 @@ class CInterpolatedVar : public IInterpolatedVar
 	virtual Result Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
 	{
 		Result result;
+
+		// If we didn't receive any update lately, just get the earliest slot
 		auto referenceResult = InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
 
 		result.nAmountOfTicks = referenceResult.nAmountOfTicks;
 		result.frac			  = referenceResult.frac;
 
 		return result;
+	}
+
+	virtual Result Interpolate( uint64 nTickBase, size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
+	{
+		// Search the closest snapshot tick count
+		auto nTarget = nTickBase - nAmountOfTicks;
+
+		for ( size_t i = 0; i < MAX_HISTORY; i++ )
+		{
+			auto pSnapshotTickCount = m_SnapshotTickCountHistory.Get( i );
+
+			// Is there any snapshot left?
+			if ( !pSnapshotTickCount )
+			{
+				break;
+			}
+
+			// Did we found a target ?
+			if ( nTarget == *pSnapshotTickCount )
+			{
+				nAmountOfTicks = i;
+				break;
+			}
+		}
+
+		// Overflow will be handled by deeper functions
+		return Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 	}
 
 	virtual void RestoreToLastKnownValue() override
@@ -609,8 +648,15 @@ class CInterpolatedVar : public IInterpolatedVar
 		return m_LastReferencedResult;
 	}
 
+	uint64 GetLastKnownSnapshotTickCount()
+	{
+		return m_nLastSnapshotTickCount;
+	}
+
   private:
 	CUtlCircularBuffer< T, MAX_HISTORY > m_History;
+	// TODO_ENHANCED: make this optional
+	CUtlCircularBuffer< uint64, MAX_HISTORY > m_SnapshotTickCountHistory;
 	std::string m_szDebugName;
 	T* m_pReferencedVariable;
 	bool m_bLooping;
@@ -620,6 +666,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	T m_LastKnownValue;
 	CInterpolationType m_InterpolationType;
 	ReferenceResult m_LastReferencedResult;
+	uint64 m_nLastSnapshotTickCount;
 };
 
 template < typename T, size_t ARRAY_SIZE, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
@@ -680,6 +727,17 @@ struct CInterpolatedVarList
 		}
 	}
 
+	inline void Push( const CIVLatchType& LatchType )
+	{
+		for ( auto&& variable : variables )
+		{
+			if ( variable->LatchType() == LatchType )
+			{
+				variable->Push();
+			}
+		}
+	}
+
 	inline void Reset()
 	{
 		for ( auto&& variable : variables )
@@ -696,6 +754,22 @@ struct CInterpolatedVarList
 		}
 	}
 
+	inline bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac, const CIVLatchType& LatchType )
+	{
+		bool bCouldInterpolate = true;
+
+		for ( auto&& variable : variables )
+		{
+			if ( variable->LatchType() == LatchType
+				 && variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ).frac == 0 )
+			{
+				bCouldInterpolate = false;
+			}
+		}
+
+		return bCouldInterpolate;
+	}
+
 	inline bool Interpolate( size_t nAmountOfTicks, float flInterpolationAmountFrac )
 	{
 		bool bCouldInterpolate = true;
@@ -703,6 +777,21 @@ struct CInterpolatedVarList
 		for ( auto&& variable : variables )
 		{
 			if ( variable->Interpolate( nAmountOfTicks, flInterpolationAmountFrac ).frac == 0 )
+			{
+				bCouldInterpolate = false;
+			}
+		}
+
+		return bCouldInterpolate;
+	}
+
+	inline bool Interpolate( uint64 nTickBase, size_t nAmountOfTicks, float flInterpolationAmountFrac )
+	{
+		bool bCouldInterpolate = true;
+
+		for ( auto&& variable : variables )
+		{
+			if ( variable->Interpolate( nTickBase, nAmountOfTicks, flInterpolationAmountFrac ).frac == 0 )
 			{
 				bCouldInterpolate = false;
 			}

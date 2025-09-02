@@ -549,7 +549,7 @@ void CL_ReadPackets ( bool bFinalTick )
 	}
 	else
 	{
-		if ( !cl_ignorepackets.GetInt() )
+		if ( !cl_ignorepackets.GetInt() && bFinalTick )
 		{
 			tmZoneFiltered( TELEMETRY_LEVEL0, 50, TMZF_NONE, "ProcessSocket" );
 			// process data from net socket

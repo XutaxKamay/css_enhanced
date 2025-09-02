@@ -1531,6 +1531,7 @@ private:
 	char *m_szBuffer; // a copy of original string, with '\0' instead of separators
 };
 
+// TODO_ENHANCED: use maybe boost's circular buffer
 template < typename T, size_t N >
 class CUtlCircularBuffer
 {

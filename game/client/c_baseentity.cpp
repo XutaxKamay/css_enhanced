@@ -710,8 +710,6 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	ParticleProp()->Init( this );
-	m_nCurrentInterpolationAmountOfTicks = 1;
-	m_bReceivedSimulatedUpdateThisTick = false;
 }
 
 
@@ -2299,24 +2297,9 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 				   m_nSimulatedTickCount );
 		}
 
-		// If just spawned or created, clear history
-		if ( m_nSimulatedTickCount == 0 )
-		{
-			ClearInterpolationHistory( CIVLatchType::SIMULATION );
-		}
-
 		// If we received an update, we can safely increase the amount of ticks to interpolate with.
 		if ( simtickCountChanged )
 		{
-			m_nCurrentInterpolationAmountOfTicks++;
-
-			if ( m_nCurrentInterpolationAmountOfTicks >= nBaseInterpAmountInTicks )
-			{
-				m_nCurrentInterpolationAmountOfTicks = nBaseInterpAmountInTicks;
-			}
-
-			m_bReceivedSimulatedUpdateThisTick = true;
-
 			OnLatchInterpolatedVariables( CIVLatchType::SIMULATION );
 		}
 	}
@@ -2515,7 +2498,7 @@ void C_BaseEntity::OnLatchInterpolatedVariables( CIVLatchType LatchType, bool bU
 	{
 		if ( variable->LatchType() == LatchType )
 		{
-			variable->Push();
+			variable->PushWithTickBase( gpGlobals->snapshot_tickcount );
 
 			if ( bUpdateLastNetworkedValue )
 			{
@@ -2556,6 +2539,10 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 		return INTERPOLATE_STOP;
 	}
 
+	oldOrigin = m_vecOrigin;
+	oldAngles = m_angRotation;
+	oldVel = m_vecVelocity;
+
 	extern ConVar cl_interp_type;
 
 	auto CLInterpType = cl_interp_type.GetInt();
@@ -2580,14 +2567,16 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 				break;
 			}
 		}
+
+		m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
+		// Ignore time here, we don't need it.
+		m_InterpolatedVariableList.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 	}
-
-	oldOrigin = m_vecOrigin;
-	oldAngles = m_angRotation;
-	oldVel = m_vecVelocity;
-
-	m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
-	m_InterpolatedVariableList.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
+	else
+	{
+		m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
+		m_InterpolatedVariableList.Interpolate( gpGlobals->predicted_snapshot_tickcount, nAmountOfTicks, flInterpolationAmountFrac );
+	}
 
 	bNoMoreChanges = 0;
 
@@ -2596,9 +2585,26 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 
 void C_BaseEntity::BaseInterpolatePart2( Vector &oldOrigin, QAngle &oldAngles, Vector &oldVel, int nChangeFlags )
 {
-	InvalidatePhysicsRecursive( POSITION_CHANGED|ANGLES_CHANGED|VELOCITY_CHANGED );
-}
+	if ( m_vecOrigin != oldOrigin )
+	{
+		nChangeFlags |= POSITION_CHANGED;
+	}
 
+	if( m_angRotation != oldAngles )
+	{
+		nChangeFlags |= ANGLES_CHANGED;
+	}
+
+	if ( m_vecVelocity != oldVel )
+	{
+		nChangeFlags |= VELOCITY_CHANGED;
+	}
+
+	if ( nChangeFlags != 0 )
+	{
+		InvalidatePhysicsRecursive( nChangeFlags );
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Default interpolation for entities
@@ -2791,12 +2797,26 @@ void C_BaseEntity::DebugCheckInterpolatedVar()
 		return;
 	}
 
-	int pos = 0;
+	static int iLastFrame = 0;
+
+	// Don't re-render.
+	if ( iLastFrame == gpGlobals->framecount )
+	{
+		return;
+	}
+
+	iLastFrame = gpGlobals->framecount;
 
 	char buffer[512];
-	V_sprintf_safe( buffer, "interpolation amount: %li", pEntity->m_nCurrentInterpolationAmountOfTicks );
+	int pos = 0;
 
-	NDebugOverlay::EntityTextAtPosition( pEntity->GetNetworkOrigin(), pos, buffer, gpGlobals->frametime );
+	V_sprintf_safe( buffer,
+					"amount: %li, tick: %li, frac: %f",
+					pEntity->m_iv_nSimulatedTickCount.GetLastReferencedResult().nAmountOfTicks,
+					pEntity->m_iv_nSimulatedTickCount.GetLastKnownSnapshotTickCount(),
+					pEntity->m_iv_nSimulatedTickCount.GetLastReferencedResult().frac );
+
+	NDebugOverlay::EntityTextAtPosition( pEntity->GetAbsOrigin(), pos, buffer, gpGlobals->frametime );
 
 	for ( auto&& variable : pEntity->m_InterpolatedVariableList.variables )
 	{
@@ -2813,53 +2833,30 @@ void C_BaseEntity::DebugCheckInterpolatedVar()
 						variable->CurrentHistorySize(),
 						variable->DebugValue().c_str() );
 
-		NDebugOverlay::EntityTextAtPosition( pEntity->GetNetworkOrigin(), pos, buffer, gpGlobals->frametime );
+		NDebugOverlay::EntityTextAtPosition( pEntity->GetAbsOrigin(), pos, buffer, gpGlobals->frametime );
 	}
 }
 
 void C_BaseEntity::ProcessInterpolatedList()
 {
-	auto nBaseInterpAmountInTicks = GetClientInterpolationAmountInTicks();
+	auto nBaseInterpAmountInTicks	= GetClientInterpolationAmountInTicks();
 	float flInterpolationAmountFrac = gpGlobals->interpolation_amount_frac;
 
-	// TODO_ENHANCED: This is in order to continue smooth interpolation if we didn't receive an update every ticks.
-	// Technically animation needs this too since it is simulation based and not animation based.
-	static int iLastTickCount = gpGlobals->tickcount;
-
-	// Did we start a new tick ?
-	if ( iLastTickCount != gpGlobals->tickcount )
-	{
-		int iNext;
-		for ( int iCur = g_InterpolationList.Head(); iCur != g_InterpolationList.InvalidIndex(); iCur = iNext )
-		{
-			iNext			   = g_InterpolationList.Next( iCur );
-			C_BaseEntity* pCur = g_InterpolationList[iCur];
-
-			// If interpolation amount isn't zero and we haven't received any entity updates, decrease until it is zero.
-			if ( pCur->m_nCurrentInterpolationAmountOfTicks != 0 && !pCur->m_bReceivedSimulatedUpdateThisTick )
-			{
-				pCur->m_nCurrentInterpolationAmountOfTicks--;
-			}
-
-			pCur->m_bReceivedSimulatedUpdateThisTick = false;
-		}
-	}
-
-	iLastTickCount = gpGlobals->tickcount;
-
+	// TODO_ENHANCED: Wonder if this can be parallelized.
 	// Interpolate the minimal set of entities that need it.
 	int iNext;
-	for ( int iCur=g_InterpolationList.Head(); iCur != g_InterpolationList.InvalidIndex(); iCur=iNext )
+	for ( int iCur = g_InterpolationList.Head(); iCur != g_InterpolationList.InvalidIndex(); iCur = iNext )
 	{
-		iNext = g_InterpolationList.Next( iCur );
-		C_BaseEntity *pCur = g_InterpolationList[iCur];
+		iNext			   = g_InterpolationList.Next( iCur );
+		C_BaseEntity* pCur = g_InterpolationList[iCur];
 
-		pCur->m_bReadyToDraw = pCur->Interpolate( pCur->m_nCurrentInterpolationAmountOfTicks, flInterpolationAmountFrac );
+		pCur->m_bIsProcessingFrameInterpolation = true;
+		pCur->m_bReadyToDraw = pCur->Interpolate( nBaseInterpAmountInTicks, flInterpolationAmountFrac );
+		pCur->m_bIsProcessingFrameInterpolation = false;
 	}
 
 	DebugCheckInterpolatedVar();
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Add entity to visibile entities list

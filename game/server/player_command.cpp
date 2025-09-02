@@ -493,6 +493,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	if ( gpGlobals->frametime > 0 )
 	{
 		player->m_nTickBase++;
-		player->m_nSimulatedTickCount = ++CBaseEntity::m_nSimulatedTickCounts[player->entindex()];
+		// We don't keep track here how many user commands were processed, it's fine as long we know we atleast processed one command per tick.
+		player->m_nSimulatedTickCount = CBaseEntity::m_nGlobalSimulatedTickCount;
 	}
 }

@@ -2968,6 +2968,10 @@ void SV_Frame( bool finalTick )
 	// TODO_ENHANCED: this now should be safe now to ignore final tick, although we might reduce server performance
 	if ( finalTick )
 	{
+		sv.m_nSnapshotTickCount++;
+		g_ServerGlobalVariables.snapshot_tickcount			 = sv.m_nSnapshotTickCount;
+		g_ServerGlobalVariables.predicted_snapshot_tickcount = sv.m_nSnapshotTickCount;
+
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause, finalTick );
 		else

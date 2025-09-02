@@ -2279,6 +2279,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 					auto simtickc	  = event->GetInt( "simtickc" );
 					auto animtickc	  = event->GetInt( "animtickc" );
 					auto interpamount = event->GetFloat( "interpamount" );
+					std::string msg;
 
 					bool bShouldShowPlayerConMsg = false;
 
@@ -2290,8 +2291,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										interpamount,
 										pRecord->m_flInterpolationAmountFrac );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2301,8 +2302,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "simtickc: %lld != %lld", simtickc, pRecord->m_nSimulatedTickCount );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2312,8 +2313,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "animtickc: %lld != %lld", animtickc, pRecord->m_nAnimatedTickCount );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2330,8 +2331,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										origin.z,
 										pRecord->m_vecRenderOrigin.z );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2350,8 +2351,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										angles.z,
 										pRecord->m_angRenderAngles.z );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2361,8 +2362,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						char buffer[256];
 						V_sprintf_safe( buffer, "cycle: %f != %f", player->m_flCycle, pRecord->m_flCycle );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2377,8 +2378,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 										player->GetSequenceName( pRecord->m_nSequence ),
 										pRecord->m_nSequence );
 
-						bShouldShowPlayerConMsg = true;
-						ConMsg( "    %s\n", buffer );
+						bShouldShowPlayerConMsg	 = true;
+						msg						+= std::string( "    " ) + buffer + '\n';
 						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 						pos++;
 					}
@@ -2395,8 +2396,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flPoseParameter[i],
 											pRecord->m_flPoseParameters[i] );
 
-							bShouldShowPlayerConMsg = true;
-							ConMsg( "    %s\n", buffer );
+							bShouldShowPlayerConMsg	 = true;
+							msg						+= std::string( "    " ) + buffer + '\n';
 							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
@@ -2414,8 +2415,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											player->m_flEncodedController[i],
 											pRecord->m_flEncodedControllers[i] );
 
-							bShouldShowPlayerConMsg = true;
-							ConMsg( "    %s\n", buffer );
+							bShouldShowPlayerConMsg	 = true;
+							msg						+= std::string( "    " ) + buffer + '\n';
 							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
@@ -2449,8 +2450,8 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 											animOverlay->m_fFlags,
 											pRecord->m_AnimationLayer[i].m_fFlags );
 
-							bShouldShowPlayerConMsg = true;
-							ConMsg( "    %s\n", buffer );
+							bShouldShowPlayerConMsg	 = true;
+							msg						+= std::string( "    " ) + buffer + '\n';
 							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
 							pos++;
 						}
@@ -2458,7 +2459,11 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 					if ( bShouldShowPlayerConMsg )
 					{
-						DevMsg( "Debugging player %s(%i) hitbox:\n", player->GetPlayerName(), player->entindex() );
+						ConMsg( "[%i]: Debugging player %s(%i) with hitbox:%s\n",
+								nAttackerTickBase,
+								player->GetPlayerName(),
+								player->entindex(),
+								msg.c_str() );
 					}
 				}
 				else

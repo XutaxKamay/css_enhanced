@@ -4321,7 +4321,6 @@ bool C_BaseAnimating::Interpolate( size_t nAmountOfTicks, float flInterpolationA
 		return true;
 	}
 
-
 	// Did cycle change?
 	if( GetCycle() != flOldCycle )
 		nChangeFlags |= ANIMATION_CHANGED;
@@ -4548,12 +4547,6 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 				   m_nAnimatedTickCount );
 		}
 
-		// If animation just been created or spawned, clear history
-		if ( m_nAnimatedTickCount == 0 )
-		{
-			ClearInterpolationHistory( CIVLatchType::ANIMATION );
-		}
-
 		if ( animTickCountChanged )
 		{
 			OnLatchInterpolatedVariables( CIVLatchType::ANIMATION );
@@ -4592,6 +4585,7 @@ void C_BaseAnimating::ForceSetupBonesAtTime( matrix3x4_t *pBonesOut, float flTim
 	// blow the cached prev bones
 	InvalidateBoneCache();
 
+	// TODO_ENHANCED: this indeed ignores flTime.
 	Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 
 	// Setup bone state at the given time

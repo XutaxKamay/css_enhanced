@@ -266,6 +266,7 @@ CBaseServer::CBaseServer()
 	m_fCPUPercent = 0;
 	m_Socket = NS_SERVER;
 	m_nTickCount = 0;
+	m_nSnapshotTickCount = 0;
 	
 	m_szMapname[0] = 0;
 	m_szSkyname[0] = 0;
@@ -1627,6 +1628,7 @@ void CBaseServer::Clear( void )
 	m_State = ss_dead;
 	
 	m_nTickCount = 0;
+	m_nSnapshotTickCount = 0;
 	
 	Q_memset( m_szMapname, 0, sizeof( m_szMapname ) );
 	Q_memset( m_szSkyname, 0, sizeof( m_szSkyname ) );

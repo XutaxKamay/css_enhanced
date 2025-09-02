@@ -922,6 +922,8 @@ void CBaseServer::WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CCl
 
 	u.m_pBuf->WriteUBitLong( svc_PacketEntities, NETMSG_TYPE_BITS );
 
+	u.m_pBuf->WriteVarInt64( m_nSnapshotTickCount );
+
 	u.m_pBuf->WriteSignedVarInt32( client->m_nLastCmdSequence );
 
 	u.m_pBuf->WriteUBitLong( u.m_pToSnapshot->m_nNumEntities, MAX_EDICT_BITS );

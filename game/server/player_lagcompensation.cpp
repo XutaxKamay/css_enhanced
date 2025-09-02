@@ -780,7 +780,6 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 	pLagTrack->m_iv_angRenderAngles.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
 #endif
 
-	pEntity->m_nSimulatedTickCount = pInterpolatedRecord->m_nSimulatedTickCount;
 	pEntity->SetLocalOrigin( pInterpolatedRecord->m_vecLocalOrigin );
 	pEntity->SetLocalAngles( pInterpolatedRecord->m_angLocalAngles );
 	pEntity->SetSize( pInterpolatedRecord->m_vecMinsPreScaled, pInterpolatedRecord->m_vecMaxsPreScaled );
@@ -794,6 +793,9 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 		csPlayer->m_angRenderAngles = pInterpolatedRecord->m_angRenderAngles;
 	}
 #endif
+
+	// This needs to be changed at last.
+	pEntity->m_nSimulatedTickCount = pInterpolatedRecord->m_nSimulatedTickCount;
 
 	bNeedsRestore = true;
 }
@@ -990,7 +992,6 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 		auto pRestoreRecord = &pLagTrack->m_RecordReferenced;
 
-		pEntity->m_nSimulatedTickCount = pRestoreRecord->m_nSimulatedTickCount;
 		pEntity->SetSize( pRestoreRecord->m_vecMinsPreScaled, pRestoreRecord->m_vecMaxsPreScaled );
 		pEntity->SetLocalAngles( pRestoreRecord->m_angLocalAngles );
 		pEntity->SetLocalOrigin( pRestoreRecord->m_vecLocalOrigin );
@@ -1053,6 +1054,9 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 				}
 			}
 		}
+
+		// This needs to be changed at last.
+		pEntity->m_nSimulatedTickCount = pRestoreRecord->m_nSimulatedTickCount;
 	}
 }
 

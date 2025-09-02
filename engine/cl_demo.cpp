@@ -1723,6 +1723,8 @@ bool CDemoPlayer::StartPlayback( const char *filename, bool bAsTimeDemo )
 	cl.lastoutgoingcommand = -1;
  	cl.m_flNextCmdTime = net_time;
 
+	g_ClientGlobalVariables.predicted_snapshot_tickcount = 0;
+
 	m_bTimeDemo = bAsTimeDemo;
 	m_nTimeDemoCurrentFrame = -1;
 	m_nTimeDemoStartFrame = -1;

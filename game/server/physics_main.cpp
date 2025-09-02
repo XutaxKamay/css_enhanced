@@ -2068,6 +2068,8 @@ void Physics_RunThinkFunctions( bool simulating )
 		UTIL_EnableRemoveImmediate();
 	}
 
+	CBaseEntity::m_nGlobalSimulatedTickCount++;
+
 	gpGlobals->curtime = starttime;
 }
 

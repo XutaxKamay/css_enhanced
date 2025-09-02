@@ -63,6 +63,9 @@ public:
 	// Simulation ticks
 	int				tickcount;
 	int             currenttick;
+	uint64			reliable_tickcount;
+	uint64			snapshot_tickcount;
+	uint64			predicted_snapshot_tickcount;
 
 	// Simulation tick interval
 	float			interval_per_tick;

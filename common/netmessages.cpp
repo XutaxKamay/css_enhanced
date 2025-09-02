@@ -1650,6 +1650,8 @@ bool SVC_PacketEntities::WriteToBuffer( bf_write &buffer )
 {
 	buffer.WriteUBitLong( GetType(), NETMSG_TYPE_BITS );
 
+	buffer.WriteVarInt64( m_nSnapshotTickCount );
+
 	buffer.WriteSignedVarInt32( m_nLastCmdSequence );
 
 	buffer.WriteUBitLong( m_nMaxEntries, MAX_EDICT_BITS );
@@ -1677,6 +1679,8 @@ bool SVC_PacketEntities::WriteToBuffer( bf_write &buffer )
 bool SVC_PacketEntities::ReadFromBuffer( bf_read &buffer )
 {
 	VPROF( "SVC_PacketEntities::ReadFromBuffer" );
+
+	m_nSnapshotTickCount = buffer.ReadVarInt64();
 
 	m_nLastCmdSequence = buffer.ReadSignedVarInt32();
 

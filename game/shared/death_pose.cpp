@@ -18,6 +18,7 @@ void GetRagdollCurSequenceWithDeathPose( C_BaseAnimating *entity, matrix3x4_t *c
 
 	Vector vPrevOrigin = entity->GetAbsOrigin();
 
+	// TODO_ENHANCED: ... calc offset from flTime
 	entity->Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 	
 	if ( activity != ACT_INVALID )
@@ -49,6 +50,7 @@ void GetRagdollCurSequenceWithDeathPose( C_BaseAnimating *entity, matrix3x4_t *c
 		entity->SetSequence( iTempSequence );
 		entity->SetCycle( flTempCycle );
 
+		// TODO_ENHANCED: ... calc offset from curtime
 		entity->Interpolate( GetClientInterpolationAmountInTicks(), gpGlobals->interpolation_amount_frac );
 
 		entity->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );

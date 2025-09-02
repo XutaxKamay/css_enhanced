@@ -736,6 +736,7 @@ class SVC_PacketEntities: public CNetMessage
 	
 public:
 
+	uint64		m_nSnapshotTickCount;
 	int			m_nLastCmdSequence;
 	int			m_nMaxEntries;
 	int			m_nUpdatedEntries;

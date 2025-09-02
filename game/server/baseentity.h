@@ -363,7 +363,7 @@ public:
 	// snapshot failed because the server might call CBaseEntity constructor, but the client never ack it properly.
 	// Worst case scenario 1000t (2^64-1)/1000/60/60/24/365 = 584942417 ~ years before it fails, should be enough,
 	// I won't be alive to see it anyway.
-	static uint64 			m_nSimulatedTickCounts[NUM_ENT_ENTRIES];
+	static uint64 			m_nGlobalSimulatedTickCount;
 
   protected:
 

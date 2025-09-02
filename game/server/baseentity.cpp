@@ -94,7 +94,7 @@ int g_nInsideDispatchUpdateTransmitState = 0;
 // When this is false, throw an assert in debug when GetAbsAnything is called. Used when hierachy is incomplete/invalid.
 bool CBaseEntity::s_bAbsQueriesValid = true;
 
-uint64 CBaseEntity::m_nSimulatedTickCounts[NUM_ENT_ENTRIES] = { 0 };
+uint64 CBaseEntity::m_nGlobalSimulatedTickCount = 0;
 
 ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Test networking visibility distance" );
 
@@ -5530,8 +5530,9 @@ void CBaseEntity::SetAbsOrigin( const Vector& absOrigin )
 	if (m_vecOrigin != vecNewOrigin)
 	{
 		m_vecOrigin = vecNewOrigin;
-		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
-		// SetSimulationTime( gpGlobals->curtime );
+
+		// TODO_ENHANCED: Physics props needs this.
+		m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 	}
 }
 
@@ -5580,8 +5581,9 @@ void CBaseEntity::SetAbsAngles( const QAngle& absAngles )
 	if (m_angRotation != angNewRotation)
 	{
 		m_angRotation = angNewRotation;
-		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
-		// SetSimulationTime( gpGlobals->curtime );
+
+		// TODO_ENHANCED: Physics props needs this.
+		m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 	}
 }
 
@@ -5589,6 +5591,9 @@ void CBaseEntity::SetAbsVelocity( const Vector &vecAbsVelocity )
 {
 	if ( m_vecAbsVelocity == vecAbsVelocity )
 		return;
+
+	// TODO_ENHANCED: Physics props needs this.
+	m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 
 	// The abs velocity won't be dirty since we're setting it here
 	// All children are invalid, but we are not
@@ -5682,8 +5687,9 @@ void CBaseEntity::SetLocalOrigin( const Vector& origin )
 		
 		InvalidatePhysicsRecursive( POSITION_CHANGED );
 		m_vecOrigin = origin;
-		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
-		// SetSimulationTime( gpGlobals->curtime );
+
+		// TODO_ENHANCED: Physics props needs this.
+		m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 	}
 }
 
@@ -5712,8 +5718,9 @@ void CBaseEntity::SetLocalAngles( const QAngle& angles )
 	{
 		InvalidatePhysicsRecursive( ANGLES_CHANGED );
 		m_angRotation = angles;
-		// TODO_ENHANCED: No. This doesn't represent simulation time forcely, it could be set externally.
-		// SetSimulationTime( gpGlobals->curtime );
+
+		// TODO_ENHANCED: Physics props needs this.
+		m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 	}
 }
 
@@ -5740,6 +5747,9 @@ void CBaseEntity::SetLocalVelocity( const Vector &inVecVelocity )
 	{
 		InvalidatePhysicsRecursive( VELOCITY_CHANGED );
 		m_vecVelocity = vecVelocity;
+
+		// TODO_ENHANCED: Physics props needs this.
+		m_nSimulatedTickCount = m_nGlobalSimulatedTickCount;
 	}
 }
 
