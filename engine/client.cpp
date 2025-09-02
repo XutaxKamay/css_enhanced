@@ -626,26 +626,37 @@ float CClientState::GetFrameTime() const
 
 float CClientState::GetClientInterpAmount()
 {
-	static const ConVar *cl_interpolate = g_pCVar->FindVar("cl_interpolate");
+	static const ConVar* cl_interpolate = g_pCVar->FindVar( "cl_interpolate" );
 
-	if (!cl_interpolate->GetBool())
+	if ( !cl_interpolate->GetBool() )
 	{
 		return 0.0f;
 	}
 
-	static const ConVar *s_cl_interpolation_amount = NULL;
+	// TODO_ENHANCED: modify me if you modify others.
+	constexpr auto g_nDefaultTicksToInterpolate	  = 20;
+	constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 1024;
+
+	static const ConVar* s_cl_interpolation_amount = NULL;
 	if ( !s_cl_interpolation_amount )
 	{
-		constexpr auto g_nDefaultTicksToInterpolate = 20;
 		s_cl_interpolation_amount = g_pCVar->FindVar( "cl_interpolation_amount" );
 		if ( !s_cl_interpolation_amount )
-			return TICKS_TO_TIME( g_nDefaultTicksToInterpolate );
+		{
+			return g_nDefaultTicksToInterpolate * host_state.interval_per_tick;
+		}
 	}
 
-	float flInterp = TICKS_TO_TIME( s_cl_interpolation_amount->GetInt() );
+	auto nWantedInterpTicks = s_cl_interpolation_amount->GetInt();
+	auto nInterpTicks		= g_nDefaultTicksToInterpolate;
 
-	//#define FIXME_INTERP_RATIO
-	return flInterp;
+	if ( nWantedInterpTicks > 0 && nWantedInterpTicks < MAX_INTERPOLATION_TICK_HISTORY )
+	{
+		nInterpTicks = nWantedInterpTicks;
+	}
+
+	// #define FIXME_INTERP_RATIO
+	return nInterpTicks * host_state.interval_per_tick;
 }
 
 //-----------------------------------------------------------------------------

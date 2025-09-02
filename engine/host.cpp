@@ -3214,10 +3214,36 @@ void _Host_RunFrame (float time)
         g_ClientGlobalVariables.next_interpolation_amount_frac = host_remainder / host_state.interval_per_tick;
 		cl.insimulation = true;
 		g_ClientGlobalVariables.reliable_tickcount = host_reliable_tickcount;
+
 		// TODO_ENHANCED:
 		// If we didn't receive an update, predict the next snapshot tickcount by increasing by one in order to have
 		// smooth interpolation
+		auto nTickInterpWindow = TIME_TO_TICKS( cl.GetClientInterpAmount() );
+
 		g_ClientGlobalVariables.predicted_snapshot_tickcount += numticks > 0 ? 1 : 0;
+
+		auto nCurrentTickDrift = g_ClientGlobalVariables.predicted_snapshot_tickcount - cl.m_nSnapshotTickCount;
+
+		// If we drifted too much from server snapshot tick count, set to latest tick count received and interp window.
+		if ( nCurrentTickDrift >= nTickInterpWindow )
+		{
+			g_ClientGlobalVariables.predicted_snapshot_tickcount = cl.m_nSnapshotTickCount + nTickInterpWindow;
+		}
+
+		// con_nprint_t np;
+		// np.time_to_live		= 1.0;
+		// np.index			= 0;
+		// np.fixed_width_font = false;
+		// np.color[0]			= 0.0;
+		// np.color[1]			= 1.0;
+		// np.color[2]			= 1.0;
+		// Con_NXPrintf( &np,
+		// 			  "%i %i %lld %lld",
+		// 			  nCurrentTickDrift,
+		// 			  nTickInterpWindow,
+		// 			  g_ClientGlobalVariables.predicted_snapshot_tickcount,
+		// 			  cl.m_nSnapshotTickCount );
+
 #endif
 
 		host_frameticks = numticks;
