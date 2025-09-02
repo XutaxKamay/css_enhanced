@@ -846,13 +846,13 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 			{
 				g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount;
 			}
-			// If we drifted too much from interpolation amount, we might increase dynamically the window size ?
+			// FIXME: We really need a better adjustement ...
+			// // If we drifted too much from interpolation amount, we might increase dynamically the window size ?
 			else if ( g_ClientGlobalVariables.predicted_snapshot_tickcount
 					  >= m_nSnapshotTickCount + nMaximumInterpolationAmountInTicks )
 			{
 				// Give it at least a tick
-				g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount
-																	   + nMaximumInterpolationAmountInTicks - 1;
+				g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount;
 			}
 
 			// Preprocessing primarily does client prediction. So if we're processing deltas--do it
