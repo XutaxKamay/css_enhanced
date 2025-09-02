@@ -486,7 +486,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	virtual Result Interpolate( uint64 nTickBase, size_t nAmountOfTicks, float flInterpolationAmountFrac ) override
 	{
 		// Search the closest snapshot tick count
-		auto nTarget = nTickBase - nAmountOfTicks;
+		auto nTargetTick = nTickBase - nAmountOfTicks;
 
 		for ( size_t i = 0; i < MAX_HISTORY; i++ )
 		{
@@ -499,7 +499,14 @@ class CInterpolatedVar : public IInterpolatedVar
 			}
 
 			// Did we found a target ?
-			if ( nTarget == *pSnapshotTickCount )
+			if ( nTargetTick == *pSnapshotTickCount )
+			{
+				nAmountOfTicks = i;
+				break;
+			}
+
+			// Somehow the snapshot was skipped, we need to find the closest one.
+			if ( nTargetTick > *pSnapshotTickCount )
 			{
 				nAmountOfTicks = i;
 				break;
