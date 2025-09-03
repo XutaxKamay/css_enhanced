@@ -239,6 +239,7 @@ ConVar  sv_restrict_aspect_ratio_fov( "sv_restrict_aspect_ratio_fov", "1", FCVAR
 									 "        greater than 1.85:1\n"
 									 "    2 = limit the effective FOV on both windowed mode and full-screen users\n",
 									 true, 0, true, 2);
+ConVar sv_send_snapshot_every_ticks( "sv_send_snapshot_every_ticks", "1" );
 
 void OnTVEnablehanged( IConVar *pConVar, const char *pOldString, float flOldValue )
 {
@@ -2968,7 +2969,7 @@ void SV_Frame( bool finalTick )
 	// TODO_ENHANCED: this now should be safe now to ignore final tick, although we might reduce server performance
 	// IF server framerate went too low though it will cause the client to rollback/lag entities for a few frames, but
 	// this is okay.
-	if ( finalTick )
+	if ( finalTick || sv_send_snapshot_every_ticks.GetBool() )
 	{
 		sv.m_nSnapshotTickCount++;
 		g_ServerGlobalVariables.snapshot_tickcount			 = sv.m_nSnapshotTickCount;

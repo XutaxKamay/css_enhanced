@@ -363,7 +363,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 		}
 	}
 
-	void FrameUpdatePostEntityThinkOnFinalTick() override
+	void TrackEntities( void )
 	{
 		for ( int i = 0; i < MAX_EDICTS; i++ )
 		{
@@ -376,6 +376,30 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 
 			TrackEntity< true >( pEntity );
 		}
+	}
+
+	void FrameUpdatePostEntityThink() override
+	{
+		static ConVarRef sv_send_snapshot_every_ticks( "sv_send_snapshot_every_ticks" );
+
+		if ( !sv_send_snapshot_every_ticks.GetBool() )
+		{
+			return;
+		}
+
+		TrackEntities();
+	}
+
+	void FrameUpdatePostEntityThinkOnFinalTick() override
+	{
+		static ConVarRef sv_send_snapshot_every_ticks( "sv_send_snapshot_every_ticks" );
+
+		if ( sv_send_snapshot_every_ticks.GetBool() )
+		{
+			return;
+		}
+
+		TrackEntities();
 	}
 
 	// keep a list of lag records for each entities
