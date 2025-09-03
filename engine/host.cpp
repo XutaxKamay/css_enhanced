@@ -3251,7 +3251,11 @@ void _Host_RunFrame (float time)
 							cl.m_nSnapshotTickCount );
 
 			Con_NXPrintf( &np, buffer );
-			ConMsg( "%s\n", buffer );
+
+			if ( cl_debug_snapshot_tickcount.GetInt() >= 2 )
+			{
+				ConMsg( "%s\n", buffer );
+			}
 		}
 
 #endif

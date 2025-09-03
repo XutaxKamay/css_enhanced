@@ -775,7 +775,7 @@ int NET_SendStream( int nSock, const char * buf, int len, int flags )
 	{
 		NET_GetLastError();
 
-		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS )
+		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS || net_error == WSAENOTCONN )
 		{
 			return 0;
 		}
@@ -800,7 +800,7 @@ int NET_ReceiveStream( int nSock, char * buf, int len, int flags )
 	{
 		NET_GetLastError();
 
-		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS )
+		if ( net_error == WSAEWOULDBLOCK || net_error == WSAEINPROGRESS || net_error == WSAENOTCONN )
 		{
 			return 0;
 		}
