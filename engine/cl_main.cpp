@@ -2162,6 +2162,9 @@ void CL_SendMove( void )
 
 		// TODO_ENHANCED: let's test this.
 		cl.m_NetChannel->SendReliableIMMM( bfMoveData );
+
+		// For ping it might be better. ?
+		// cl.m_NetChannel->SendNetMsg( moveMsg );
 	}
 }
 

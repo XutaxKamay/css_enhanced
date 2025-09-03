@@ -15,7 +15,7 @@
 #include "interpolatedvar.h"
 
 // 20 ticks should be enough
-constexpr auto g_nDefaultTicksToInterpolate = 20;
+constexpr auto g_nDefaultTicksToInterpolate = 5;
 bool g_bForceCLPredictOff = false;
 
 // ------------------------------------------------------------------------------------------ //

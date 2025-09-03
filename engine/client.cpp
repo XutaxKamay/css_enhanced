@@ -634,8 +634,8 @@ float CClientState::GetClientInterpAmount()
 	}
 
 	// TODO_ENHANCED: modify me if you modify others.
-	constexpr auto g_nDefaultTicksToInterpolate	  = 20;
-	constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 1024;
+	constexpr auto g_nDefaultTicksToInterpolate	  = 5;
+	constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 128;
 
 	static const ConVar* s_cl_interpolation_amount = NULL;
 	if ( !s_cl_interpolation_amount )
@@ -655,7 +655,6 @@ float CClientState::GetClientInterpAmount()
 		nInterpTicks = nWantedInterpTicks;
 	}
 
-	// #define FIXME_INTERP_RATIO
 	return nInterpTicks * host_state.interval_per_tick;
 }
 

@@ -2740,9 +2740,15 @@ bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 
 	m_TCPQueue.AddToSendQueue( std::move( vFinalBuffer ) );
 
-	// TODO_ENHANCED:
-	// FlowNewPacket( FLOW_OUTGOING, m_nOutSequenceNr, m_nInSequenceNr, 0, 0, nFinalSize );
-	// FlowUpdate( FLOW_OUTGOING, nFinalSize );
+	// TODO_ENHANCED: FIXME (need specific graph for TCP?)
+	auto pFrame = m_DataFlow[FLOW_OUTGOING].currentframe;
+
+	if ( pFrame )
+	{
+		pFrame->size += nFinalSize;
+	}
+
+	m_DataFlow[FLOW_OUTGOING].totalbytes += nFinalSize;
 
 	return true;
 }
@@ -2880,8 +2886,14 @@ STREAM_CMD_STATE CNetChan::ProcessIMMM( void )
 	bf_read IMMMData( "STREAM_CMD_IMMM_DATA", pCurrentBuffer, nNetMsgBytes, nNetMsgBits );
 
 	// TODO_ENHANCED:
-	// FlowUpdate( FLOW_INCOMING, nNetworkSize );
-	// FlowNewPacket( FLOW_INCOMING, m_nInSequenceNr, m_nOutSequenceNr, 0, 0, nNetworkSize );
+	auto pFrame = m_DataFlow[FLOW_INCOMING].currentframe;
+
+	if ( pFrame )
+	{
+		pFrame->size += nNetworkSize;
+	}
+
+	m_DataFlow[FLOW_INCOMING].totalbytes += nNetworkSize;
 
 	m_MessageHandler->PacketStart( m_nInSequenceNr, m_nOutSequenceNr );
 

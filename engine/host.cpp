@@ -3230,19 +3230,29 @@ void _Host_RunFrame (float time)
 			g_ClientGlobalVariables.predicted_snapshot_tickcount = cl.m_nSnapshotTickCount;
 		}
 
-		// con_nprint_t np;
-		// np.time_to_live		= 1.0;
-		// np.index			= 0;
-		// np.fixed_width_font = false;
-		// np.color[0]			= 0.0;
-		// np.color[1]			= 1.0;
-		// np.color[2]			= 1.0;
-		// Con_NXPrintf( &np,
-		// 			  "%i %i %lld %lld",
-		// 			  nCurrentTickDrift,
-		// 			  nTickInterpWindow,
-		// 			  g_ClientGlobalVariables.predicted_snapshot_tickcount,
-		// 			  cl.m_nSnapshotTickCount );
+		static ConVar cl_debug_snapshot_tickcount( "cl_debug_snapshot_tickcount", "0" );
+
+		if ( cl_debug_snapshot_tickcount.GetBool() )
+		{
+			con_nprint_t np;
+			np.time_to_live		= 1.0;
+			np.index			= 0;
+			np.fixed_width_font = false;
+			np.color[0]			= 0.0;
+			np.color[1]			= 1.0;
+			np.color[2]			= 1.0;
+
+			char buffer[512];
+			V_sprintf_safe( buffer,
+							"sstc_drift=%lld | interp_aot=%i | sstc_pred=%lld | sstc_server=%lld",
+							nCurrentTickDrift,
+							nTickInterpWindow,
+							g_ClientGlobalVariables.predicted_snapshot_tickcount,
+							cl.m_nSnapshotTickCount );
+
+			Con_NXPrintf( &np, buffer );
+			ConMsg( "%s\n", buffer );
+		}
 
 #endif
 

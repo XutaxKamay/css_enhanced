@@ -10,7 +10,8 @@
 #pragma once
 #endif
 
-constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 1024;
+// One second is enough
+constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 128;
 
 #include <string>
 
@@ -206,21 +207,27 @@ template < typename T, size_t MAX_HISTORY = MAX_INTERPOLATION_TICK_HISTORY >
 class CInterpolatedVar : public IInterpolatedVar
 {
   public:
-	struct HermiteResult : public Result
+	struct HermiteResult
 	{
+		size_t nAmountOfTicks;
+		float frac;
 		T prev;
 		T start;
 		T end;
 	};
 
-	struct LinearResult : public Result
+	struct LinearResult
 	{
+		size_t nAmountOfTicks;
+		float frac;
 		T start;
 		T end;
 	};
 
-	struct ReferenceResult : public Result
+	struct ReferenceResult
 	{
+		size_t nAmountOfTicks;
+		float frac;
 		T startref;
 		T endref;
 	};

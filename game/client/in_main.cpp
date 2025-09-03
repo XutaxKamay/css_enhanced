@@ -1293,16 +1293,15 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		const auto& simulatedResult			 = pEntity->m_iv_nSimulatedTickCount.GetLastReferencedResult();
 		auto nInterpolatedSimulatedTickCount = pEntity->m_nInterpolatedSimulatedTickCount;
 
-		cmd->simulationdata[i].sim_tick_count	   = simulatedResult.nAmountOfTicks != 0 ? simulatedResult.startref :
-																						   nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].sim_tick_count	   = simulatedResult.frac > 0.0f ? simulatedResult.startref :
+																				   nInterpolatedSimulatedTickCount;
 		cmd->simulationdata[i].is_sim_interpolated = simulatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 		cmd->simulationdata[i].interpolated_sim_tick_count = nInterpolatedSimulatedTickCount;
-		cmd->simulationdata[i].end_sim_tick_count		   = simulatedResult.nAmountOfTicks != 0 ?
-															   simulatedResult.endref :
-															   nInterpolatedSimulatedTickCount;
+		cmd->simulationdata[i].end_sim_tick_count		   = simulatedResult.frac > 0.0f ? simulatedResult.endref :
+																						   nInterpolatedSimulatedTickCount;
 #endif
 
 		auto pBaseAnimation = pEntity->GetBaseAnimating();
@@ -1315,16 +1314,15 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		const auto& animatedResult			= pBaseAnimation->m_iv_nAnimatedTickCount.GetLastReferencedResult();
 		auto nInterpolatedAnimatedTickCount = pBaseAnimation->m_nInterpolatedAnimatedTickCount;
 
-		cmd->simulationdata[i].anim_tick_count		= animatedResult.nAmountOfTicks != 0 ? animatedResult.startref :
-																						   nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].anim_tick_count		= animatedResult.frac > 0.0f ? animatedResult.startref :
+																				   nInterpolatedAnimatedTickCount;
 		cmd->simulationdata[i].is_anim_interpolated = animatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 		cmd->simulationdata[i].interpolated_anim_tick_count = nInterpolatedAnimatedTickCount;
-		cmd->simulationdata[i].end_anim_tick_count			= animatedResult.nAmountOfTicks != 0 ?
-																animatedResult.endref :
-																nInterpolatedAnimatedTickCount;
+		cmd->simulationdata[i].end_anim_tick_count			= animatedResult.frac > 0.0f ? animatedResult.endref :
+																						   nInterpolatedAnimatedTickCount;
 #endif
 	}
 

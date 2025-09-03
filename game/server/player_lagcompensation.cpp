@@ -345,6 +345,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 	void BacktrackAnimationData( CBaseEntity* pEntity, int loopIndex, CUserCmd* cmd, bool& bNeedsRestore );
 	void SpewBacktrackData( const std::string& pszContext,
 							CBaseEntity* pEntity,
+							float flInterpolationAmountFrac,
 							size_t nAmountOfTicks,
 							uint64 nClientInterpolatedTickCount,
 							uint64 nServerInterpolatedTickCount,
@@ -695,9 +696,8 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 													   bool& bNeedsRestore )
 {
 	auto nTargetSimulatedTickCount = cmd->simulationdata[loopIndex].sim_tick_count;
-	auto flInterpolationAmountFrac = cmd->simulationdata[loopIndex].is_sim_interpolated ?
-									   cmd->interpolated_amount_frac :
-									   0;
+	auto bInterpolationEnabled	   = cmd->simulationdata[loopIndex].is_sim_interpolated;
+	auto flInterpolationAmountFrac = bInterpolationEnabled ? cmd->interpolated_amount_frac : 0;
 	auto pLagTrack				   = &m_EntityTrack[loopIndex];
 	auto pInterpolatedRecord	   = &pLagTrack->m_RecordReferenced;
 
@@ -759,9 +759,30 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 	auto simulatedResult = pLagTrack->m_iv_nSimulatedTickCount.InterpolateReference( nAmountOfTicks,
 																					 flInterpolationAmountFrac );
 
+	if ( bInterpolationEnabled )
+	{
+		pLagTrack->m_iv_vecLocalOrigin.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		pLagTrack->m_iv_angLocalAngles.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		pLagTrack->m_iv_vecMinsPreScaled.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		pLagTrack->m_iv_vecMaxsPreScaled.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+
+#ifdef CSTRIKE_DLL
+		pLagTrack->m_iv_angRenderAngles.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+#endif
+	}
+	else
+	{
+		pLagTrack->m_RecordReferenced.m_nSimulatedTickCount = *pLagTrack->m_iv_nSimulatedTickCount.Get( nAmountOfTicks );
+		pLagTrack->m_RecordReferenced.m_vecLocalOrigin	 = *pLagTrack->m_iv_vecLocalOrigin.Get( nAmountOfTicks );
+		pLagTrack->m_RecordReferenced.m_angLocalAngles	 = *pLagTrack->m_iv_angLocalAngles.Get( nAmountOfTicks );
+		pLagTrack->m_RecordReferenced.m_vecMinsPreScaled = *pLagTrack->m_iv_vecMinsPreScaled.Get( nAmountOfTicks );
+		pLagTrack->m_RecordReferenced.m_vecMaxsPreScaled = *pLagTrack->m_iv_vecMaxsPreScaled.Get( nAmountOfTicks );
+	}
+
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 	SpewBacktrackData( "simulation",
 					   pEntity,
+					   flInterpolationAmountFrac,
 					   simulatedResult.nAmountOfTicks,
 					   cmd->simulationdata[loopIndex].interpolated_sim_tick_count,
 					   pInterpolatedRecord->m_nSimulatedTickCount,
@@ -769,15 +790,6 @@ void CLagCompensationManager::BacktrackSimulationData( CBaseEntity* pEntity,
 					   cmd->simulationdata[loopIndex].end_sim_tick_count,
 					   simulatedResult.startref,
 					   simulatedResult.endref );
-#endif
-
-	pLagTrack->m_iv_vecLocalOrigin.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
-	pLagTrack->m_iv_angLocalAngles.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
-	pLagTrack->m_iv_vecMinsPreScaled.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
-	pLagTrack->m_iv_vecMaxsPreScaled.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
-
-#ifdef CSTRIKE_DLL
-	pLagTrack->m_iv_angRenderAngles.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
 #endif
 
 	pEntity->SetLocalOrigin( pInterpolatedRecord->m_vecLocalOrigin );
@@ -806,9 +818,8 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 													  bool& bNeedsRestore )
 {
 	auto nTargetAnimatedTickCount  = cmd->simulationdata[loopIndex].anim_tick_count;
-	auto flInterpolationAmountFrac = cmd->simulationdata[loopIndex].is_anim_interpolated ?
-									   cmd->interpolated_amount_frac :
-									   0;
+	auto bInterpolationEnabled	   = cmd->simulationdata[loopIndex].is_anim_interpolated;
+	auto flInterpolationAmountFrac = bInterpolationEnabled ? cmd->interpolated_amount_frac : 0;
 	auto pLagTrack				   = &m_EntityTrack[loopIndex];
 	auto pInterpolatedRecord	   = &pLagTrack->m_RecordReferenced;
 
@@ -869,13 +880,18 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 	auto pAnim		  = dynamic_cast< CBaseAnimating* >( pEntity );
 	auto pAnimOverlay = dynamic_cast< CBaseAnimatingOverlay* >( pEntity );
 
-	// Sadly due to looping sequences we need to interpolate variables seperately.
 	auto animatedResult = pLagTrack->m_iv_nAnimatedTickCount.InterpolateReference( nAmountOfTicks,
 																				   flInterpolationAmountFrac );
+
+	if ( !bInterpolationEnabled )
+	{
+		pInterpolatedRecord->m_nAnimatedTickCount = *pLagTrack->m_iv_nAnimatedTickCount.Get( nAmountOfTicks );
+	}
 
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 	SpewBacktrackData( "animation",
 					   pEntity,
+					   flInterpolationAmountFrac,
 					   animatedResult.nAmountOfTicks,
 					   cmd->simulationdata[loopIndex].interpolated_anim_tick_count,
 					   pInterpolatedRecord->m_nAnimatedTickCount,
@@ -890,12 +906,28 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 	{
 		pAnim->m_nAnimatedTickCount = pInterpolatedRecord->m_nAnimatedTickCount;
 
-		pLagTrack->m_iv_nSequence.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		if ( bInterpolationEnabled )
+		{
+			pLagTrack->m_iv_nSequence.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		}
+		else
+		{
+			pInterpolatedRecord->m_nSequence = *pLagTrack->m_iv_nSequence.Get( nAmountOfTicks );
+		}
+
 		pAnim->SetSequence( pInterpolatedRecord->m_nSequence );
 
 		// Check if looping
-		pLagTrack->m_iv_flCycle.SetLooping( pAnim->IsSequenceLooping( pInterpolatedRecord->m_nSequence ) );
-		pLagTrack->m_iv_flCycle.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		if ( bInterpolationEnabled )
+		{
+			pLagTrack->m_iv_flCycle.SetLooping( pAnim->IsSequenceLooping( pInterpolatedRecord->m_nSequence ) );
+			pLagTrack->m_iv_flCycle.InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+		}
+		else
+		{
+			pInterpolatedRecord->m_flCycle = *pLagTrack->m_iv_flCycle.Get( nAmountOfTicks );
+		}
+
 		pAnim->SetCycle( pInterpolatedRecord->m_flCycle );
 
 		auto pStudioHdr = pAnim->GetModelPtr();
@@ -905,19 +937,40 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 			for ( int paramIndex = 0; paramIndex < pStudioHdr->GetNumPoseParameters(); paramIndex++ )
 			{
 				const mstudioposeparamdesc_t& Pose = pStudioHdr->pPoseParameter( paramIndex );
-				pLagTrack->m_iv_flPoseParameter[paramIndex].SetLooping( Pose.loop != 0.0f );
-				pLagTrack->m_iv_flPoseParameter[paramIndex].InterpolateReference( nAmountOfTicks,
-																				  flInterpolationAmountFrac );
+
+				if ( bInterpolationEnabled )
+				{
+					pLagTrack->m_iv_flPoseParameter[paramIndex].SetLooping( Pose.loop != 0.0f );
+					pLagTrack->m_iv_flPoseParameter[paramIndex].InterpolateReference( nAmountOfTicks,
+																					  flInterpolationAmountFrac );
+				}
+				else
+				{
+					pInterpolatedRecord->m_flPoseParameter[paramIndex] = *pLagTrack->m_iv_flPoseParameter[paramIndex]
+																			.Get( nAmountOfTicks );
+				}
+
 				pAnim->SetPoseParameterRaw( paramIndex, pInterpolatedRecord->m_flPoseParameter[paramIndex] );
 			}
 
 			for ( int boneIndex = 0; boneIndex < pStudioHdr->GetNumBoneControllers(); boneIndex++ )
 			{
-				bool loop = ( pStudioHdr->pBonecontroller( boneIndex )->type & ( STUDIO_XR | STUDIO_YR | STUDIO_ZR ) )
-							!= 0;
-				pLagTrack->m_iv_flEncodedController[boneIndex].SetLooping( loop );
-				pLagTrack->m_iv_flEncodedController[boneIndex].InterpolateReference( nAmountOfTicks,
-																					 flInterpolationAmountFrac );
+				if ( bInterpolationEnabled )
+				{
+					bool loop = ( pStudioHdr->pBonecontroller( boneIndex )->type
+								  & ( STUDIO_XR | STUDIO_YR | STUDIO_ZR ) )
+								!= 0;
+					pLagTrack->m_iv_flEncodedController[boneIndex].SetLooping( loop );
+					pLagTrack->m_iv_flEncodedController[boneIndex].InterpolateReference( nAmountOfTicks,
+																						 flInterpolationAmountFrac );
+				}
+				else
+				{
+					pInterpolatedRecord->m_flEncodedController[boneIndex] = *pLagTrack
+																			   ->m_iv_flEncodedController[boneIndex]
+																			   .Get( nAmountOfTicks );
+				}
+
 				pAnim->SetPoseParameterRaw( boneIndex, pInterpolatedRecord->m_flEncodedController[boneIndex] );
 			}
 		}
@@ -929,7 +982,17 @@ void CLagCompensationManager::BacktrackAnimationData( CBaseEntity* pEntity,
 
 		for ( int layerIndex = 0; layerIndex < layerCount; ++layerIndex )
 		{
-			pLagTrack->m_iv_LayerRecords[layerIndex].InterpolateReference( nAmountOfTicks, flInterpolationAmountFrac );
+			if ( bInterpolationEnabled )
+			{
+				pLagTrack->m_iv_LayerRecords[layerIndex].InterpolateReference( nAmountOfTicks,
+																			   flInterpolationAmountFrac );
+			}
+			else
+			{
+				pInterpolatedRecord->m_LayerRecords[layerIndex] = *pLagTrack->m_iv_LayerRecords[layerIndex].Get(
+				  nAmountOfTicks );
+			}
+
 			auto layerRecord			   = &pInterpolatedRecord->m_LayerRecords[layerIndex];
 			CAnimationLayer* pCurrentLayer = pAnimOverlay->GetAnimOverlay( layerIndex );
 
@@ -1062,6 +1125,7 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 
 void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 												 CBaseEntity* pEntity,
+												 float flInterpolationAmountFrac,
 												 size_t nAmountOfTicks,
 												 uint64 nClientInterpolatedTickCount,
 												 uint64 nServerInterpolatedTickCount,
@@ -1079,7 +1143,8 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 		result += "[ " + std::to_string( m_LagPlayer->GetTimeBase() ) + " ]: player "
 				  + std::string( m_LagPlayer->GetPlayerName() );
 		result += " unlagged " + pszContext + " data on entity " + std::to_string( pEntity->entindex() ) + " with "
-				  + std::to_string( nAmountOfTicks ) + " ticks ";
+				  + std::to_string( nAmountOfTicks ) + " ticks and frac " + std::to_string( flInterpolationAmountFrac )
+				  + " ";
 	};
 
 	auto EndResult = [&]()
@@ -1127,7 +1192,8 @@ void CLagCompensationManager::SpewBacktrackData( const std::string& pszContext,
 		else
 		{
 			StartResult();
-			result += "where client and server interpolation mistmatches but interpolation disabled / spawn, server("
+			result += "where client and server interpolation mistmatches but interpolation disabled / spawn which "
+					  "needs fixing: server("
 					  + std::to_string( nServerInterpolatedTickCount ) + ") != client("
 					  + std::to_string( nClientInterpolatedTickCount ) + ") -> ";
 			EndResult();
