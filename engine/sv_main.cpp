@@ -2966,6 +2966,8 @@ void SV_Frame( bool finalTick )
 
 	// Send the results of movement and physics to the clients
 	// TODO_ENHANCED: this now should be safe now to ignore final tick, although we might reduce server performance
+	// IF server framerate went too low though it will cause the client to rollback/lag entities for a few frames, but
+	// this is okay.
 	if ( finalTick )
 	{
 		sv.m_nSnapshotTickCount++;
@@ -2976,7 +2978,6 @@ void SV_Frame( bool finalTick )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause, finalTick );
 		else
 			g_pDeferredServerWork = CreateFunctor( SV_SendClientUpdates, bIsSimulating, bSendDuringPause, finalTick );
-
 	}
 
 	// lock string tables

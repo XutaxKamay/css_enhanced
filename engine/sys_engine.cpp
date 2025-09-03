@@ -243,6 +243,16 @@ bool CEngine::Load( bool bDedicated, const char *rootdir )
 //-----------------------------------------------------------------------------
 bool CEngine::FilterTime( float dt )
 {
+	static ConVar fps_ignore_filter_time( "fps_ignore_filter_time", "1" );
+	float fps = (float)fps_max.GetInt();
+
+	// Render as soon as possible
+	if ( fps_ignore_filter_time.GetBool() || ( !sv.IsDedicated() && fps <= 0.0f ) )
+	{
+		m_flMinFrameTime = 0.0f;
+		return true;
+	}
+
 	if ( sv.IsDedicated() && !g_bDedicatedServerBenchmarkMode )
 	{
 		m_flMinFrameTime = host_nexttick;
@@ -264,7 +274,6 @@ bool CEngine::FilterTime( float dt )
 		}
 	}
 
-	float fps = (float)fps_max.GetInt();
 	if ( fps > 0.0f )
 	{
 		// Limit fps to withing tolerable range
@@ -286,7 +295,7 @@ bool CEngine::FilterTime( float dt )
 			return false;		
 		}
 	}
-	else if ( fps == 0.0f )
+	else if ( fps <= 0.0f )
 	{
 		m_flMinFrameTime = 0.0f;
 
@@ -364,6 +373,10 @@ void CEngine::Frame( void )
 			break;
 		}
 
+		// TODO_ENHANCED:
+		//  We don't want to sleep in any cases, especially dedicated servers that can process packets during frames
+		//  without a tick passing, this can be useful to lighten the server during tick simulation
+// #if 0
 		if ( IsPC() && ( !sv.IsDedicated() || host_timer_spin_ms.GetFloat() != 0 ) )
 		{
 			// ThreadSleep may be imprecise. On non-dedicated servers, we busy-sleep
@@ -393,6 +406,7 @@ void CEngine::Frame( void )
 			ThreadSleep( (nSleepMicrosecs + 999) / 1000 );
 #endif
 		}
+// #endif
 	}
 
 	if ( ShouldSerializeAsync() )

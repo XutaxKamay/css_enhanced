@@ -3404,6 +3404,11 @@ void _Host_RunFrame (float time)
 				g_pServerReplayContext->Think();
 			}
 #endif
+			if ( numticks == 0 )
+			{
+				// process any asynchronous network traffic (TCP), set net_time
+				NET_RunFrame( Plat_FloatTime() );
+			}
 
 #ifndef SWDS
 			// This is a hack to let timedemo pull messages from the queue faster than every 15 msec
@@ -3557,6 +3562,12 @@ void _Host_RunFrame (float time)
 #endif
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame(  Plat_FloatTime() );
+			}
+
+			if ( serverticks == 0 || clientticks == 0 )
+			{
+				// process any asynchronous network traffic (TCP), set net_time
+				NET_RunFrame( Plat_FloatTime() );
 			}
 
 			Host_SetClientInSimulation( false );
