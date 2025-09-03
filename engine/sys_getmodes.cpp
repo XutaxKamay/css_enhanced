@@ -1120,11 +1120,13 @@ void CVideoMode_Common::DrawNullBackground( void *hHDC, int w, int h )
 
 #ifndef _WIN32
 
+#ifndef DXVK_ENABLED
 typedef unsigned char BYTE;
 typedef signed long LONG;
 typedef unsigned long ULONG;
 
 typedef char * LPSTR;
+#endif
 
 typedef struct tagBITMAPINFOHEADER{
     DWORD      biSize;

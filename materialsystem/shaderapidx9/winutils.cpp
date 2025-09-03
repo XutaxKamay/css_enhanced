@@ -101,6 +101,12 @@ BOOL ClientToScreen( VD3DHWND hWnd, LPPOINT pPoint )
 	DebuggerBreak();
 	return true;
 }
+
+bool GUID::operator==( const struct _GUID &other ) const
+{
+	DebuggerBreak();
+	return memcmp( this, &other, sizeof( GUID ) ) == 0;
+}
 #endif
 
 void* GetCurrentThread()
@@ -112,11 +118,5 @@ void* GetCurrentThread()
 void SetThreadAffinityMask( void *hThread, int nMask )
 {
 	DebuggerBreak();
-}
-
-bool GUID::operator==( const struct _GUID &other ) const
-{
-	DebuggerBreak();
-	return memcmp( this, &other, sizeof( GUID ) ) == 0;
 }
 #endif
