@@ -3408,6 +3408,7 @@ void _Host_RunFrame (float time)
 			{
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame( Plat_FloatTime() );
+				NET_ProcessSocket( NS_SERVER, &sv );
 			}
 
 #ifndef SWDS
@@ -3568,6 +3569,7 @@ void _Host_RunFrame (float time)
 			{
 				// process any asynchronous network traffic (TCP), set net_time
 				NET_RunFrame( Plat_FloatTime() );
+				NET_ProcessSocket( NS_SERVER, &sv );
 			}
 
 			Host_SetClientInSimulation( false );
