@@ -108,6 +108,10 @@ enum ImageFormat
 	NUM_IMAGE_FORMATS
 };
 
+#ifdef DXVK_ENABLED
+#include <windows_base.h>
+#include <d3d9types.h>
+#else
 #if defined( POSIX  ) || defined( DX_TO_GL_ABSTRACTION )
 typedef enum _D3DFORMAT
 	{
@@ -161,7 +165,8 @@ typedef enum _D3DFORMAT
 		
 		D3DFMT_UNKNOWN
 	} D3DFORMAT;
-#endif
+#endif // POSIX || DX_TO_GL_ABSTRACTION
+#endif // DXVK_ENABLED
 
 //-----------------------------------------------------------------------------
 // Color structures

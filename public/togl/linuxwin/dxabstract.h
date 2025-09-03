@@ -28,7 +28,7 @@
 #ifndef DXABSTRACT_H
 #define DXABSTRACT_H
 
-#ifdef DX_TO_GL_ABSTRACTION
+#if defined(DX_TO_GL_ABSTRACTION) and not defined(DXVK_ENABLED)
 
 #include "togl/rendermechanism.h"
 

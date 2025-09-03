@@ -147,8 +147,10 @@ typedef int BOOL;
 #endif
 
 typedef int qboolean;
+#ifndef DXVK_ENABLED
 typedef unsigned long ULONG;
 typedef unsigned char BYTE;
+#endif
 typedef unsigned char byte;
 typedef unsigned short word;
 #ifdef _WIN32

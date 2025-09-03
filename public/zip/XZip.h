@@ -95,6 +95,11 @@
 // zip.cpp. The repackaging was done by Lucian Wischik to simplify its
 // use in Windows/C++.
 
+#ifdef DXVK_ENABLED
+#include "windows_base.h"
+typedef CHAR TCHAR;
+DECLARE_HANDLE(HZIP);
+#else
 #if !defined( DWORD )
 #ifdef _WIN32
 typedef unsigned long DWORD;
@@ -116,6 +121,7 @@ typedef void * HANDLE;
 #endif
 DECLARE_HANDLE(HZIP);		// An HZIP identifies a zip file that is being created
 #endif
+#endif // DXVK_ENABLED
 
 typedef DWORD ZRESULT;		// result codes from any of the zip functions. Listed later.
 
