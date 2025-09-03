@@ -89,6 +89,14 @@
 #ifndef XUNZIP_H
 #define XUNZIP_H
 
+
+#ifdef DXVK_ENABLED
+#include <limits.h>
+#include "windows_base.h"
+typedef CHAR TCHAR;
+DECLARE_HANDLE(HZIP);
+#define MAX_PATH PATH_MAX
+#else
 #if !defined( DWORD )
 #ifdef _WIN32
 typedef unsigned long DWORD;
@@ -115,6 +123,7 @@ typedef void *HANDLE;
 #define DECLARE_HANDLE(name) typedef struct name##__ { int unused; } *name
 #endif
 DECLARE_HANDLE(HZIP);		// An HZIP identifies a zip file that is being created
+#endif
 #endif
 
 #if defined(_WIN32) && !defined(_WINBASE_) && !defined(_FILETIME_)

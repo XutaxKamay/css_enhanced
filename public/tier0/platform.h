@@ -407,12 +407,16 @@ FIXME: Enable this when we no longer fear change =)
 
 #elif POSIX
 #if defined( OSX ) && defined( CARBON_WORKAROUND )
-#define DWORD unsigned int
+	#define DWORD unsigned int
 #else
-typedef unsigned int DWORD;
+	#ifndef DXVK_ENABLED
+	typedef unsigned int DWORD;
+	#endif
 #endif
+#ifndef DXVK_ENABLED
 typedef unsigned short WORD;
 typedef void * HINSTANCE;
+#endif
 #define _MAX_PATH PATH_MAX
 #define __cdecl
 #define __stdcall
@@ -848,8 +852,12 @@ return ptr;
 #define _wtoi(arg) wcstol(arg, NULL, 10)
 #define _wtoi64(arg) wcstoll(arg, NULL, 10)
 
+#ifdef DXVK_ENABLED
+#include <windows_base.h>
+#else
 typedef uintp HMODULE;
 typedef void *HANDLE;
+#endif // DXVK_ENABLED
 #endif
 
 //-----------------------------------------------------------------------------
