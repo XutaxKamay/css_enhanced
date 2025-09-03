@@ -2156,15 +2156,24 @@ void CL_SendMove( void )
 
 	if ( bOK )
 	{
-		byte moveData[MAX_CMD_BUFFER + 128];
-		bf_write bfMoveData( moveData, sizeof( moveData ) );
-		moveMsg.WriteToBuffer( bfMoveData );
+		static ConVar cl_send_reliable_clmove( "cl_send_reliable_clmove", "0" );
 
-		// TODO_ENHANCED: let's test this.
-		cl.m_NetChannel->SendReliableIMMM( bfMoveData );
+		// TODO_ENHANCED: unfortunately, since multiple commands can be sent in one frame, it makes server snapshots not
+		// properly sending updates to client, we rely on UDP for now.
+		if ( cl_send_reliable_clmove.GetBool() )
+		{
+			byte moveData[MAX_CMD_BUFFER + 128];
+			bf_write bfMoveData( moveData, sizeof( moveData ) );
+			moveMsg.WriteToBuffer( bfMoveData );
 
-		// For ping it might be better. ?
-		// cl.m_NetChannel->SendNetMsg( moveMsg );
+			// TODO_ENHANCED: let's test this.
+			cl.m_NetChannel->SendReliableIMMM( bfMoveData );
+		}
+		else
+		{
+			// For ping it might be better. ?
+			cl.m_NetChannel->SendNetMsg( moveMsg );
+		}
 	}
 }
 
