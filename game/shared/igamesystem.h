@@ -92,7 +92,6 @@ public:
 #else
 	static void FrameUpdatePreEntityThinkAllSystems();
 	static void FrameUpdatePostEntityThinkAllSystems();
-	static void FrameUpdatePostEntityThinkOnFinalTickAllSystems();
 	static void PreClientUpdateAllSystems();
 
 	// Accessors for the above function
@@ -121,7 +120,6 @@ public:
 	virtual void FrameUpdatePreEntityThink() = 0;
 	// called after entities think
 	virtual void FrameUpdatePostEntityThink() = 0;
-	inline virtual void FrameUpdatePostEntityThinkOnFinalTick() { };
 	virtual void PreClientUpdate() = 0;
 #endif
 };

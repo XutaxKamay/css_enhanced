@@ -1263,6 +1263,10 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	m_EntityGroundContact.RemoveAll();
 #endif
 
+	auto nInterpolationAmountOfTicks = GetClientInterpolationAmountInTicks();
+	auto flInterpolationAmountFrac	 = gpGlobals->next_interpolation_amount_frac;
+
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
 	// Let the compiler auto-vectorize this.
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
@@ -1274,9 +1278,6 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	// We need to interpolate the entities so that it matches client screen
 	C_BaseEntity::InterpolateServerEntities();
 	gpGlobals->interpolation_amount_frac = oldfrac;
-
-	auto nInterpolationAmountOfTicks = GetClientInterpolationAmountInTicks();
-	auto flInterpolationAmountFrac	 = gpGlobals->next_interpolation_amount_frac;
 
 	auto entities = g_pFastEntityLookUp->entities;
 
@@ -1298,11 +1299,9 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i].is_sim_interpolated = simulatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
-#ifdef USERCMD_DEBUG_SIMULATION_DATA
 		cmd->simulationdata[i].interpolated_sim_tick_count = nInterpolatedSimulatedTickCount;
 		cmd->simulationdata[i].end_sim_tick_count		   = simulatedResult.frac > 0.0f ? simulatedResult.endref :
 																						   nInterpolatedSimulatedTickCount;
-#endif
 
 		auto pBaseAnimation = pEntity->GetBaseAnimating();
 
@@ -1319,12 +1318,11 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 		cmd->simulationdata[i].is_anim_interpolated = animatedResult.frac > 0.0f;
 
 		// TODO_ENHANCED: Debugging purpose, just to be sure that we're on the same timeline
-#ifdef USERCMD_DEBUG_SIMULATION_DATA
 		cmd->simulationdata[i].interpolated_anim_tick_count = nInterpolatedAnimatedTickCount;
 		cmd->simulationdata[i].end_anim_tick_count			= animatedResult.frac > 0.0f ? animatedResult.endref :
 																						   nInterpolatedAnimatedTickCount;
-#endif
 	}
+#endif
 
 #ifdef CSTRIKE_DLL
 	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
@@ -1344,8 +1342,8 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	}
 #endif
 
-	// InterpolateServerEntities starts after prediction during rendering (OnRenderStart)
 	cmd->interpolated_amount_frac = nInterpolationAmountOfTicks ? flInterpolationAmountFrac : 0;
+	cmd->snapshot_tickcount		  = gpGlobals->predicted_snapshot_tickcount - nInterpolationAmountOfTicks;
 
 	pVerified->m_cmd = *cmd;
 	pVerified->m_crc = cmd->GetChecksum();

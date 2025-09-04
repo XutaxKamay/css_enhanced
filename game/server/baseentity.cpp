@@ -63,6 +63,7 @@
 #include "env_debughistory.h"
 #include "tier1/utlstring.h"
 #include "utlhashtable.h"
+#include "ilagcompensationmanager.h"
 
 #if defined( TF_DLL )
 #include "tf_gamerules.h"
@@ -3376,6 +3377,7 @@ void CBaseEntity::SetMoveType( MoveType_t val, MoveCollide_t moveCollide )
 
 void CBaseEntity::Spawn( void ) 
 {
+	lagcompensation->ClearHistoryForEntity( this );
 }
 
 

@@ -2930,7 +2930,9 @@ void SV_Frame( bool finalTick )
 		return;
 	}
 
-	g_ServerGlobalVariables.frametime = host_state.interval_per_tick;
+	g_ServerGlobalVariables.snapshot_tickcount			 = sv.m_nSnapshotTickCount;
+	g_ServerGlobalVariables.predicted_snapshot_tickcount = sv.m_nSnapshotTickCount;
+	g_ServerGlobalVariables.frametime					 = host_state.interval_per_tick;
 
 	bool bIsSimulating = SV_IsSimulating();
 	bool bSendDuringPause = sv_noclipduringpause ? sv_noclipduringpause->GetBool() : false;
@@ -2971,14 +2973,12 @@ void SV_Frame( bool finalTick )
 	// this is okay.
 	if ( finalTick || sv_send_snapshot_every_ticks.GetBool() )
 	{
-		sv.m_nSnapshotTickCount++;
-		g_ServerGlobalVariables.snapshot_tickcount			 = sv.m_nSnapshotTickCount;
-		g_ServerGlobalVariables.predicted_snapshot_tickcount = sv.m_nSnapshotTickCount;
-
 		if ( !IsEngineThreaded() || sv.IsMultiplayer() )
 			SV_SendClientUpdates( bIsSimulating, bSendDuringPause, finalTick );
 		else
 			g_pDeferredServerWork = CreateFunctor( SV_SendClientUpdates, bIsSimulating, bSendDuringPause, finalTick );
+
+		sv.m_nSnapshotTickCount++;
 	}
 
 	// lock string tables

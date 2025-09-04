@@ -337,13 +337,6 @@ void IGameSystem::FrameUpdatePostEntityThinkAllSystems()
 	InvokePerFrameMethod( &IGameSystemPerFrame::FrameUpdatePostEntityThink );
 }
 
-void IGameSystem::FrameUpdatePostEntityThinkOnFinalTickAllSystems()
-{
-	SafeRemoveIfDesiredAllSystems();
-
-	InvokePerFrameMethod( &IGameSystemPerFrame::FrameUpdatePostEntityThinkOnFinalTick );
-}
-
 void IGameSystem::PreClientUpdateAllSystems() 
 {
 	InvokePerFrameMethod( &IGameSystemPerFrame::PreClientUpdate );

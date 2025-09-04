@@ -136,6 +136,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( 0 );
 	}
 
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
 #ifdef CLIENT_DLL
 	int highestEntityIndex = 0;
 	if ( cl_entitylist )
@@ -175,7 +176,6 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		buf->WriteOneBit( to->simulationdata[i].is_sim_interpolated );
 		buf->WriteOneBit( to->simulationdata[i].is_anim_interpolated );
 
-#ifdef USERCMD_DEBUG_SIMULATION_DATA
 		if ( from->simulationdata[i].interpolated_sim_tick_count != to->simulationdata[i].interpolated_sim_tick_count )
 		{
 			buf->WriteOneBit( 1 );
@@ -216,8 +216,8 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 		{
 			buf->WriteOneBit( 0 );
 		}
-#endif
 	}
+#endif
 
 	if ( to->debug_hitboxes != from->debug_hitboxes )
 	{
@@ -233,6 +233,16 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	{
 		buf->WriteOneBit( 1 );
 		buf->WriteBitFloat( to->interpolated_amount_frac );
+	}
+	else
+	{
+		buf->WriteOneBit( 0 );
+	}
+
+	if ( from->snapshot_tickcount != to->snapshot_tickcount )
+	{
+		buf->WriteOneBit( 1 );
+		buf->WriteVarInt64( to->snapshot_tickcount );
 	}
 	else
 	{
@@ -325,6 +335,8 @@ void ReadUsercmd( bf_read* buf, CUserCmd* move, CUserCmd* from )
 		}
 	}
 
+#ifdef USERCMD_DEBUG_SIMULATION_DATA
+
 	auto highestEntityIndex = buf->ReadUBitLong( 11 );
 
 	highestEntityIndex = MIN( MAX_EDICTS - 1, highestEntityIndex );
@@ -344,7 +356,6 @@ void ReadUsercmd( bf_read* buf, CUserCmd* move, CUserCmd* from )
 		move->simulationdata[i].is_sim_interpolated	 = buf->ReadOneBit();
 		move->simulationdata[i].is_anim_interpolated = buf->ReadOneBit();
 
-#ifdef USERCMD_DEBUG_SIMULATION_DATA
 		if ( buf->ReadOneBit() )
 		{
 			move->simulationdata[i].interpolated_sim_tick_count = buf->ReadVarInt64();
@@ -364,8 +375,8 @@ void ReadUsercmd( bf_read* buf, CUserCmd* move, CUserCmd* from )
 		{
 			move->simulationdata[i].end_anim_tick_count = buf->ReadVarInt64();
 		}
-#endif
 	}
+#endif
 
 	if ( buf->ReadOneBit() )
 	{
@@ -375,6 +386,11 @@ void ReadUsercmd( bf_read* buf, CUserCmd* move, CUserCmd* from )
     if ( buf->ReadOneBit() )
     {
         move->interpolated_amount_frac = buf->ReadFloat();
+	}
+
+	if ( buf->ReadOneBit() )
+	{
+		move->snapshot_tickcount = buf->ReadVarInt64();
 	}
 
 #if defined( HL2_DLL )

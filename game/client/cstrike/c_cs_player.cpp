@@ -2459,7 +2459,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 					if ( bShouldShowPlayerConMsg )
 					{
-						ConMsg( "[%i]: Debugging player %s(%i) with hitbox:%s\n",
+						ConMsg( "[%i]: Debugging player %s(%i) with hitbox:\n%s\n",
 								nAttackerTickBase,
 								player->GetPlayerName(),
 								player->entindex(),
