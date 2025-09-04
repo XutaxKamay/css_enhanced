@@ -737,7 +737,7 @@ inline void NextBotPlayer< PlayerType >::PhysicsSimulate( void )
 
 	int tmp = 0;
 	// allocate a new command and add it to the player's list of command to process
-	this->ProcessUsercmds( &userCmd, 1, 1, 0, false, tmp, tmp );
+	this->ProcessUsercmds( &userCmd, 1, 1, 0, false, tmp );
 
 	m_inputButtons = 0;
 

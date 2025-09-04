@@ -642,6 +642,9 @@ CBasePlayer::CBasePlayer( )
 	m_flMovementTimeForUserCmdProcessingRemaining = 0.0f;
 
 	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
+
+	static int nullcmdseq = 0;
+	m_pnBaseClientLastCmdSeqRan = &nullcmdseq;
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -3424,7 +3427,7 @@ void CBasePlayer::PhysicsSimulate( void )
 	{
 		auto&& CmdInFront = m_CommandQueue.Head();
 
-		m_nLastCmdSequenceRan = CmdInFront.sequence;
+		*m_pnBaseClientLastCmdSeqRan = CmdInFront.sequence;
 		currentCmd			  = CmdInFront.cmd;
 		m_LastCmd			  = currentCmd;
 
@@ -3434,7 +3437,7 @@ void CBasePlayer::PhysicsSimulate( void )
 	{
 		ConMsg( "CBasePlayer::PhysicsSimulate: no commands this tick for player %s, using last cmd from sequence %i\n",
 				GetPlayerName(),
-				m_nLastCmdSequenceRan );
+				*m_pnBaseClientLastCmdSeqRan );
 		currentCmd = m_LastCmd;
 	}
 
@@ -3503,7 +3506,7 @@ void CBasePlayer::ForceSimulation()
 // Output : float -- Time in seconds of last movement command
 //-----------------------------------------------------------------------------
 void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
-	int dropped_packets, bool paused, int nLastCmdSequence, int& nLastCmdSequenceRan )
+	int dropped_packets, bool paused, int nLastCmdSequence )
 {
 #ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	CCommandContext *ctx = AllocCommandContext();
@@ -3579,9 +3582,6 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 
 		m_vecPlayerCmdInfo.AddToTail( pi );
 	}
-
-	nLastCmdSequenceRan = nLastCmdSequence;
-
 #else
 	if ( totalcmds != 1 )
 	{
@@ -3600,10 +3600,9 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	}
 	else
 	{
+		// TODO_ENHANCED: keep a buffer of last cmds to put in command queue
 		m_CommandQueue.Insert( { nLastCmdSequence, cmds[0] } );
 	}
-
-	nLastCmdSequenceRan = nLastCmdSequence;
 #endif
 }
 

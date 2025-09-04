@@ -577,7 +577,7 @@ public:
 	void					DeathMessage( CBaseEntity *pKiller );
 
 	virtual void			ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
-								int dropped_packets, bool paused, int nLastCmdSequence, int& nLastCmdSequenceRan );
+								int dropped_packets, bool paused, int nLastCmdSequence );
 	bool					IsUserCmdDataValid( CUserCmd *pCmd );
 
 	void					AvoidPhysicsProps( CUserCmd *pCmd );
@@ -1001,7 +1001,7 @@ public:
 	};
 
 	CUtlQueue< CCommandContext > m_CommandQueue;
-	int							 m_nLastCmdSequenceRan;
+	int*						 m_pnBaseClientLastCmdSeqRan; // TODO_ENHANCED: HACK
 #endif
 
 protected: //used to be private, but need access for portal mod (Dave Kircher)

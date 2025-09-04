@@ -781,7 +781,7 @@ inline void CBot< PlayerType >::UpdatePlayer( void )
 
 	int tmp = 0;
 	// Save off the CUserCmd to execute later
-	this->ProcessUsercmds( &m_userCmd, 1, 1, 0, false, tmp, tmp );
+	this->ProcessUsercmds( &m_userCmd, 1, 1, 0, false, tmp );
 }
 
 
