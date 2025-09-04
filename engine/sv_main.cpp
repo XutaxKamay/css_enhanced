@@ -239,7 +239,7 @@ ConVar  sv_restrict_aspect_ratio_fov( "sv_restrict_aspect_ratio_fov", "1", FCVAR
 									 "        greater than 1.85:1\n"
 									 "    2 = limit the effective FOV on both windowed mode and full-screen users\n",
 									 true, 0, true, 2);
-ConVar sv_send_snapshot_every_ticks( "sv_send_snapshot_every_ticks", "1" );
+ConVar sv_send_snapshot_every_ticks( "sv_send_snapshot_every_ticks", "0" );
 
 void OnTVEnablehanged( IConVar *pConVar, const char *pOldString, float flOldValue )
 {
