@@ -41,6 +41,7 @@ ConVar sv_namechange_cooldown_seconds( "sv_namechange_cooldown_seconds", "30.0",
 ConVar sv_netspike_on_reliable_snapshot_overflow( "sv_netspike_on_reliable_snapshot_overflow", "0", FCVAR_NONE, "If nonzero, the server will dump a netspike trace if a client is dropped due to reliable snapshot overflow" );
 ConVar sv_netspike_sendtime_ms( "sv_netspike_sendtime_ms", "0", FCVAR_NONE, "If nonzero, the server will dump a netspike trace if it takes more than N ms to prepare a snapshot to a single client.  This feature does take some CPU cycles, so it should be left off when not in use." );
 ConVar sv_netspike_output( "sv_netspike_output", "1", FCVAR_NONE, "Where the netspike data be written?  Sum of the following values: 1=netspike.txt, 2=ordinary server log" );
+ConVar sv_send_snapshot_on_tcp( "sv_send_snapshot_on_tcp", "1" );
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -1235,16 +1236,14 @@ write_again:
 		TraceNetworkData( msg, "Temp Entities" );
 	}
 
-	// TODO_ENHANCED: FIXME This is sadly required to send incoming sequences so that CL_Move can work properly.
-	// At least we send game sounds, I guess ...
-	ALIGN4 char pDatagramBuffer[0x10000] ALIGN4_POST;
-	bf_write bf_datagram( pDatagramBuffer, sizeof( pDatagramBuffer ) );
+	ALIGN4 char pSoundDatagramBuffer[0x10000] ALIGN4_POST;
+	bf_write bf_sound_datagram( pSoundDatagramBuffer, sizeof( pSoundDatagramBuffer ) );
 
-	WriteGameSounds( bf_datagram );
+	WriteGameSounds( bf_sound_datagram );
 
 	if ( m_NetChannel )
 	{
-		m_NetChannel->SendDatagram( &bf_datagram );
+		m_NetChannel->SendData( bf_sound_datagram, false );
 	}
 
 	// write message to packet and check for overflow
@@ -1308,7 +1307,15 @@ write_again:
 		VPROF_BUDGET( "SendSnapshot Transmit Full", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
 		// transmit snapshot as reliable data chunk
-		bSendOK = m_NetChannel->SendReliableIMMM( msg );
+		if ( sv_send_snapshot_on_tcp.GetBool() )
+		{
+			bSendOK = m_NetChannel->SendReliableIMMM( msg );
+		}
+		else
+		{
+			bSendOK = m_NetChannel->SendData( msg );
+		}
+
 		bSendOK = bSendOK && m_NetChannel->Transmit();
 
 		// remember this tickcount we send the reliable snapshot
@@ -1319,9 +1326,21 @@ write_again:
 	{
 		VPROF_BUDGET( "SendSnapshot Transmit Delta", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
-		// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
-		bSendOK = m_NetChannel->SendReliableIMMM( msg );
+		if ( sv_send_snapshot_on_tcp.GetBool() )
+		{
+			// TODO_ENHANCED: force reliable TCP entity data for lag compensation, we keep user cmd with udp
+			bSendOK = m_NetChannel->SendReliableIMMM( msg );
+		}
+		else
+		{
+			bSendOK = m_NetChannel->SendData( msg, false );
+		}
 	}
+
+	// TODO_ENHANCED: FIXME This is sadly required to send incoming sequences so that CL_Move can work properly.
+	// At least we send game sounds, I guess ...
+
+	bSendOK = m_NetChannel->SendDatagram( NULL );
 
 	if ( bSendOK )
 	{
