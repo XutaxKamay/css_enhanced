@@ -779,8 +779,9 @@ inline void CBot< PlayerType >::UpdatePlayer( void )
 	// Fill in a CUserCmd with our data
 	this->BuildUserCmd( m_userCmd, this->EyeAngles(), m_forwardSpeed, m_strafeSpeed, m_verticalSpeed, m_buttonFlags, 0 );
 
+	int tmp = 0;
 	// Save off the CUserCmd to execute later
-	this->ProcessUsercmds( &m_userCmd, 1, 1, 0, false );
+	this->ProcessUsercmds( &m_userCmd, 1, 1, 0, false, tmp, tmp );
 }
 
 

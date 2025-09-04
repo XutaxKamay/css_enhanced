@@ -717,7 +717,7 @@ public:
 	
 	// A block of CUserCmds has arrived from the user, decode them and buffer for execution during player simulation
 	virtual float			ProcessUsercmds( edict_t *player, bf_read *buf, int numcmds, int totalcmds,
-								int dropped_packets, bool ignore, bool paused ) = 0;
+								int dropped_packets, bool ignore, bool paused, int nLastCmdSequence, int& nLastCmdSequenceRan ) = 0;
 	
 	// Let the game .dll do stuff after messages have been sent to all of the clients once the server frame is complete
 	virtual void			PostClientMessagesSent_DEPRECIATED( void ) = 0;

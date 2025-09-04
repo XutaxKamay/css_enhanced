@@ -21,6 +21,7 @@
 #include "util.h"
 #include "util_shared.h"
 #include "checksum_md5.h"
+#include "protocol.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -337,6 +338,8 @@ void CommentarySystem_PePlayerRunCommand( CBasePlayer *player, CUserCmd *ucmd );
 void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper *moveHelper )
 {
 	const float playerFrameTime = player->m_bGamePaused ? 0 : TICK_INTERVAL;
+
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	const float flTimeAllowedForProcessing = player->ConsumeMovementTimeForUserCmdProcessing( playerFrameTime );
 	if ( !player->IsBot() && ( flTimeAllowedForProcessing < playerFrameTime ) )
 	{
@@ -354,6 +357,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		}
 		return; // Don't process this command
     }
+#endif
 
 	gpGlobals->frametime = playerFrameTime;
 	gpGlobals->curtime	 = player->m_nTickBase * TICK_INTERVAL;

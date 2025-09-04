@@ -73,6 +73,7 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#include "protocol.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -2964,6 +2965,7 @@ void CBasePlayer::AddPointsToTeam( int score, bool bAllowNegativeScore )
 	}
 }
 
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : int
@@ -3159,6 +3161,7 @@ void CBasePlayer::AdjustPlayerTimeBase( int simulation_ticks )
 		pi->m_flFinalSimulationTime = TICKS_TO_TIME( m_nTickBase + simulation_ticks + gpGlobals->simTicksThisFrame );
 	}
 }
+#endif
 
 void CBasePlayer::RunNullCommand( void )
 {
@@ -3217,6 +3220,7 @@ void CBasePlayer::PhysicsSimulate( void )
 	
 	m_nSimulationTick = gpGlobals->tickcount;
 
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	// See how many CUserCmds are queued up for running
 	int simulation_ticks = DetermineSimulationTicks();
 
@@ -3409,6 +3413,71 @@ void CBasePlayer::PhysicsSimulate( void )
 // 			engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", GetUserID(), "UserCommand Timeout" ) );
 // 		}
 // 	}
+#else
+	// Store off true server timestamps
+	float savetime		= gpGlobals->curtime;
+	float saveframetime = gpGlobals->frametime;
+
+	CUserCmd currentCmd;
+
+	if ( !m_CommandQueue.IsEmpty() )
+	{
+		auto&& CmdInFront = m_CommandQueue.Head();
+
+		m_nLastCmdSequenceRan = CmdInFront.sequence;
+		currentCmd			  = CmdInFront.cmd;
+		m_LastCmd			  = currentCmd;
+
+		m_CommandQueue.RemoveAtHead();
+	}
+	else
+	{
+		ConMsg( "CBasePlayer::PhysicsSimulate: no commands this tick for player %s, using last cmd from sequence %i\n",
+				GetPlayerName(),
+				m_nLastCmdSequenceRan );
+		currentCmd = m_LastCmd;
+	}
+
+	m_flLastUserCommandTime = savetime;
+
+	MoveHelperServer()->SetHost( this );
+
+	// Suppress predicted events, etc.
+	if ( IsPredictingWeapons() )
+	{
+		IPredictionSystem::SuppressHostEvents( this );
+	}
+
+	// Correct tick base if they're not equal, they must be always equal since packets are now reliable.
+	// It shouldn't happen often, mostly only once when a player is created.
+	if ( m_nTickBase != gpGlobals->tickcount )
+	{
+		Warning( "CBasePlayer::PhysicsSimulate: correcting tickbase from %i to %i for player %s\n",
+				 m_nTickBase,
+				 gpGlobals->tickcount,
+				 GetPlayerName() );
+		m_nTickBase = gpGlobals->tickcount;
+	}
+
+	PlayerRunCommand( &currentCmd, MoveHelperServer() );
+
+	// Update our vphysics object.
+	if ( m_pPhysicsController )
+	{
+		VPROF( "CBasePlayer::PhysicsSimulate-UpdateVPhysicsPosition" );
+		int nbticks = CBaseEntity::IsSimulatingOnAlternateTicks() ? 2 : 1;
+		// If simulating at 2 * TICK_INTERVAL, add an extra TICK_INTERVAL to position arrival computation
+		UpdateVPhysicsPosition( m_vNewVPhysicsPosition, m_vNewVPhysicsVelocity, TICK_INTERVAL * nbticks );
+	}
+
+	// Always reset after running commands
+	IPredictionSystem::SuppressHostEvents( NULL );
+
+	MoveHelperServer()->SetHost( NULL );
+
+	gpGlobals->curtime	 = savetime;
+	gpGlobals->frametime = saveframetime;
+#endif
 }
 
 unsigned int CBasePlayer::PhysicsSolidMaskForEntity() const
@@ -3434,8 +3503,9 @@ void CBasePlayer::ForceSimulation()
 // Output : float -- Time in seconds of last movement command
 //-----------------------------------------------------------------------------
 void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
-	int dropped_packets, bool paused )
+	int dropped_packets, bool paused, int nLastCmdSequence, int& nLastCmdSequenceRan )
 {
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	CCommandContext *ctx = AllocCommandContext();
 	Assert( ctx );
 
@@ -3509,6 +3579,32 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 
 		m_vecPlayerCmdInfo.AddToTail( pi );
 	}
+
+	nLastCmdSequenceRan = nLastCmdSequence;
+
+#else
+	if ( totalcmds != 1 )
+	{
+		Error( "CBasePlayer::ProcessUsercmds: totalcmds should be 1 (%i)\n", totalcmds );
+		return;
+	}
+
+	// Set global pause state for this player
+	m_bGamePaused = paused;
+
+	if ( paused )
+	{
+		ForceSimulation();
+		// Just run the commands right away if paused
+		PhysicsSimulate();
+	}
+	else
+	{
+		m_CommandQueue.Insert( { nLastCmdSequence, cmds[0] } );
+	}
+
+	nLastCmdSequenceRan = nLastCmdSequence;
+#endif
 }
 
 //-----------------------------------------------------------------------------

@@ -2120,7 +2120,7 @@ void CL_SendMove( void )
 		return;
 #endif // STAGING_ONLY || _DEBUG
 
-	byte data[ MAX_CMD_BUFFER ];
+	ALIGN4 byte data[ MAX_CMD_BUFFER ] ALIGN4_POST;
 	
 	int nextcommandnr = cl.lastoutgoingcommand + cl.chokedcommands + 1;
 
@@ -2131,6 +2131,21 @@ void CL_SendMove( void )
 	moveMsg.m_DataOut.StartWriting( data, sizeof( data ) );
 	moveMsg.m_nLastSequenceNumber = nextcommandnr;
 
+#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
+	moveMsg.m_nBackupCommands = 0;
+	moveMsg.m_nNewCommands	  = 1;
+
+	if ( g_ClientDLL->WriteUsercmdDeltaToBuffer( &moveMsg.m_DataOut, -1, nextcommandnr, true ) )
+	{
+		ALIGN4 byte finaldata[MAX_CMD_BUFFER + sizeof( CLC_Move )] ALIGN4_POST;
+
+		bf_write bfmovemsg( finaldata, sizeof( finaldata ) );
+
+		moveMsg.WriteToBuffer( bfmovemsg );
+
+		cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
+	}
+#else
 	// Determine number of backup commands to send along
 	int cl_cmdbackup = 2;
 	moveMsg.m_nBackupCommands = clamp( cl_cmdbackup, 0, MAX_BACKUP_COMMANDS );
@@ -2156,25 +2171,9 @@ void CL_SendMove( void )
 
 	if ( bOK )
 	{
-		static ConVar cl_send_reliable_clmove( "cl_send_reliable_clmove", "0" );
-
-		// TODO_ENHANCED: unfortunately, since multiple commands can be sent in one frame, it makes server snapshots not
-		// properly sending updates to client, we rely on UDP for now.
-		if ( cl_send_reliable_clmove.GetBool() )
-		{
-			byte moveData[MAX_CMD_BUFFER + 128];
-			bf_write bfMoveData( moveData, sizeof( moveData ) );
-			moveMsg.WriteToBuffer( bfMoveData );
-
-			// TODO_ENHANCED: let's test this.
-			cl.m_NetChannel->SendReliableIMMM( bfMoveData );
-		}
-		else
-		{
-			// For ping it might be better. ?
-			cl.m_NetChannel->SendNetMsg( moveMsg );
-		}
+		cl.m_NetChannel->SendNetMsg( moveMsg );
 	}
+#endif
 }
 
 void CL_Move(float frametime, bool bFinalTick )
@@ -2211,11 +2210,13 @@ void CL_Move(float frametime, bool bFinalTick )
 	// don't send packets if update time not reached or chnnel still sending
 	// in loopback mode don't send only if host_limitlocal is enabled
 
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	if ( ( !cl.m_NetChannel->IsLoopback() || host_limitlocal.GetInt() ) &&
 		 ( ( net_time < cl.m_flNextCmdTime ) || !cl.m_NetChannel->CanPacket()  || !bFinalTick ) )
 	{
 		bSendPacket = false;
 	}
+#endif
 
 	if ( cl.IsActive() )
 	{
@@ -2250,6 +2251,7 @@ void CL_Move(float frametime, bool bFinalTick )
 		{
 			CL_SendMove();
 		}
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 		else
 		{
 			// netchanll will increase internal outgoing sequnce number too
@@ -2257,6 +2259,7 @@ void CL_Move(float frametime, bool bFinalTick )
 			// Mark command as held back so we'll send it next time
 			cl.chokedcommands++;
 		}
+#endif
 	}
 
 	if ( !bSendPacket )
@@ -2302,8 +2305,13 @@ void CL_Move(float frametime, bool bFinalTick )
 
 	//COM_Log( "cl.log", "Sending command number %i(%i) to server\n", cl.m_NetChan->m_nOutSequenceNr, cl.m_NetChan->m_nOutSequenceNr & CL_UPDATE_MASK );
 
+#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
 	// Remember outgoing command that we are sending
 	cl.lastoutgoingcommand = cl.m_NetChannel->SendDatagram( NULL );
+#else
+	cl.m_NetChannel->SendDatagram( NULL );
+	cl.lastoutgoingcommand++;
+#endif
 
 	cl.chokedcommands = 0;
 

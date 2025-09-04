@@ -2690,6 +2690,7 @@ void _Host_RunFrame_Server_Async( int numticks )
 
 	for ( int tick = 0; tick < numticks; tick++ )
 	{ 
+        g_ServerGlobalVariables.currenttick = tick;
 		g_ServerGlobalVariables.tickcount = sv.m_nTickCount;
 		g_ServerGlobalVariables.simTicksThisFrame = numticks - tick;
 		bool bFinalTick = ( tick == (numticks - 1) );
@@ -3056,8 +3057,6 @@ static ConVar host_Sleep( "host_sleep", "0", FCVAR_CHEAT, "Force the host to sle
 extern ConVar sv_alternateticks;
 #define LOG_FRAME_OUTPUT 0
 
-uint64 host_reliable_tickcount = 0;
-
 void _Host_RunFrame (float time)
 {
 	MDLCACHE_COARSE_LOCK_(g_pMDLCache);
@@ -3207,13 +3206,11 @@ void _Host_RunFrame (float time)
 		// Msg( "Running %i ticks (%f remainder) for frametime %f total %f tick %f delta %f\n", numticks, remainder, host_frametime, host_time );
 		g_ServerGlobalVariables.interpolation_amount_frac = 0.0f;
 		g_ServerGlobalVariables.next_interpolation_amount_frac = 0.0f;
-		host_reliable_tickcount += numticks > 0 ? 1 : 0;
 
 #ifndef SWDS
 		// g_ClientGlobalVariables.interpolation_amount_frac = 0.0f;
         g_ClientGlobalVariables.next_interpolation_amount_frac = host_remainder / host_state.interval_per_tick;
 		cl.insimulation = true;
-		g_ClientGlobalVariables.reliable_tickcount = host_reliable_tickcount;
 
 		// TODO_ENHANCED:
 		// If we didn't receive an update, predict the next snapshot tickcount by increasing by one in order to have
@@ -3262,7 +3259,6 @@ void _Host_RunFrame (float time)
 
 		host_frameticks = numticks;
 		host_currentframetick = 0;
-		g_ServerGlobalVariables.reliable_tickcount = host_reliable_tickcount;
 
 #if !defined( SWDS )
 		// This is to make the tool do both sim + rendering on the initial frame
@@ -3421,6 +3417,8 @@ void _Host_RunFrame (float time)
 			// as quickly as we can.
 			if ( numticks == 0 && ( demoplayer->IsPlayingTimeDemo() || demoplayer->IsSkipping() ) )
 			{
+				g_ServerGlobalVariables.currenttick = 0;
+                g_ClientGlobalVariables.currenttick = 0;
                 _Host_RunFrame_Client(true);
 			}
 

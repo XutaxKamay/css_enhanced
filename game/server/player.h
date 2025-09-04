@@ -11,6 +11,7 @@
 #pragma once
 #endif
 
+#include "utlqueue.h"
 #include "utlvector.h"
 #include "basecombatcharacter.h"
 #include "usercmd.h"
@@ -576,7 +577,7 @@ public:
 	void					DeathMessage( CBaseEntity *pKiller );
 
 	virtual void			ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
-								int dropped_packets, bool paused );
+								int dropped_packets, bool paused, int nLastCmdSequence, int& nLastCmdSequenceRan );
 	bool					IsUserCmdDataValid( CUserCmd *pCmd );
 
 	void					AvoidPhysicsProps( CUserCmd *pCmd );
@@ -809,6 +810,7 @@ private:
 	// How much of a movement time buffer can we process from this user?
 	float				m_flMovementTimeForUserCmdProcessingRemaining;
 
+#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
 	// For queueing up CUserCmds and running them from PhysicsSimulate
 	int					GetCommandContextCount( void ) const;
 	CCommandContext		*GetCommandContext( int index );
@@ -820,6 +822,8 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
+#else
+#endif
 
 public:
 	
@@ -985,8 +989,20 @@ private:
 
 // DATA
 private:
+#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
 	CUtlVector< CCommandContext > m_CommandContext;
 	// Player Physics Shadow
+#else
+public:
+	struct CCommandContext
+	{
+		int sequence;
+		CUserCmd cmd;
+	};
+
+	CUtlQueue< CCommandContext > m_CommandQueue;
+	int							 m_nLastCmdSequenceRan;
+#endif
 
 protected: //used to be private, but need access for portal mod (Dave Kircher)
 	IPhysicsPlayerController	*m_pPhysicsController;
