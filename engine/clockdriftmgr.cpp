@@ -112,6 +112,7 @@ void CClockDriftMgr::SetServerTick( int nTick, int nLaggedTick, float flServerHo
             {
                 cl.oldtickcount = m_nClientTick;
             }
+			memset( m_ClockOffsets, 0, sizeof( m_ClockOffsets ) );
         }
     }
 	else
