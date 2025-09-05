@@ -101,7 +101,7 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
 #ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
-static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "8", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." ); // 8 ticks is a nice delay
+static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "16", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." ); // 8 ticks is a nice delay
 #else
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 #endif
