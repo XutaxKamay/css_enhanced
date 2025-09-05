@@ -2150,7 +2150,7 @@ void CL_SendMove( void )
 		}
 		else
 		{
-			cl.m_NetChannel->SendData( bfmovemsg );
+			cl.m_NetChannel->SendData( bfmovemsg, false );
 		}
 	}
 #else
@@ -2191,7 +2191,7 @@ void CL_SendMove( void )
 		}
 		else
 		{
-			cl.m_NetChannel->SendData( bfmovemsg );
+			cl.m_NetChannel->SendData( bfmovemsg, false );
 		}
 	}
 #endif
