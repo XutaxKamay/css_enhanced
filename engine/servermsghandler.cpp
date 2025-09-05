@@ -809,7 +809,8 @@ bool CClientState::ProcessEntityMessage(SVC_EntityMessage *msg)
 
 bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 {
-	m_nCmdSequencesAck						   = msg->m_nLastCmdSequence;
+	m_nServerCommandQueueCount				   = msg->m_CommandInfo.m_nNumberOfCmdsInQueue;
+	m_nCmdSequencesAck						   = msg->m_CommandInfo.m_nLastCmdSequenceRan;
 	m_nSnapshotTickCount					   = msg->m_nSnapshotTickCount;
 	g_ClientGlobalVariables.snapshot_tickcount = m_nSnapshotTickCount;
 
@@ -817,7 +818,7 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 	{
 		if ( !msg->m_bIsDelta )
 		{
-			// We might not do that
+			// We might do that
 			g_ClientGlobalVariables.predicted_snapshot_tickcount = 0;
 			// Delta too old or is initial message
 #ifndef _XBOX
@@ -841,7 +842,7 @@ bool CClientState::ProcessPacketEntities( SVC_PacketEntities *msg )
 			// TODO_ENHANCED:
 			// Correct predicted snapshot tick count if we're drifting too much from server tick count.
 			// It's not a precise measurement, because interpolation amount won't be exactly matching with the one
-			// client asked, but it's fine, we target smooth interpolation for non predicted entities.
+			// client asked, but it's fine, we target smooth interpolation for non predicted entities at all cost.
 			if ( g_ClientGlobalVariables.predicted_snapshot_tickcount < m_nSnapshotTickCount )
 			{
 				g_ClientGlobalVariables.predicted_snapshot_tickcount = m_nSnapshotTickCount;

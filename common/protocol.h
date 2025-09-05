@@ -186,4 +186,10 @@ enum
 
 #define MM_LASTMSG			22		// last known matchmaking message
 
+struct CommandInfo_t
+{
+	int m_nLastCmdSequenceRan;
+	int m_nNumberOfCmdsInQueue;
+};
+
 #endif // PROTOCOL_H

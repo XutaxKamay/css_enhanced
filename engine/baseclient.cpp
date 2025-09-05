@@ -280,7 +280,7 @@ void CBaseClient::Clear()
 
 	Q_memset( m_nCustomFiles, 0, sizeof(m_nCustomFiles) );
 
-	m_nLastCmdSequenceRan = 0;
+	m_CommandInfo = {};
 }
 
 bool CBaseClient::SetSignonState(int state, int spawncount)

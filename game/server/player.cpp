@@ -101,7 +101,9 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
 #ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
-static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "16", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." ); // 8 ticks is a nice delay
+// 24 ticks, around 240ms for 100t, 33t is almost a second though.
+static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "24", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." );
+static ConVar sv_maxusercmd_debug( "sv_maxusercmd_debug", "0", FCVAR_REPLICATED );
 #else
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 #endif
@@ -648,9 +650,9 @@ CBasePlayer::CBasePlayer( )
 	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
 
 #ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
-	static int nullcmdseq = 0;
-	m_pnBaseClientLastCmdSeqRan = &nullcmdseq;
-	m_CommandQueue.Purge();
+	static CommandInfo_t nullcmdseq {};
+	m_pBaseClientCmdInfo = &nullcmdseq;
+	m_CommandQueue.RemoveAll();
 #endif
 }
 
@@ -3438,22 +3440,27 @@ void CBasePlayer::PhysicsSimulate( void )
 
 	if ( !m_CommandQueue.IsEmpty() )
 	{
-		auto&& CmdInFront = m_CommandQueue.Head();
+		auto CmdInFront = m_CommandQueue.RemoveAtHead();
 
-		*m_pnBaseClientLastCmdSeqRan = CmdInFront.sequence;
-		currentCmd			  = CmdInFront.cmd;
-		m_LastCmd			  = currentCmd;
-
-		m_CommandQueue.RemoveAtHead();
+		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = CmdInFront.sequence;
+		currentCmd									= CmdInFront.cmd;
+		m_LastCmd									= currentCmd;
 	}
 	else
 	{
-		Warning( "CBasePlayer::PhysicsSimulate: no commands on tick %i for player %s, forcing command sequence %i\n",
-				 gpGlobals->tickcount,
-				 GetPlayerName(),
-				 *m_pnBaseClientLastCmdSeqRan );
+		if ( sv_maxusercmd_debug.GetBool() )
+		{
+			Warning( "CBasePlayer::PhysicsSimulate: no commands on tick %i for player %s, forcing command sequence "
+					 "%i\n",
+					 gpGlobals->tickcount,
+					 GetPlayerName(),
+					 m_pBaseClientCmdInfo->m_nLastCmdSequenceRan );
+		}
+
 		currentCmd = m_LastCmd;
 	}
+
+	m_pBaseClientCmdInfo->m_nNumberOfCmdsInQueue = m_CommandQueue.Count();
 
 	m_flLastUserCommandTime = savetime;
 
@@ -3469,10 +3476,14 @@ void CBasePlayer::PhysicsSimulate( void )
 	// It shouldn't happen often, mostly only once when a player is created.
 	if ( m_nTickBase != gpGlobals->tickcount )
 	{
-		Warning( "CBasePlayer::PhysicsSimulate: correcting tickbase from %i to %i for player %s\n",
-				 m_nTickBase,
-				 gpGlobals->tickcount,
-				 GetPlayerName() );
+		if ( sv_maxusercmd_debug.GetBool() )
+		{
+			Warning( "CBasePlayer::PhysicsSimulate: correcting tickbase from %i to %i for player %s\n",
+					 m_nTickBase,
+					 gpGlobals->tickcount,
+					 GetPlayerName() );
+		}
+
 		m_nTickBase = gpGlobals->tickcount;
 	}
 
@@ -3611,7 +3622,7 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack. (they will fail miserably)
 		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
 		{
-			m_CommandQueue.Purge();
+			m_CommandQueue.RemoveAll();
 		}
 
 		// TODO_ENHANCED: keep a buffer of last cmds to put in command queue

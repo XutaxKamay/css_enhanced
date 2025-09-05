@@ -1652,7 +1652,7 @@ bool SVC_PacketEntities::WriteToBuffer( bf_write &buffer )
 
 	buffer.WriteVarInt64( m_nSnapshotTickCount );
 
-	buffer.WriteSignedVarInt32( m_nLastCmdSequence );
+	buffer.WriteBytes( &m_CommandInfo, sizeof( m_CommandInfo ) );
 
 	buffer.WriteUBitLong( m_nMaxEntries, MAX_EDICT_BITS );
 	
@@ -1682,7 +1682,7 @@ bool SVC_PacketEntities::ReadFromBuffer( bf_read &buffer )
 
 	m_nSnapshotTickCount = buffer.ReadVarInt64();
 
-	m_nLastCmdSequence = buffer.ReadSignedVarInt32();
+	buffer.ReadBytes( &m_CommandInfo, sizeof( m_CommandInfo ) );
 
 	m_nMaxEntries = buffer.ReadUBitLong( MAX_EDICT_BITS );
 	
@@ -1712,10 +1712,19 @@ bool SVC_PacketEntities::ReadFromBuffer( bf_read &buffer )
 
 const char *SVC_PacketEntities::ToString(void) const
 {
-	Q_snprintf(s_text, sizeof(s_text), "%s: cmdseq %i, delta %i, max %i, changed %i,%s bytes %i",
-		GetName(), m_nLastCmdSequence, m_nDeltaFrom, m_nMaxEntries, m_nUpdatedEntries, m_bUpdateBaseline?" BL update,":"", Bits2Bytes(m_nLength) );
+	Q_snprintf( s_text,
+				sizeof( s_text ),
+				"%s: cmdseq %i, cmdqueue: %i, delta %i, max %i, changed %i,%s bytes %i",
+				GetName(),
+				m_CommandInfo.m_nLastCmdSequenceRan,
+				m_CommandInfo.m_nNumberOfCmdsInQueue,
+				m_nDeltaFrom,
+				m_nMaxEntries,
+				m_nUpdatedEntries,
+				m_bUpdateBaseline ? " BL update," : "",
+				Bits2Bytes( m_nLength ) );
 	return s_text;
-} 
+}
 
 SVC_Menu::SVC_Menu( DIALOG_TYPE type, KeyValues *data )
 {

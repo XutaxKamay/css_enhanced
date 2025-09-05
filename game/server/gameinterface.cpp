@@ -3003,7 +3003,7 @@ void CServerGameClients::ClientSetupVisibility( edict_t *pViewEntity, edict_t *p
 #define CMD_MAXBACKUP 64
 
 float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int numcmds, int totalcmds,
-	int dropped_packets, bool ignore, bool paused, int nLastCmdSequence, int* pnBaseClientLastCmdSeqRan )
+	int dropped_packets, bool ignore, bool paused, int nLastCmdSequence, CommandInfo_t* pBaseClientCmdInfo )
 {
 	int				i;
 	CUserCmd		*from, *to;
@@ -3055,7 +3055,12 @@ float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int nu
 		return 0.0f;
 	}
 
-	pPlayer->m_pnBaseClientLastCmdSeqRan = pnBaseClientLastCmdSeqRan;
+	pPlayer->m_pBaseClientCmdInfo = pBaseClientCmdInfo;
+
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
+	pBaseClientCmdInfo->m_nLastCmdSequenceRan = nLastCmdSequence;
+	pBaseClientCmdInfo->m_nNumberOfCmdsInQueue = 1;
+#endif
 
 	MDLCACHE_CRITICAL_SECTION();
 	pPlayer->ProcessUsercmds( cmds, numcmds, totalcmds, dropped_packets, paused, nLastCmdSequence );

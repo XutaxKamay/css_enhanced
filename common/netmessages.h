@@ -736,17 +736,17 @@ class SVC_PacketEntities: public CNetMessage
 	
 public:
 
-	uint64		m_nSnapshotTickCount;
-	int			m_nLastCmdSequence;
-	int			m_nMaxEntries;
-	int			m_nUpdatedEntries;
-	bool		m_bIsDelta;	
-	bool		m_bUpdateBaseline;
-	int			m_nBaseline;
-	int			m_nDeltaFrom;
-	int			m_nLength;
-	bf_read		m_DataIn;
-	bf_write	m_DataOut;
+	uint64		  m_nSnapshotTickCount;
+	CommandInfo_t m_CommandInfo;
+	int			  m_nMaxEntries;
+	int			  m_nUpdatedEntries;
+	bool		  m_bIsDelta;	
+	bool		  m_bUpdateBaseline;
+	int			  m_nBaseline;
+	int			  m_nDeltaFrom;
+	int			  m_nLength;
+	bf_read		  m_DataIn;
+	bf_write	  m_DataOut;
 };
 
 class SVC_TempEntities: public CNetMessage

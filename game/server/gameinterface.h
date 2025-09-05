@@ -36,7 +36,7 @@ public:
 	virtual void			ClientSettingsChanged( edict_t *pEntity ) OVERRIDE;
 	virtual void			ClientSetupVisibility( edict_t *pViewEntity, edict_t *pClient, unsigned char *pvs, int pvssize ) OVERRIDE;
 	virtual float			ProcessUsercmds( edict_t *player, bf_read *buf, int numcmds, int totalcmds,
-								int dropped_packets, bool ignore, bool paused, int nLastCmdSequence, int* pnBaseClientLastCmdSeqRan ) OVERRIDE;
+								int dropped_packets, bool ignore, bool paused, int nLastCmdSequence, CommandInfo_t* pBaseClientLastCmdSeqRan ) OVERRIDE;
 	// Player is running a command
 	virtual void			PostClientMessagesSent_DEPRECIATED( void ) OVERRIDE;
 	virtual void			SetCommandClient( int index ) OVERRIDE;

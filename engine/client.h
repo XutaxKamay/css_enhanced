@@ -146,6 +146,7 @@ public:
 	int			m_nLastCmdSequencesAck;	// last command sequence number acknowledged by server
 	int			m_nSoundSequence;	// current processed reliable sound sequence number
 	uint64		m_nSnapshotTickCount; // last received snapshot tick count
+	int			m_nServerCommandQueueCount; // last known count for command queue server side, in order to automatically reduce latency
 
 	//
 	// information that is static for the entire time connected to a server

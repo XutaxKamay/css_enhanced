@@ -1001,8 +1001,8 @@ public:
 	};
 
 	CUtlQueue< CCommandContext > m_CommandQueue;
-	int*						 m_pnBaseClientLastCmdSeqRan; // TODO_ENHANCED: HACK
 #endif
+	CommandInfo_t*				 m_pBaseClientCmdInfo; // TODO_ENHANCED: HACK
 
 protected: //used to be private, but need access for portal mod (Dave Kircher)
 	IPhysicsPlayerController	*m_pPhysicsController;

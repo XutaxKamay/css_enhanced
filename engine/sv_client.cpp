@@ -163,7 +163,6 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 	}
 
 	m_LastMovementTick = sv.m_nTickCount;
-	m_nLastCmdSequenceRan = msg->m_nLastSequenceNumber;
 #endif
 
 	if ( hltv && hltv->m_DemoRecorder.IsRecording() )
@@ -217,7 +216,7 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 		ignore,								// Don't actually run anything
 		paused,								// Run, but don't actually do any movement
 		msg->m_nLastSequenceNumber,
-		&m_nLastCmdSequenceRan
+		&m_CommandInfo
 	);
 
 
