@@ -59,7 +59,7 @@ enum
 // Max number of history commands to send ( 2 by default ) in case of dropped packets
 #define NUM_BACKUP_COMMAND_BITS		3
 #define MAX_BACKUP_COMMANDS			((1 << NUM_BACKUP_COMMAND_BITS)-1)
-#define USERCMD_SEND_AS_RELIABLE_IMMM
+#define USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 
 #define PROTOCOL_AUTHCERTIFICATE 0x01   // Connection from client is using a WON authenticated certificate
 #define PROTOCOL_HASHEDCDKEY     0x02	// Connection from client is using hashed CD key because WON comm. channel was unreachable

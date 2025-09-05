@@ -100,7 +100,11 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
+#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
+static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "128", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands " );
+#else
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -643,8 +647,11 @@ CBasePlayer::CBasePlayer( )
 
 	m_pInterpolationCommandContext = &m_DefaultInterpolationCommandContext;
 
+#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	static int nullcmdseq = 0;
 	m_pnBaseClientLastCmdSeqRan = &nullcmdseq;
+	m_CommandQueue.Purge();
+#endif
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -2968,7 +2975,7 @@ void CBasePlayer::AddPointsToTeam( int score, bool bAllowNegativeScore )
 	}
 }
 
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : int
@@ -3223,7 +3230,7 @@ void CBasePlayer::PhysicsSimulate( void )
 	
 	m_nSimulationTick = gpGlobals->tickcount;
 
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	// See how many CUserCmds are queued up for running
 	int simulation_ticks = DetermineSimulationTicks();
 
@@ -3417,6 +3424,12 @@ void CBasePlayer::PhysicsSimulate( void )
 // 		}
 // 	}
 #else
+
+	// TODO_ENHANCED: for buffering, the client might precreate more commands to get in the usercmd queue, so that it
+	// avoids running a nulled command, the server shouldn't check if more than m_CommandQueue.Count() < some value
+	// because timescale cheaters are a real thing.
+	// We only allow one usercmd per tick this way, and only one, not zero, two or more.
+
 	// Store off true server timestamps
 	float savetime		= gpGlobals->curtime;
 	float saveframetime = gpGlobals->frametime;
@@ -3435,9 +3448,10 @@ void CBasePlayer::PhysicsSimulate( void )
 	}
 	else
 	{
-		ConMsg( "CBasePlayer::PhysicsSimulate: no commands this tick for player %s, using last cmd from sequence %i\n",
-				GetPlayerName(),
-				*m_pnBaseClientLastCmdSeqRan );
+		Warning( "CBasePlayer::PhysicsSimulate: no commands on tick %i for player %s, forcing command sequence %i\n",
+				 gpGlobals->tickcount,
+				 GetPlayerName(),
+				 *m_pnBaseClientLastCmdSeqRan );
 		currentCmd = m_LastCmd;
 	}
 
@@ -3451,7 +3465,7 @@ void CBasePlayer::PhysicsSimulate( void )
 		IPredictionSystem::SuppressHostEvents( this );
 	}
 
-	// Correct tick base if they're not equal, they must be always equal since packets are now reliable.
+	// Correct tick base if they're not equal, they must be always equal since packets (should be) reliable.
 	// It shouldn't happen often, mostly only once when a player is created.
 	if ( m_nTickBase != gpGlobals->tickcount )
 	{
@@ -3508,7 +3522,7 @@ void CBasePlayer::ForceSimulation()
 void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	int dropped_packets, bool paused, int nLastCmdSequence )
 {
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	CCommandContext *ctx = AllocCommandContext();
 	Assert( ctx );
 
@@ -3583,23 +3597,23 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 		m_vecPlayerCmdInfo.AddToTail( pi );
 	}
 #else
-	if ( totalcmds != 1 )
-	{
-		Error( "CBasePlayer::ProcessUsercmds: totalcmds should be 1 (%i)\n", totalcmds );
-		return;
-	}
-
 	// Set global pause state for this player
 	m_bGamePaused = paused;
 
-	if ( paused )
+	// if ( paused )
+	// {
+	// 	ForceSimulation();
+	// 	// Just run the commands right away if paused
+	// 	PhysicsSimulate();
+	// }
+	// else
 	{
-		ForceSimulation();
-		// Just run the commands right away if paused
-		PhysicsSimulate();
-	}
-	else
-	{
+		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack. (they will fail miserably)
+		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
+		{
+			m_CommandQueue.Purge();
+		}
+
 		// TODO_ENHANCED: keep a buffer of last cmds to put in command queue
 		m_CommandQueue.Insert( { nLastCmdSequence, cmds[0] } );
 	}

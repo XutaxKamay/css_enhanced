@@ -107,6 +107,7 @@ static ConVar tv_nochat	( "tv_nochat", "0", FCVAR_ARCHIVE | FCVAR_USERINFO, "Don
 static ConVar cl_LocalNetworkBackdoor( "cl_localnetworkbackdoor", "1", 0, "Enable network optimizations for single player games." );
 static ConVar cl_ignorepackets( "cl_ignorepackets", "0", FCVAR_CHEAT, "Force client to ignore packets (for debugging)." );
 static ConVar cl_playback_screenshots( "cl_playback_screenshots", "0", 0, "Allows the client to playback screenshot and jpeg commands in demos." );
+static ConVar cl_send_usercmd_on_tcp( "cl_send_usercmd_on_tcp", "1" );
 
 #if defined( STAGING_ONLY ) || defined( _DEBUG )
 static ConVar cl_block_usercommand( "cl_block_usercommand", "0", FCVAR_CHEAT, "Force client to not send usercommand (for debugging)." );
@@ -2131,7 +2132,7 @@ void CL_SendMove( void )
 	moveMsg.m_DataOut.StartWriting( data, sizeof( data ) );
 	moveMsg.m_nLastSequenceNumber = nextcommandnr;
 
-#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	moveMsg.m_nBackupCommands = 0;
 	moveMsg.m_nNewCommands	  = 1;
 
@@ -2143,7 +2144,14 @@ void CL_SendMove( void )
 
 		moveMsg.WriteToBuffer( bfmovemsg );
 
-		cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
+		if ( cl_send_usercmd_on_tcp.GetBool() )
+		{
+			cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
+		}
+		else
+		{
+			cl.m_NetChannel->SendData( bfmovemsg );
+		}
 	}
 #else
 	// Determine number of backup commands to send along
@@ -2171,7 +2179,20 @@ void CL_SendMove( void )
 
 	if ( bOK )
 	{
-		cl.m_NetChannel->SendNetMsg( moveMsg );
+		ALIGN4 byte finaldata[MAX_CMD_BUFFER + sizeof( CLC_Move )] ALIGN4_POST;
+
+		bf_write bfmovemsg( finaldata, sizeof( finaldata ) );
+
+		moveMsg.WriteToBuffer( bfmovemsg );
+
+		if ( cl_send_usercmd_on_tcp.GetBool() )
+		{
+			cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
+		}
+		else
+		{
+			cl.m_NetChannel->SendData( bfmovemsg );
+		}
 	}
 #endif
 }
@@ -2210,7 +2231,7 @@ void CL_Move(float frametime, bool bFinalTick )
 	// don't send packets if update time not reached or chnnel still sending
 	// in loopback mode don't send only if host_limitlocal is enabled
 
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	if ( ( !cl.m_NetChannel->IsLoopback() || host_limitlocal.GetInt() ) &&
 		 ( ( net_time < cl.m_flNextCmdTime ) || !cl.m_NetChannel->CanPacket()  || !bFinalTick ) )
 	{
@@ -2251,7 +2272,7 @@ void CL_Move(float frametime, bool bFinalTick )
 		{
 			CL_SendMove();
 		}
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 		else
 		{
 			// netchanll will increase internal outgoing sequnce number too
@@ -2300,16 +2321,38 @@ void CL_Move(float frametime, bool bFinalTick )
         // We could probably store in CUserCmd structure the current tick number to account for that ?
         // This works anyway.
         NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick + g_ClientGlobalVariables.currenttick, host_frametime_unbounded, host_frametime_stddeviation );
-		cl.m_NetChannel->SendNetMsg( mymsg );
-    }
+
+		// TODO_ENHANCED: this relies too much on UDP due to full delta entities update
+		// if ( cl_send_usercmd_on_tcp.GetBool() )
+		// {
+		// 	ALIGN4 static char buffer[16 + sizeof( NET_Tick )] ALIGN4_POST;
+		// 	bf_write bf( buffer, sizeof( buffer ) );
+		// 	mymsg.WriteToBuffer( bf );
+		// 	cl.m_NetChannel->SendReliableIMMM( bf );
+		// }
+		// else
+		// {
+			cl.m_NetChannel->SendNetMsg( mymsg );
+		// }
+	}
 
 	//COM_Log( "cl.log", "Sending command number %i(%i) to server\n", cl.m_NetChan->m_nOutSequenceNr, cl.m_NetChan->m_nOutSequenceNr & CL_UPDATE_MASK );
 
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+	// TODO_ENHANCED: FIXME, we need to send nops... yes...  otherwise it doesn't send anything.
+	// One day, maybe we could get rid of UDP to get more reliable surf/bhop gameplay
+	static bf_write nopmsg = []()
+	{
+		ALIGN4 static char buffer[32] ALIGN4_POST;
+		bf_write bf( buffer, sizeof( buffer ) );
+		bf.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+		return bf;
+	}();
+
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	// Remember outgoing command that we are sending
-	cl.lastoutgoingcommand = cl.m_NetChannel->SendDatagram( NULL );
+	cl.lastoutgoingcommand = cl.m_NetChannel->SendDatagram( &nopmsg );
 #else
-	cl.m_NetChannel->SendDatagram( NULL );
+	cl.m_NetChannel->SendDatagram( &nopmsg );
 	cl.lastoutgoingcommand++;
 #endif
 

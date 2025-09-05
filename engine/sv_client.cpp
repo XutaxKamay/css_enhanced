@@ -154,8 +154,8 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 	if ( !IsActive() )
 		return true;	
 
-	// Allow multiple commands per frame/ticks on TCP
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+	// Allow multiple commands per frame/ticks if we force server simulation (only one command per tick possible)
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	if ( m_LastMovementTick == sv.m_nTickCount )  
 	{
 		// Only one movement command per frame, someone is cheating.
@@ -163,7 +163,7 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 	}
 
 	m_LastMovementTick = sv.m_nTickCount;
-	m_nLastCmdSequence = msg->m_nLastSequenceNumber;
+	m_nLastCmdSequenceRan = msg->m_nLastSequenceNumber;
 #endif
 
 	if ( hltv && hltv->m_DemoRecorder.IsRecording() )
@@ -176,6 +176,15 @@ bool CGameClient::ProcessMove(CLC_Move *msg)
 	}
 
 	int totalcmds =msg->m_nBackupCommands + msg->m_nNewCommands;
+
+#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
+	if ( totalcmds != 1 )
+	{
+		// Someone try to cheat.
+		Disconnect( "totalcmds should be 1. (current value is %i)\n", totalcmds );
+		return false;
+	}
+#endif
 
 	// Decrement drop count by held back packet count
 	int netdrop = m_NetChannel->GetDropNumber();

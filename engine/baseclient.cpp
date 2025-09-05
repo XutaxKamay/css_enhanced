@@ -1337,10 +1337,17 @@ write_again:
 		}
 	}
 
-	// TODO_ENHANCED: FIXME This is sadly required to send incoming sequences so that CL_Move can work properly.
-	// At least we send game sounds, I guess ...
+	// TODO_ENHANCED: FIXME, we need to send nops... yes...  otherwise it doesn't send anything.
+	// One day, maybe we could get rid of UDP to get more reliable surf/bhop gameplay
+	static bf_write nopmsg = []()
+	{
+		ALIGN4 static char buffer[32] ALIGN4_POST;
+		bf_write bf( buffer, sizeof( buffer ) );
+		bf.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+		return bf;
+	}();
 
-	bSendOK = m_NetChannel->SendDatagram( NULL );
+	bSendOK = m_NetChannel->SendDatagram( &nopmsg );
 
 	if ( bSendOK )
 	{

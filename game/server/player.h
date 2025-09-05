@@ -21,6 +21,7 @@
 #include "hintsystem.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "util_shared.h"
+#include "protocol.h"
 
 #if defined USES_ECON_ITEMS
 #include "game_item_schema.h"
@@ -810,7 +811,7 @@ private:
 	// How much of a movement time buffer can we process from this user?
 	float				m_flMovementTimeForUserCmdProcessingRemaining;
 
-#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	// For queueing up CUserCmds and running them from PhysicsSimulate
 	int					GetCommandContextCount( void ) const;
 	CCommandContext		*GetCommandContext( int index );
@@ -822,7 +823,6 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
-#else
 #endif
 
 public:
@@ -989,7 +989,7 @@ private:
 
 // DATA
 private:
-#ifdef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	CUtlVector< CCommandContext > m_CommandContext;
 	// Player Physics Shadow
 #else

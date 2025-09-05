@@ -31,7 +31,9 @@ extern CMoveData *g_pMoveData;	// This is a global because it is subclassed by e
 extern ConVar sv_noclipduringpause;
 extern void ServiceEventQueue(CBaseEntity* pActivator);
 
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 ConVar sv_maxusrcmdprocessticks_warning( "sv_maxusrcmdprocessticks_warning", "-1", FCVAR_NONE, "Print a warning when user commands get dropped due to insufficient usrcmd ticks allocated, number of seconds to throttle, negative disabled" );
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -339,7 +341,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 {
 	const float playerFrameTime = player->m_bGamePaused ? 0 : TICK_INTERVAL;
 
-#ifndef USERCMD_SEND_AS_RELIABLE_IMMM
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	const float flTimeAllowedForProcessing = player->ConsumeMovementTimeForUserCmdProcessing( playerFrameTime );
 	if ( !player->IsBot() && ( flTimeAllowedForProcessing < playerFrameTime ) )
 	{

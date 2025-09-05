@@ -95,7 +95,7 @@ struct inputdata_t
 
 // How many data slots to use when in multiplayer.
 // This was increased because now svc_PacketEntities are reliable data.
-#define MULTIPLAYER_BACKUP			1024
+#define MULTIPLAYER_BACKUP			256 // Let's not abuse on much this.
 
 
 struct serialentity_t;
