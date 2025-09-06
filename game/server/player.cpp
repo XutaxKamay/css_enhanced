@@ -101,8 +101,9 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
 #ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
-// 24 ticks, around 240ms for 100t, 33t is almost a second though.
-static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "24", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." );
+static ConVar sv_maxusercmd_buffersize("sv_maxusercmd_buffersize", "1024", FCVAR_REPLICATED | FCVAR_NOTIFY);
+// 8 ticks, around 80ms for 100t, 240ms for 33t.
+static ConVar sv_maxusercmd_inqueue( "sv_maxusercmd_inqueue", "8", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum number of client-issued user commands to stay in queue, the greater the value, the more latency you may get but decreasing at the expense of forcing more user commands that didn't exist." );
 static ConVar sv_maxusercmd_debug( "sv_maxusercmd_debug", "0", FCVAR_REPLICATED );
 #else
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
@@ -653,6 +654,8 @@ CBasePlayer::CBasePlayer( )
 	static CommandInfo_t nullcmdseq {};
 	m_pBaseClientCmdInfo = &nullcmdseq;
 	m_CommandQueue.RemoveAll();
+	m_CommandsAskedToRun.RemoveAll();
+	m_CommandsAskedToRun.EnsureCapacity( sv_maxusercmd_buffersize.GetInt() );
 	m_nChokedCmds = 0;
 #endif
 }
@@ -3433,6 +3436,18 @@ void CBasePlayer::PhysicsSimulate( void )
 	// because timescale cheaters are a real thing.
 	// We only allow one usercmd per tick this way, and only one, not zero, two or more.
 
+	for ( int i = 0; i < m_CommandsAskedToRun.Count(); i++ )
+	{
+		m_CommandQueue.Insert( m_CommandsAskedToRun[i] );
+
+		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
+		{
+			break;
+		}
+	}
+
+	m_CommandsAskedToRun.RemoveAll();
+
 	// Store off true server timestamps
 	float savetime		= gpGlobals->curtime;
 	float saveframetime = gpGlobals->frametime;
@@ -3637,14 +3652,10 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	// }
 	// else
 	{
-		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack.
-		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
+		if ( m_CommandsAskedToRun.Size() < sv_maxusercmd_buffersize.GetInt() )
 		{
-			m_CommandQueue.RemoveAtHead();
+			m_CommandsAskedToRun.AddToTail( { nLastCmdSequence, cmds[0] } );
 		}
-
-		// TODO_ENHANCED: keep a buffer of last cmds to put in command queue
-		m_CommandQueue.Insert( { nLastCmdSequence, cmds[0] } );
 	}
 #endif
 }

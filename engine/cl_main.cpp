@@ -2121,39 +2121,52 @@ void CL_SendMove( void )
 		return;
 #endif // STAGING_ONLY || _DEBUG
 
+#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
+	int sequencenr = cl.lastoutgoingcommand + 1;
+	int finalsequencenr = sequencenr + cl.chokedcommands;
+
+	auto SendCmd = []( int sequencenr )
+	{
+		ALIGN4 byte data[MAX_CMD_BUFFER] ALIGN4_POST;
+
+		CLC_Move moveMsg;
+		moveMsg.m_DataOut.StartWriting( data, sizeof( data ) );
+		moveMsg.m_nLastSequenceNumber = sequencenr;
+		moveMsg.m_nBackupCommands	  = 0;
+		moveMsg.m_nNewCommands		  = 1;
+
+		if ( g_ClientDLL->WriteUsercmdDeltaToBuffer( &moveMsg.m_DataOut, -1, sequencenr, true ) )
+		{
+			ALIGN4 byte finaldata[MAX_CMD_BUFFER + sizeof( CLC_Move )] ALIGN4_POST;
+
+			bf_write bfmovemsg( finaldata, sizeof( finaldata ) );
+
+			moveMsg.WriteToBuffer( bfmovemsg );
+
+			if ( cl_send_usercmd_on_tcp.GetBool() )
+			{
+				cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
+			}
+			else
+			{
+				cl.m_NetChannel->SendData( bfmovemsg, false );
+			}
+		}
+	};
+
+	do
+	{
+		SendCmd( sequencenr );
+		sequencenr++;
+	}
+	while ( sequencenr < finalsequencenr );
+#else
+
 	ALIGN4 byte data[ MAX_CMD_BUFFER ] ALIGN4_POST;
-	
-	int nextcommandnr = cl.lastoutgoingcommand + cl.chokedcommands + 1;
-
-	// send the client update packet
-
-	CLC_Move moveMsg;
 
 	moveMsg.m_DataOut.StartWriting( data, sizeof( data ) );
-	moveMsg.m_nLastSequenceNumber = nextcommandnr;
+	moveMsg.m_nLastSequenceNumber = sequencenr;
 
-#ifdef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
-	moveMsg.m_nBackupCommands = 0;
-	moveMsg.m_nNewCommands	  = 1;
-
-	if ( g_ClientDLL->WriteUsercmdDeltaToBuffer( &moveMsg.m_DataOut, -1, nextcommandnr, true ) )
-	{
-		ALIGN4 byte finaldata[MAX_CMD_BUFFER + sizeof( CLC_Move )] ALIGN4_POST;
-
-		bf_write bfmovemsg( finaldata, sizeof( finaldata ) );
-
-		moveMsg.WriteToBuffer( bfmovemsg );
-
-		if ( cl_send_usercmd_on_tcp.GetBool() )
-		{
-			cl.m_NetChannel->SendReliableIMMM( bfmovemsg );
-		}
-		else
-		{
-			cl.m_NetChannel->SendData( bfmovemsg, false );
-		}
-	}
-#else
 	// Determine number of backup commands to send along
 	int cl_cmdbackup = 2;
 	moveMsg.m_nBackupCommands = clamp( cl_cmdbackup, 0, MAX_BACKUP_COMMANDS );
@@ -2272,15 +2285,15 @@ void CL_Move(float frametime, bool bFinalTick )
 		{
 			CL_SendMove();
 		}
-#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 		else
 		{
+#ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 			// netchanll will increase internal outgoing sequnce number too
-			cl.m_NetChannel->SetChoked();	
+			cl.m_NetChannel->SetChoked();
+#endif
 			// Mark command as held back so we'll send it next time
 			cl.chokedcommands++;
 		}
-#endif
 	}
 
 	if ( !bSendPacket )
@@ -2353,7 +2366,7 @@ void CL_Move(float frametime, bool bFinalTick )
 	cl.lastoutgoingcommand = cl.m_NetChannel->SendDatagram( &nopmsg );
 #else
 	cl.m_NetChannel->SendDatagram( &nopmsg );
-	cl.lastoutgoingcommand++;
+	cl.lastoutgoingcommand += cl.chokedcommands + 1;
 #endif
 
 	cl.chokedcommands = 0;
