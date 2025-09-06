@@ -3053,13 +3053,13 @@ float CServerGameClients::ProcessUsercmds( edict_t *player, bf_read *buf, int nu
 	if ( ignore || !pPlayer )
 	{
 		return 0.0f;
-	}
-
-	pPlayer->m_pBaseClientCmdInfo = pBaseClientCmdInfo;
+	};
 
 #ifndef USERCMD_FORCE_SERVER_SIMULATION_AND_IGNORE_DROPPING_PACKETS
 	pBaseClientCmdInfo->m_nLastCmdSequenceRan = nLastCmdSequence;
 	pBaseClientCmdInfo->m_nNumberOfCmdsInQueue = 1;
+#else
+	pPlayer->m_pBaseClientCmdInfo = pBaseClientCmdInfo;
 #endif
 
 	MDLCACHE_CRITICAL_SECTION();

@@ -3436,14 +3436,16 @@ void CBasePlayer::PhysicsSimulate( void )
 	float savetime		= gpGlobals->curtime;
 	float saveframetime = gpGlobals->frametime;
 
+	m_pBaseClientCmdInfo->m_nNumberOfCmdsInQueue = m_CommandQueue.Count();
+
 	CUserCmd currentCmd;
 
 	if ( !m_CommandQueue.IsEmpty() )
 	{
-		auto CmdInFront = m_CommandQueue.RemoveAtHead();
+		auto cmdcontext = m_CommandQueue.RemoveAtHead();
 
-		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = CmdInFront.sequence;
-		currentCmd									= CmdInFront.cmd;
+		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = cmdcontext.sequence;
+		currentCmd									= cmdcontext.cmd;
 		m_LastCmd									= currentCmd;
 	}
 	else
@@ -3459,8 +3461,6 @@ void CBasePlayer::PhysicsSimulate( void )
 
 		currentCmd = m_LastCmd;
 	}
-
-	m_pBaseClientCmdInfo->m_nNumberOfCmdsInQueue = m_CommandQueue.Count();
 
 	m_flLastUserCommandTime = savetime;
 
