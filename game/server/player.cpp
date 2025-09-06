@@ -653,6 +653,7 @@ CBasePlayer::CBasePlayer( )
 	static CommandInfo_t nullcmdseq {};
 	m_pBaseClientCmdInfo = &nullcmdseq;
 	m_CommandQueue.RemoveAll();
+	m_nChokedCmds = 0;
 #endif
 }
 
@@ -3444,9 +3445,15 @@ void CBasePlayer::PhysicsSimulate( void )
 	{
 		auto cmdcontext = m_CommandQueue.RemoveAtHead();
 
+		if ( m_nChokedCmds > 0 )
+		{
+			m_CommandQueue.RemoveAll();
+		}
+
 		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = cmdcontext.sequence;
 		currentCmd									= cmdcontext.cmd;
 		m_LastCmd									= currentCmd;
+		m_nChokedCmds								= 0;
 	}
 	else
 	{
@@ -3460,6 +3467,7 @@ void CBasePlayer::PhysicsSimulate( void )
 		}
 
 		currentCmd = m_LastCmd;
+		m_nChokedCmds++;
 	}
 
 	m_flLastUserCommandTime = savetime;
@@ -3620,7 +3628,8 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	// else
 	{
 		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack. (they will fail miserably)
-		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
+		// Also purge commands if we just connected, we haven't yet a stable connection.
+		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() || m_pBaseClientCmdInfo->m_nLastCmdSequenceRan == 0 )
 		{
 			m_CommandQueue.RemoveAll();
 		}

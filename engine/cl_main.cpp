@@ -2322,7 +2322,7 @@ void CL_Move(float frametime, bool bFinalTick )
         // This works anyway.
         NET_Tick mymsg( cl.m_nDeltaTick, cl.m_ClockDriftMgr.m_nCachedRealClientTick + g_ClientGlobalVariables.currenttick, host_frametime_unbounded, host_frametime_stddeviation );
 
-		// TODO_ENHANCED: this relies too much on UDP due to full delta entities update
+		// TODO_ENHANCED: this relies too much on UDP due to full (non-delta) entities update
 		// if ( cl_send_usercmd_on_tcp.GetBool() )
 		// {
 		// 	ALIGN4 static char buffer[16 + sizeof( NET_Tick )] ALIGN4_POST;
