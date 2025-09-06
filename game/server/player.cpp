@@ -3445,14 +3445,14 @@ void CBasePlayer::PhysicsSimulate( void )
 	{
 		auto cmdcontext = m_CommandQueue.RemoveAtHead();
 
-		if ( m_nChokedCmds > 0 )
-		{
-			m_CommandQueue.RemoveAll();
-		}
+		// if ( m_nChokedCmds > 0 )
+		// {
+		// 	m_CommandQueue.RemoveAll();
+		// }
 
 		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = cmdcontext.sequence;
 		currentCmd									= cmdcontext.cmd;
-		m_LastCmd									= currentCmd;
+		m_LastNetworkedCmd							= currentCmd;
 		m_nChokedCmds								= 0;
 	}
 	else
@@ -3466,7 +3466,7 @@ void CBasePlayer::PhysicsSimulate( void )
 					 m_pBaseClientCmdInfo->m_nLastCmdSequenceRan );
 		}
 
-		currentCmd = m_LastCmd;
+		currentCmd = m_LastNetworkedCmd;
 		m_nChokedCmds++;
 	}
 

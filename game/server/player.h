@@ -1003,6 +1003,7 @@ public:
 	CUtlQueue< CCommandContext > m_CommandQueue;
 	CommandInfo_t*				 m_pBaseClientCmdInfo; // TODO_ENHANCED: HACK
 	int							 m_nChokedCmds;
+	CUserCmd					 m_LastNetworkedCmd;
 #endif
 
 protected: //used to be private, but need access for portal mod (Dave Kircher)
