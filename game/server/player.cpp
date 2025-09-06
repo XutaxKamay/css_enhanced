@@ -3438,11 +3438,16 @@ void CBasePlayer::PhysicsSimulate( void )
 
 	for ( int i = 0; i < m_CommandsAskedToRun.Count(); i++ )
 	{
-		m_CommandQueue.Insert( m_CommandsAskedToRun[i] );
-
 		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
 		{
+			m_CommandQueue.RemoveAll();
+			m_CommandQueue.Insert( m_CommandsAskedToRun[m_CommandsAskedToRun.Count() - 1] );
+
 			break;
+		}
+		else
+		{
+			m_CommandQueue.Insert( m_CommandsAskedToRun[i] );
 		}
 	}
 
