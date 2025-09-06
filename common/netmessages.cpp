@@ -65,7 +65,7 @@ bool CLC_VoiceData::ReadFromBuffer( bf_read &buffer )
 
 const char *CLC_Move::ToString(void) const
 {
-	Q_snprintf(s_text, sizeof(s_text), "%s: backup %i, new %i, bytes %i", GetName(), 
+	Q_snprintf(s_text, sizeof(s_text), "%s: new %i, backup %i, bytes %i", GetName(), 
 		m_nNewCommands, m_nBackupCommands, Bits2Bytes(m_nLength) );
 	return s_text;
 }

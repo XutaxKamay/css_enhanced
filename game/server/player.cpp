@@ -3450,6 +3450,12 @@ void CBasePlayer::PhysicsSimulate( void )
 		// 	m_CommandQueue.RemoveAll();
 		// }
 
+		// Just remove everything for the first connection in order to reduce latency the first time.
+		if ( m_pBaseClientCmdInfo->m_nLastCmdSequenceRan == 0 )
+		{
+			m_CommandQueue.RemoveAll();
+		}
+
 		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = cmdcontext.sequence;
 		currentCmd									= cmdcontext.cmd;
 		m_LastNetworkedCmd							= currentCmd;
@@ -3467,7 +3473,11 @@ void CBasePlayer::PhysicsSimulate( void )
 		}
 
 		currentCmd = m_LastNetworkedCmd;
-		m_nChokedCmds++;
+
+		if ( m_pBaseClientCmdInfo->m_nLastCmdSequenceRan != 0 )
+		{
+			m_nChokedCmds++;
+		}
 	}
 
 	m_flLastUserCommandTime = savetime;
@@ -3627,11 +3637,10 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	// }
 	// else
 	{
-		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack. (they will fail miserably)
-		// Also purge commands if we just connected, we haven't yet a stable connection.
-		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() || m_pBaseClientCmdInfo->m_nLastCmdSequenceRan == 0 )
+		// If we received too much usercmds, just purge the old commands, it could be also someone trying to speedhack.
+		if ( m_CommandQueue.Count() >= sv_maxusercmd_inqueue.GetInt() )
 		{
-			m_CommandQueue.RemoveAll();
+			m_CommandQueue.RemoveAtHead();
 		}
 
 		// TODO_ENHANCED: keep a buffer of last cmds to put in command queue
