@@ -3643,7 +3643,7 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 		// Be sure that we've ran some commands before adding
 		if ( m_CommandsAskedToRun.Size() < sv_maxusercmd_buffersize.GetInt() )
 		{
-			if ( m_nChokedCmds <= 0 )
+			if ( m_nChokedCmds <= 0 || ( m_CommandQueue.IsEmpty() && m_CommandsAskedToRun.Size() == 0 ) )
 			{
 				m_CommandsAskedToRun.AddToTail( { nLastCmdSequence, cmds[0] } );
 			}
