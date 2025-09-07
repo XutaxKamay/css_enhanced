@@ -656,7 +656,6 @@ CBasePlayer::CBasePlayer( )
 	m_CommandQueue.RemoveAll();
 	m_CommandsAskedToRun.RemoveAll();
 	m_CommandsAskedToRun.EnsureCapacity( sv_maxusercmd_buffersize.GetInt() );
-	m_nChokedCmds = 0;
 #endif
 }
 
@@ -3464,22 +3463,9 @@ void CBasePlayer::PhysicsSimulate( void )
 	if ( !m_CommandQueue.IsEmpty() )
 	{
 		auto cmdcontext = m_CommandQueue.RemoveAtHead();
-
-		// if ( m_nChokedCmds > 0 )
-		// {
-		// 	m_CommandQueue.RemoveAll();
-		// }
-
-		// Just remove everything for the first connection in order to reduce latency the first time.
-		if ( m_pBaseClientCmdInfo->m_nLastCmdSequenceRan == 0 )
-		{
-			m_CommandQueue.RemoveAll();
-		}
-
 		m_pBaseClientCmdInfo->m_nLastCmdSequenceRan = cmdcontext.sequence;
 		currentCmd									= cmdcontext.cmd;
 		m_LastNetworkedCmd							= currentCmd;
-		m_nChokedCmds								= 0;
 	}
 	else
 	{
@@ -3493,11 +3479,7 @@ void CBasePlayer::PhysicsSimulate( void )
 		}
 
 		currentCmd = m_LastNetworkedCmd;
-
-		if ( m_pBaseClientCmdInfo->m_nLastCmdSequenceRan != 0 )
-		{
-			m_nChokedCmds++;
-		}
+		m_nChokedCmds++;
 	}
 
 	m_flLastUserCommandTime = savetime;
@@ -3657,9 +3639,17 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	// }
 	// else
 	{
+		// Be sure that we've ran some commands before adding
 		if ( m_CommandsAskedToRun.Size() < sv_maxusercmd_buffersize.GetInt() )
 		{
-			m_CommandsAskedToRun.AddToTail( { nLastCmdSequence, cmds[0] } );
+			if ( m_nChokedCmds <= 0 )
+			{
+				m_CommandsAskedToRun.AddToTail( { nLastCmdSequence, cmds[0] } );
+			}
+			else
+			{
+				m_nChokedCmds--;
+			}
 		}
 	}
 #endif
