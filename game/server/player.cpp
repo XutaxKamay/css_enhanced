@@ -3647,7 +3647,9 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 			{
 				m_CommandsAskedToRun.AddToTail( { nLastCmdSequence, cmds[0] } );
 			}
-			else
+
+			// Always decrease choked cmds
+			if ( m_nChokedCmds > 0 )
 			{
 				m_nChokedCmds--;
 			}
