@@ -656,6 +656,7 @@ CBasePlayer::CBasePlayer( )
 	m_CommandQueue.RemoveAll();
 	m_CommandsAskedToRun.RemoveAll();
 	m_CommandsAskedToRun.EnsureCapacity( sv_maxusercmd_buffersize.GetInt() );
+	m_nChokedCmds = 0;
 #endif
 }
 
