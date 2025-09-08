@@ -337,7 +337,7 @@ LINK_ENTITY_TO_CLASS( weapon_cs_base, CWeaponCSBase );
 	ConVar cl_crosshaircolor_r( "cl_crosshaircolor_r", "50", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 	ConVar cl_crosshaircolor_g( "cl_crosshaircolor_g", "250", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 	ConVar cl_crosshaircolor_b( "cl_crosshaircolor_b", "50", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
-	ConVar cl_crosshair_picture( "cl_crosshair_picture", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
+	ConVar cl_crosshair_picture( "cl_crosshair_picture", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE );
 
 #if ALLOW_WEAPON_SPREAD_DISPLAY
 	ConVar weapon_debug_spread_show( "weapon_debug_spread_show", "0", FCVAR_CLIENTDLL, "Enables display of weapon accuracy; 1: show accuracy box, 2: show box with recoil offset" );
