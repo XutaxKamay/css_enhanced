@@ -3508,6 +3508,9 @@ void CBasePlayer::PhysicsSimulate( void )
 		m_nTickBase = gpGlobals->tickcount;
 	}
 
+	gpGlobals->curtime = m_nTickBase * gpGlobals->interval_per_tick;
+	gpGlobals->frametime = gpGlobals->interval_per_tick;
+
 	PlayerRunCommand( &currentCmd, MoveHelperServer() );
 
 	// Update our vphysics object.
