@@ -93,8 +93,6 @@ protected:
 	// Helpers to call pre and post think for player, and to call think if a think function is set
 	void			RunPreThink( C_BasePlayer *player );
 	void			RunThink (C_BasePlayer *ent, double frametime );
-	void			InterpolateCommand( C_BasePlayer* player );
-	void			FinishInterpolatingCommand( C_BasePlayer* player );
 	void			RunPostThink( C_BasePlayer *player );
     void 			CheckMovingGround( CBasePlayer *player, double frametime );
 private:

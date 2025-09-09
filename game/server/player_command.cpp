@@ -60,8 +60,6 @@ void CPlayerMove::StartCommand( CBasePlayer *player, CUserCmd *cmd )
 	CBaseEntity::SetPredictionRandomSeed( static_cast<int>( MD5_PseudoRandom( player->m_nTickBase ) ) );
 	CBaseEntity::SetPredictionPlayer( player );
 
-	player->StartInterpolatingCommand();
-
 #if defined( HL2_DLL )
 	// pull out backchannel data and move this out
 
@@ -298,22 +296,6 @@ void CPlayerMove::RunThink (CBasePlayer *player, double frametime )
 	player->Think();
 }
 
-void CPlayerMove::InterpolateCommand( CBasePlayer *player )
-{
-	VPROF( "CPlayerMove::InterpolateCommand" );
-
-	// Let's interpolate the local player, this is similar to lag compensation,
-	// except it isn't since local player is always predicted. (except if user didn't want to for some reasons)
-	player->InterpolateCommand();
-}
-
-void CPlayerMove::FinishInterpolatingCommand( CBasePlayer* player )
-{
-	VPROF( "CPlayerMove::FinishInterpolatingCommand" );
-
-	player->FinishInterpolatingCommand();
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Called after player movement
 // Input  : *player - 
@@ -473,21 +455,11 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	moveHelper->ProcessImpacts();
 	VPROF_SCOPE_END();
 
-	InterpolateCommand( player );
-
 	lagcompensation->StartLagCompensation( player, player->GetCurrentCommand() );
 
 	RunPostThink( player );
 
 	lagcompensation->FinishLagCompensation( player );
-
-	FinishInterpolatingCommand( player );
-
-	// This needs to be there because it cannot get an interpolated camera position.
-	// Technically this is movement data and needs to be seperated from PostThink.
-	VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-PostThinkVPhysics" );
-	player->PostThinkVPhysics();
-	VPROF_SCOPE_END();
 
 	ServiceEventQueue( player );
 

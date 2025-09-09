@@ -1986,6 +1986,8 @@ void C_BasePlayer::UpdateClientData( void )
 void C_BasePlayer::PreThink( void )
 {
 #if !defined( NO_ENTITY_PREDICTION )
+	StartInterpolatingCommand();
+
 	ItemPreFrame();
 
 	UpdateClientData();
@@ -2011,6 +2013,8 @@ void C_BasePlayer::PreThink( void )
 void C_BasePlayer::PostThink( void )
 {
 #if !defined( NO_ENTITY_PREDICTION )
+	InterpolateCommand();
+
 	MDLCACHE_CRITICAL_SECTION();
 
 	if ( IsAlive())
@@ -2044,6 +2048,8 @@ void C_BasePlayer::PostThink( void )
 
 		StudioFrameAdvance();
 	}
+
+	FinishInterpolatingCommand();
 
 	// Even if dead simulate entities
 	SimulatePlayerSimulatedEntities();

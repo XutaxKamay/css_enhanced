@@ -3964,7 +3964,9 @@ void CBasePlayer::HandleFuncTrain(void)
 
 
 void CBasePlayer::PreThink(void)
-{						
+{
+	StartInterpolatingCommand();
+
 	if ( g_fGameOver || m_iPlayerLocked )
 		return;         // intermission or finale
 
@@ -4654,6 +4656,8 @@ void CBasePlayer::ForceOrigin( const Vector &vecOrigin )
 //-----------------------------------------------------------------------------
 void CBasePlayer::PostThink()
 {
+	InterpolateCommand();
+
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
 	if ( !g_fGameOver && !m_iPlayerLocked )
@@ -4747,14 +4751,28 @@ void CBasePlayer::PostThink()
 		VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-UpdatePlayerSound" );
 		UpdatePlayerSound();
 		VPROF_SCOPE_END();
+	}
 
-		if ( m_bForceOrigin )
-		{
-			SetLocalOrigin( m_vForcedOrigin );
-			SetLocalAngles( GetPunchAngle() );
-			SetPunchAngle( RandomAngle( -25, 25 ) );
-			SetPunchAngleVel( vec3_angle );
-		}
+	FinishInterpolatingCommand();
+
+	if ( m_bForceOrigin )
+	{
+		SetLocalOrigin( m_vForcedOrigin );
+		SetLocalAngles( GetPunchAngle() );
+		SetPunchAngle( RandomAngle( -25, 25 ) );
+		SetPunchAngleVel( vec3_angle );
+	}
+
+	// TODO_ENHANCED:
+	// At this point, we must put back the original non interpolated values so that trigger touches takes the right
+	// origin with FinishInterpolatingCommand
+
+	// TODO_ENHANCED: Should we remove those checks ?
+	if ( !g_fGameOver && !m_iPlayerLocked )
+	{
+		VPROF_SCOPE_BEGIN( "CBasePlayer::PostThink-PostThinkVPhysics" );
+		PostThinkVPhysics();
+		VPROF_SCOPE_END();
 	}
 
 #if !defined( NO_ENTITY_PREDICTION )
@@ -4762,6 +4780,7 @@ void CBasePlayer::PostThink()
 	SimulatePlayerSimulatedEntities();
 #endif
 
+	// TODO_ENHANCED: do this before or after SimulatePlayerSimulatedEntities ?
     if ( GetCheckUntouch() )
     {
         PhysicsCheckForEntityUntouch();

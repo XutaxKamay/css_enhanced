@@ -765,8 +765,6 @@ void CPrediction::StartCommand( C_BasePlayer *player, CUserCmd *cmd )
 	player->m_pCurrentCommand = cmd;
 	C_BaseEntity::SetPredictionRandomSeed( static_cast<int>( MD5_PseudoRandom( player->m_nTickBase ) ) );
 	C_BaseEntity::SetPredictionPlayer( player );
-
-	player->StartInterpolatingCommand();
 #endif
 }
 
@@ -827,26 +825,6 @@ void CPrediction::RunThink (C_BasePlayer *player, double frametime )
 
 	// Think
 	player->Think();
-#endif
-}
-
-void CPrediction::InterpolateCommand( C_BasePlayer *player )
-{
-#if !defined( NO_ENTITY_PREDICTION )
-	VPROF( "CPrediction::InterpolateCommand" );
-
-	// Let's interpolate the local player, this is similar to lag compensation,
-	// except it isn't since local player is always predicted. (except if user didn't want to for some reasons)
-	player->InterpolateCommand();
-#endif
-}
-
-void CPrediction::FinishInterpolatingCommand( C_BasePlayer* player )
-{
-#if !defined( NO_ENTITY_PREDICTION )
-	VPROF( "CPrediction::FinishInterpolatingCommand" );
-
-	player->FinishInterpolatingCommand();
 #endif
 }
 
@@ -1001,11 +979,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
     moveHelper->ProcessImpacts();
 
-	InterpolateCommand( player );
-
 	RunPostThink( player );
-
-	FinishInterpolatingCommand( player );
 
     ServiceEventQueue( player );
 
