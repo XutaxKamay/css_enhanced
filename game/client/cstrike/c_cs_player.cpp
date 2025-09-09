@@ -742,8 +742,6 @@ C_CSPlayer::C_CSPlayer() :
 	m_angRenderAngles.Init();
 
 	AddVar( &m_iv_angEyeAngles );
-
-	// TODO_ENHANCED:: interpolation on m_angRenderAngles later
 	AddVar( &m_iv_angRenderAngles );
 
 	m_iLastAddonBits = m_iAddonBits = 0;

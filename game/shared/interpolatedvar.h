@@ -172,8 +172,9 @@ struct IInterpolatedVar
 	};
 
 	virtual void Push()																					   = 0;
-	virtual void PushWithTickBase( uint64 nTickBase )													   = 0;
 	virtual void Push( void* pData, size_t size )														   = 0;
+	virtual void PushWithTickBase( uint64 nTickBase )													   = 0;
+	virtual void PushWithTickBase( uint64 nTickBase, void* pData, size_t size )							   = 0;
 	virtual void ClearHistory()																			   = 0;
 	virtual void SetLooping( bool bLooping )															   = 0;
 	virtual bool IsLooping()																			   = 0;
@@ -292,13 +293,6 @@ class CInterpolatedVar : public IInterpolatedVar
 		m_History.Push( value );
 	}
 
-	virtual void PushWithTickBase( uint64 nTickBase ) override
-	{
-		Push( *m_pReferencedVariable );
-		m_SnapshotTickCountHistory.Push( nTickBase );
-		m_nLastSnapshotTickCount = nTickBase;
-	}
-
 	virtual void Push() override
 	{
 		Push( *m_pReferencedVariable );
@@ -311,6 +305,20 @@ class CInterpolatedVar : public IInterpolatedVar
 		  ( "CInterpolatedVar::%s pushing bad variable %li != %li", m_szDebugName.c_str(), size, sizeof( T ) ) );
 
 		Push( *reinterpret_cast< T* >( pData ) );
+	}
+
+	virtual void PushWithTickBase( uint64 nTickBase ) override
+	{
+		Push( *m_pReferencedVariable );
+		m_SnapshotTickCountHistory.Push( nTickBase );
+		m_nLastSnapshotTickCount = nTickBase;
+	}
+
+	virtual void PushWithTickBase( uint64 nTickBase, void* pData, size_t size ) override
+	{
+		Push( pData, size );
+		m_SnapshotTickCountHistory.Push( nTickBase );
+		m_nLastSnapshotTickCount = nTickBase;
 	}
 
 	virtual void ClearHistory() override
@@ -596,7 +604,17 @@ class CInterpolatedVar : public IInterpolatedVar
 
 		for ( size_t i = 0; i < m_History.FillCount(); i++ )
 		{
-			varDst->Push( m_History.Get( i ), sizeof( T ) );
+			auto slot		= m_History.FillCount() - 1 - i;
+			auto pnTickBase = m_SnapshotTickCountHistory.Get( slot );
+
+			if ( pnTickBase )
+			{
+				varDst->PushWithTickBase( *pnTickBase, m_History.Get( slot ), sizeof( T ) );
+			}
+			else
+			{
+				varDst->Push( m_History.Get( slot ), sizeof( T ) );
+			}
 		}
 	}
 
