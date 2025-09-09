@@ -1301,6 +1301,21 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 #endif
 }
 
+#if !defined( NO_ENTITY_PREDICTION )
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void InvalidateEFlagsRecursive( C_BaseEntity *pEnt, int nDirtyFlags, int nChildFlags = 0 )
+{
+	pEnt->AddEFlags( nDirtyFlags );
+	nDirtyFlags |= nChildFlags;
+	for (CBaseEntity *pChild = pEnt->FirstMoveChild(); pChild; pChild = pChild->NextMovePeer())
+	{
+		InvalidateEFlagsRecursive( pChild, nDirtyFlags );
+	}
+}
+#endif
+
 // TODO_ENHANCED: we should get rid of this to prefer SaveData/RestoreData.
 void CPrediction::RestorePredictedTouched( int current_command )
 {
@@ -1344,6 +1359,10 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 		if ( ent->IsTrigger() )
 		{
+			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with trigger_push and others
+			InvalidateEFlagsRecursive( ent,
+									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+
 			auto trigger				 = static_cast< C_BaseTrigger* >( ent );
 			trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
 		}
@@ -1406,6 +1425,10 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 		if ( ent->IsTrigger() )
 		{
+			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with trigger_push and others
+			InvalidateEFlagsRecursive( ent,
+									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+
 			auto trigger						  = static_cast< C_BaseTrigger* >( ent );
 			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
 		}
@@ -1457,21 +1480,6 @@ void CPrediction::Untouch( void )
 	}
 #endif
 }
-
-#if !defined( NO_ENTITY_PREDICTION )
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void InvalidateEFlagsRecursive( C_BaseEntity *pEnt, int nDirtyFlags, int nChildFlags = 0 )
-{
-	pEnt->AddEFlags( nDirtyFlags );
-	nDirtyFlags |= nChildFlags;
-	for (CBaseEntity *pChild = pEnt->FirstMoveChild(); pChild; pChild = pChild->NextMovePeer())
-	{
-		InvalidateEFlagsRecursive( pChild, nDirtyFlags );
-	}
-}
-#endif
 
 void CPrediction::StorePredictionResults( int predicted_frame )
 {
