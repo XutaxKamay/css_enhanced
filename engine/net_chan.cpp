@@ -114,6 +114,8 @@ inline bool CTCPQueue::Process( int hSocket )
 	// Send and receive some bytes
 	if ( !m_SendQueue.empty() )
 	{
+		VPROF( "CTCPQueue::Process Sending" );
+
 		auto&& SendBuffer = m_SendQueue.front();
 
 		if ( SendBuffer.nBytesLeft > 0 )
@@ -140,20 +142,24 @@ inline bool CTCPQueue::Process( int hSocket )
 		}
 	}
 
-	auto nOldReceivedSize = m_ReceivedData.size();
-	m_ReceivedData.resize( nOldReceivedSize + NET_MAX_PAYLOAD );
-
-	auto nBytesReceived = NET_ReceiveStream( hSocket, m_ReceivedData.data() + nOldReceivedSize, NET_MAX_PAYLOAD, 0 );
-
-	if ( nBytesReceived < 0 )
 	{
-		ConMsg( "CTCPQueue::ProcessQueue: socket %i failed to receive bytes, reason: %s\n",
-				hSocket,
-				NET_ErrorString( NET_GetLastError() ) );
-		return false;
-	}
+		VPROF( "CTCPQueue::Process Receiving" );
 
-	m_ReceivedData.resize( nOldReceivedSize + nBytesReceived );
+		auto nOldReceivedSize = m_ReceivedData.size();
+		m_ReceivedData.resize( nOldReceivedSize + NET_MAX_PAYLOAD );
+
+		auto nBytesReceived = NET_ReceiveStream( hSocket, m_ReceivedData.data() + nOldReceivedSize, NET_MAX_PAYLOAD, 0 );
+
+		if ( nBytesReceived < 0 )
+		{
+			ConMsg( "CTCPQueue::ProcessQueue: socket %i failed to receive bytes, reason: %s\n",
+					hSocket,
+					NET_ErrorString( NET_GetLastError() ) );
+			return false;
+		}
+
+		m_ReceivedData.resize( nOldReceivedSize + nBytesReceived );
+	}
 
 	return true;
 }
@@ -2756,6 +2762,8 @@ bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 // Process small packets, we can recv directly.
 bool CNetChan::ProcessStream( void )
 {
+	VPROF( "CNetChan::ProcessStream" );
+
 	// Wait for an active connection
 	if ( m_StreamSocket == 0 )
 	{

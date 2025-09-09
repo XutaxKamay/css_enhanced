@@ -240,3 +240,9 @@ float C_BaseToggle::AxisDelta( int flags, const QAngle &angle1, const QAngle &an
 
 	return angle1.y - angle2.y;
 }
+
+bool C_BaseToggle::ShouldPredict( void )
+{
+	// TODO_ENHANCED: this isn't a predictable, but local player needs it to predict correctly.
+	return false;
+}

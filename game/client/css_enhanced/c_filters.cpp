@@ -30,6 +30,12 @@ C_BaseFilter::C_BaseFilter()
 {
 }
 
+bool C_BaseFilter::ShouldPredict( void )
+{
+	// TODO_ENHANCED: this isn't a predictable, but local player needs it to predict correctly.
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 
 bool C_BaseFilter::PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )

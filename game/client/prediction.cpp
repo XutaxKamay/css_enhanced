@@ -1312,11 +1312,12 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
 
-	int pc = predictables->GetPredictableCount();
-	int p;
-	for ( p = 0; p < pc; p++ )
+	auto entities = g_pFastEntityLookUp->entities;
+
+	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		C_BaseEntity* ent = predictables->GetPredictable( p );
+		C_BaseEntity* ent = entities[i];
+
 		if ( !ent )
 		{
 			continue;
@@ -1375,12 +1376,12 @@ void CPrediction::StorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StorePredictedTouched" );
 
-	int pc = predictables->GetPredictableCount();
-	int p;
+	auto entities = g_pFastEntityLookUp->entities;
 
-	for ( p = 0; p < pc; p++ )
+	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		C_BaseEntity* ent = predictables->GetPredictable( p );
+		C_BaseEntity* ent = entities[i];
+
 		if ( !ent )
 		{
 			continue;

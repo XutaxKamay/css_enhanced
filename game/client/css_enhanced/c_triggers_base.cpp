@@ -233,46 +233,10 @@ void C_BaseTrigger::RestoreTouchEntitiesTo( int current_command )
 	RestoreData( "RestoreTouchEntitiesForTriggers", current_command, PC_EVERYTHING );
 }
 
-bool C_BaseTrigger::ShouldPredict(void)
+bool C_BaseTrigger::ShouldPredict( void )
 {
-#if !defined( NO_ENTITY_PREDICTION )
-	return true;
-#else
+	// TODO_ENHANCED: this isn't a predictable, but local player needs it to predict correctly.
 	return false;
-#endif
-}
-
-int C_BaseTrigger::SaveData(const char* context, int slot, int type)
-{
-    // m_iCountPredictedTouchingEntities = m_hTouchingEntities.Count();
-
-    // if (m_iCountPredictedTouchingEntities >= MAX_EDICTS)
-    // {
-    //     Error("C_BaseTrigger::SaveData: Should never reach this!");
-    // }
-
-    // // NOTE:
-    // // Since UtlVector can't be used for prediction, we use arrays.
-	// for (int i = 0; i < m_iCountPredictedTouchingEntities; i++)
-    // {
-    //     m_hPredictedTouchingEntities[i] = m_hTouchingEntities[i];
-    // }
-
-    return BaseClass::SaveData(context, slot, type);
-}
-
-int C_BaseTrigger::RestoreData(const char* context, int slot, int type)
-{
-    int ret = BaseClass::RestoreData(context, slot, type);
-
-	// m_hTouchingEntities.RemoveAll();
-
-	// for (int i = 0; i < m_iCountPredictedTouchingEntities; i++)
-	// {
-	// 	m_hTouchingEntities.AddToTail( m_hPredictedTouchingEntities[i] );
-    // }
-
-    return ret;
 }
 
 void C_BaseTrigger::UpdatePartitionListEntry(void)

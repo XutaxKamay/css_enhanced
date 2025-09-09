@@ -1530,6 +1530,8 @@ void CPredictionCopy::DetermineWatchField( const char *operation, int entindex, 
 //-----------------------------------------------------------------------------
 int CPredictionCopy::TransferData( const char *operation, int entindex, datamap_t *dmap )
 {
+	VPROF( "CPredictionCopy::TransferData" );
+
 	++g_nChainCount;
 
 	if ( !dmap->chains_validated )

@@ -57,8 +57,6 @@ public:
 	virtual void RestoreTouchEntitiesTo( int current_command );
 
     virtual bool ShouldPredict( void );
-	virtual int	SaveData( const char *context, int slot, int type );
-	virtual int RestoreData(const char* context, int slot, int type );
 
 	// Input handlers
 	virtual void InputEnable( inputdata_t &inputdata );

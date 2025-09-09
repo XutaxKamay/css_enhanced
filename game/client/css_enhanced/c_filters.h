@@ -30,6 +30,7 @@ public:
 
 	C_BaseFilter();
 
+	virtual bool ShouldPredict( void );
 	bool PassesFilter( CBaseEntity *pCaller, CBaseEntity *pEntity );
 	bool PassesDamageFilter( const CTakeDamageInfo &info );
 

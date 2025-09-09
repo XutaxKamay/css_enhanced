@@ -43,6 +43,7 @@ class C_BaseToggle : public C_BaseEntity
 public:
 	C_BaseToggle();
 
+	virtual bool		ShouldPredict( void );
 	virtual bool		KeyValue( const char *szKeyName, const char *szValue );
 	virtual bool		KeyValue( const char *szKeyName, Vector vec ) { return BaseClass::KeyValue( szKeyName, vec ); };
 	virtual bool		KeyValue( const char *szKeyName, float flValue ) { return BaseClass::KeyValue( szKeyName, flValue ); };

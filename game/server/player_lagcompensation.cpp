@@ -365,11 +365,22 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 
 	void TrackEntities( void )
 	{
+		if ( !sv_unlag.GetBool() )
+		{
+			return;
+		}
+
 		for ( int i = 0; i < MAX_EDICTS; i++ )
 		{
 			auto pEntity = g_pFastEntityLookUp->entities[i];
 
 			if ( !pEntity )
+			{
+				continue;
+			}
+
+			// TODO_ENHANCED: track players only for now.
+			if ( !pEntity->IsPlayer() )
 			{
 				continue;
 			}
@@ -406,12 +417,6 @@ ILagCompensationManager* lagcompensation = &g_LagCompensationManager;
 template < bool bPush >
 void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 {
-	if ( !sv_unlag.GetBool() )
-	{
-		ClearHistory();
-		return;
-	}
-
 	VPROF_BUDGET( "TrackEntity", "CLagCompensationManager" );
 
 	auto index = pEntity->entindex();

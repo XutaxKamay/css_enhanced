@@ -4904,6 +4904,7 @@ void *C_BaseEntity::GetPredictedFrame( int framenumber )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	Assert( framenumber >= 0 );
+	VPROF( "C_BaseEntity::GetPredictedFrame" );
 
 	if ( !m_pOriginalData )
 	{
