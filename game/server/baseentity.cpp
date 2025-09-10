@@ -4055,7 +4055,12 @@ static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &ent
 
 		if ( newPosition )
 		{
-			pTeleport->IncrementInterpolationFrame();
+			// TODO_ENHANCED: Let the client handle this for predictables
+			if ( !( pTeleport->IsPlayer() || pTeleport->GetPredictionPlayer() ) )
+			{
+				pTeleport->IncrementInterpolationFrame();
+			}
+
 			UTIL_SetOrigin( pTeleport, *newPosition );
 		}
 	}

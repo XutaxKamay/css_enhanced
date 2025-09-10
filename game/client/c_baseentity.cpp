@@ -2281,9 +2281,6 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	bool simtickCountChanged = m_nSimulatedTickCount != m_iv_nSimulatedTickCount.GetLastKnownValue();
 	bool bPredictable		 = GetPredictable();
 
-	// It's going to be decreased naturally by InterpolateServerEntities
-	auto nBaseInterpAmountInTicks = GetClientInterpolationAmountInTicks();
-
 	// For non-predicted and non-client only ents, we need to latch network values into the interpolation histories
 	if ( !bPredictable && !IsClientCreated() )
 	{
@@ -2355,7 +2352,7 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	UpdatePartitionListEntry();
 	
 	// Add the entity to the nointerp list.
-	if ( !IsClientCreated() )
+	if ( !IsClientCreated() && !bPredictable )
 	{
 		if ( Teleported() || IsNoInterpolationFrame() )
 			AddToTeleportList();

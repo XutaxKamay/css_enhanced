@@ -1289,7 +1289,7 @@ void CPrediction::RunSimulation( int current_command, float curtime, CUserCmd *c
 		// Don't update last networked data here!!!
 		// We need only to store the last predicted command, in order to get proper interpolation data.
 		// IF there's a prediction error, well, it's going to rollback anyway.
-		if ( IsFirstTimePredicted() )
+		// if ( IsFirstTimePredicted() )
 		{
 			entity->OnLatchInterpolatedVariables( CIVLatchType::SIMULATION, false );
 			entity->OnLatchInterpolatedVariables( CIVLatchType::ANIMATION, false );

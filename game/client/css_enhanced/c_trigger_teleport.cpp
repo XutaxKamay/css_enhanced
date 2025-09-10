@@ -92,19 +92,27 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
     tmp += vecLandmarkOffset;
 
     UTIL_SetOrigin( pOther, tmp );
+    pOther->SetNetworkOrigin( tmp );
 
-    if (pAngles)
+	if ( ( C_BasePlayer* )pOther == C_BasePlayer::GetLocalPlayer() )
+	{
+		// TODO_ENHANCED: do we really want this?
+		prediction->SetViewOrigin( tmp );
+	}
+
+	if (pAngles)
     {
-        if (!pOther->IsPlayer())
+        // if (!pOther->IsPlayer())
         {
-            pOther->SetLocalAngles( *pAngles );
+            auto angles = *pAngles;
+            pOther->SetLocalAngles( angles );
+            pOther->SetNetworkAngles( angles );
         }
-        else
+        // else
         {
             if ((C_BasePlayer*)pOther == C_BasePlayer::GetLocalPlayer())
             {
                 auto angles = *pAngles;
-                prediction->SetViewOrigin( tmp );
 
                 // This needs to be set only once!
                 if (prediction->IsFirstTimePredicted())
