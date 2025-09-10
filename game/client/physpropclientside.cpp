@@ -63,6 +63,10 @@ C_PhysPropClientside::C_PhysPropClientside()
 	m_pRespawnZone = NULL;
 
 	s_PhysPropList.AddToTail( this );
+	m_iszPhysicsDamageTableName = NULL_STRING;
+	m_iszBreakableModel = NULL_STRING;
+	m_iszDamageFilterName = NULL_STRING;
+	m_iszBasePropData = NULL_STRING;
 }
 
 C_PhysPropClientside::~C_PhysPropClientside()

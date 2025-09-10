@@ -694,7 +694,20 @@ CBaseEntity	*UTIL_EntityByIndex( int entityIndex )
 {
 	if ( entityIndex > 0 )
 	{
-		return g_pFastEntityLookUp->entities[entityIndex];
+		auto pEntity = g_pFastEntityLookUp->entities[entityIndex];
+
+		if ( pEntity )
+		{
+			return pEntity;
+		}
+
+		edict_t* edict = INDEXENT( entityIndex );
+		if ( edict && !edict->IsFree() )
+		{
+			pEntity = GetContainingEntity( edict );
+		}
+
+		return pEntity;
 	}
 
 	return NULL;

@@ -710,6 +710,9 @@ C_BaseEntity::C_BaseEntity() :
 #endif
 
 	ParticleProp()->Init( this );
+	m_nSimulatedTickCount = 0;
+	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
+	SetTouch(NULL);
 }
 
 
@@ -727,6 +730,7 @@ C_BaseEntity::~C_BaseEntity()
 #endif
 	RemoveFromInterpolationList();
 	RemoveFromTeleportList();
+	m_InterpolatedVariableList.variables.RemoveAll();
 }
 
 void C_BaseEntity::Clear( void )

@@ -532,8 +532,8 @@ static void VCR_Hook_Cmd_Exec(char **f)
 	}
 }
 
-#define MAX_LINUX_CMDLINE 512
-static char linuxCmdline[ MAX_LINUX_CMDLINE +7 ]; // room for -steam
+#define MAX_LINUX_CMDLINE 1024
+static char linuxCmdline[ MAX_LINUX_CMDLINE + 8 ]; // room for -steam
 
 const char * BuildCmdLine( int argc, char **argv, bool fAddSteam )
 {
@@ -542,7 +542,7 @@ const char * BuildCmdLine( int argc, char **argv, bool fAddSteam )
 
 	for (len = 0, i = 0; i < argc; i++)
 	{
-		len += strlen(argv[i]);
+		len += strlen(argv[i]) + 1;
 	}
 
 	if ( len > MAX_LINUX_CMDLINE )

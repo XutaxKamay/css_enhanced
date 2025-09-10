@@ -83,7 +83,7 @@ protected:
 
 	DECLARE_SIMPLE_DATADESC();
 
-	C_BaseEntityOutput() {} // this class cannot be created, only it's children
+	C_BaseEntityOutput() { m_ActionList = NULL; }; // this class cannot be created, only it's children
 
 private:
 	C_BaseEntityOutput( C_BaseEntityOutput& ); // protect from accidental copying

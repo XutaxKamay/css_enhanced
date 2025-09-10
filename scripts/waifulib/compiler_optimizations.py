@@ -30,7 +30,7 @@ compiler_optimizations.CFLAGS['gottagofast'] = {
 }
 '''
 
-VALID_BUILD_TYPES = ['fastnative', 'fast', 'release', 'debug', 'nooptimize', 'sanitize', 'none']
+VALID_BUILD_TYPES = ['fastnative_dbgsym', 'fastnative', 'fast', 'release', 'debug', 'nooptimize', 'sanitize', 'none']
 
 LINKFLAGS = {
 	'common': {
@@ -55,20 +55,26 @@ CFLAGS = {
 	},
 	'fast': {
 		'msvc':	   ['/O2', '/Oy', '/MD'],
-		'gcc':	   ['-Ofast'],
-		'clang':   ['-Ofast'],
-		'default': ['-O3']
+		'gcc':	   ['-Ofast', '-g'],
+		'clang':   ['-Ofast', '-g'],
+		'default': ['-O3', '-g']
 	},
 	'fastnative': {
 		'msvc':    ['/O2', '/Oy', '/MD'],
-		'gcc':     ['-Ofast', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
-		'clang':   ['-Ofast', '-march=native', '-mtune=native'],
-		'default': ['-O3']
+		'gcc':     ['-Ofast', '-flto', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
+		'clang':   ['-Ofast', '-flto', '-march=native', '-mtune=native'],
+		'default': ['-O3', '-flto']
+	},
+	'fastnative_dbgsym': {
+		'msvc':    ['/O2', '/Oy', '/MD'],
+		'gcc':     ['-g', '-Ofast', '-flto', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
+		'clang':   ['-g', '-Ofast', '-flto', '-march=native', '-mtune=native'],
+		'default': ['-g', '-O3', '-flto']
 	},
 	'release': {
 		'msvc':    ['/O2', '/MD'],
 		'owcc':    ['-O3', '-fomit-leaf-frame-pointer', '-fomit-frame-pointer', '-finline-functions', '-finline-limit=512'],
-		'default': ['-O2', '-funsafe-math-optimizations', '-ftree-vectorize', '-ffast-math']
+		'default': ['-O2', '-g', '-funsafe-math-optimizations', '-ftree-vectorize', '-ffast-math', '-flto']
 	},
 	'debug': {
 		'msvc':    ['/Od', '/MDd'],

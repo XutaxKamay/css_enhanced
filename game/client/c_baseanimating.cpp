@@ -733,6 +733,7 @@ C_BaseAnimating::C_BaseAnimating()
 
 	m_bForceSequenceTransitions = false;
 	m_nAnimatedTickCount = 0;
+	m_iv_nAnimatedTickCount.GetLastKnownValue() = 0;
 }
 
 //-----------------------------------------------------------------------------
