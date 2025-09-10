@@ -1576,7 +1576,6 @@ void CCSPlayer::PostThink()
 		}
 	}
 
-	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
 
 	for (auto&& event : m_allEvents)
@@ -1588,7 +1587,6 @@ void CCSPlayer::PostThink()
 
 	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
 
-	// Use the m_angRotation instead.
 	m_angRenderAngles = m_PlayerAnimState->GetRenderAngles();
 
 	// check if we need to apply a deafness DSP effect.

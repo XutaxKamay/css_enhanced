@@ -2700,6 +2700,18 @@ void C_CSPlayer::Simulate( void )
 
 void C_CSPlayer::PostThink()
 {
+	// TODO_ENHANCED: These can't be predicted (yet)
+	m_iv_angEyeAngles.RestoreToLastKnownValue();
+	m_iv_angRenderAngles.RestoreToLastKnownValue();
+
+	for ( auto&& variable : m_InterpolatedVariableList.variables )
+	{
+		if ( variable->LatchType() == CIVLatchType::ANIMATION )
+		{
+			variable->RestoreToLastKnownValue();
+		}
+	}
+
     BaseClass::PostThink();
 }
 

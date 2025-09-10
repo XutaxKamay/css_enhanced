@@ -4510,6 +4510,8 @@ void C_BaseAnimating::NotifyShouldTransmit( ShouldTransmitState_t state )
 //-----------------------------------------------------------------------------
 void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 {
+	m_nInterpolatedAnimatedTickCount = m_nAnimatedTickCount;
+
 	BaseClass::PostDataUpdate( updateType );
 
 	if ( m_bClientSideAnimation )
@@ -4520,8 +4522,6 @@ void C_BaseAnimating::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		RemoveFromClientSideAnimationList();
 	}
-
-	m_nInterpolatedAnimatedTickCount = m_nAnimatedTickCount;
 
 	// tick count changed ?
 	bool animTickCountChanged = m_nAnimatedTickCount != m_iv_nAnimatedTickCount.GetLastKnownValue();

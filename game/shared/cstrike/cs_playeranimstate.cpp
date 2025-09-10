@@ -430,7 +430,7 @@ void CCSPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 			}
 		}
 
-#ifdef CLIENT_DLL
+// #ifdef CLIENT_DLL
 		if ( m_bFiring && !m_bReloading )
 		{
 			if ( m_pPlayer )
@@ -438,7 +438,7 @@ void CCSPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 				m_pPlayer->ProcessMuzzleFlashEvent();
 			}
 		}
-#endif
+// #endif
 		break;
 
 	case PLAYERANIMEVENT_JUMP:
@@ -1044,9 +1044,9 @@ void CCSPlayerAnimState::ClearAnimationLayers()
 	{
 		// Client obeys Order of CBaseAnimatingOverlay::MAX_OVERLAYS (15), but server trusts only the ANIM_LAYER_ACTIVE flag.
 		m_pOuter->GetAnimOverlay( i )->SetOrder( CBaseAnimatingOverlay::MAX_OVERLAYS );
-#ifndef CLIENT_DLL
+// #ifndef CLIENT_DLL
 		m_pOuter->GetAnimOverlay( i )->m_fFlags = 0;
-#endif
+// #endif
 	}
 }
 

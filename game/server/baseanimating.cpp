@@ -1575,6 +1575,17 @@ void CBaseAnimating::UpdateStepOrigin()
 	m_flEstIkFloor = GetLocalOrigin().z;
 }
 
+void CBaseAnimating::ProcessMuzzleFlashEvent()
+{
+	IGameEvent* event = gameeventmanager->CreateEvent( "muzzle_flash" );
+
+	if ( event )
+	{
+		event->SetInt( "entindex", entindex() );
+		gameeventmanager->FireEvent( event );
+	}
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Returns the origin to use for model rendering

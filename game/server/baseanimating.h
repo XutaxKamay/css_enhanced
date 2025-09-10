@@ -481,6 +481,7 @@ public:
 	void InitStepHeightAdjust( void );
 	void SetIKGroundContactInfo( float minHeight, float maxHeight );
 	void UpdateStepOrigin( void );
+	virtual void ProcessMuzzleFlashEvent();
 
 protected:
 	float				m_flIKGroundContactTime;
