@@ -712,7 +712,8 @@ C_BaseEntity::C_BaseEntity() :
 	ParticleProp()->Init( this );
 	m_nSimulatedTickCount = 0;
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
-	SetTouch(NULL);
+	SetTouch( NULL );
+	SetThink( NULL );
 }
 
 
