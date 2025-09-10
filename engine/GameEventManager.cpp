@@ -144,7 +144,8 @@ bool CGameEventManager::Init()
 	RegisterEvent(bullet_player_hitboxes_kv);
 	static auto player_lag_hitboxes_kv = new KeyValues("player_lag_hitboxes");
     RegisterEvent(player_lag_hitboxes_kv);
-    
+   	static auto muzzle_flash_kv = new KeyValues("muzzle_flash");
+    RegisterEvent(muzzle_flash_kv); 
 	return true;
 }
 

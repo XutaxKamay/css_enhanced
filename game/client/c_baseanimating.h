@@ -27,6 +27,7 @@
 #include "ragdoll_shared.h"
 #include "tier0/threadtools.h"
 #include "datacache/idatacache.h"
+#include "GameEventListener.h"
 
 #define LIPSYNC_POSEPARAM_NAME "mouth"
 #define NUM_HITBOX_FIRES	10
@@ -89,7 +90,7 @@ typedef unsigned int			ClientSideAnimationListHandle_t;
 #define		INVALID_CLIENTSIDEANIMATION_LIST_HANDLE	(ClientSideAnimationListHandle_t)~0
 
 
-class C_BaseAnimating : public C_BaseEntity, private IModelLoadCallback
+class C_BaseAnimating : public C_BaseEntity, private IModelLoadCallback, public CGameEventListener
 {
 public:
 	DECLARE_CLASS( C_BaseAnimating, C_BaseEntity );
@@ -428,6 +429,7 @@ public:
 
 	// This is called to do the actual muzzle flash effect.
 	virtual void ProcessMuzzleFlashEvent();
+	virtual void FireGameEvent( IGameEvent* event );
 	
 	// Update client side animations
 	static void UpdateClientSideAnimations();

@@ -734,6 +734,8 @@ C_BaseAnimating::C_BaseAnimating()
 	m_bForceSequenceTransitions = false;
 	m_nAnimatedTickCount = 0;
 	m_iv_nAnimatedTickCount.GetLastKnownValue() = 0;
+
+	ListenForGameEvent( "muzzle_flash" );
 }
 
 //-----------------------------------------------------------------------------
@@ -3399,6 +3401,19 @@ void C_BaseAnimating::ProcessMuzzleFlashEvent()
 			el->color.g = 192;
 			el->color.b = 64;
 			el->color.exponent = 5;
+		}
+	}
+}
+
+void C_BaseAnimating::FireGameEvent( IGameEvent* event )
+{
+	if ( FStrEq( event->GetName(), "muzzle_flash" ) )
+	{
+		const int index = event->GetInt( "entindex" );
+
+		if ( index == entindex() )
+		{
+			ProcessMuzzleFlashEvent();
 		}
 	}
 }

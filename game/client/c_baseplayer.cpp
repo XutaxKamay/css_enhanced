@@ -712,6 +712,8 @@ surfacedata_t* C_BasePlayer::GetGroundSurface()
 
 void C_BasePlayer::FireGameEvent( IGameEvent *event )
 {
+	BaseClass::FireGameEvent( event );
+
 	if ( FStrEq( event->GetName(), "base_player_teleported" ) )
 	{
 		const int index = event->GetInt( "entindex" );
@@ -722,17 +724,6 @@ void C_BasePlayer::FireGameEvent( IGameEvent *event )
 			g_ClientVirtualReality.AlignTorsoAndViewToWeapon();
 		}
 	}
-	// TODO_ENHANCED: this should be moved inside base animating
-	else if ( FStrEq( event->GetName(), "muzzle_flash" ) )
-	{
-		const int index = event->GetInt( "entindex" );
-
-		if ( index == entindex() )
-		{
-			ProcessMuzzleFlashEvent();
-		}
-	}
-
 }
 
 //-----------------------------------------------------------------------------
