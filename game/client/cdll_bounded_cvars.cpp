@@ -14,8 +14,8 @@
 #include "tier0/icommandline.h"
 #include "interpolatedvar.h"
 
-// 20 ticks should be enough
-constexpr auto g_nDefaultTicksToInterpolate = 5;
+// 150ms should be enough
+constexpr auto g_flDefaultTimeToInterpolate = 0.15f;
 bool g_bForceCLPredictOff = false;
 
 // ------------------------------------------------------------------------------------------ //
@@ -62,11 +62,11 @@ ConVar_ServerBounded* cl_predict = &cl_predict_var;
 ConVar cl_interpolation_amount( "cl_interpolation_amount",
 								"0",
 								FCVAR_ARCHIVE,
-								"Number of ticks at least to interpolate entities with. 0 is default.",
+								"Target time at least to interpolate entities with (will be rounded to a tick interval). 0 is default (150ms).",
 								true,
 								0.0,
 								true,
-								( float )( MAX_INTERPOLATION_TICK_HISTORY - 1 ) );
+								1.0 );
 
 ConVar cl_interp_type( "cl_interp_type",
 					   "0",
@@ -87,10 +87,10 @@ int GetClientInterpolationAmountInTicks()
 	}
 
 	// Some sane defaults
-	if ( cl_interpolation_amount.GetInt() <= 0 || cl_interpolation_amount.GetInt() >= MAX_INTERPOLATION_TICK_HISTORY )
+	if ( cl_interpolation_amount.GetFloat() <= 0 || cl_interpolation_amount.GetFloat() > 1.0 )
 	{
-		return g_nDefaultTicksToInterpolate;
+		return TIME_TO_TICKS( g_flDefaultTimeToInterpolate );
 	}
 
-	return cl_interpolation_amount.GetInt();
+	return TIME_TO_TICKS( cl_interpolation_amount.GetFloat() );
 }

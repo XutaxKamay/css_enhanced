@@ -4835,7 +4835,8 @@ bool Host_NewGame( char *mapName, bool loadGame, bool bBackgroundLevel, const ch
 
 	if ( g_iServerTCPPort == -1 )
 	{
-		Error( "NET_ListenSocket failed\n" );
+		Warning( "NET_ListenSocket failed\n" );
+		return false;
 	}
 
 	// let's not have any servers with no name

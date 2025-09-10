@@ -634,8 +634,10 @@ float CClientState::GetClientInterpAmount()
 	}
 
 	// TODO_ENHANCED: modify me if you modify others.
-	constexpr auto g_nDefaultTicksToInterpolate	  = 5;
+	constexpr auto g_flDefaultTimeToInterpolate	  = 0.15f;
 	constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 128;
+
+	auto nDefaultTicksToInterpolate = TIME_TO_TICKS( g_flDefaultTimeToInterpolate );
 
 	static const ConVar* s_cl_interpolation_amount = NULL;
 	if ( !s_cl_interpolation_amount )
@@ -643,19 +645,19 @@ float CClientState::GetClientInterpAmount()
 		s_cl_interpolation_amount = g_pCVar->FindVar( "cl_interpolation_amount" );
 		if ( !s_cl_interpolation_amount )
 		{
-			return g_nDefaultTicksToInterpolate * host_state.interval_per_tick;
+			return TICKS_TO_TIME( nDefaultTicksToInterpolate );
 		}
 	}
 
-	auto nWantedInterpTicks = s_cl_interpolation_amount->GetInt();
-	auto nInterpTicks		= g_nDefaultTicksToInterpolate;
+	auto nWantedInterpTime = s_cl_interpolation_amount->GetFloat();
+	auto nInterpTicks	   = nDefaultTicksToInterpolate;
 
-	if ( nWantedInterpTicks > 0 && nWantedInterpTicks < MAX_INTERPOLATION_TICK_HISTORY )
+	if ( nWantedInterpTime > 0 && nWantedInterpTime <= 1.0 )
 	{
-		nInterpTicks = nWantedInterpTicks;
+		nInterpTicks = TIME_TO_TICKS( nWantedInterpTime );
 	}
 
-	return nInterpTicks * host_state.interval_per_tick;
+	return TICKS_TO_TIME( nInterpTicks );
 }
 
 //-----------------------------------------------------------------------------
