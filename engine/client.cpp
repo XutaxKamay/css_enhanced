@@ -1243,8 +1243,8 @@ void CClientState::CheckOwnCustomFiles()
 	// clear file CRCs
 	Q_memset( m_nCustomFiles, 0, sizeof(m_nCustomFiles) );
 	
-	if ( m_nMaxClients == 1 )
-		return;	// not in singleplayer
+	// if ( m_nMaxClients == 1 )
+	// 	return;	// not in singleplayer
 
 	if ( IsPC() )
 	{
