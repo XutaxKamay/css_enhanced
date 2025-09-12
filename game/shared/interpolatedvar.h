@@ -513,15 +513,17 @@ class CInterpolatedVar : public IInterpolatedVar
 				break;
 			}
 
+			auto snapshotTickCount = *pSnapshotTickCount;
+
 			// Did we found a target ?
-			if ( nTargetTick == *pSnapshotTickCount )
+			if ( nTargetTick == snapshotTickCount)
 			{
 				nAmountOfTicks = i;
 				break;
 			}
 
 			// Somehow the snapshot was skipped, we need to find the closest one.
-			if ( nTargetTick > *pSnapshotTickCount )
+			if ( nTargetTick > snapshotTickCount )
 			{
 				nAmountOfTicks = i;
 				break;
