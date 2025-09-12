@@ -146,16 +146,16 @@ private:
 
     struct SavedTouch_t
 	{
-		int					entityTouched;
-		int					touchStamp;
-		int					flags;
-    };
+		int entityTouched;
+		int touchStamp;
+		int flags;
+	};
 
-    struct TouchedHistory
-    {
-        CUtlVector<SavedTouch_t> savedTouches;
-        CUtlVector<EHANDLE> touchedTriggerEntities;
-    };
+	struct TouchedHistory
+	{
+		CUtlVector< SavedTouch_t > savedTouches;
+		CUtlVector< EHANDLE > touchedTriggerEntities;
+	};
 
 	struct EventQueueForHistory
 	{
@@ -169,9 +169,10 @@ private:
 		variant_t m_VariantValue;
 	};
 
-	TouchedHistory m_touchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
-	CUtlVector<EventQueueForHistory> m_eventQueueHistory[MULTIPLAYER_BACKUP];
-public:
+	TouchedHistory m_TouchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
+	CUtlVector< EventQueueForHistory > m_EventQueueHistory[MULTIPLAYER_BACKUP];
+
+  public:
 	CGlobalVarsBase m_saveVars;
 };
  

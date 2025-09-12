@@ -108,15 +108,6 @@ CPrediction::CPrediction( void )
 	m_nPreviousStartFrame = -1;
 
 	m_bPreviousAckHadErrors = false;
-
-	for (int i = 0; i < MULTIPLAYER_BACKUP; i++)
-	{
-		for (int j = 0; j < MAX_EDICTS; j++)
-        {
-            m_touchedHistory[i][j].savedTouches.RemoveAll();
-			m_touchedHistory[i][j].touchedTriggerEntities.RemoveAll();
-		}
-	}
 #endif
 }
 
@@ -133,6 +124,16 @@ void CPrediction::Init( void )
 
 void CPrediction::Shutdown( void )
 {
+	for ( int i = 0; i < MULTIPLAYER_BACKUP; i++ )
+	{
+		for ( int j = 0; j < MAX_EDICTS; j++ )
+		{
+			m_TouchedHistory[i][j].savedTouches.RemoveAll();
+			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
+		}
+
+		m_EventQueueHistory[i].RemoveAll();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1322,8 +1323,9 @@ void CPrediction::RestorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
+	auto slot				   = current_command % MULTIPLAYER_BACKUP;
 	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
-	auto& touchedHistory	   = m_touchedHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& touchedHistory	   = m_TouchedHistory[slot];
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
@@ -1346,8 +1348,8 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 		for ( int i = 0; i < savedTouches.Count(); i++ )
 		{
-			SavedTouch_t& touch = savedTouches[i];
-			auto pEntity		= entities[touch.entityTouched];
+			auto& savedTouched = savedTouches[i];
+			auto pEntity	   = entities[savedTouched.entityTouched];
 
 			// Entity doesn't exist anymore, don't bother ...
 			if ( !pEntity )
@@ -1372,7 +1374,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
 
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& savedEventQueue = m_EventQueueHistory[slot];
 
 	for ( auto&& event : savedEventQueue )
 	{
@@ -1397,8 +1399,9 @@ void CPrediction::StorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StorePredictedTouched" );
 
+	auto slot			 = current_command % MULTIPLAYER_BACKUP;
 	auto entities		 = g_pFastEntityLookUp->entities;
-	auto& touchedHistory = m_touchedHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& touchedHistory = m_TouchedHistory[slot];
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
@@ -1409,7 +1412,8 @@ void CPrediction::StorePredictedTouched( int current_command )
 			continue;
 		}
 
-		auto root			 = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
+		auto root = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
+
 		auto& savedTouchList = touchedHistory[ent->index];
 		auto& savedTouches	 = savedTouchList.savedTouches;
 
@@ -1423,7 +1427,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 				touch.entityTouched = link->entityTouched->index;
 				touch.touchStamp	= link->touchStamp;
 				touch.flags			= link->flags;
-				savedTouches.AddToTail( touch );
+				savedTouches.AddToTail( std::move( touch ) );
 			}
 		}
 
@@ -1438,7 +1442,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 		}
 	}
 
-	auto& savedEventQueue = m_eventQueueHistory[current_command % MULTIPLAYER_BACKUP];
+	auto& savedEventQueue = m_EventQueueHistory[slot];
 	savedEventQueue.RemoveAll();
 
 	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
@@ -1446,14 +1450,14 @@ void CPrediction::StorePredictedTouched( int current_command )
 		EventQueueForHistory event;
 		event.m_flFireTime = pEvent->m_flFireTime;
 		event.m_iOutputID  = pEvent->m_iOutputID;
-		Q_strcpy( event.m_iTarget, pEvent->m_iTarget );
-		Q_strcpy( event.m_iTargetInput, pEvent->m_iTargetInput );
+		Q_strncpy( event.m_iTarget, pEvent->m_iTarget, sizeof( event.m_iTarget ) );
+		Q_strncpy( event.m_iTargetInput, pEvent->m_iTargetInput, sizeof( event.m_iTargetInput ) );
 		event.m_pEntTarget	 = pEvent->m_pEntTarget;
 		event.m_pActivator	 = pEvent->m_pActivator;
 		event.m_pCaller		 = pEvent->m_pCaller;
 		event.m_VariantValue = pEvent->m_VariantValue;
 
-		savedEventQueue.AddToTail( event );
+		savedEventQueue.AddToTail( std::move( event ) );
 	}
 
 	// This will be reconstructed later.
