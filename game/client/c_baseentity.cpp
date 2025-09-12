@@ -71,6 +71,48 @@ static unsigned short g_iAbsRecomputationStackPos = 0;
 static CUtlLinkedList<C_BaseEntity*, unsigned short> g_InterpolationList;
 static CUtlLinkedList<C_BaseEntity*, unsigned short> g_TeleportList;
 
+CUtlVector< CClientEntityClass > g_EntityClasses;
+
+CUtlMemoryPool* GetEntityMemoryPool( void )
+{
+	static CUtlMemoryPool* pEntityMemoryPool = NULL;
+
+	if ( !pEntityMemoryPool )
+	{
+		auto nEntityMaxSize				 = sizeof( C_BaseEntity );
+		const char* pszEntityMaxSizeName = "C_BaseEntity";
+
+		for ( int i = 0; i < g_EntityClasses.Count(); i++ )
+		{
+			auto& entityClass = g_EntityClasses[i];
+
+			if ( entityClass.size >= nEntityMaxSize )
+			{
+				nEntityMaxSize		 = entityClass.size;
+				pszEntityMaxSizeName = entityClass.name;
+			}
+		}
+
+		static char buffer[256];
+		V_sprintf_safe( buffer,
+						"EMP (esize=%i, ename=%s)",
+						nEntityMaxSize,
+						pszEntityMaxSizeName );
+		ConMsg( "Allocating entity memory pool ... ( %s )\n", buffer );
+
+		pEntityMemoryPool = new CUtlMemoryPool( nEntityMaxSize, NUM_ENT_ENTRIES, CUtlMemoryPool::GROW_SLOW, buffer, 16 );
+
+		if ( !pEntityMemoryPool )
+		{
+			Error( "Failed to allocate entity memory pool ! (optimize/remove your variables, the lesser the better)" );
+		}
+
+		ConMsg( "Allocated entity memory pool ! %p\n", pEntityMemoryPool );
+	}
+
+	return pEntityMemoryPool;
+}
+
 #if !defined( NO_ENTITY_PREDICTION )
 //-----------------------------------------------------------------------------
 // Purpose: Maintains a list of predicted or client created entities
@@ -3547,7 +3589,7 @@ void *C_BaseEntity::operator new( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );	
 	MEM_ALLOC_CREDIT();
-	void *pMem = MemAlloc_Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
 	memset( pMem, 0, stAllocateBlock );
 	return pMem;												
 }
@@ -3556,7 +3598,7 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );				
 	MEM_ALLOC_CREDIT();
-	void *pMem = MemAlloc_Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
 	memset( pMem, 0, stAllocateBlock );
 	return pMem;												
 }
@@ -3564,7 +3606,7 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock )
 void *C_BaseEntity::operator new( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );	
-	void *pMem = MemAlloc_Alloc( stAllocateBlock, pFileName, nLine );
+	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
 	memset( pMem, 0, stAllocateBlock );
 	return pMem;												
 }
@@ -3572,7 +3614,7 @@ void *C_BaseEntity::operator new( size_t stAllocateBlock, int nBlockUse, const c
 void *C_BaseEntity::operator new[]( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );				
-	void *pMem = MemAlloc_Alloc( stAllocateBlock, pFileName, nLine );
+	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
 	memset( pMem, 0, stAllocateBlock );
 	return pMem;												
 }
@@ -3585,7 +3627,7 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock, int nBlockUse, const
 void C_BaseEntity::operator delete( void *pMem )
 {
 	// get the engine to free the memory
-	MemAlloc_Free( pMem );
+	GetEntityMemoryPool()->Free( pMem );
 }
 
 #include "tier0/memdbgon.h"

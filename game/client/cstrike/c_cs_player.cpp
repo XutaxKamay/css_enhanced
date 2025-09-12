@@ -774,6 +774,11 @@ C_CSPlayer::C_CSPlayer() :
 	m_bIsInsideLagCompensationContext = false;
 	m_flHitMarkerDisplayCurrentTime = 0.0f;
 	m_bHitMark = false;
+
+	for ( int i = 0; i <= MAX_PLAYERS; i++ )
+	{
+		m_HitboxTrack[i] = new hitbox_track_t;
+	}
 }
 
 
@@ -782,6 +787,12 @@ C_CSPlayer::~C_CSPlayer()
 	RemoveAddonModels();
 
 	ReleaseFlashlight();
+
+	for ( int i = 0; i <= MAX_PLAYERS; i++ )
+	{
+		delete m_HitboxTrack[i];
+		m_HitboxTrack[i] = NULL;
+	}
 }
 
 
@@ -2257,10 +2268,11 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 
 				// Let's see if anything wrong has happened, print some infos.
 				HitboxRecord* pRecord = nullptr;
+				auto playerIndex	  = player->index;
 
 				for ( int i = 0; i < MAX_HISTORY_HITBOX_RECORDS; i++ )
 				{
-					pRecord = m_HitboxTrack[player->index].Get( i );
+					pRecord = m_HitboxTrack[playerIndex]->Get( i );
 
 					if ( pRecord && ( pRecord->m_nAttackerTickBase == nAttackerTickBase ) )
 					{
@@ -2460,7 +2472,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 						ConMsg( "[%i]: Debugging player %s(%i) with hitbox:\n%s\n",
 								nAttackerTickBase,
 								player->GetPlayerName(),
-								player->entindex(),
+								playerIndex,
 								msg.c_str() );
 					}
 				}
@@ -2468,7 +2480,7 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				{
 					DevMsg( "Could not get record info for player %s (%i) with tickbase %i\n",
 							player->GetPlayerName(),
-							player->index,
+							playerIndex,
 							nAttackerTickBase );
 				}
 

@@ -719,6 +719,26 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 	// Move rolling average
 	m_Framerate = FRAMERATE_AVG_FRAC * m_Framerate + ( 1.0 - FRAMERATE_AVG_FRAC ) * gpGlobals->absoluteframetime;
 
+	static float flFpsPerSecTime = gpGlobals->realtime;
+	static int iFpsTotal		 = 1;
+	static int iCountFpsAverage	 = 1;
+	static int iFpsPerSec		 = 1;
+
+	int iFps = ( int )( 1.0f / m_Framerate );;
+
+	if ( flFpsPerSecTime <= gpGlobals->realtime )
+	{
+		flFpsPerSecTime	 = gpGlobals->realtime + 1.0f;
+		iFpsPerSec		 = iFpsTotal / iCountFpsAverage;
+		iFpsTotal		 = 0;
+		iCountFpsAverage = 0;
+	}
+	else
+	{
+		iFpsTotal += iFps;
+		iCountFpsAverage++;
+	}
+
 	// Print it out
 	y -= m_nNetGraphHeight;
 
@@ -732,7 +752,7 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 
 	int textTall = surface()->GetFontTall( font );
 
-	Q_snprintf( sz, sizeof( sz ), "fps:%4i   ping: %i ms", (int)(1.0f / m_Framerate), (int)(m_AvgLatency*1000.0f) );
+	Q_snprintf( sz, sizeof( sz ), "fps: %i/s (%i)   ping: %i ms", iFpsPerSec, iFps, (int)(m_AvgLatency*1000.0f) );
 
 	g_pMatSystemSurface->DrawColoredText( font, x, y, GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255, "%s", sz );
 

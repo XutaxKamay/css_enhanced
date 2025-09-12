@@ -18,6 +18,18 @@
 
 #include "interface.h"
 #include "dt_recv.h"
+#include "mempool.h"
+#include "utlvector.h"
+
+extern CUtlMemoryPool* GetEntityMemoryPool();
+
+struct CClientEntityClass
+{
+	const char* name;
+	size_t size;
+};
+
+extern CUtlVector< CClientEntityClass > g_EntityClasses;
 
 //-----------------------------------------------------------------------------
 // forward declarations
@@ -175,6 +187,14 @@ public:
 	extern ClientClass __g_##clientClassName##ClientClass;\
 	RecvTable*		clientClassName::m_pClassRecvTable = &dataTable::g_RecvTable;\
 	int				clientClassName::YouForgotToImplementOrDeclareClientClass() {return 0;}\
-	ClientClass*	clientClassName::GetClientClass() {return &__g_##clientClassName##ClientClass;}
+	ClientClass*	clientClassName::GetClientClass() {return &__g_##clientClassName##ClientClass;}\
+	struct CInitializeEntityClass_##clientClassName                                                                    \
+	{                                                                                                                  \
+		CInitializeEntityClass_##clientClassName()                                                                     \
+		{                                                                                                              \
+			g_EntityClasses.AddToTail( { #clientClassName, sizeof( clientClassName ) } );                              \
+		}                                                                                                              \
+	};                                                                                                                 \
+	inline static CInitializeEntityClass_##clientClassName g_CInitializeEntityClass_##clientClassName;
 
 #endif // CLIENT_CLASS_H

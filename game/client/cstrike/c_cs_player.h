@@ -425,7 +425,8 @@ private:
 		float m_flEncodedControllers[MAXSTUDIOBONECTRLS];
 	};
 
-	CUtlCircularBuffer< HitboxRecord, MAX_HISTORY_HITBOX_RECORDS > m_HitboxTrack[MAX_PLAYERS + 1];
+	using hitbox_track_t = CUtlCircularBuffer< HitboxRecord, MAX_HISTORY_HITBOX_RECORDS >;
+	hitbox_track_t* m_HitboxTrack[MAX_PLAYERS + 1];
 
 	QAngle m_angRenderAngles;
 	bool m_bIsInsideLagCompensationContext;

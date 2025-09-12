@@ -23,30 +23,9 @@
 #endif
 
 C_GameRules *g_pGameRules = NULL;
-static C_World *g_pClientWorld;
+static C_World *g_pClientWorld = NULL;
 
-
-void ClientWorldFactoryInit()
-{
-	g_pClientWorld = new C_World;
-}
-
-void ClientWorldFactoryShutdown()
-{
-	delete g_pClientWorld;
-	g_pClientWorld = NULL;
-}
-
-static IClientNetworkable* ClientWorldFactory( int entnum, int serialNum )
-{
-	Assert( g_pClientWorld != NULL );
-
-	g_pClientWorld->Init( entnum, serialNum );
-	return g_pClientWorld;
-}
-
-
-IMPLEMENT_CLIENTCLASS_FACTORY( C_World, DT_World, CWorld, ClientWorldFactory );
+IMPLEMENT_CLIENTCLASS( C_World, DT_World, CWorld );
 
 BEGIN_RECV_TABLE( C_World, DT_World )
 	RecvPropFloat(RECVINFO(m_flWaveHeight)),
@@ -64,6 +43,7 @@ END_RECV_TABLE()
 
 C_World::C_World( void )
 {
+	g_pClientWorld = this;
 }
 
 C_World::~C_World( void )

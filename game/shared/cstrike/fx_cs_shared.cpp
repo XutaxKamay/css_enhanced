@@ -339,7 +339,7 @@ void FX_FireBullets(
 				}
 			}
 
-			pPlayer->m_HitboxTrack[lagPlayer->index].Push( record );
+			pPlayer->m_HitboxTrack[lagPlayer->index]->Push( std::move( record ) );
 		}
 	}
 #endif

@@ -72,8 +72,6 @@ inline const char *C_World::GetDetailSpriteMaterial() const
 	return m_iszDetailSpriteMaterial;
 }
 
-void ClientWorldFactoryInit();
-void ClientWorldFactoryShutdown();
 C_World* GetClientWorldEntity();
 
 #endif // C_WORLD_H
