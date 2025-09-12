@@ -773,7 +773,9 @@ void CStudioRenderContext::R_StudioBuildMeshGroup( const char *pModelName, bool 
 	meshBuilder.End();
 
 	// Copy over the strip indices. We need access to the indices for decals
-	pMeshGroup->m_pIndices = new unsigned short[ pStripGroup->numIndices ];
+	pMeshGroup->m_pIndices = ( unsigned short* )MemAlloc_AllocAligned( pStripGroup->numIndices
+																		 * sizeof( unsigned short ),
+																	   16 );
 	memcpy( pMeshGroup->m_pIndices, pStripGroup->pIndex(0), 
 		pStripGroup->numIndices * sizeof(unsigned short) );
 
@@ -1291,7 +1293,7 @@ void CStudioRenderContext::R_StudioDestroyStaticMeshes( int numStudioMeshes, stu
 
 			if (pGroup->m_pIndices)
 			{
-				delete [] pGroup->m_pIndices;
+				MemAlloc_FreeAligned( pGroup->m_pIndices );
 				pGroup->m_pIndices = 0;
 			}
 

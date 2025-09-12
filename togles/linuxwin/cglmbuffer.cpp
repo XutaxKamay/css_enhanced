@@ -845,7 +845,7 @@ void CGLMBuffer::Lock( GLMBuffLockParams *pParams, char **pAddressOut )
 		char *mapPtr;
 
 		// m_bEnableAsyncMap is actually pParams->m_bNoOverwrite
-		GLbitfield parms = GL_MAP_WRITE_BIT | ( m_bEnableAsyncMap ? GL_MAP_UNSYNCHRONIZED_BIT : 0 ) | ( pParams->m_bDiscard ? GL_MAP_INVALIDATE_BUFFER_BIT : 0 ) | ( m_bEnableExplicitFlush ? GL_MAP_FLUSH_EXPLICIT_BIT : 0 );
+		GLbitfield parms = GL_MAP_WRITE_BIT | ( m_bEnableAsyncMap ? GL_MAP_UNSYNCHRONIZED_BIT : 0 ) | ( pParams->m_bDiscard ? GL_MAP_INVALIDATE_BUFFER_BIT : GL_MAP_INVALIDATE_RANGE_BIT ) | ( m_bEnableExplicitFlush ? GL_MAP_FLUSH_EXPLICIT_BIT : 0 );
 
 #ifdef REPORT_LOCK_TIME
 		double flStart = Plat_FloatTime();

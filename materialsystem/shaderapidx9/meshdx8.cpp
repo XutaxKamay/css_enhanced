@@ -1468,7 +1468,7 @@ bool CIndexBufferDx8::Lock( int nMaxIndexCount, bool bAppend, IndexDesc_t &desc 
 
 	if ( FAILED( hr ) )
 	{
-		Warning( "Failed to lock index buffer in CIndexBufferDx8::LockIndexBuffer\n" );
+		Warning( "Failed to lock index buffer in CIndexBufferDx8::LockIndexBuffer %p\n", hr );
 		goto indexBufferLockFailed;
 	}
 
@@ -1875,7 +1875,7 @@ bool CVertexBufferDx8::Lock( int nMaxVertexCount, bool bAppend, VertexDesc_t &de
 		}
 		else
 		{
-			Warning( "Failed to lock vertex buffer in CVertexBufferDx8::Lock\n" );
+			Warning( "Failed to lock vertex buffer in CVertexBufferDx8::Lock %p\n", hr );
 		}
 		goto vertexBufferLockFailed;
 	}

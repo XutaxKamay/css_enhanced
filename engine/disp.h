@@ -253,7 +253,7 @@ public:
 	// List of all indices in the displacement in the current tesselation.
 	// These indices are straight into the static buffer (ie: they're not relative
 	// to m_iVertOffset).
-	CUtlVector<unsigned short>	m_Indices;
+	CUtlVector< unsigned short, CUtlMemoryAligned< unsigned short, 16 > >	m_Indices;
 
 	CUtlVector<CDispRenderVert, CHunkMemory<CDispRenderVert> > m_Verts;	// vectors that define the surface (size is NumVerts()).
 

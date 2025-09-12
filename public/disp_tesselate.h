@@ -181,7 +181,7 @@ public:
 	
 	// Used internally by TesselateDisplacement.
 	int m_nIndices;						// After calling TesselateDisplacement, this is set to the # of indices generated.
-	unsigned short m_TempIndices[6];
+	ALIGN16 unsigned short m_TempIndices[6] ALIGN16_POST;
 };
 
 

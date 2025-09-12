@@ -327,6 +327,9 @@ public:
 		m_pCallQueue->QueueCall( m_pLateBoundMesh, &IMesh::DisableFlexMesh );
 	}
 
+#define COPY_VERTS_AND_INDICES_PREFER_SIMD_VERSION
+
+#ifndef COPY_VERTS_AND_INDICES_PREFER_SIMD_VERSION
 	void ExecuteDefferredBuild( byte *pVertexData, int nVerts, int nBytesVerts, uint16 *pIndexData, int nIndices )
 	{
 		Assert( m_pActualMesh );
@@ -379,7 +382,7 @@ public:
 
 		if ( pIndexData && pIndexData != &gm_ScratchIndexBuffer[0] && desc.m_nIndexSize )
         {
-            static constexpr auto INDICES_TO_AUTOVECTORIZE = 256;
+            static constexpr auto INDICES_TO_AUTOVECTORIZE = 32;
             int i                                          = 0;
             auto pAlignedIndexData = assume_aligned<16>(pIndexData);
             auto pAlignedIndces = (((size_t)desc.m_pIndices) % 16) == 0 ? assume_aligned<16>(desc.m_pIndices) : desc.m_pIndices;
@@ -467,6 +470,161 @@ public:
 			m_pOwner->FreeVertices( pVertexData, nVerts, desc.m_ActualVertexSize );
 		}
 	}
+#else
+	// TODO_ENHANCED: this is what takes the most ressources, this must be optimized the best you can of course.
+	void ExecuteDefferredBuild( byte *pVertexData, int nVerts, int nBytesVerts, uint16 *pIndexData, int nIndices )
+	{
+		Assert( m_pActualMesh );
+		MeshDesc_t desc;
+		m_pActualMesh->LockMesh( nVerts, nIndices, desc );
+		m_nActualVertexOffsetInBytes = desc.m_nFirstVertex * desc.m_ActualVertexSize;
+		if ( pVertexData && desc.m_ActualVertexSize ) // if !desc.m_ActualVertexSize, device lost
+		{
+			void *pDest;
+			if ( desc.m_VertexSize_Position != 0 )
+			{
+				pDest = desc.m_pPosition;
+			}
+			else
+			{
+				#define FindMin( desc, pCurrent, tag )	( ( desc.m_VertexSize_##tag != 0 ) ? min( pCurrent, (void *)desc.m_p##tag )  : pCurrent )
+
+				pDest = (void *)(((byte *)0) - 1);
+
+				pDest = FindMin( desc, pDest, BoneWeight );
+				pDest = FindMin( desc, pDest, BoneMatrixIndex );
+				pDest = FindMin( desc, pDest, Normal );
+				pDest = FindMin( desc, pDest, Color );
+				pDest = FindMin( desc, pDest, Specular );
+				pDest = FindMin( desc, pDest, TangentS );
+				pDest = FindMin( desc, pDest, TangentT );
+				pDest = FindMin( desc, pDest, Wrinkle );
+
+				for ( int i = 0; i < VERTEX_MAX_TEXTURE_COORDINATES; i++ )
+				{
+					if ( desc.m_VertexSize_TexCoord[i] && desc.m_pTexCoord < pDest )
+					{
+						pDest = desc.m_pTexCoord;
+					}
+				}
+
+				#undef FindMin
+			}
+
+			Assert( pDest );
+
+			auto pAlignedDest		 = assume_aligned< 16 >( ( byte* )pDest );
+			auto pAlignedVertexData	 = assume_aligned< 16 >( pVertexData );
+			auto nAlignedVertexBytes = static_cast< size_t >( nBytesVerts + 15 ) / 16;
+
+			// This should be safe if they are allocated with aligned size
+			for ( size_t i = 0; i < nAlignedVertexBytes; i++ )
+			{
+				auto vertex = _mm_load_si128( reinterpret_cast< __m128i* >( pAlignedVertexData + i * 16 ) );
+				_mm_store_si128( reinterpret_cast< __m128i* >( pAlignedDest + i * 16 ), vertex );
+			}
+		}
+
+		if ( pIndexData && pIndexData != &gm_ScratchIndexBuffer[0] && desc.m_nIndexSize )
+		{
+			static constexpr auto INDICES_TO_AUTOVECTORIZE = 32;
+
+			int i				   = 0;
+			auto pAlignedIndexData	= assume_aligned< 16 >( pIndexData );
+			bool bIndicesAreAligned = ( ( ( size_t )desc.m_pIndices ) % 16 ) == 0;
+			// TODO_ENHANCED: if this is aligned, we might remove _mm_storeu_si128 one day, which is great.
+			auto pAlignedIndices = bIndicesAreAligned ? assume_aligned< 16 >( desc.m_pIndices ) : desc.m_pIndices;
+
+			if ( !desc.m_nFirstVertex )
+			{
+				auto simd_copy_indices = [&]( unsigned short* pSrc, unsigned short* pDst )
+				{
+					for ( size_t i = 0; i < INDICES_TO_AUTOVECTORIZE; i += 8 )
+					{
+						auto src = _mm_load_si128( reinterpret_cast< __m128i* >( pSrc + i ) );
+
+						bIndicesAreAligned ? _mm_store_si128( reinterpret_cast< __m128i* >( pDst + i ), src ) :
+											 _mm_storeu_si128( reinterpret_cast< __m128i* >( pDst + i ), src );
+					}
+				};
+
+				// Let it autovectorize.
+				while ( i < nIndices )
+				{
+					int nToCopy = nIndices - i;
+
+					auto pSrc = pAlignedIndexData + i;
+					auto pDst = pAlignedIndices + i;
+
+					if ( nToCopy < INDICES_TO_AUTOVECTORIZE )
+					{
+						std::copy( pSrc, pSrc + nToCopy, pDst );
+						i += nToCopy;
+					}
+					else
+					{
+						simd_copy_indices( pSrc, pDst );
+						i += INDICES_TO_AUTOVECTORIZE;
+					}
+				}
+			}
+			else
+			{
+				auto simd_copy_indices = [&]( unsigned short* pSrc, unsigned short* pDst, __m128i firstVertexMatrix )
+				{
+					for ( size_t i = 0; i < INDICES_TO_AUTOVECTORIZE; i += 8 )
+					{
+						auto src = _mm_load_si128( reinterpret_cast< __m128i* >( pSrc + i ) );
+						src		 = _mm_add_epi16( src, firstVertexMatrix );
+
+						bIndicesAreAligned ? _mm_store_si128( reinterpret_cast< __m128i* >( pDst + i ), src ) :
+											 _mm_storeu_si128( reinterpret_cast< __m128i* >( pDst + i ), src );
+					}
+				};
+
+				int firstVertex		   = desc.m_nFirstVertex;
+				auto firstVertexMatrix = _mm_set1_epi16( firstVertex );
+
+				while ( i < nIndices )
+				{
+					int nToCopy = nIndices - i;
+					auto pSrc	= pAlignedIndexData + i;
+					auto pDst	= pAlignedIndices + i;
+
+					if ( nToCopy < INDICES_TO_AUTOVECTORIZE )
+					{
+						alignas( 16 ) unsigned short srcVerts[INDICES_TO_AUTOVECTORIZE];
+
+						for ( int j = 0; j < nToCopy; j++ )
+						{
+							srcVerts[j] = pSrc[j] + firstVertex;
+						}
+
+						std::copy( srcVerts, srcVerts + nToCopy, pDst );
+						i += nToCopy;
+					}
+					else
+					{
+						simd_copy_indices( pSrc, pDst, firstVertexMatrix );
+						i += INDICES_TO_AUTOVECTORIZE;
+					}
+				}
+			}
+		}
+
+		m_pActualMesh->UnlockMesh( nVerts, nIndices, desc );
+
+		if ( pIndexData && pIndexData != &gm_ScratchIndexBuffer[0])
+		{
+			m_pOwner->FreeIndices( pIndexData, nIndices );
+		}
+		if ( pVertexData )
+		{
+			m_pOwner->FreeVertices( pVertexData, nVerts, desc.m_ActualVertexSize );
+		}
+	}
+#endif
+#undef COPY_VERTS_AND_INDICES_PREFER_SIMD_VERSION
 
 	void QueueBuild( bool bDetachBuffers = true )
 	{
