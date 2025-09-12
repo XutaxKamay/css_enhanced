@@ -1323,6 +1323,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
 	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
+	auto& touchedHistory	   = m_touchedHistory[current_command % MULTIPLAYER_BACKUP];
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
@@ -1338,14 +1339,15 @@ void CPrediction::RestorePredictedTouched( int current_command )
 			continue;
 		}
 
-		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+		auto& savedTouchList = touchedHistory[ent->index];
+		auto& savedTouches	 = savedTouchList.savedTouches;
 
 		C_BaseEntity::PhysicsRemoveTouchedList( ent );
 
-		for ( int i = 0; i < savedTouchList.savedTouches.Count(); i++ )
+		for ( int i = 0; i < savedTouches.Count(); i++ )
 		{
-			SavedTouch_t& touch = savedTouchList.savedTouches[i];
-			auto pEntity		= ClientEntityList().GetBaseEntity( touch.entityTouched );
+			SavedTouch_t& touch = savedTouches[i];
+			auto pEntity		= entities[touch.entityTouched];
 
 			// Entity doesn't exist anymore, don't bother ...
 			if ( !pEntity )
@@ -1359,9 +1361,9 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 		if ( ent->IsTrigger() )
 		{
-			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with trigger_push and others
-			InvalidateEFlagsRecursive( ent,
-									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
+			// trigger_push and others
+			InvalidateEFlagsRecursive( ent, EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
 			auto trigger				 = static_cast< C_BaseTrigger* >( ent );
 			trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
@@ -1374,7 +1376,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 	for ( auto&& event : savedEventQueue )
 	{
-		EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
+		auto newEvent = new EventQueuePrioritizedEvent_t;
 
 		newEvent->m_flFireTime	 = event.m_flFireTime;
 		newEvent->m_iTarget		 = event.m_iTarget;
@@ -1395,7 +1397,8 @@ void CPrediction::StorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StorePredictedTouched" );
 
-	auto entities = g_pFastEntityLookUp->entities;
+	auto entities		 = g_pFastEntityLookUp->entities;
+	auto& touchedHistory = m_touchedHistory[current_command % MULTIPLAYER_BACKUP];
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
@@ -1407,9 +1410,10 @@ void CPrediction::StorePredictedTouched( int current_command )
 		}
 
 		auto root			 = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
-		auto& savedTouchList = m_touchedHistory[current_command % MULTIPLAYER_BACKUP][ent->index];
+		auto& savedTouchList = touchedHistory[ent->index];
+		auto& savedTouches	 = savedTouchList.savedTouches;
 
-		savedTouchList.savedTouches.RemoveAll();
+		savedTouches.RemoveAll();
 
 		if ( root )
 		{
@@ -1419,15 +1423,15 @@ void CPrediction::StorePredictedTouched( int current_command )
 				touch.entityTouched = link->entityTouched->index;
 				touch.touchStamp	= link->touchStamp;
 				touch.flags			= link->flags;
-				savedTouchList.savedTouches.AddToTail( touch );
+				savedTouches.AddToTail( touch );
 			}
 		}
 
 		if ( ent->IsTrigger() )
 		{
-			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with trigger_push and others
-			InvalidateEFlagsRecursive( ent,
-									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
+			// trigger_push and others
+			InvalidateEFlagsRecursive( ent, EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
 			auto trigger						  = static_cast< C_BaseTrigger* >( ent );
 			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;

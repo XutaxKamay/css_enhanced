@@ -61,11 +61,23 @@ CFLAGS = {
 	},
 	'fastnative': {
 		'msvc':    ['/O2', '/Oy', '/MD'],
+		'gcc':     ['-Ofast', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
+		'clang':   ['-Ofast', '-march=native', '-mtune=native'],
+		'default': ['-O3']
+	},
+	'fastnative_dbgsym': {
+		'msvc':    ['/O2', '/Oy', '/MD'],
+		'gcc':     ['-g', '-Ofast', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
+		'clang':   ['-g', '-Ofast', '-march=native', '-mtune=native'],
+		'default': ['-g', '-O3']
+	},
+	'fastnative_lto': {
+		'msvc':    ['/O2', '/Oy', '/MD'],
 		'gcc':     ['-Ofast', '-flto', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
 		'clang':   ['-Ofast', '-flto', '-march=native', '-mtune=native'],
 		'default': ['-O3', '-flto']
 	},
-	'fastnative_dbgsym': {
+	'fastnative_lto_dbgsym': {
 		'msvc':    ['/O2', '/Oy', '/MD'],
 		'gcc':     ['-g', '-Ofast', '-flto', '-march=native', '-mtune=native', '-funsafe-math-optimizations', '-funsafe-loop-optimizations', '-fomit-frame-pointer'],
 		'clang':   ['-g', '-Ofast', '-flto', '-march=native', '-mtune=native'],

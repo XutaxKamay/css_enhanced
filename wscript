@@ -266,6 +266,7 @@ def define_platform(conf):
 			'_DLL_EXT=.so'
 		])
 
+	# Let people use LD_PRELOAD for custom allocators
 	conf.define('NO_MEMOVERRIDE_NEW_DELETE', 1)
 	conf.define('NO_MALLOC_OVERRIDE', 1)
 

@@ -2570,13 +2570,13 @@ int CBaseEntity::BaseInterpolatePart1( size_t nAmountOfTicks, float flInterpolat
 			}
 		}
 
-		m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
+		// m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
 		// Ignore time here, we don't need it.
 		m_InterpolatedVariableList.Interpolate( nAmountOfTicks, flInterpolationAmountFrac );
 	}
 	else
 	{
-		m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
+		// m_InterpolatedVariableList.SetInterpolationType( CLInterpType );
 		m_InterpolatedVariableList.Interpolate( gpGlobals->predicted_snapshot_tickcount, nAmountOfTicks, flInterpolationAmountFrac );
 	}
 

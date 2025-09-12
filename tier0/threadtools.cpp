@@ -490,7 +490,18 @@ ThreadId_t ThreadGetCurrentId()
 	sys_ppu_thread_get_id( &th );
 	return th;
 #elif defined(POSIX)
+	// Use thread-local caching for Linux to avoid repeated syscalls
+#ifdef __linux__
+	static __thread ThreadId_t tls_tid = 0;
+	if ( tls_tid == 0 )
+	{
+		tls_tid = (ThreadId_t)gettid();
+	}
+	return tls_tid;
+#else
+	// Fallback for other POSIX systems
 	return (ThreadId_t)gettid();
+#endif
 #else
 	Assert(0);
 	DebuggerBreak();
