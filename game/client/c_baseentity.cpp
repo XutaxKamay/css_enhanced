@@ -100,7 +100,7 @@ CUtlMemoryPool* GetEntityMemoryPool( void )
 						pszEntityMaxSizeName );
 		ConMsg( "Allocating entity memory pool ... ( %s )\n", buffer );
 
-		pEntityMemoryPool = new CUtlMemoryPool( nEntityMaxSize, NUM_ENT_ENTRIES, CUtlMemoryPool::GROW_SLOW, buffer, 16 );
+		pEntityMemoryPool = new CUtlMemoryPool( nEntityMaxSize, NUM_ENT_ENTRIES, CUtlMemoryPool::GROW_NONE, buffer, 16 );
 
 		if ( !pEntityMemoryPool )
 		{
