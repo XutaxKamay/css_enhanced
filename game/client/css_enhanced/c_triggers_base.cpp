@@ -13,6 +13,26 @@
 #include "predictioncopy.h"
 #include "tier0/memdbgon.h"
 
+CUtlHash< C_BaseEntity* > g_TriggerEntities(
+  MAX_EDICTS,
+  0,
+  0,
+  []( const C_BaseEntity*& pEntA, const C_BaseEntity*& pEntB )
+  {
+	  return pEntA == pEntB;
+  },
+  []( const C_BaseEntity*& pEnt )
+  {
+	  if constexpr ( sizeof( uintp ) == 8 )
+	  {
+		  return Hash8( &pEnt );
+	  }
+	  else
+	  {
+		  return Hash4( &pEnt );
+	  }
+  } );
+
 bool IsTriggerClass( CBaseEntity *pEntity );
 
 CON_COMMAND(report_triggerinfo, "")
@@ -197,8 +217,19 @@ C_BaseTrigger::C_BaseTrigger()
 	AddEFlags( EFL_USE_PARTITION_WHEN_NOT_SOLID );
     Q_memset(m_iFilterName, 0, sizeof(m_iFilterName));
     Q_memset(m_target, 0, sizeof(m_target));
-    // m_iCountPredictedTouchingEntities = 0;
-    // Q_memset(m_hPredictedTouchingEntities, 0, sizeof(m_hPredictedTouchingEntities));
+	g_TriggerEntities.Insert( this );
+	// m_iCountPredictedTouchingEntities = 0;
+	// Q_memset(m_hPredictedTouchingEntities, 0, sizeof(m_hPredictedTouchingEntities));
+}
+
+C_BaseTrigger::~C_BaseTrigger()
+{
+	auto handle = g_TriggerEntities.Find( this );
+
+	if ( handle != g_TriggerEntities.InvalidHandle() )
+	{
+		g_TriggerEntities.Remove( handle );
+	}
 }
 
 void C_BaseTrigger::Spawn()

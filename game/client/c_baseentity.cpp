@@ -714,6 +714,7 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
+	Q_memset(m_pCurrentDataObjects, 0, sizeof(m_pCurrentDataObjects));
 }
 
 

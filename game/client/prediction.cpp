@@ -1361,7 +1361,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 			pEntity->PhysicsMarkEntityAsTouched( ent );
 		}
 
-		if ( ent->IsTrigger() )
+		if ( g_TriggerEntities.Find( ent ) != g_TriggerEntities.InvalidHandle() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
@@ -1412,7 +1412,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 			continue;
 		}
 
-		auto root = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
+		auto root = ( touchlink_t* )ent->m_pCurrentDataObjects[ TOUCHLINK ];
 
 		auto& savedTouchList = touchedHistory[ent->index];
 		auto& savedTouches	 = savedTouchList.savedTouches;
@@ -1431,7 +1431,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 			}
 		}
 
-		if ( ent->IsTrigger() )
+		if ( g_TriggerEntities.Find( ent ) != g_TriggerEntities.InvalidHandle() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others

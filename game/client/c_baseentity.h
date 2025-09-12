@@ -1724,6 +1724,7 @@ protected:
 	uint64 m_nInterpolatedSimulatedTickCount;
 	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
 	bool m_bIsProcessingFrameInterpolation;
+	void* m_pCurrentDataObjects[32];
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);

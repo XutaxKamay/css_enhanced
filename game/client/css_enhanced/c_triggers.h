@@ -10,6 +10,8 @@
 #include "c_entityoutput.h"
 #include "c_filters.h"
 
+#include "utlhash.h"
+
 //
 // Spawnflags
 //
@@ -42,6 +44,7 @@ class C_BaseTrigger : public C_BaseToggle
 	DECLARE_PREDICTABLE();
 public:
 	C_BaseTrigger();
+	virtual ~C_BaseTrigger();
 
 	void InitTrigger( void );
 
@@ -114,6 +117,8 @@ public:
 
 	DECLARE_DATADESC();
 };
+
+extern CUtlHash< C_BaseEntity* > g_TriggerEntities;
 
 //-----------------------------------------------------------------------------
 // Purpose: Variable sized repeatable trigger.  Must be targeted at one or more entities.

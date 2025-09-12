@@ -1852,6 +1852,7 @@ public:
 	}
 
 	CNetworkVar( uint64, m_nSimulatedTickCount ); // keep track how many times we simulated entity
+	void* m_pCurrentDataObjects[32];
 };
 
 // Send tables exposed in this module.
