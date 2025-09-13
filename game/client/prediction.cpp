@@ -1333,8 +1333,8 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
 
-	const auto& entities = g_pFastEntityLookUp->m_Entities;
-	auto& isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
+	const auto entities = g_pFastEntityLookUp->m_Entities;
+	auto isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
 
 	for ( const auto& savedTouchList : touchedHistory )
 	{
@@ -1386,8 +1386,8 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	touchedHistory.RemoveAll();
 
-	const auto& entities  = g_pFastEntityLookUp->m_Entities;
-	auto& isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
+	const auto entities  = g_pFastEntityLookUp->m_Entities;
+	auto isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
