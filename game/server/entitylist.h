@@ -359,7 +359,8 @@ class CFastEntityLookUp : public IEntityListener
 	virtual void OnEntityDeleted( CBaseEntity* pEntity );
 
 	// Let have a chance to the CPU in order to autovectorize these!
-	CBaseEntity* entities[NUM_ENT_ENTRIES];
+	ALIGN16 CBaseEntity* m_Entities[MAX_EDICTS] ALIGN16_POST;
+	ALIGN16 CBitVec< MAX_EDICTS > m_IsEntityCreated ALIGN16_POST;
 };
 
 extern CFastEntityLookUp* g_pFastEntityLookUp;

@@ -88,7 +88,8 @@ struct CUtlEntityMemoryPool
 			m_nMaxEntitySize = max( m_nMaxEntitySize, entityClass.size );
 		}
 
-		auto nAlignSize = m_nMaxEntitySize > 0x4000 ? 4096 : 16;
+		// Pad to a page size for tlb cache
+		auto nAlignSize = 4096;
 
 		m_nMaxEntitySize = AlignValue( m_nMaxEntitySize, nAlignSize );
 

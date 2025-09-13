@@ -561,7 +561,7 @@ CBasePlayer* UTIL_PlayerByIndex( int playerIndex )
 {
 	if ( playerIndex > 0 && playerIndex <= gpGlobals->maxClients )
 	{
-		return ( CBasePlayer* )( g_pFastEntityLookUp->entities[playerIndex] );
+		return ( CBasePlayer* )( g_pFastEntityLookUp->m_Entities[playerIndex] );
 	}
 
 	return NULL;
@@ -694,7 +694,7 @@ CBaseEntity	*UTIL_EntityByIndex( int entityIndex )
 {
 	if ( entityIndex > 0 )
 	{
-		auto pEntity = g_pFastEntityLookUp->entities[entityIndex];
+		auto pEntity = g_pFastEntityLookUp->m_Entities[entityIndex];
 
 		if ( pEntity )
 		{

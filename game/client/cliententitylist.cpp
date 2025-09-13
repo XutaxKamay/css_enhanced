@@ -510,9 +510,10 @@ C_BaseEntity* C_BaseEntityIterator::Next()
 
 CFastEntityLookUp::CFastEntityLookUp()
 {
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( int index = 0; index < MAX_EDICTS; index++ )
 	{
-		entities[i] = NULL;
+		m_Entities[index]		 = NULL;
+		m_IsEntityCreated[index] = false;
 	}
 
 	cl_entitylist->AddListenerEntity( this );
@@ -522,9 +523,10 @@ void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 {
 	auto index = pEntity->entindex();
 
-	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	if ( index >= 0 && index < MAX_EDICTS )
 	{
-		entities[index] = pEntity;
+		m_Entities[index]		 = pEntity;
+		m_IsEntityCreated[index] = true;
 	}
 }
 
@@ -532,8 +534,9 @@ void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 {
 	auto index = pEntity->entindex();
 
-	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	if ( index >= 0 && index < MAX_EDICTS )
 	{
-		entities[index] = NULL;
+		m_Entities[index]		 = NULL;
+		m_IsEntityCreated[index] = false;
 	}
 }

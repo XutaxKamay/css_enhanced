@@ -1639,9 +1639,10 @@ CON_COMMAND(report_simthinklist, "Lists all simulating/thinking entities")
 
 CFastEntityLookUp::CFastEntityLookUp()
 {
-	for ( int i = 0; i < NUM_ENT_ENTRIES; i++ )
+	for ( int index = 0; index < MAX_EDICTS; index++ )
 	{
-		entities[i] = NULL;
+		m_Entities[index]		 = NULL;
+		m_IsEntityCreated[index] = false;
 	}
 
 	gEntList.AddListenerEntity( this );
@@ -1651,13 +1652,10 @@ void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 {
 	auto index = pEntity->entindex();
 
-	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	if ( index >= 0 && index < MAX_EDICTS )
 	{
-		entities[index] = pEntity;
-	}
-	else
-	{
-		Error( "entity index is %i something is wrong.\n", index );
+		m_Entities[index]		 = pEntity;
+		m_IsEntityCreated[index] = true;
 	}
 }
 
@@ -1665,12 +1663,9 @@ void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 {
 	auto index = pEntity->entindex();
 
-	if ( index >= 0 && index < NUM_ENT_ENTRIES )
+	if ( index >= 0 && index < MAX_EDICTS )
 	{
-		entities[index] = NULL;
-	}
-	else
-	{
-		Error( "entity index is %i something is wrong.\n", index );
+		m_Entities[index]		 = NULL;
+		m_IsEntityCreated[index] = false;
 	}
 }

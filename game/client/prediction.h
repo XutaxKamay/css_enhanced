@@ -155,21 +155,10 @@ private:
 	{
 		CUtlVector< SavedTouch_t > savedTouches;
 		CUtlVector< EHANDLE > touchedTriggerEntities;
+		C_BaseEntity* pEntity;
 	};
 
-	struct EventQueueForHistory
-	{
-		float m_flFireTime;
-		char m_iTarget[MAX_PATH];	   // TODO_ENHANCED: We need to rename this to some hash here ...
-		char m_iTargetInput[MAX_PATH]; // TODO_ENHANCED: We need to rename this to some hash here ...
-		EHANDLE m_pActivator;
-		EHANDLE m_pCaller;
-		int m_iOutputID;
-		EHANDLE m_pEntTarget;
-		variant_t m_VariantValue;
-	};
-
-	TouchedHistory m_TouchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
+	CUtlVector< TouchedHistory > m_TouchedHistory[MULTIPLAYER_BACKUP];
 	C_EventQueue m_EventQueueHistory[MULTIPLAYER_BACKUP];
 
   public:

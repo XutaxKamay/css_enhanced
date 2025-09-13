@@ -123,12 +123,7 @@ void CPrediction::Init( void )
 
 	for ( int i = 0; i < MULTIPLAYER_BACKUP; i++ )
 	{
-		for ( int j = 0; j < MAX_EDICTS; j++ )
-		{
-			m_TouchedHistory[i][j].savedTouches.RemoveAll();
-			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
-		}
-
+		m_TouchedHistory[i].RemoveAll();
 		m_EventQueueHistory[i].Clear();
 	}
 #endif
@@ -139,12 +134,7 @@ void CPrediction::Shutdown( void )
 #if !defined( NO_ENTITY_PREDICTION )
 	for ( int i = 0; i < MULTIPLAYER_BACKUP; i++ )
 	{
-		for ( int j = 0; j < MAX_EDICTS; j++ )
-		{
-			m_TouchedHistory[i][j].savedTouches.RemoveAll();
-			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
-		}
-
+		m_TouchedHistory[i].RemoveAll();
 		m_EventQueueHistory[i].Clear();
 	}
 #endif
@@ -1336,52 +1326,47 @@ void CPrediction::RestorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
-	auto slot				   = current_command % MULTIPLAYER_BACKUP;
+	const auto slot			   = current_command % MULTIPLAYER_BACKUP;
 	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
-	auto& touchedHistory	   = m_TouchedHistory[slot];
+	const auto& touchedHistory = m_TouchedHistory[slot];
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
 
-	auto entities = g_pFastEntityLookUp->entities;
+	const auto& entities = g_pFastEntityLookUp->m_Entities;
+	auto& isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
 
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( const auto& savedTouchList : touchedHistory )
 	{
-		C_BaseEntity* ent = entities[i];
+		const auto pEntity		 = savedTouchList.pEntity;
+		const auto& savedTouches = savedTouchList.savedTouches;
 
-		if ( !ent )
+		C_BaseEntity::PhysicsRemoveTouchedList( pEntity );
+
+		for ( const auto& savedTouched : savedTouches )
 		{
-			continue;
-		}
-
-		auto& savedTouchList = touchedHistory[ent->index];
-		auto& savedTouches	 = savedTouchList.savedTouches;
-
-		C_BaseEntity::PhysicsRemoveTouchedList( ent );
-
-		for ( int i = 0; i < savedTouches.Count(); i++ )
-		{
-			auto& savedTouched = savedTouches[i];
-			auto pEntity	   = entities[savedTouched.entityTouched];
+			const auto touchedEntityIndex = savedTouched.entityTouched;
 
 			// Entity doesn't exist anymore, don't bother ...
-			if ( !pEntity )
+			if ( !isEntityCreated[touchedEntityIndex] )
 			{
 				continue;
 			}
 
-			ent->PhysicsMarkEntityAsTouched( pEntity );
-			pEntity->PhysicsMarkEntityAsTouched( ent );
+			const auto pTouchedEntity = entities[touchedEntityIndex];
+
+			pEntity->PhysicsMarkEntityAsTouched( pTouchedEntity );
+			pTouchedEntity->PhysicsMarkEntityAsTouched( pEntity );
 		}
 
-		if ( g_TriggerEntities.Find( ent ) != g_TriggerEntities.InvalidHandle() )
+		if ( g_TriggerEntities.Find( pEntity ) != g_TriggerEntities.InvalidHandle() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
-			InvalidateEFlagsRecursive( ent, EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			InvalidateEFlagsRecursive( pEntity,
+									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
-			auto trigger				 = static_cast< C_BaseTrigger* >( ent );
-			trigger->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+			static_cast< C_BaseTrigger* >( pEntity )->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
 		}
 	}
 
@@ -1396,25 +1381,28 @@ void CPrediction::StorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::StorePredictedTouched" );
 
-	auto slot			 = current_command % MULTIPLAYER_BACKUP;
-	auto entities		 = g_pFastEntityLookUp->entities;
+	const auto slot		 = current_command % MULTIPLAYER_BACKUP;
 	auto& touchedHistory = m_TouchedHistory[slot];
+
+	touchedHistory.RemoveAll();
+
+	const auto& entities  = g_pFastEntityLookUp->m_Entities;
+	auto& isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
 
 	for ( int i = 0; i < MAX_EDICTS; i++ )
 	{
-		C_BaseEntity* ent = entities[i];
-
-		if ( !ent )
+		if ( !isEntityCreated[i] )
 		{
 			continue;
 		}
 
-		auto root = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
+		const auto pEntity = entities[i];
+		const auto root = ( touchlink_t* )pEntity->GetDataObject( TOUCHLINK );
 
-		auto& savedTouchList = touchedHistory[ent->index];
-		auto& savedTouches	 = savedTouchList.savedTouches;
+		auto& savedTouchList   = touchedHistory.Element( touchedHistory.AddToTail() );
+		savedTouchList.pEntity = pEntity;
 
-		savedTouches.RemoveAll();
+		auto& savedTouches	   = savedTouchList.savedTouches;
 
 		if ( root )
 		{
@@ -1428,14 +1416,14 @@ void CPrediction::StorePredictedTouched( int current_command )
 			}
 		}
 
-		if ( g_TriggerEntities.Find( ent ) != g_TriggerEntities.InvalidHandle() )
+		if ( g_TriggerEntities.Find( pEntity ) != g_TriggerEntities.InvalidHandle() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
-			InvalidateEFlagsRecursive( ent, EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			InvalidateEFlagsRecursive( pEntity,
+									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
-			auto trigger						  = static_cast< C_BaseTrigger* >( ent );
-			savedTouchList.touchedTriggerEntities = trigger->m_hTouchingEntities;
+			savedTouchList.touchedTriggerEntities = static_cast< C_BaseTrigger* >( pEntity )->m_hTouchingEntities;
 		}
 	}
 

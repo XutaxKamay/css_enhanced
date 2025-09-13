@@ -23,6 +23,7 @@
 #include "cdll_util.h"
 #include "entitylist_base.h"
 #include "utlmap.h"
+#include "bitvec.h"
 
 class C_Beam;
 class C_BaseViewModel;
@@ -313,7 +314,8 @@ class CFastEntityLookUp : public IClientEntityListener
 	virtual void OnEntityDeleted( C_BaseEntity* pEntity );
 
 	// Let have a chance to the CPU in order to autovectorize these!
-	CBaseEntity* entities[NUM_ENT_ENTRIES];
+	ALIGN16 CBaseEntity* m_Entities[MAX_EDICTS] ALIGN16_POST;
+	ALIGN16 CBitVec< MAX_EDICTS > m_IsEntityCreated ALIGN16_POST;
 };
 
 extern CFastEntityLookUp* g_pFastEntityLookUp;

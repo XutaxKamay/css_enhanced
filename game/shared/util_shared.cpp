@@ -1024,7 +1024,7 @@ float CountdownTimer::Now( void ) const
 #ifdef CLIENT_DLL
 CBasePlayer* UTIL_PlayerByIndex( int entindex )
 {
-	return ToBasePlayer( g_pFastEntityLookUp->entities[entindex] );
+	return ToBasePlayer( g_pFastEntityLookUp->m_Entities[entindex] );
 }
 
 //=============================================================================
