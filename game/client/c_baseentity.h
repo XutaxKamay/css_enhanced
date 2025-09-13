@@ -1725,7 +1725,6 @@ protected:
 	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
 	bool m_bIsProcessingFrameInterpolation;
 	size_t m_stAllocateBlock;
-	touchlink_t* m_pCachedTouchLink;
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);

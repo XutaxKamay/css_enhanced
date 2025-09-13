@@ -29,6 +29,7 @@
 #include "util_shared.h"
 #include "css_enhanced/c_eventqueue.h"
 #include "utlvector.h"
+#include "entitydatainstantiator.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -1384,11 +1385,13 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	touchedHistory.RemoveAll();
 
+	auto touchlinkAccessor = g_pEntityDataAccessors[TOUCHLINK];
+
 	const auto& vecEntities = g_pFastEntityLookUp->m_vecEntities;
 
 	for ( const auto& pEntity : vecEntities )
 	{
-		const auto root = pEntity->m_pCachedTouchLink;
+		const auto root = ( touchlink_t* )touchlinkAccessor->GetDataObject( pEntity );
 
 		auto& savedTouchList   = touchedHistory.Element( touchedHistory.AddToTail() );
 		savedTouchList.pEntity = pEntity;

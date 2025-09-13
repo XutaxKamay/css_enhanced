@@ -88,7 +88,7 @@ struct CUtlEntityMemoryPool
 			m_nMaxEntitySize = max( m_nMaxEntitySize, entityClass.size );
 		}
 
-		auto nAlignSize = 4096;
+		auto nAlignSize = 16;
 
 		m_nMaxEntitySize = AlignValue( m_nMaxEntitySize, nAlignSize );
 

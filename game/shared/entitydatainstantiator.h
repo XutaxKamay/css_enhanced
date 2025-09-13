@@ -17,6 +17,11 @@
 // This is the hash key type, but it could just as easily be and int or void *
 class CBaseEntity;
 
+enum
+{
+	MAX_ACCESSORS = 32,
+};
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -29,6 +34,8 @@ public:
 	virtual void *CreateDataObject( const CBaseEntity *instance ) = 0;
 	virtual void DestroyDataObject( const CBaseEntity *instance ) = 0;
 };
+
+extern IEntityDataInstantiator *g_pEntityDataAccessors[ MAX_ACCESSORS ];
 
 //-----------------------------------------------------------------------------
 // Purpose: 

@@ -114,6 +114,7 @@ CPortalTouchScope::~CPortalTouchScope()
 	}
 }
 
+IEntityDataInstantiator *g_pEntityDataAccessors[ MAX_ACCESSORS ];
 
 //-----------------------------------------------------------------------------
 // Purpose: System for hanging objects off of CBaseEntity, etc.
@@ -122,11 +123,6 @@ CPortalTouchScope::~CPortalTouchScope()
 class CDataObjectAccessSystem : public CAutoGameSystem
 {
 public:
-
-	enum
-	{
-		MAX_ACCESSORS = 32,
-	};
 
 	CDataObjectAccessSystem()
 	{
@@ -220,12 +216,14 @@ private:
 		}
 
 		m_Accessors[ type ] = instantiator;
+		g_pEntityDataAccessors[ type ] = instantiator;
 	}
 
+public:
 	IEntityDataInstantiator *m_Accessors[ MAX_ACCESSORS ];
 };
 
-static CDataObjectAccessSystem g_DataObjectAccessSystem;
+CDataObjectAccessSystem g_DataObjectAccessSystem;
 
 bool CBaseEntity::HasDataObjectType( int type ) const
 {
@@ -249,11 +247,6 @@ void *CBaseEntity::GetDataObject( int type )
 {
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
 
-	if ( type == TOUCHLINK )
-	{
-		return m_pCachedTouchLink;
-	}
-
 	if ( !HasDataObjectType( type ) )
 		return NULL;
 	return g_DataObjectAccessSystem.GetDataObject( type, this );
@@ -263,13 +256,6 @@ void *CBaseEntity::CreateDataObject( int type )
 {
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
 	auto object = g_DataObjectAccessSystem.CreateDataObject( type, this );
-
-	// Mainly for prediction
-	if ( type == TOUCHLINK )
-	{
-		m_pCachedTouchLink = ( touchlink_t* )object;
-	}
-
 	AddDataObjectType( type );
 	return object;
 }
@@ -279,11 +265,6 @@ void CBaseEntity::DestroyDataObject( int type )
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
 	if ( !HasDataObjectType( type ) )
 		return;
-
-	if ( type == TOUCHLINK )
-	{
-		m_pCachedTouchLink = NULL;
-	}
 
 	g_DataObjectAccessSystem.DestroyDataObject( type, this );
 	RemoveDataObjectType( type );
