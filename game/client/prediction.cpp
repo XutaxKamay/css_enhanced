@@ -1347,7 +1347,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 			const auto hashMapEntityIndex = hashMapEntities.Find( savedTouched.entityTouched );
 
 			// Entity doesn't exist anymore, don't bother ...
-			if ( hashMapEntityIndex != hashMapEntities.InvalidIndex() )
+			if ( hashMapEntityIndex == hashMapEntities.InvalidIndex() )
 			{
 				continue;
 			}
