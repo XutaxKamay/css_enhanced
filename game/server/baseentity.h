@@ -1852,6 +1852,7 @@ public:
 	}
 
 	CNetworkVar( uint64, m_nSimulatedTickCount ); // keep track how many times we simulated entity
+	touchlink_t* m_pCachedTouchLink;
 };
 
 // Send tables exposed in this module.

@@ -88,7 +88,6 @@ struct CUtlEntityMemoryPool
 			m_nMaxEntitySize = max( m_nMaxEntitySize, entityClass.size );
 		}
 
-		// Pad to a page size for tlb cache
 		auto nAlignSize = 4096;
 
 		m_nMaxEntitySize = AlignValue( m_nMaxEntitySize, nAlignSize );
@@ -106,9 +105,9 @@ struct CUtlEntityMemoryPool
 		_aligned_free( m_pAllocatedBlob );
 	}
 
-	inline void* Alloc( size_t nEntitySize )
+	inline void* Alloc()
 	{
-		for ( size_t i = 0; i < NUM_ENT_ENTRIES; i++ )
+		for ( uintptr_t i = 0; i < NUM_ENT_ENTRIES; i++ )
 		{
 			if ( !m_bAllocatedEntity[i] )
 			{
@@ -129,7 +128,7 @@ struct CUtlEntityMemoryPool
 
 CUtlEntityMemoryPool* GetEntityMemoryPool()
 {
-	CUtlEntityMemoryPool* pEntityMemoryPool = NULL;
+	static CUtlEntityMemoryPool* pEntityMemoryPool = NULL;
 
 	if ( !pEntityMemoryPool )
 	{
@@ -3614,7 +3613,7 @@ void *C_BaseEntity::operator new( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );	
 	MEM_ALLOC_CREDIT();
-	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
+	void *pMem = GetEntityMemoryPool()->Alloc();
 	memset( pMem, 0, stAllocateBlock );
 	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
@@ -3624,7 +3623,7 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );				
 	MEM_ALLOC_CREDIT();
-	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
+	void *pMem = GetEntityMemoryPool()->Alloc();
 	memset( pMem, 0, stAllocateBlock );
 	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
@@ -3633,7 +3632,7 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock )
 void *C_BaseEntity::operator new( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );	
-	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
+	void *pMem = GetEntityMemoryPool()->Alloc();
 	memset( pMem, 0, stAllocateBlock );
 	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
@@ -3642,7 +3641,7 @@ void *C_BaseEntity::operator new( size_t stAllocateBlock, int nBlockUse, const c
 void *C_BaseEntity::operator new[]( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );				
-	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
+	void *pMem = GetEntityMemoryPool()->Alloc();
 	memset( pMem, 0, stAllocateBlock );
 	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
@@ -3654,6 +3653,12 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock, int nBlockUse, const
 // Input  : *pMem - 
 //-----------------------------------------------------------------------------
 void C_BaseEntity::operator delete( void *pMem )
+{
+	// get the engine to free the memory
+	GetEntityMemoryPool()->Free( pMem );
+}
+
+void C_BaseEntity::operator delete( void *pMem, int nBlockUse, const char *pFileName, int nLine )
 {
 	// get the engine to free the memory
 	GetEntityMemoryPool()->Free( pMem );

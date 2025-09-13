@@ -248,6 +248,12 @@ void CBaseEntity::RemoveDataObjectType( int type )
 void *CBaseEntity::GetDataObject( int type )
 {
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
+
+	if ( type == TOUCHLINK )
+	{
+		return m_pCachedTouchLink;
+	}
+
 	if ( !HasDataObjectType( type ) )
 		return NULL;
 	return g_DataObjectAccessSystem.GetDataObject( type, this );
@@ -256,8 +262,16 @@ void *CBaseEntity::GetDataObject( int type )
 void *CBaseEntity::CreateDataObject( int type )
 {
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
+	auto object = g_DataObjectAccessSystem.CreateDataObject( type, this );
+
+	// Mainly for prediction
+	if ( type == TOUCHLINK )
+	{
+		m_pCachedTouchLink = ( touchlink_t* )object;
+	}
+
 	AddDataObjectType( type );
-	return g_DataObjectAccessSystem.CreateDataObject( type, this );
+	return object;
 }
 
 void CBaseEntity::DestroyDataObject( int type )
@@ -265,6 +279,12 @@ void CBaseEntity::DestroyDataObject( int type )
 	Assert( type >= 0 && type < NUM_DATAOBJECT_TYPES );
 	if ( !HasDataObjectType( type ) )
 		return;
+
+	if ( type == TOUCHLINK )
+	{
+		m_pCachedTouchLink = NULL;
+	}
+
 	g_DataObjectAccessSystem.DestroyDataObject( type, this );
 	RemoveDataObjectType( type );
 }

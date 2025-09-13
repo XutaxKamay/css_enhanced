@@ -10,6 +10,9 @@
 #define ENTITYLIST_H
 
 #include "const.h"
+#include "utlmap.h"
+#include "utlvector.h"
+
 #ifdef _WIN32
 #pragma once
 #endif
@@ -361,6 +364,8 @@ class CFastEntityLookUp : public IEntityListener
 	// Let have a chance to the CPU in order to autovectorize these!
 	ALIGN16 CBaseEntity* m_Entities[MAX_EDICTS] ALIGN16_POST;
 	ALIGN16 CBitVec< MAX_EDICTS > m_IsEntityCreated ALIGN16_POST;
+	ALIGN16 CUtlVector< CBaseEntity* > m_vecEntities ALIGN16_POST;
+	ALIGN16 CUtlMap< int, CBaseEntity* > m_HashMapEntities ALIGN16_POST;
 };
 
 extern CFastEntityLookUp* g_pFastEntityLookUp;

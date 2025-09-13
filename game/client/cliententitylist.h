@@ -316,6 +316,8 @@ class CFastEntityLookUp : public IClientEntityListener
 	// Let have a chance to the CPU in order to autovectorize these!
 	ALIGN16 CBaseEntity* m_Entities[MAX_EDICTS] ALIGN16_POST;
 	ALIGN16 CBitVec< MAX_EDICTS > m_IsEntityCreated ALIGN16_POST;
+	ALIGN16 CUtlVector< C_BaseEntity* > m_vecEntities ALIGN16_POST;
+	ALIGN16 CUtlMap< int, C_BaseEntity* > m_HashMapEntities ALIGN16_POST;
 };
 
 extern CFastEntityLookUp* g_pFastEntityLookUp;

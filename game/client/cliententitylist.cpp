@@ -509,12 +509,16 @@ C_BaseEntity* C_BaseEntityIterator::Next()
 }
 
 CFastEntityLookUp::CFastEntityLookUp()
+ : m_HashMapEntities( 0, MAX_EDICTS, DefLessFunc( int ) )
 {
 	for ( int index = 0; index < MAX_EDICTS; index++ )
 	{
 		m_Entities[index]		 = NULL;
 		m_IsEntityCreated[index] = false;
 	}
+
+	m_vecEntities.RemoveAll();
+	m_HashMapEntities.RemoveAll();
 
 	cl_entitylist->AddListenerEntity( this );
 }
@@ -527,6 +531,13 @@ void CFastEntityLookUp::OnEntityCreated( CBaseEntity* pEntity )
 	{
 		m_Entities[index]		 = pEntity;
 		m_IsEntityCreated[index] = true;
+		m_HashMapEntities.InsertOrReplace( index, pEntity );
+	}
+
+	// Yes this is slow, but that's okay, it happens rarely
+	if ( m_vecEntities.Find( pEntity ) == -1 )
+	{
+		m_vecEntities.AddToTail( pEntity );
 	}
 }
 
@@ -538,5 +549,14 @@ void CFastEntityLookUp::OnEntityDeleted( CBaseEntity* pEntity )
 	{
 		m_Entities[index]		 = NULL;
 		m_IsEntityCreated[index] = false;
+		m_HashMapEntities.Remove( index );
+	}
+
+	// Yes this is slow, but that's okay, it happens rarely
+	auto IndexToRemove = m_vecEntities.Find( pEntity );
+
+	if ( IndexToRemove != -1 )
+	{
+		m_vecEntities.Remove( IndexToRemove );
 	}
 }

@@ -1329,12 +1329,10 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	const auto slot			   = current_command % MULTIPLAYER_BACKUP;
 	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 	const auto& touchedHistory = m_TouchedHistory[slot];
+	const auto& hashMapEntities =  g_pFastEntityLookUp->m_HashMapEntities;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
-
-	const auto entities = g_pFastEntityLookUp->m_Entities;
-	auto isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
 
 	for ( const auto& savedTouchList : touchedHistory )
 	{
@@ -1345,15 +1343,15 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 		for ( const auto& savedTouched : savedTouches )
 		{
-			const auto touchedEntityIndex = savedTouched.entityTouched;
+			const auto hashMapEntityIndex = hashMapEntities.Find( savedTouched.entityTouched );
 
 			// Entity doesn't exist anymore, don't bother ...
-			if ( !isEntityCreated[touchedEntityIndex] )
+			if ( hashMapEntityIndex != hashMapEntities.InvalidIndex() )
 			{
 				continue;
 			}
 
-			const auto pTouchedEntity = entities[touchedEntityIndex];
+			const auto pTouchedEntity = hashMapEntities.Element( hashMapEntityIndex );
 
 			pEntity->PhysicsMarkEntityAsTouched( pTouchedEntity );
 			pTouchedEntity->PhysicsMarkEntityAsTouched( pEntity );
@@ -1386,23 +1384,16 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	touchedHistory.RemoveAll();
 
-	const auto entities  = g_pFastEntityLookUp->m_Entities;
-	auto isEntityCreated = g_pFastEntityLookUp->m_IsEntityCreated;
+	const auto& vecEntities = g_pFastEntityLookUp->m_vecEntities;
 
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( const auto& pEntity : vecEntities )
 	{
-		if ( !isEntityCreated[i] )
-		{
-			continue;
-		}
-
-		const auto pEntity = entities[i];
-		const auto root = ( touchlink_t* )pEntity->GetDataObject( TOUCHLINK );
+		const auto root = pEntity->m_pCachedTouchLink;
 
 		auto& savedTouchList   = touchedHistory.Element( touchedHistory.AddToTail() );
 		savedTouchList.pEntity = pEntity;
 
-		auto& savedTouches	   = savedTouchList.savedTouches;
+		auto& savedTouches = savedTouchList.savedTouches;
 
 		if ( root )
 		{
