@@ -193,6 +193,6 @@ public:
 			g_EntityClasses.AddToTail( { #clientClassName, sizeof( clientClassName ) } );                              \
 		}                                                                                                              \
 	};                                                                                                                 \
-	inline static CInitializeEntityClass_##clientClassName g_CInitializeEntityClass_##clientClassName;
+	static CInitializeEntityClass_##clientClassName g_CInitializeEntityClass_##clientClassName;
 
 #endif // CLIENT_CLASS_H
