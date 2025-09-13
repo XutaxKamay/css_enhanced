@@ -719,19 +719,22 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 	// Move rolling average
 	m_Framerate = FRAMERATE_AVG_FRAC * m_Framerate + ( 1.0 - FRAMERATE_AVG_FRAC ) * gpGlobals->absoluteframetime;
 
+	if ( m_Framerate <= 0.0f )
+		m_Framerate = 1.0f;
+
 	static float flFpsPerSecTime = gpGlobals->realtime;
 	static int iFpsTotal		 = 1;
 	static int iCountFpsAverage	 = 1;
 	static int iFpsPerSec		 = 1;
 
-	int iFps = ( int )( 1.0f / m_Framerate );;
+	int iFps = ( int )( 1.0f / m_Framerate );
 
 	if ( flFpsPerSecTime <= gpGlobals->realtime )
 	{
 		flFpsPerSecTime	 = gpGlobals->realtime + 1.0f;
 		iFpsPerSec		 = iFpsTotal / iCountFpsAverage;
-		iFpsTotal		 = 0;
-		iCountFpsAverage = 0;
+		iFpsTotal		 = iFps;
+		iCountFpsAverage = 1;
 	}
 	else
 	{
@@ -743,9 +746,6 @@ void CNetGraphPanel::DrawTextFields( int graphvalue, int x, int y, int w, netban
 	y -= m_nNetGraphHeight;
 
 	int saveY = y;
-
-	if ( m_Framerate <= 0.0f )
-		m_Framerate = 1.0f;
 
 	if ( engine->IsPlayingDemo() )
 		m_AvgLatency = 0.0f;

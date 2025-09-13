@@ -113,17 +113,14 @@ CPrediction::CPrediction( void )
 
 CPrediction::~CPrediction( void )
 {
+	Shutdown();
 }
 
 void CPrediction::Init( void )
 {
 #if !defined( NO_ENTITY_PREDICTION )
 	m_bOldCLPredictValue = cl_predict->GetInt();
-#endif
-}
 
-void CPrediction::Shutdown( void )
-{
 	for ( int i = 0; i < MULTIPLAYER_BACKUP; i++ )
 	{
 		for ( int j = 0; j < MAX_EDICTS; j++ )
@@ -132,8 +129,25 @@ void CPrediction::Shutdown( void )
 			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
 		}
 
-		m_EventQueueHistory[i].RemoveAll();
+		m_EventQueueHistory[i].Clear();
 	}
+#endif
+}
+
+void CPrediction::Shutdown( void )
+{
+#if !defined( NO_ENTITY_PREDICTION )
+	for ( int i = 0; i < MULTIPLAYER_BACKUP; i++ )
+	{
+		for ( int j = 0; j < MAX_EDICTS; j++ )
+		{
+			m_TouchedHistory[i][j].savedTouches.RemoveAll();
+			m_TouchedHistory[i][j].touchedTriggerEntities.RemoveAll();
+		}
+
+		m_EventQueueHistory[i].Clear();
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1317,7 +1331,6 @@ void InvalidateEFlagsRecursive( C_BaseEntity *pEnt, int nDirtyFlags, int nChildF
 }
 #endif
 
-// TODO_ENHANCED: we should get rid of this to prefer SaveData/RestoreData.
 void CPrediction::RestorePredictedTouched( int current_command )
 {
 #if !defined( NO_ENTITY_PREDICTION )
@@ -1374,23 +1387,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
 
-	auto& savedEventQueue = m_EventQueueHistory[slot];
-
-	for ( auto&& event : savedEventQueue )
-	{
-		auto newEvent = new EventQueuePrioritizedEvent_t;
-
-		newEvent->m_flFireTime	 = event.m_flFireTime;
-		newEvent->m_iTarget		 = event.m_iTarget;
-		newEvent->m_iTargetInput = event.m_iTargetInput;
-		newEvent->m_pEntTarget	 = event.m_pEntTarget;
-		newEvent->m_pActivator	 = event.m_pActivator;
-		newEvent->m_pCaller		 = event.m_pCaller;
-		newEvent->m_VariantValue = event.m_VariantValue;
-		newEvent->m_iOutputID	 = event.m_iOutputID;
-
-		g_EventQueue.AddEvent( newEvent );
-	}
+	g_pEventQueue = &m_EventQueueHistory[slot];
 #endif
 }
 
@@ -1412,7 +1409,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 			continue;
 		}
 
-		auto root = ( touchlink_t* )ent->m_pCurrentDataObjects[ TOUCHLINK ];
+		auto root = ( touchlink_t* )ent->GetDataObject( TOUCHLINK );
 
 		auto& savedTouchList = touchedHistory[ent->index];
 		auto& savedTouches	 = savedTouchList.savedTouches;
@@ -1443,25 +1440,14 @@ void CPrediction::StorePredictedTouched( int current_command )
 	}
 
 	auto& savedEventQueue = m_EventQueueHistory[slot];
-	savedEventQueue.RemoveAll();
 
-	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
+	savedEventQueue.Clear();
+
+	for ( auto pEvent = g_pEventQueue->GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
 	{
-		EventQueueForHistory event;
-		event.m_flFireTime = pEvent->m_flFireTime;
-		event.m_iOutputID  = pEvent->m_iOutputID;
-		Q_strncpy( event.m_iTarget, pEvent->m_iTarget, sizeof( event.m_iTarget ) );
-		Q_strncpy( event.m_iTargetInput, pEvent->m_iTargetInput, sizeof( event.m_iTargetInput ) );
-		event.m_pEntTarget	 = pEvent->m_pEntTarget;
-		event.m_pActivator	 = pEvent->m_pActivator;
-		event.m_pCaller		 = pEvent->m_pCaller;
-		event.m_VariantValue = pEvent->m_VariantValue;
-
-		savedEventQueue.AddToTail( std::move( event ) );
+		savedEventQueue.AddEvent( *pEvent );
 	}
 
-	// This will be reconstructed later.
-	g_EventQueue.Clear();
 #endif
 }
 

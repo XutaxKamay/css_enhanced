@@ -1279,18 +1279,10 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 	C_BaseEntity::InterpolateServerEntities();
 	gpGlobals->interpolation_amount_frac = oldfrac;
 
-	auto entities = g_pFastEntityLookUp->entities;
-
 	// Send interpolated simulation time for lag compensation, let it also auto-vectorize this.
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( auto pEntity = ClientEntityList().FirstBaseEntity(); pEntity != NULL;
+		  ent		   = ClientEntityList().NextBaseEntity( pEntity ) )
 	{
-		auto pEntity = entities[i];
-
-		if ( !pEntity )
-		{
-			continue;
-		}
-
 		const auto& simulatedResult			 = pEntity->m_iv_nSimulatedTickCount.GetLastReferencedResult();
 		auto nInterpolatedSimulatedTickCount = pEntity->m_nInterpolatedSimulatedTickCount;
 

@@ -185,6 +185,9 @@ inline CBaseHandle CBaseEntityList::InvalidHandle()
 
 inline const CEntInfo *CBaseEntityList::FirstEntInfo() const
 {
+	if ( !m_activeList.Head() )
+		return NULL;
+
 	return m_activeList.Head();
 }
 

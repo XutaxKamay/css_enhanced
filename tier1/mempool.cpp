@@ -103,7 +103,7 @@ void CUtlMemoryPool::Clear()
 	for( CBlob *pCur = m_BlobHead.m_pNext; pCur != &m_BlobHead; pCur = pNext )
 	{
 		pNext = pCur->m_pNext;
-		free( pCur );
+		_aligned_free( pCur );
 	}
 	Init();
 }
@@ -214,7 +214,7 @@ void CUtlMemoryPool::AddNewBlob()
 	// maybe use something other than malloc?
 	int nElements = m_BlocksPerBlob * sizeMultiplier;
 	int blobSize = m_BlockSize * nElements;
-	CBlob *pBlob = (CBlob*)malloc( sizeof(CBlob) - 1 + blobSize + ( m_nAlignment - 1 ) );
+	CBlob *pBlob = (CBlob*)_aligned_malloc( sizeof(CBlob) - 1 + blobSize + ( m_nAlignment - 1 ), m_nAlignment );
 	Assert( pBlob );
 	
 	// Link it in at the end of the blob list.

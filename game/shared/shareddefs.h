@@ -638,8 +638,8 @@ const int FX_BLOODSPRAY_ALL		= 0xFF;
 // These are the types of data that hang off of CBaseEntities and the flag bits used to mark their presence
 enum
 {
-	GROUNDLINK = 0,
-	TOUCHLINK,
+	TOUCHLINK = 0,
+	GROUNDLINK,
 	STEPSIMULATION,
 	MODELSCALE,
 	POSITIONWATCHER,

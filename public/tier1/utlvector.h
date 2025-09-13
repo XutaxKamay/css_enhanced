@@ -1533,9 +1533,8 @@ private:
 
 // TODO_ENHANCED: use maybe boost's circular buffer
 template < typename T, size_t N >
-class CUtlCircularBuffer
+struct CUtlCircularBuffer
 {
-  public:
 	using pT = T*;
 
 	enum PushType
@@ -1544,7 +1543,13 @@ class CUtlCircularBuffer
 		Updating
 	};
 
-  public:
+	inline CUtlCircularBuffer()
+	 : m_nFilled( 0 ),
+	   m_nIndex( 0 )
+	{
+		m_Buffer.EnsureCount( N );
+	}
+
 	inline pT Get( size_t nSlot = 0 )
 	{
 		if ( nSlot >= m_nFilled || m_nFilled == 0 )
@@ -1563,7 +1568,7 @@ class CUtlCircularBuffer
 			nPhysicalSlot = ( m_nFilled - 1 ) - nSlot;
 		}
 
-		return &_buffer[nPhysicalSlot];
+		return &m_Buffer[nPhysicalSlot];
 	}
 
 	inline PushType Push( T&& element )
@@ -1579,12 +1584,12 @@ class CUtlCircularBuffer
 				m_nIndex++;
 			}
 
-			_buffer[m_nIndex] = std::move( element );
+			m_Buffer[m_nIndex] = std::move( element );
 
 			return Updating;
 		}
 
-		_buffer[m_nFilled] = std::move( element );
+		m_Buffer[m_nFilled] = std::move( element );
 		m_nIndex		   = m_nFilled;
 		m_nFilled++;
 
@@ -1604,12 +1609,12 @@ class CUtlCircularBuffer
 				m_nIndex++;
 			}
 
-			_buffer[m_nIndex] = element;
+			m_Buffer[m_nIndex] = element;
 
 			return Updating;
 		}
 
-		_buffer[m_nFilled] = element;
+		m_Buffer[m_nFilled] = element;
 		m_nIndex		   = m_nFilled;
 		m_nFilled++;
 
@@ -1627,10 +1632,9 @@ class CUtlCircularBuffer
 		return m_nFilled;
 	}
 
-  private:
-	T _buffer[N];
-	size_t m_nFilled {};
-	size_t m_nIndex {};
+	CUtlVector< T > m_Buffer;
+	size_t m_nFilled;
+	size_t m_nIndex;
 };
 
 #endif // CCVECTOR_H

@@ -391,7 +391,6 @@ CBaseEntity::CBaseEntity( bool bServerOnly )
 #endif
 	m_flSimulationTime = gpGlobals->curtime;
 	m_nSimulatedTickCount = 0;
-	Q_memset(m_pCurrentDataObjects, 0, sizeof(m_pCurrentDataObjects));
 }
 
 //-----------------------------------------------------------------------------

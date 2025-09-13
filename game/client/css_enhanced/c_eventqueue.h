@@ -73,6 +73,7 @@ public:
 	}
 
 	void AddEvent( EventQueuePrioritizedEvent_t* event );
+	void AddEvent( const EventQueuePrioritizedEvent_t& event );
 
 private:
 
@@ -86,7 +87,7 @@ private:
 // XYZ_TODO call this in client prediction
 void ServiceEventQueue( CBaseEntity* pActivator );
 
-extern CEventQueue g_EventQueue;
+extern CEventQueue* g_pEventQueue;
 
 
 

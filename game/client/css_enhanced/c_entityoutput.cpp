@@ -171,7 +171,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			// Post the event with the default parameter.
 			//
-			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_pEventQueue->AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 		else
 		{
@@ -180,7 +180,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			variant_t ValueOverride;
 			ValueOverride.SetString( ev->m_iParameter );
-			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_pEventQueue->AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 
 		if ( ev->m_flDelay )

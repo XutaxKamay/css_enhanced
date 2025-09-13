@@ -166,7 +166,7 @@ public:
 			Assert( !"Bogus type" );
 			return NULL;
 		}
-		return instance->m_pCurrentDataObjects[ type ];
+		return m_Accessors[ type ]->GetDataObject( instance );
 	}
 
 	void *CreateDataObject( int type, CBaseEntity *instance )
@@ -177,8 +177,7 @@ public:
 			return NULL;
 		}
 
-		instance->m_pCurrentDataObjects[ type ] = m_Accessors[ type ]->CreateDataObject( instance );
-		return instance->m_pCurrentDataObjects[ type ];
+		return m_Accessors[ type ]->CreateDataObject( instance );
 	}
 
 	void DestroyDataObject( int type, CBaseEntity *instance )
@@ -190,7 +189,6 @@ public:
 		}
 
 		m_Accessors[ type ]->DestroyDataObject( instance );
-		instance->m_pCurrentDataObjects[ type ] = NULL;
 	}
 
 private:

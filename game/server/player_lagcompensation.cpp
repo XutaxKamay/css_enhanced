@@ -370,15 +370,8 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 			return;
 		}
 
-		for ( int i = 0; i < MAX_EDICTS; i++ )
+		for ( auto pEntity = gEntList.FirstEnt(); pEntity != NULL; pEntity = gEntList.NextEnt( pEntity ) )
 		{
-			auto pEntity = g_pFastEntityLookUp->entities[i];
-
-			if ( !pEntity )
-			{
-				continue;
-			}
-
 			// TODO_ENHANCED: track players only for now.
 			if ( !pEntity->IsPlayer() )
 			{
@@ -592,17 +585,10 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	// Iterate all active entities
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
 
-	auto entities = g_pFastEntityLookUp->entities;
-
 	// Iterate all active entities
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( auto pEntity = gEntList.FirstEnt(); pEntity != NULL; pEntity = gEntList.NextEnt( pEntity ) )
 	{
-		CBaseEntity* pEntity = entities[i];
-
-		if ( !pEntity )
-		{
-			continue;
-		}
+		int i = pEntity->entindex();
 
 		// Don't lag compensate yourself you loser...
 		if ( player->entindex() == pEntity->entindex() )
@@ -1193,21 +1179,14 @@ void CLagCompensationManager::FinishLagCompensation( CBasePlayer* player )
 		return; // no entities was changed at all
 	}
 
-	auto entities = g_pFastEntityLookUp->entities;
-
 	// Iterate all active entities
-	for ( int i = 0; i < MAX_EDICTS; i++ )
+	for ( auto pEntity = gEntList.FirstEnt(); pEntity != NULL; pEntity = gEntList.NextEnt( pEntity ) )
 	{
+		int i = pEntity->entindex();
+
 		if ( !m_RestoreEntity.Get( i ) )
 		{
 			// entity wasn't changed by lag compensation
-			continue;
-		}
-
-		CBaseEntity* pEntity = entities[i];
-
-		if ( !pEntity )
-		{
 			continue;
 		}
 

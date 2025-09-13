@@ -170,7 +170,7 @@ private:
 	};
 
 	TouchedHistory m_TouchedHistory[MULTIPLAYER_BACKUP][MAX_EDICTS];
-	CUtlVector< EventQueueForHistory > m_EventQueueHistory[MULTIPLAYER_BACKUP];
+	C_EventQueue m_EventQueueHistory[MULTIPLAYER_BACKUP];
 
   public:
 	CGlobalVarsBase m_saveVars;

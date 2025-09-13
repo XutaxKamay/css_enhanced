@@ -21,8 +21,6 @@
 #include "mempool.h"
 #include "utlvector.h"
 
-extern CUtlMemoryPool* GetEntityMemoryPool();
-
 struct CClientEntityClass
 {
 	const char* name;

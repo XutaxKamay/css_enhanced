@@ -11,9 +11,10 @@
 //
 // Purpose: holds and executes a global prioritized queue of entity actions
 //-----------------------------------------------------------------------------
-DEFINE_FIXEDSIZE_ALLOCATOR( EventQueuePrioritizedEvent_t, 128, CUtlMemoryPool::GROW_SLOW );
+DEFINE_FIXEDSIZE_ALLOCATOR( EventQueuePrioritizedEvent_t, 128 * MULTIPLAYER_BACKUP, CUtlMemoryPool::GROW_SLOW );
 
-CEventQueue g_EventQueue;
+static C_EventQueue g_DefaultEventQueue;
+CEventQueue* g_pEventQueue = &g_DefaultEventQueue;
 
 CEventQueue::CEventQueue()
 {
@@ -39,7 +40,7 @@ class CEventQueueSaveLoadProxy : public CBaseEntity
 			return 0;
 
 		// save out the message queue
-		return g_EventQueue.Save( save );
+		return g_pEventQueue->Save( save );
 	}
 
 
@@ -49,7 +50,7 @@ class CEventQueueSaveLoadProxy : public CBaseEntity
 			return 0;
 
 		// restore the event queue
-		int iReturn = g_EventQueue.Restore( restore );
+		int iReturn = g_pEventQueue->Restore( restore );
 
 #ifdef GAME_DLL
 		// Now remove myself, because the CEventQueue_SaveRestoreBlockHandler
@@ -79,7 +80,7 @@ public:
 
 	void Save( ISave *pSave )
 	{
-		g_EventQueue.Save( *pSave );
+		g_pEventQueue->Save( *pSave );
 	}
 
 	//---------------------------------
@@ -105,7 +106,7 @@ public:
 	{
 		if ( m_fDoLoad )
 		{
-			g_EventQueue.Restore( *pRestore );
+			g_pEventQueue->Restore( *pRestore );
 		}
 	}
 
@@ -217,6 +218,12 @@ void CEventQueue::AddEvent( CBaseEntity *target, const char *action, float fireD
 	AddEvent( target, action, Value, fireDelay, pActivator, pCaller, outputID );
 }
 
+void CEventQueue::AddEvent( const EventQueuePrioritizedEvent_t& event )
+{
+	EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
+	*newEvent							   = event;
+	AddEvent( newEvent );
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: private function, adds an event into the list
@@ -437,7 +444,7 @@ void CC_DumpEventQueue()
 	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 
-	g_EventQueue.Dump();
+	g_pEventQueue->Dump();
 }
 static ConCommand dumpeventqueue( "dumpeventqueue", CC_DumpEventQueue, "Dump the contents of the Entity I/O event queue to the console." );
 #endif
@@ -549,11 +556,11 @@ void ServiceEventQueue( CBaseEntity* pActivator )
 
 	if ( pActivator )
 	{
-		g_EventQueue.ServiceEvent( pActivator );
+		g_pEventQueue->ServiceEvent( pActivator );
 	}
 	else
 	{
-		g_EventQueue.ServiceEvents();
+		g_pEventQueue->ServiceEvents();
 	}
 }
 

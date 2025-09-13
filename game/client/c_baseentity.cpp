@@ -73,41 +73,66 @@ static CUtlLinkedList<C_BaseEntity*, unsigned short> g_TeleportList;
 
 CUtlVector< CClientEntityClass > g_EntityClasses;
 
-CUtlMemoryPool* GetEntityMemoryPool( void )
+struct CUtlEntityMemoryPool
 {
-	static CUtlMemoryPool* pEntityMemoryPool = NULL;
+	void* m_pAllocatedBlob;
+	CBitVec< NUM_ENT_ENTRIES > m_bAllocatedEntity;
+	size_t m_nMaxEntitySize;
 
-	if ( !pEntityMemoryPool )
+	CUtlEntityMemoryPool()
 	{
-		auto nEntityMaxSize				 = sizeof( C_BaseEntity );
-		const char* pszEntityMaxSizeName = "C_BaseEntity";
+		m_nMaxEntitySize = sizeof( C_BaseEntity );
 
-		for ( int i = 0; i < g_EntityClasses.Count(); i++ )
+		for ( auto&& entityClass : g_EntityClasses )
 		{
-			auto& entityClass = g_EntityClasses[i];
+			m_nMaxEntitySize = max( m_nMaxEntitySize, entityClass.size );
+		}
 
-			if ( entityClass.size >= nEntityMaxSize )
+		auto nAlignSize = m_nMaxEntitySize > 0x4000 ? 4096 : 16;
+
+		m_nMaxEntitySize = AlignValue( m_nMaxEntitySize, nAlignSize );
+
+		m_pAllocatedBlob = _aligned_malloc( m_nMaxEntitySize * NUM_ENT_ENTRIES, nAlignSize );
+
+		for ( size_t i = 0; i < NUM_ENT_ENTRIES; i++ )
+		{
+			m_bAllocatedEntity[i] = false;
+		}
+	}
+
+	~CUtlEntityMemoryPool()
+	{
+		_aligned_free( m_pAllocatedBlob );
+	}
+
+	inline void* Alloc( size_t nEntitySize )
+	{
+		for ( size_t i = 0; i < NUM_ENT_ENTRIES; i++ )
+		{
+			if ( !m_bAllocatedEntity[i] )
 			{
-				nEntityMaxSize		 = entityClass.size;
-				pszEntityMaxSizeName = entityClass.name;
+				m_bAllocatedEntity[i] = true;
+				return ( void* )( ( uintptr_t )m_pAllocatedBlob + ( i * m_nMaxEntitySize ) );
 			}
 		}
 
-		static char buffer[256];
-		V_sprintf_safe( buffer,
-						"EMP (esize=%i, ename=%s)",
-						nEntityMaxSize,
-						pszEntityMaxSizeName );
-		ConMsg( "Allocating entity memory pool ... ( %s )\n", buffer );
+		return NULL;
+	}
 
-		pEntityMemoryPool = new CUtlMemoryPool( nEntityMaxSize, NUM_ENT_ENTRIES, CUtlMemoryPool::GROW_NONE, buffer, 16 );
+	inline void Free( void* pMem )
+	{
+		auto index				  = ( ( uintptr_t )pMem - ( uintptr_t )m_pAllocatedBlob ) / m_nMaxEntitySize;
+		m_bAllocatedEntity[index] = false;
+	}
+};
 
-		if ( !pEntityMemoryPool )
-		{
-			Error( "Failed to allocate entity memory pool ! (optimize/remove your variables, the lesser the better)" );
-		}
+CUtlEntityMemoryPool* GetEntityMemoryPool()
+{
+	CUtlEntityMemoryPool* pEntityMemoryPool = NULL;
 
-		ConMsg( "Allocated entity memory pool ! %p\n", pEntityMemoryPool );
+	if ( !pEntityMemoryPool )
+	{
+		pEntityMemoryPool = new CUtlEntityMemoryPool();
 	}
 
 	return pEntityMemoryPool;
@@ -756,7 +781,6 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
-	Q_memset(m_pCurrentDataObjects, 0, sizeof(m_pCurrentDataObjects));
 }
 
 
@@ -3589,8 +3613,9 @@ void *C_BaseEntity::operator new( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );	
 	MEM_ALLOC_CREDIT();
-	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
 	memset( pMem, 0, stAllocateBlock );
+	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
 }
 
@@ -3598,24 +3623,27 @@ void *C_BaseEntity::operator new[]( size_t stAllocateBlock )
 {
 	Assert( stAllocateBlock != 0 );				
 	MEM_ALLOC_CREDIT();
-	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
 	memset( pMem, 0, stAllocateBlock );
+	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
 }
 
 void *C_BaseEntity::operator new( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );	
-	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
 	memset( pMem, 0, stAllocateBlock );
+	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
 }
 
 void *C_BaseEntity::operator new[]( size_t stAllocateBlock, int nBlockUse, const char *pFileName, int nLine )
 {
 	Assert( stAllocateBlock != 0 );				
-	void *pMem = GetEntityMemoryPool()->Alloc( stAllocateBlock );
+	void *pMem = GetEntityMemoryPool()->Alloc(stAllocateBlock);
 	memset( pMem, 0, stAllocateBlock );
+	( ( C_BaseEntity* )pMem )->m_stAllocateBlock = stAllocateBlock;
 	return pMem;												
 }
 
