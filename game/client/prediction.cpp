@@ -1358,7 +1358,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 			pTouchedEntity->PhysicsMarkEntityAsTouched( pEntity );
 		}
 
-		if ( g_TriggerEntities.Find( pEntity ) != g_TriggerEntities.InvalidHandle() )
+		if ( pEntity->IsTrigger() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
@@ -1410,7 +1410,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 			}
 		}
 
-		if ( g_TriggerEntities.Find( pEntity ) != g_TriggerEntities.InvalidHandle() )
+		if ( pEntity->IsTrigger() )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
