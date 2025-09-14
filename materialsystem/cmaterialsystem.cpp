@@ -3698,6 +3698,7 @@ void CMaterialSystem::EndFrame( void )
 
 			if ( m_pActiveAsyncJob && !m_pActiveAsyncJob->IsFinished() )
 			{
+				// TODO_ENHANCED: find a way to make this more efficiently
 				m_pActiveAsyncJob->WaitForFinish(TT_INFINITE, pThreadPool);
 
 				// Sync with GPU if we had a job for it, even if it finished early on CPU!

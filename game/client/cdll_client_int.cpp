@@ -1993,9 +1993,8 @@ void SimulateEntities()
 	// TODO: make an ISimulateable interface so C_BaseNetworkables can simulate?
 	{
 		VPROF_("C_BaseEntity::Simulate", 1, VPROF_BUDGETGROUP_CLIENT_SIM, false, BUDGETFLAG_CLIENT);
-		C_BaseEntityIterator iterator;
-		C_BaseEntity *pEnt;
-		while ( (pEnt = iterator.Next()) != NULL )
+
+		for ( auto pEnt : g_pFastEntityLookUp->m_vecEntities )
 		{
 			pEnt->Simulate();
 		}

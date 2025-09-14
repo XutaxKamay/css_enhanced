@@ -1143,9 +1143,12 @@ void CSDLMgr::OnFrameRendered()
 
 	if ( m_bSetMouseVisibleCalled )
 	{
+		static ConVar* rawinput = NULL;
 
-
-		ConVarRef rawinput( "m_rawinput" );
+		if ( !rawinput )
+		{
+			rawinput = g_pCVar->FindVar( "m_rawinput" );
+		}
 
 #if defined( OSX ) || defined( ANDROID )
 		// We default raw input to on on Mac/Android and set it one time for all users since
@@ -1156,7 +1159,7 @@ void CSDLMgr::OnFrameRendered()
 			rawinput.SetValue( 1 );
 		}
 #endif
-		m_bRawInput = !m_bCursorVisible && rawinput.IsValid() && rawinput.GetBool();
+		m_bRawInput = !m_bCursorVisible && rawinput->GetBool();
 
 		SDL_bool bWindowGrab = !m_bCursorVisible ? SDL_TRUE : SDL_FALSE;
 		SDL_bool bRelativeMouseMode = bWindowGrab;

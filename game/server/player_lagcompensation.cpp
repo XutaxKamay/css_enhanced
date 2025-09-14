@@ -370,7 +370,7 @@ class CLagCompensationManager : public CAutoGameSystemPerFrame,
 			return;
 		}
 
-		for ( auto pEntity = gEntList.FirstEnt(); pEntity != NULL; pEntity = gEntList.NextEnt( pEntity ) )
+		for ( auto pEntity : g_pFastEntityLookUp->m_vecEntities )
 		{
 			// TODO_ENHANCED: track players only for now.
 			if ( !pEntity->IsPlayer() )
@@ -586,12 +586,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 	const CBitVec< MAX_EDICTS >* pEntityTransmitBits = engine->GetEntityTransmitBitsForClient( player->entindex() - 1 );
 
 	// Iterate all active entities
-	for ( auto pEntity = gEntList.FirstEnt(); pEntity != NULL; pEntity = gEntList.NextEnt( pEntity ) )
+	for ( auto pEntity : g_pFastEntityLookUp->m_vecEntities )
 	{
 		int i = pEntity->entindex();
 
 		// Don't lag compensate yourself you loser...
-		if ( player->entindex() == pEntity->entindex() )
+		if ( player->entindex() == i )
 		{
 			continue;
 		}
@@ -612,11 +612,12 @@ void CLagCompensationManager::StartLagCompensation( CBasePlayer* player, CUserCm
 		{
 			// Save entity values
 			TrackEntity< false >( pEntity );
+
 			// Move other entity back in time
 			BacktrackEntity( pEntity, i, cmd );
 		}
 
-		if ( sv_unlag_debug_entity.GetInt() == pEntity->entindex() && player->entindex() == 1 )
+		if ( sv_unlag_debug_entity.GetInt() == i && player->entindex() == 1 )
 		{
 			auto pInterpolatedRecord = &m_EntityTrack[i].m_RecordReferenced;
 

@@ -1389,7 +1389,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	const auto& vecEntities = g_pFastEntityLookUp->m_vecEntities;
 
-	for ( const auto& pEntity : vecEntities )
+	for ( const auto pEntity : vecEntities )
 	{
 		const auto root = ( touchlink_t* )touchlinkAccessor->GetDataObject( pEntity );
 

@@ -1097,7 +1097,7 @@ private:
 			IVTFTexture *pScratchVTF = NULL;
 			while ( !m_pendingJobs.PopItem( &pJob ) )
 			{
-				// "awhile"
+				// "awhile" TODO_ENHANCED: yeah no. there's better ways but lazy, this needs to be redone
 				ThreadSleep( 8 );
 				if ( m_bQuit )
 					return;
@@ -1106,7 +1106,7 @@ private:
 
 			while ( !m_asyncScratchVTFs.PopItem( &pScratchVTF ) )
 			{
-				// Also awhile, but not as long..
+				// Also awhile, but not as long.. TODO_ENHANCED: yeah no don't wait but lazy, this needs to be redone
 				ThreadSleep( 4 );
 				if ( m_bQuit )
 					return;
