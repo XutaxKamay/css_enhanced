@@ -457,13 +457,13 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		return true;
 	}
 	
-#ifdef GAME_DLL
+// #ifdef GAME_DLL
 	if ( FStrEq( szKeyName, "targetname" ) )
 	{
 		m_iName = AllocPooledString( szValue );
 		return true;
 	}
-#endif
+// #endif
 
 	// loop through the data description, and try and place the keys in
 	if ( !*ent_debugkeys.GetString() )
@@ -607,15 +607,16 @@ bool CBaseEntity::GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen
 		return true;
 	}
 
-#ifdef GAME_DLL	
+// #ifdef GAME_DLL	
 	
 	if ( FStrEq( szKeyName, "targetname" ) )
 	{
 		Q_snprintf( szValue, iMaxLen, "%s", STRING( GetEntityName() ) );
 		return true;
 	}
-#endif
+// #endif
 
+	// TODO_ENHANCED: check if that's correct
 	if ( FStrEq( szKeyName, "classname" ) )
 	{
 		Q_snprintf( szValue, iMaxLen, "%s", GetClassname() );

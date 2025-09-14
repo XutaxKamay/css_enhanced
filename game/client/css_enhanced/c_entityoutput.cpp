@@ -171,7 +171,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			// Post the event with the default parameter.
 			//
-			g_pEventQueue->AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), Value, ev->m_flDelay + fDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 		else
 		{
@@ -180,7 +180,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			//
 			variant_t ValueOverride;
 			ValueOverride.SetString( ev->m_iParameter );
-			g_pEventQueue->AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
+			g_EventQueue.AddEvent( STRING(ev->m_iTarget), STRING(ev->m_iTargetInput), ValueOverride, ev->m_flDelay, pActivator, pCaller, ev->m_iIDStamp );
 		}
 
 		if ( ev->m_flDelay )
@@ -188,7 +188,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			char szBuffer[256];
 			Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"(%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
+				"[Client] (%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
 				gpGlobals->curtime,
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL",
@@ -207,7 +207,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 			char szBuffer[256];
 			Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"(%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
+				"[Client] (%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
 				gpGlobals->curtime,
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL", STRING(ev->m_iTarget),
@@ -239,7 +239,7 @@ void C_BaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CB
 				char szBuffer[256];
 				Q_snprintf( szBuffer,
 				sizeof(szBuffer),
-				"Removing from action list: (%s,%s) -> (%s,%s)\n",
+				"[Client] Removing from action list: (%s,%s) -> (%s,%s)\n",
 				pCaller ? STRING(pCaller->m_iClassname) : "NULL",
 				pCaller ? pCaller->GetDebugName() : "NULL",
 				STRING(ev->m_iTarget), STRING(ev->m_iTargetInput) );

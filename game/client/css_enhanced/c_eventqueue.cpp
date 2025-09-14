@@ -13,8 +13,7 @@
 //-----------------------------------------------------------------------------
 DEFINE_FIXEDSIZE_ALLOCATOR( EventQueuePrioritizedEvent_t, 128 * MULTIPLAYER_BACKUP, CUtlMemoryPool::GROW_SLOW );
 
-static C_EventQueue g_DefaultEventQueue;
-CEventQueue* g_pEventQueue = &g_DefaultEventQueue;
+CEventQueue g_EventQueue;
 
 CEventQueue::CEventQueue()
 {
@@ -40,7 +39,7 @@ class CEventQueueSaveLoadProxy : public CBaseEntity
 			return 0;
 
 		// save out the message queue
-		return g_pEventQueue->Save( save );
+		return g_EventQueue.Save( save );
 	}
 
 
@@ -50,7 +49,7 @@ class CEventQueueSaveLoadProxy : public CBaseEntity
 			return 0;
 
 		// restore the event queue
-		int iReturn = g_pEventQueue->Restore( restore );
+		int iReturn = g_EventQueue.Restore( restore );
 
 #ifdef GAME_DLL
 		// Now remove myself, because the CEventQueue_SaveRestoreBlockHandler
@@ -80,7 +79,7 @@ public:
 
 	void Save( ISave *pSave )
 	{
-		g_pEventQueue->Save( *pSave );
+		g_EventQueue.Save( *pSave );
 	}
 
 	//---------------------------------
@@ -106,7 +105,7 @@ public:
 	{
 		if ( m_fDoLoad )
 		{
-			g_pEventQueue->Restore( *pRestore );
+			g_EventQueue.Restore( *pRestore );
 		}
 	}
 
@@ -444,7 +443,7 @@ void CC_DumpEventQueue()
 	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 
-	g_pEventQueue->Dump();
+	g_EventQueue.Dump();
 }
 static ConCommand dumpeventqueue( "dumpeventqueue", CC_DumpEventQueue, "Dump the contents of the Entity I/O event queue to the console." );
 #endif
@@ -556,11 +555,11 @@ void ServiceEventQueue( CBaseEntity* pActivator )
 
 	if ( pActivator )
 	{
-		g_pEventQueue->ServiceEvent( pActivator );
+		g_EventQueue.ServiceEvent( pActivator );
 	}
 	else
 	{
-		g_pEventQueue->ServiceEvents();
+		g_EventQueue.ServiceEvents();
 	}
 }
 

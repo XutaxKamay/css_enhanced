@@ -281,7 +281,7 @@ void CBaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CBa
 			char szBuffer[256];
 			Q_snprintf( szBuffer,
 						sizeof(szBuffer),
-						"(%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
+						"[Server] (%0.2f) output: (%s,%s) -> (%s,%s,%.1f)(%s)\n",
 #ifdef TF_DLL
 						engine->GetServerTime(),
 #else
@@ -302,7 +302,7 @@ void CBaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CBa
 			char szBuffer[256];
 			Q_snprintf( szBuffer,
 						sizeof(szBuffer),
-						"(%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
+						"[Server] (%0.2f) output: (%s,%s) -> (%s,%s)(%s)\n",
 #ifdef TF_DLL
 						engine->GetServerTime(),
 #else
@@ -333,7 +333,7 @@ void CBaseEntityOutput::FireOutput(variant_t Value, CBaseEntity *pActivator, CBa
 			if (ev->m_nTimesToFire == 0)
 			{
 				char szBuffer[256];
-				Q_snprintf( szBuffer, sizeof(szBuffer), "Removing from action list: (%s,%s) -> (%s,%s)\n", pCaller ? STRING(pCaller->m_iClassname) : "NULL", pCaller ? STRING(pCaller->GetEntityName()) : "NULL", STRING(ev->m_iTarget), STRING(ev->m_iTargetInput));
+				Q_snprintf( szBuffer, sizeof(szBuffer), "[Server] Removing from action list: (%s,%s) -> (%s,%s)\n", pCaller ? STRING(pCaller->m_iClassname) : "NULL", pCaller ? STRING(pCaller->GetEntityName()) : "NULL", STRING(ev->m_iTarget), STRING(ev->m_iTargetInput));
 				DevMsg( 2, "%s", szBuffer );
 				ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
 				bRemove = true;
@@ -974,7 +974,7 @@ void CEventQueue::ServiceEvents( void )
 			}
 			
 			char szBuffer[256];
-			Q_snprintf( szBuffer, sizeof(szBuffer), "unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			Q_snprintf( szBuffer, sizeof(szBuffer), "[Server] unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
 			DevMsg( 2, "%s", szBuffer );
 			ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
 		}
@@ -1083,7 +1083,7 @@ void CEventQueue::ServiceEvent( CBaseEntity* pActivator )
 			}
 
 			char szBuffer[256];
-			Q_snprintf( szBuffer, sizeof(szBuffer), "unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
+			Q_snprintf( szBuffer, sizeof(szBuffer), "[Server] unhandled input: (%s) -> (%s), from (%s,%s); target entity not found\n", STRING(pe->m_iTargetInput), STRING(pe->m_iTarget), pClass, pName );
 			DevMsg( 2, "%s", szBuffer );
 			ADD_DEBUG_HISTORY( HISTORY_ENTITY_IO, szBuffer );
 		}

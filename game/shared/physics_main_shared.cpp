@@ -459,13 +459,12 @@ void CBaseEntity::DestroyAllDataObjects( void )
 void SpewLinks()
 {
 	int nCount = 0;
-	auto accessor = g_pEntityDataAccessors[TOUCHLINK];
 
 	for ( CBaseEntity *pClass = gEntList.FirstEnt(); pClass != NULL; pClass = gEntList.NextEnt(pClass) )
 	{
 		if ( pClass /*&& !pClass->IsDormant()*/ )
 		{
-			touchlink_t *root = ( touchlink_t * )accessor->GetDataObject( pClass );
+			touchlink_t *root = ( touchlink_t * )pClass->GetDataObject( TOUCHLINK );
 			if ( root )
 			{
 
@@ -626,7 +625,7 @@ void CBaseEntity::PhysicsCheckForEntityUntouch( void )
 
 	touchlink_t *link;
 
-	touchlink_t *root = ( touchlink_t * )g_pEntityDataAccessors[TOUCHLINK]->GetDataObject( this );
+	touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
 	if ( root )
 	{
 #ifdef PORTAL
@@ -690,7 +689,7 @@ void CBaseEntity::PhysicsNotifyOtherOfUntouch( CBaseEntity *ent, CBaseEntity *ot
 
 	// loop through ed's touch list, looking for the notifier
 	// remove and call untouch if found
-	touchlink_t *root = ( touchlink_t * )g_pEntityDataAccessors[TOUCHLINK]->GetDataObject( other );
+	touchlink_t *root = ( touchlink_t * )other->GetDataObject( TOUCHLINK );
 	if ( root )
 	{
 		touchlink_t *link = root->nextLink;
@@ -748,7 +747,7 @@ void CBaseEntity::PhysicsRemoveTouchedList( CBaseEntity *ent )
 
 	touchlink_t *link, *nextLink;
 
-	touchlink_t *root = ( touchlink_t * )g_pEntityDataAccessors[TOUCHLINK]->GetDataObject( ent );
+	touchlink_t *root = ( touchlink_t * )ent->GetDataObject( TOUCHLINK );
 	if ( root )
 	{
 		link = root->nextLink;
@@ -1004,7 +1003,7 @@ touchlink_t *CBaseEntity::PhysicsMarkEntityAsTouched( CBaseEntity *other )
 #endif
 
 	// check if the edict is already in the list
-	touchlink_t *root = ( touchlink_t * )g_pEntityDataAccessors[TOUCHLINK]->GetDataObject( this );
+	touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
 	if ( root )
 	{
 		for ( link = root->nextLink; link != root; link = link->nextLink )

@@ -87,7 +87,7 @@ private:
 // XYZ_TODO call this in client prediction
 void ServiceEventQueue( CBaseEntity* pActivator );
 
-extern CEventQueue* g_pEventQueue;
+extern CEventQueue g_EventQueue;
 
 
 

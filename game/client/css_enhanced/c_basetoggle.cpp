@@ -31,12 +31,16 @@ BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
 END_PREDICTION_DATA();
 
+extern void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut);
+extern void RecvProxy_ClassName(const CRecvProxyData *pData, void *pStruct, void *pOut);
+
 IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropDataTable(RECVINFO_DT(m_Collision), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty)),
 	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)),
 	RecvPropQAngles(RECVINFO_NAME(m_angNetworkAngles, m_angRotation)),
 	RecvPropString(RECVINFO(m_sMaster)),
-	RecvPropString(RECVINFO(m_iName)),
+	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_Name),
+	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_ClassName),
 	RecvPropString(RECVINFO(m_iszDamageFilterName)),
 	RecvPropInt(RECVINFO(m_nModelIndex)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),

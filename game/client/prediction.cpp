@@ -56,6 +56,7 @@ static ConVar	cl_predictionlist	( "cl_predictionlist", "0", FCVAR_CHEAT, "Show w
 static ConVar	cl_predictionentitydump( "cl_pdump", "-1", FCVAR_CHEAT, "Dump info about this entity to screen." );
 static ConVar	cl_predictionentitydumpbyclass( "cl_pclass", "", FCVAR_CHEAT, "Dump entity by prediction classname." );
 static ConVar	cl_pred_optimize( "cl_pred_optimize", "2", 0, "Optimize for not copying data if didn't receive a network update (1), and also for not repredicting if there were no errors (2)." );
+static ConVar	cl_predict_triggers("cl_predict_triggers", "1");
 
 #endif
 
@@ -1371,7 +1372,12 @@ void CPrediction::RestorePredictedTouched( int current_command )
 
 	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
 
-	g_pEventQueue = &m_EventQueueHistory[slot];
+	g_EventQueue.Clear();
+
+	for ( auto pEvent = m_EventQueueHistory[slot].GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
+	{
+		g_EventQueue.AddEvent( *pEvent );
+	}
 #endif
 }
 
@@ -1425,11 +1431,10 @@ void CPrediction::StorePredictedTouched( int current_command )
 
 	savedEventQueue.Clear();
 
-	for ( auto pEvent = g_pEventQueue->GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
+	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
 	{
 		savedEventQueue.AddEvent( *pEvent );
 	}
-
 #endif
 }
 
@@ -1660,7 +1665,10 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 		// Set globals appropriately
 		float curtime		= ( localPlayer->m_nTickBase ) * TICK_INTERVAL;
 
-		RestorePredictedTouched( current_command - 1 );
+		if ( cl_predict_triggers.GetBool() )
+		{
+			RestorePredictedTouched( current_command - 1 );
+		}
 
 		RunSimulation( current_command, curtime, cmd, localPlayer );
 
@@ -1671,7 +1679,10 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 
 		ServiceEventQueue( NULL );
 
-		StorePredictedTouched( current_command );
+		if ( cl_predict_triggers.GetBool() )
+		{
+			StorePredictedTouched( current_command );
+		}
 
 		// Store intermediate data into appropriate slot
 		StorePredictionResults( current_command ); // Note that I starts at 1

@@ -1680,7 +1680,7 @@ public: // CSSENHANCED
 	float 	m_flLocalTime; // XYZ_TODO: Network this?
 	float 	m_flMoveDoneTime;
 	int		m_spawnflags;
-	char m_iName[MAX_PATH];
+	string_t m_iName;
 
 	// Damage filtering
 	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.

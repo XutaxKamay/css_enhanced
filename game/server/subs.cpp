@@ -156,6 +156,8 @@ BEGIN_DATADESC( CBaseToggle )
 
 END_DATADESC()
 
+extern void SendProxy_ClassName( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
+
 // send table [[For CSS_ENHANCED]]
 IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
 	SendPropDataTable(SENDINFO_DT(m_Collision), &REFERENCE_SEND_TABLE(DT_CollisionProperty)),
@@ -163,6 +165,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
 	SendPropQAngles(SENDINFO(m_angRotation), 0, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 	SendPropStringT(SENDINFO(m_sMaster)),
 	SendPropStringT(SENDINFO(m_iName)),
+	SendPropString(SENDINFO_NAME(m_iClassname, m_iNetworkClassname)),
 	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
 	SendPropModelIndex(SENDINFO(m_nModelIndex)),
 	SendPropInt(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),

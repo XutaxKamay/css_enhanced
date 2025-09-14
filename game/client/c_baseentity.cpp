@@ -458,9 +458,20 @@ END_RECV_TABLE()
 
 void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
 {
+	static CUtlSymbolTable NameTable;
+
 	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
 
-	Q_strncpy( entity->m_iName, pData->m_Value.m_pString, MAX_PATH );
+	entity->m_iName = MAKE_STRING( NameTable.String( NameTable.AddString( pData->m_Value.m_pString ) ) );
+}
+
+void RecvProxy_ClassName(const CRecvProxyData *pData, void *pStruct, void *pOut)
+{
+	static CUtlSymbolTable ClassTable;
+
+	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
+
+	entity->m_iClassname = MAKE_STRING( ClassTable.String( ClassTable.AddString( pData->m_Value.m_pString ) ) );
 }
 
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
@@ -495,6 +506,7 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 
 	// Receive the name
 	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_Name),
+	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), NULL, RecvProxy_ClassName),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
@@ -757,7 +769,6 @@ C_BaseEntity::C_BaseEntity() :
 	C_BaseEntity::Clear();
 
 	SetModelName( NULL_STRING );
-	m_iClassname = NULL_STRING;
 
 	m_InterpolationListEntry = 0xFFFF;
 	m_TeleportListEntry = 0xFFFF;
@@ -781,6 +792,8 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
+	m_iClassname = MAKE_STRING( typeid( *this ).name() );
+	m_iName = MAKE_STRING( "" );
 }
 
 
@@ -2435,6 +2448,8 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	{
 		UpdateVisibility();
 	}
+
+	Activate();
 }
 
 //-----------------------------------------------------------------------------
@@ -4564,27 +4579,16 @@ C_BaseEntity *C_BaseEntity::Instance( int iEnt )
 //-----------------------------------------------------------------------------
 const char *C_BaseEntity::GetClassname( void )
 {
-	static char outstr[ 256 ];
-	outstr[ 0 ] = 0;
-	bool gotname = false;
-#ifndef NO_ENTITY_PREDICTION
 	if ( GetPredDescMap() )
 	{
 		const char *mapname =  GetClassMap().Lookup( GetPredDescMap()->dataClassName );
 		if ( mapname && mapname[ 0 ] ) 
 		{
-			Q_strncpy( outstr, mapname, sizeof( outstr ) );
-			gotname = true;
+			return mapname;
 		}
 	}
-#endif
 
-	if ( !gotname )
-	{
-		Q_strncpy( outstr, typeid( *this ).name(), sizeof( outstr ) );
-	}
-
-	return outstr;
+	return m_iClassname;
 }
 
 const char *C_BaseEntity::GetDebugName( void )
