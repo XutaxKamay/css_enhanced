@@ -17,13 +17,13 @@ CUtlHash< C_BaseEntity* > g_TriggerEntities(
   MAX_EDICTS,
   0,
   0,
-  []( const C_BaseEntity*& pEntA, const C_BaseEntity*& pEntB )
+  []( C_BaseEntity* const& pEntA, C_BaseEntity* const& pEntB )
   {
 	  return pEntA == pEntB;
   },
-  []( const C_BaseEntity*& pEnt )
+  []( C_BaseEntity* const& pEnt ) -> unsigned int
   {
-	  if constexpr ( sizeof( uintp ) == 8 )
+	  if ( sizeof( &pEnt ) == 8 )
 	  {
 		  return Hash8( &pEnt );
 	  }
@@ -252,16 +252,6 @@ void C_BaseTrigger::PostDataUpdate( DataUpdateType_t updateType )
 	}
 
 	BaseClass::PostDataUpdate( updateType );
-}
-
-//////////////////////////////////////////////////////////////////////////////
-/// This needs to be restored on each simulations times during prediction. ///
-/// By defaut data is rested only once but in our situation,               ///
-/// we need to restore everytime a new command processes.                  ///
-//////////////////////////////////////////////////////////////////////////////
-void C_BaseTrigger::RestoreTouchEntitiesTo( int current_command )
-{
-	RestoreData( "RestoreTouchEntitiesForTriggers", current_command, PC_EVERYTHING );
 }
 
 bool C_BaseTrigger::ShouldPredict( void )

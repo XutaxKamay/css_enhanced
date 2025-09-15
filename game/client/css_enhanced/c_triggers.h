@@ -57,7 +57,6 @@ public:
 
     virtual bool IsTrigger( void ) { return true; };
 	virtual void PostDataUpdate( DataUpdateType_t updateType );
-	virtual void RestoreTouchEntitiesTo( int current_command );
 
     virtual bool ShouldPredict( void );
 
