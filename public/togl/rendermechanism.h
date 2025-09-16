@@ -38,6 +38,7 @@
 #include "tier0/basetypes.h"
 #include "tier0/platform.h"
 
+#ifndef DXVK_ENABLED
 #include "togl/linuxwin/glmdebug.h"
 #include "togl/linuxwin/glbase.h"
 #include "togl/linuxwin/glentrypoints.h"
@@ -53,6 +54,7 @@
 #include "togl/linuxwin/glmgr.h"
 #include "togl/linuxwin/dxabstract_types.h"
 #include "togl/linuxwin/dxabstract.h"
+#endif !DXVK_ENABLED
 
 #else
 	//USE_ACTUAL_DX

@@ -5,10 +5,16 @@
 //===========================================================================//
 
 #include "winutils.h"
+#include "platform.h"
 
 #ifndef _WIN32
 
 #include "appframework/ilaunchermgr.h"
+
+#ifdef DXVK_ENABLED
+#include <stdlib.h>
+#include <ctype.h>
+#endif
 
 // LINUX path taken from //Steam/main/src/tier0/platform_posix.cpp - Returns installed RAM in MB. 
 static unsigned long GetInstalledRAM()
@@ -61,6 +67,25 @@ void Sleep( unsigned int ms )
 	ThreadSleep( ms );
 }
 
+#ifdef DXVK_ENABLED
+// TODO_ENHANCED
+bool IsIconic( HWND hWnd )
+{
+	return false;
+}
+
+BOOL ClientToScreen( HWND hWnd, LPPOINT pPoint )
+{
+	return false;
+}
+BOOL GetClientRect(HWND hWnd, LPRECT pRect) {
+	pRect->left = 0;
+	pRect->top = 0;
+	pRect->right = 0;
+	pRect->bottom = 0;
+	return FALSE;
+}
+#else
 bool IsIconic( VD3DHWND hWnd )
 {
 	// FIXME for now just act non-minimized all the time
@@ -74,6 +99,13 @@ BOOL ClientToScreen( VD3DHWND hWnd, LPPOINT pPoint )
 	return true;
 }
 
+bool GUID::operator==( const struct _GUID &other ) const
+{
+	DebuggerBreak();
+	return memcmp( this, &other, sizeof( GUID ) ) == 0;
+}
+#endif
+
 void* GetCurrentThread()
 {
 	DebuggerBreak();
@@ -83,11 +115,5 @@ void* GetCurrentThread()
 void SetThreadAffinityMask( void *hThread, int nMask )
 {
 	DebuggerBreak();
-}
-
-bool GUID::operator==( const struct _GUID &other ) const
-{
-	DebuggerBreak();
-	return memcmp( this, &other, sizeof( GUID ) ) == 0;
 }
 #endif

@@ -1206,7 +1206,11 @@ void CShaderDeviceBase::SetView( void* hWnd )
 	g_pShaderAPI->GetViewports( &viewport, 1 );
 
 	// Get the window (*not* client) rect of the view window
+	#ifdef DXVK_ENABLED
+	m_ViewHWnd = hWnd;
+	#else
 	m_ViewHWnd = (VD3DHWND)hWnd;
+	#endif
 	GetWindowSize( m_nWindowWidth, m_nWindowHeight );
 
 	// Reset the viewport (takes into account the view rect)

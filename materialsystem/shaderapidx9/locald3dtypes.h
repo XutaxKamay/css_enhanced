@@ -57,17 +57,39 @@ public:
 #endif
 #endif
 
-struct IDirect3DTexture9;
-struct IDirect3DBaseTexture9;
-struct IDirect3DCubeTexture9;
-struct IDirect3D9;
-struct IDirect3DDevice9;
-struct IDirect3DSurface9;
-struct IDirect3DIndexBuffer9;
-struct IDirect3DVertexBuffer9;
-struct IDirect3DVertexShader9;
-struct IDirect3DPixelShader9;
-struct IDirect3DVolumeTexture9;
+#ifdef DXVK_ENABLED
+#define DOUBLE double
+#include <d3d9.h>
+
+// most wine inclusions dont work for native
+// #define __D3DX9SHADER_H__
+#define __D3DX9EFFECT_H__
+#define __WINE_D3D10EFFECT_H
+#define __WINE_D3D10SHADER_H
+#define __WINE_D3D8CAPS_H
+#define __WINE_D3D8TYPES_H
+#define __WINE_D3D8_H
+#define __WINE_D3D9CAPS_H
+#define __WINE_D3D9TYPES_H
+#define __WINE_D3DCAPS_H
+#define __WINE_D3DHAL_H
+#define __WINE_D3DTYPES_H
+#define __WINE_D3DVEC_INL
+#define __WINE_D3DX9ANIM_H
+// #define __WINE_D3DX9CORE_H
+#define __WINE_D3DX9MESH_H
+#define __WINE_D3DX9TEX_H
+#define __WINE_D3DX9XOF_H
+#define __WINE_D3D_H
+#define __WINE_DXDIAG_H
+#define __WINE_DXERR8_H
+#define __WINE_DXERR9_H
+#define __WINE_DXFILE_H
+#define __WINE_DXVA_H
+
+#include <d3dx9math.h>
+#include <d3dx9math.inl>
+#endif
 
 typedef struct _D3DLIGHT9				D3DLIGHT9;
 typedef struct _D3DADAPTER_IDENTIFIER9	D3DADAPTER_IDENTIFIER9;
@@ -111,6 +133,48 @@ public:
 };
 
 typedef void *HardwareShader_t;
+
+
+#ifdef DXVK_ENABLED
+#include <d3d9.h>
+
+// #define __D3DX9SHADER_H__
+#define __D3DX9EFFECT_H__
+ #define __WINE_D3D10EFFECT_H
+ #define __WINE_D3D10SHADER_H
+ #define __WINE_D3D8CAPS_H
+ #define __WINE_D3D8TYPES_H
+ #define __WINE_D3D8_H
+ #define __WINE_D3D9CAPS_H
+ #define __WINE_D3D9TYPES_H
+ #define __WINE_D3DCAPS_H
+ #define __WINE_D3DHAL_H
+ #define __WINE_D3DTYPES_H
+ #define __WINE_D3DVEC_INL
+ #define __WINE_D3DX9ANIM_H
+ // #define __WINE_D3DX9CORE_H
+ #define __WINE_D3DX9MESH_H
+ #define __WINE_D3DX9TEX_H
+ #define __WINE_D3DX9XOF_H
+ #define __WINE_D3D_H
+ #define __WINE_DXDIAG_H
+ #define __WINE_DXERR8_H
+ #define __WINE_DXERR9_H
+ #define __WINE_DXFILE_H
+ #define __WINE_DXVA_H
+#include <d3dx9math.h>
+#include <d3dx9math.inl>
+typedef HWND VD3DHWND;
+
+typedef intp VertexShader_t;
+typedef intp PixelShader_t;
+#define INVALID_SHADER	(-1) // ( 0xFFFFFFFF )
+#define INVALID_HARDWARE_SHADER ( NULL )
+
+#define D3DSAMP_NOTSUPPORTED					D3DSAMP_FORCE_DWORD
+#define D3DRS_NOTSUPPORTED						D3DRS_FORCE_DWORD
+
+#else
 
 //-----------------------------------------------------------------------------
 // The vertex and pixel shader type
@@ -187,6 +251,8 @@ typedef enum D3DSHADEMODE
 	D3DSHADE_FLAT = 0,
 	D3DSHADE_GOURAUD = 0,
 };
+
+#endif // DXVK_ENABLED
 
 #endif // _X360
 

@@ -25,7 +25,7 @@
 // dxabstract_types.h
 //
 //==================================================================================================
-#ifndef DXABSTRACT_TYPES_H
+#if !defined(DXABSTRACT_TYPES_H) and !defined(DXVK_ENABLED)
 #define DXABSTRACT_TYPES_H
 
 #pragma once
@@ -1746,4 +1746,6 @@ struct D3DSamplerDesc
 #define SAMPLER_TYPE_3D		2
 #define SAMPLER_TYPE_UNUSED	3
 
-#endif // DXABSTRACT_TYPES_H
+#elif defined(DXVK_ENABLED)
+#include <d3d9.h>
+#endif // DXABSTRACT_TYPES_H && !DXVK_ENABLED

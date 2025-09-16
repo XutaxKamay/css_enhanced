@@ -42,9 +42,9 @@ struct MatchMakingKeyValuePair_t
 	MatchMakingKeyValuePair_t() { m_szKey[0] = m_szValue[0] = 0; }
 	MatchMakingKeyValuePair_t( const char *pchKey, const char *pchValue )
 	{
-		strncpy( m_szKey, pchKey, sizeof(m_szKey) ); // this is a public header, use basic c library string funcs only!
+		Q_strncpy( m_szKey, pchKey, sizeof(m_szKey) ); // this is a public header, use basic c library string funcs only!
 		m_szKey[ sizeof( m_szKey ) - 1 ] = '\0';
-		strncpy( m_szValue, pchValue, sizeof(m_szValue) );
+		Q_strncpy( m_szValue, pchValue, sizeof(m_szValue) );
 		m_szValue[ sizeof( m_szValue ) - 1 ] = '\0';
 	}
 	char m_szKey[ 256 ];
@@ -243,7 +243,7 @@ inline const char* gameserveritem_t::GetName() const
 
 inline void gameserveritem_t::SetName( const char *pName )
 {
-	strncpy( m_szServerName, pName, sizeof( m_szServerName ) );
+	Q_strncpy( m_szServerName, pName, sizeof( m_szServerName ) );
 	m_szServerName[ sizeof( m_szServerName ) - 1 ] = '\0';
 }
 

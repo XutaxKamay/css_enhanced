@@ -189,6 +189,9 @@ def define_platform(conf):
 	if not (arch32 ^ arch64):
 		conf.fatal('Your compiler sucks')
 
+	if conf.options.DXVK:
+		conf.define('DXVK_ENABLED', 1)
+
 	if conf.options.DEDICATED:
 		conf.options.SDL = False
 		conf.define('DEDICATED', 1)
@@ -300,10 +303,10 @@ def options(opt):
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
 		help = 'build with -DDEBUG [default: %(default)r]')
 
-	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = sys.platform != 'win32',
+	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = True,
 		help = 'build engine with SDL [default: %(default)r]')
 
-	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = sys.platform != 'win32',
+	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = False,
 		help = 'build engine with ToGL [default: %(default)r]')
 
 	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = str, default = 'cstrike',
@@ -317,6 +320,9 @@ def options(opt):
 
 	grp.add_option('--togles', action = 'store_true', dest = 'TOGLES', default = False,
 		help = 'build engine with ToGLES [default: %(default)r]')
+
+	grp.add_option('--dxvk', action = 'store_true', dest = 'DXVK', default = True,
+		help = 'build engine with DXVK [default: %(default)r]')
 
 	# TODO(nillerusr): add wscript for opus building
 	grp.add_option('--enable-opus', action = 'store_true', dest = 'OPUS', default = False,
@@ -404,6 +410,10 @@ def check_deps(conf):
 
 			if conf.options.OPUS:
 				conf.check_cfg(package='opus', uselib_store='OPUS', args=['--cflags', '--libs'])
+
+			if conf.options.DXVK:
+				conf.check_cfg(package='dxvk-d3d9', uselib_store='DXVK', args=['--cflags', '--libs'])
+				conf.env.INCLUDES += conf.env.INCLUDES_DXVK
 	else:
 		conf.check(lib='SDL2', uselib_store='SDL2')
 		conf.check(lib='freetype2', uselib_store='FT2')
@@ -418,6 +428,9 @@ def check_deps(conf):
 		conf.check(lib='android_support', uselib_store='ANDROID_SUPPORT')
 		conf.check(lib='opus', uselib_store='OPUS')
 
+		if conf.options.DXVK:
+			conf.check(lib='dxvk_d3d9', uselib_store='DXVK')
+
 	if conf.env.DEST_OS == 'win32':
 		conf.check(lib='libz', uselib_store='ZLIB', define_name='USE_ZLIB')
 		conf.check(lib='libzstd', uselib_store='ZSTD')
@@ -426,8 +439,11 @@ def check_deps(conf):
 		conf.check(lib='SDL2', uselib_store='SDL2')
 		conf.check(lib='libjpeg', uselib_store='JPEG', define_name='HAVE_JPEG')
 		conf.check(lib='libpng', uselib_store='PNG', define_name='HAVE_PNG')
-		conf.check(lib='d3dx9', uselib_store='D3DX9')
-		conf.check(lib='d3d9', uselib_store='D3D9')
+		if conf.options.DXVK:
+			conf.check(lib='dxvk_d3d9', uselib_store='DXVK')
+		else:
+			conf.check(lib='d3dx9', uselib_store='D3DX9')
+			conf.check(lib='d3d9', uselib_store='D3D9')
 		conf.check(lib='dsound', uselib_store='DSOUND')
 		conf.check(lib='dxguid', uselib_store='DXGUID')
 		if conf.options.OPUS:
@@ -460,7 +476,9 @@ def configure(conf):
 
 	define_platform(conf)
 
-	if conf.env.TOGLES:
+	if conf.options.DXVK:
+		pass
+	elif conf.env.TOGLES:
 		projects['game'] += ['togles']
 	elif conf.env.GL:
 		projects['game'] += ['togl']
@@ -514,6 +532,8 @@ def configure(conf):
 
 	if conf.env.DEST_OS == 'android':
 		flags += [
+			# TODO_ENHANCED:
+			'-I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk'
 			'-I'+os.path.abspath('.')+'/thirdparty/curl/include',
 			'-I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'-I'+os.path.abspath('.')+'/thirdparty/openal-soft/include/',
@@ -543,6 +563,7 @@ def configure(conf):
 		linkflags += flags
 	else:
 		cflags += [
+			'/I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk',
 			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
@@ -555,6 +576,9 @@ def configure(conf):
 			'/TP',
 			'/EHsc'
 		]
+
+		if conf.options.DXVK:
+			cflags += '/I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk'
 		
 		if conf.options.BUILD_TYPE == 'debug':
 			linkflags += [
@@ -577,9 +601,13 @@ def configure(conf):
 
 		linkflags += [
 			'/LIBPATH:'+os.path.abspath('.')+'/lib/win32/'+conf.env.DEST_CPU+'/',
-			'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/',
 			'/STACK:0x10000000'
 		]
+
+		if not conf.options.DXVK:
+			linkflags += [
+				'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/',
+			]
 
 	# Causes issues with AddSequenceLayers for pLayer->start != end, those are a lot of times, sadly, NaN values which is undefined behavior.
 	# We might want precision too.

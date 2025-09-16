@@ -81,8 +81,6 @@ def build(bld):
 	includes += game["includes"]
 	defines = game["defines"]
 
-	defines.remove('PROTECTED_THINGS_ENABLE')
-
 	if bld.env.COMPILER_CC != 'msvc':
 		bld(features='cxx pch',
 			target='client-precompiled-headers',

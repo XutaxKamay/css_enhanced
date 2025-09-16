@@ -21,12 +21,19 @@
 //-----------------------------------------------------------------------------
 FORCEINLINE bool IsEmulatingGL()
 {
+#ifdef DXVK_ENABLED
+	return false;
+#endif
+
 	static bool bIsEmulatingGL = ( Plat_GetCommandLineA() ) ? ( strstr( Plat_GetCommandLineA(), "-r_emulate_gl" ) != NULL ) : false;
 	return bIsEmulatingGL;
 }
 
 FORCEINLINE bool IsOpenGL( void )
 {
+#ifdef DXVK_ENABLED
+	return false;
+#endif
 	return IsPlatformOpenGL() || IsEmulatingGL();
 }
 
