@@ -20,7 +20,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories  	"$BASE;..\"
-		$PreprocessorDefinitions	"$BASE;TOGL_DLL_EXPORT;PROTECTED_THINGS_ENABLE;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead" [!$OSXALL]
+		$PreprocessorDefinitions	"$BASE;TOGL_DLL_EXPORT;" [!$OSXALL]
 		$PreprocessorDefinitions	"$BASE;TOGL_DLL_EXPORT" [$OSXALL]
 
 	}

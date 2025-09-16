@@ -350,7 +350,7 @@ class StringFuncs<char>
 public:
 	static char		  *Duplicate( const char *pValue ) { return strdup( pValue ); }
 	// Note that this function takes a character count, and does not guarantee null-termination.
-	static void		   Copy( OUT_CAP(iLengthInChars) char *out_pOut, const char *pIn, int iLengthInChars ) { strncpy( out_pOut, pIn, iLengthInChars ); }
+	static void		   Copy( OUT_CAP(iLengthInChars) char *out_pOut, const char *pIn, int iLengthInChars ) { Q_strncpy( out_pOut, pIn, iLengthInChars ); }
 	static int		   Compare( const char *pLhs, const char *pRhs ) { return strcmp( pLhs, pRhs ); }
 	static int		   CaselessCompare( const char *pLhs, const char *pRhs ) { return Q_strcasecmp( pLhs, pRhs ); }
 	static int		   Length( const char *pValue ) { return (int)strlen( pValue ); }
@@ -365,7 +365,7 @@ class StringFuncs<wchar_t>
 public:
 	static wchar_t		 *Duplicate( const wchar_t *pValue ) { return wcsdup( pValue ); }
 	// Note that this function takes a character count, and does not guarantee null-termination.
-	static void			  Copy( OUT_CAP(iLengthInChars) wchar_t *out_pOut, const wchar_t  *pIn, int iLengthInChars ) { wcsncpy( out_pOut, pIn, iLengthInChars ); }
+	static void			  Copy( OUT_CAP(iLengthInChars) wchar_t *out_pOut, const wchar_t  *pIn, int iLengthInChars ) { Q_wcsncpy( out_pOut, pIn, iLengthInChars ); }
 	static int			  Compare( const wchar_t *pLhs, const wchar_t *pRhs ) { return wcscmp( pLhs, pRhs ); }
 	static int			  CaselessCompare( const wchar_t *pLhs, const wchar_t *pRhs ); // no implementation?
 	static int			  Length( const wchar_t *pValue ) { return (int)wcslen( pValue ); }

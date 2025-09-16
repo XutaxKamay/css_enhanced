@@ -109,7 +109,7 @@ enum ImageFormat
 };
 
 #ifdef DXVK_ENABLED
-#include <windows_base.h>
+#include <dxvk_win_inc.h>
 #include <d3d9types.h>
 #else
 #if defined( POSIX  ) || defined( DX_TO_GL_ABSTRACTION )

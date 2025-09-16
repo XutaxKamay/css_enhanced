@@ -39,7 +39,7 @@ MEM_INTERFACE void *MemAllocScratch( int nMemSize );
 MEM_INTERFACE void MemFreeScratch();
 MEM_INTERFACE void MemAllocOOMError( size_t nSize );
 
-#ifdef _LINUX
+#if defined(_LINUX) and !DXVK_ENABLED
 MEM_INTERFACE void ZeroMemory( void *mem, size_t length );
 #endif
 

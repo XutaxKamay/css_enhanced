@@ -853,7 +853,7 @@ return ptr;
 #define _wtoi64(arg) wcstoll(arg, NULL, 10)
 
 #ifdef DXVK_ENABLED
-#include <windows_base.h>
+#include <dxvk_win_inc.h>
 #else
 typedef uintp HMODULE;
 typedef void *HANDLE;

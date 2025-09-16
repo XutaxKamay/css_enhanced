@@ -13,8 +13,6 @@ def options(opt):
 
 def configure(conf):
 	conf.define('TOGL_DLL_EXPORT',1)
-	conf.env.append_unique('DEFINES',['strncpy=use_Q_strncpy_instead',
-		'_snprintf=use_Q_snprintf_instead'])
 
 def build(bld):
 	source = [

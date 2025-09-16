@@ -16,8 +16,8 @@ def configure(conf):
 		'DEFINE_MATERIALSYSTEM_INTERFACE',
 		'MATERIALSYSTEM_EXPORTS',
 		#'PROTECTED_THINGS_ENABLE', # conflicts with stlport
-		'strncpy=use_Q_strncpy_instead',
-		'_snprintf=use_Q_snprintf_instead'
+		#'strncpy=use_Q_strncpy_instead', conflicts
+		#'_snprintf=use_Q_snprintf_instead' conflicts
 	])
 
 def build(bld):

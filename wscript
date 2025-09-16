@@ -412,6 +412,10 @@ def check_deps(conf):
 
 			if conf.options.OPUS:
 				conf.check_cfg(package='opus', uselib_store='OPUS', args=['--cflags', '--libs'])
+
+			if conf.options.DXVK:
+				conf.check_cfg(package='dxvk-d3d9', uselib_store='DXVK', args=['--cflags', '--libs'])
+				conf.env.INCLUDES += conf.env.INCLUDES_DXVK
 	else:
 		conf.check(lib='SDL2', uselib_store='SDL2')
 		conf.check(lib='freetype2', uselib_store='FT2')
@@ -425,6 +429,9 @@ def check_deps(conf):
 			conf.check(lib='ssl', uselib_store='SSL')
 		conf.check(lib='android_support', uselib_store='ANDROID_SUPPORT')
 		conf.check(lib='opus', uselib_store='OPUS')
+
+		if conf.options.DXVK:
+			conf.check(lib='dxvk_d3d9', uselib_store='DXVK')
 
 	if conf.env.DEST_OS == 'win32':
 		conf.check(lib='libz', uselib_store='ZLIB', define_name='USE_ZLIB')
@@ -527,6 +534,8 @@ def configure(conf):
 
 	if conf.env.DEST_OS == 'android':
 		flags += [
+			# TODO_ENHANCED:
+			'-I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk'
 			'-I'+os.path.abspath('.')+'/thirdparty/curl/include',
 			'-I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'-I'+os.path.abspath('.')+'/thirdparty/openal-soft/include/',
@@ -559,6 +568,7 @@ def configure(conf):
 		linkflags += flags
 	else:
 		cflags += [
+			'/I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk',
 			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',

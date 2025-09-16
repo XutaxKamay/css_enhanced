@@ -2,279 +2,214 @@
 #include "mathlib/vmatrix.h"
 #include "locald3dtypes.h"
 
-#define DXABSTRACT_BREAK_ON_ERROR() *(int*)nullptr = 0
+#define DXABSTRACT_BREAK_ON_ERROR() *( int* )nullptr = 0
 
-// ------------------------------------------------------------------------------------------------------------------------------ //
-// D3DX stuff.
-// ------------------------------------------------------------------------------------------------------------------------------ //
+// ------------------------------------------------------------------------------------------------------------------------------
+// // D3DX stuff.
+// ------------------------------------------------------------------------------------------------------------------------------
+// //
 
-#define UNDEFINED { *(int*)nullptr = 0; }
-
-typedef class CUtlMemory<D3DMATRIX> CD3DMATRIXAllocator;
-typedef class CUtlVector<D3DMATRIX, CD3DMATRIXAllocator> CD3DMATRIXStack;
-
-struct CD3DXMatrixStack : ID3DXMatrixStack //: public IUnknown
-{
-	int	m_refcount[2];
-	bool m_mark;
-	CD3DMATRIXStack	m_stack;
-	int						m_stackTop;	// top of stack is at the highest index, this is that index.  push increases, pop decreases.
-
-	CD3DXMatrixStack();
-	ULONG  AddRef();
-	ULONG Release();
-	
-	HRESULT	Create( void );
-	
-	D3DXMATRIX* GetTop();
-	HRESULT Push();
-	HRESULT Pop();
-	HRESULT LoadIdentity();
-	HRESULT LoadMatrix( const D3DXMATRIX *pMat );
-	HRESULT MultMatrix( const D3DXMATRIX *pMat );
-	HRESULT MultMatrixLocal( const D3DXMATRIX *pMat );
-	HRESULT ScaleLocal(FLOAT x, FLOAT y, FLOAT z);
-
-	// Left multiply the current matrix with the computed rotation
-	// matrix, counterclockwise about the given axis with the given angle.
-	// (rotation is about the local origin of the object)
-	HRESULT RotateAxisLocal(CONST D3DXVECTOR3* pV, FLOAT Angle);
-
-	// Left multiply the current matrix with the computed translation
-	// matrix. (transformation is about the local origin of the object)
-	HRESULT TranslateLocal(FLOAT x, FLOAT y, FLOAT z);
-
-    STDMETHOD(RotateAxis)(THIS_ const D3DXVECTOR3* pV, FLOAT Angle) UNDEFINED;
-    STDMETHOD(RotateYawPitchRoll)(THIS_ FLOAT Yaw, FLOAT Pitch, FLOAT Roll) UNDEFINED;
-    STDMETHOD(RotateYawPitchRollLocal)(THIS_ FLOAT Yaw, FLOAT Pitch, FLOAT Roll) UNDEFINED;
-    STDMETHOD(Scale)(THIS_ FLOAT x, FLOAT y, FLOAT z) UNDEFINED;
-    STDMETHOD(Translate)(THIS_ FLOAT x, FLOAT y, FLOAT z ) UNDEFINED;
-    STDMETHOD(QueryInterface)(THIS_ REFIID riid, void **out) UNDEFINED;
-};
-
+#define UNDEFINED                                                                                                      \
+	{                                                                                                                  \
+		*( int* )nullptr = 0;                                                                                          \
+	}
 
 // matrix stack...
+#include <vector>
+#include <d3dx9.h>
 
-HRESULT D3DXCreateMatrixStack( DWORD Flags, LPD3DXMATRIXSTACK* ppStack)
+class CD3DXMatrixStack : public ID3DXMatrixStack
 {
+  private:
+	std::vector< D3DXMATRIX > m_stack;
+	ULONG m_refCount;
 
-    CD3DXMatrixStack* c = new CD3DXMatrixStack();
-    c->Create();
-
-    *ppStack = c;
-	
-	return S_OK;
-}
-
-CD3DXMatrixStack::CD3DXMatrixStack( void )
-{
-	m_refcount[0] = 1;
-	m_refcount[1] = 0;
-};
-		
-ULONG CD3DXMatrixStack::AddRef()
-{
-    int which = 0;
-	Assert( which >= 0 );
-	Assert( which < 2 );
-	m_refcount[which]++;
-};
-		
-ULONG CD3DXMatrixStack::Release()
-{
-    int which = 0;
-	Assert( which >= 0 );
-	Assert( which < 2 );
-			
-	bool deleting = false;
-			
-	m_refcount[which]--;
-	if ( (!m_refcount[0]) && (!m_refcount[1]) )
+  public:
+	CD3DXMatrixStack()
+	 : m_refCount( 1 )
 	{
-		deleting = true;
+		D3DXMATRIX identity;
+		D3DXMatrixIdentity( &identity );
+		m_stack.push_back( identity );
 	}
-			
-	if (deleting)
+
+	STDMETHOD( QueryInterface )( REFIID riid, void** ppvObj ) override
 	{
-		if (m_mark)
+		if ( riid == IID_IUnknown || riid == IID_ID3DXMatrixStack )
 		{
+			*ppvObj = static_cast< ID3DXMatrixStack* >( this );
+			AddRef();
+			return S_OK;
 		}
-		delete this;
-		return 0;
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
 	}
-	else
+
+	STDMETHOD_( ULONG, AddRef )() override
 	{
-		return m_refcount[0];
+		return ThreadInterlockedIncrement( &m_refCount );
+	}
+
+	STDMETHOD_( ULONG, Release )() override
+	{
+		ULONG ref = ThreadInterlockedDecrement( &m_refCount );
+		if ( ref == 0 )
+		{
+			delete this;
+		}
+		return ref;
+	}
+
+	STDMETHOD( Pop )() override
+	{
+		if ( m_stack.size() <= 1 )
+		{
+			return D3DERR_INVALIDCALL;
+		}
+		m_stack.pop_back();
+		return S_OK;
+	}
+
+	STDMETHOD( Push )() override
+	{
+		m_stack.push_back( m_stack.back() );
+		return S_OK;
+	}
+
+	STDMETHOD( LoadIdentity )() override
+	{
+		D3DXMatrixIdentity( &m_stack.back() );
+		return S_OK;
+	}
+
+	STDMETHOD( LoadMatrix )( const D3DXMATRIX* pM ) override
+	{
+		m_stack.back() = *pM;
+		return S_OK;
+	}
+
+	STDMETHOD( MultMatrix )( const D3DXMATRIX* pM ) override
+	{
+		D3DXMatrixMultiply( &m_stack.back(), pM, &m_stack.back() );
+		return S_OK;
+	}
+
+	STDMETHOD( MultMatrixLocal )( const D3DXMATRIX* pM ) override
+	{
+		D3DXMatrixMultiply( &m_stack.back(), &m_stack.back(), pM );
+		return S_OK;
+	}
+
+	STDMETHOD( RotateAxis )( const D3DXVECTOR3* pV, FLOAT Angle ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixRotationAxis( &mat, pV, Angle );
+		return MultMatrix( &mat );
+	}
+
+	STDMETHOD( RotateAxisLocal )( const D3DXVECTOR3* pV, FLOAT Angle ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixRotationAxis( &mat, pV, Angle );
+		return MultMatrixLocal( &mat );
+	}
+
+	STDMETHOD( RotateYawPitchRoll )( FLOAT Yaw, FLOAT Pitch, FLOAT Roll ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixRotationYawPitchRoll( &mat, Yaw, Pitch, Roll );
+		return MultMatrix( &mat );
+	}
+
+	STDMETHOD( RotateYawPitchRollLocal )( FLOAT Yaw, FLOAT Pitch, FLOAT Roll ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixRotationYawPitchRoll( &mat, Yaw, Pitch, Roll );
+		return MultMatrixLocal( &mat );
+	}
+
+	STDMETHOD( Scale )( FLOAT x, FLOAT y, FLOAT z ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixScaling( &mat, x, y, z );
+		return MultMatrix( &mat );
+	}
+
+	STDMETHOD( ScaleLocal )( FLOAT x, FLOAT y, FLOAT z ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixScaling( &mat, x, y, z );
+		return MultMatrixLocal( &mat );
+	}
+
+	STDMETHOD( Translate )( FLOAT x, FLOAT y, FLOAT z ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixTranslation( &mat, x, y, z );
+		return MultMatrix( &mat );
+	}
+
+	STDMETHOD( TranslateLocal )( FLOAT x, FLOAT y, FLOAT z ) override
+	{
+		D3DXMATRIX mat;
+		D3DXMatrixTranslation( &mat, x, y, z );
+		return MultMatrixLocal( &mat );
+	}
+
+	STDMETHOD_( D3DXMATRIX*, GetTop )() override
+	{
+		return &m_stack.back();
 	}
 };
 
-
-HRESULT	CD3DXMatrixStack::Create()
+HRESULT D3DXCreateMatrixStack( DWORD Flags, LPD3DXMATRIXSTACK* ppStack )
 {
-	m_stack.EnsureCapacity( 16 );	// 1KB ish
-	m_stack.AddToTail();
-	m_stackTop = 0;				// top of stack is at index 0 currently
-	m_mark = false;
-
-	LoadIdentity();
-	
-	return S_OK;
+	*ppStack = new ( std::nothrow ) CD3DXMatrixStack();
+	return ( *ppStack ) ? S_OK : E_OUTOFMEMORY;
 }
 
-D3DXMATRIX* CD3DXMatrixStack::GetTop()
-{
-	return (D3DXMATRIX*)&m_stack[ m_stackTop ];
-}
-
-HRESULT CD3DXMatrixStack::Push()
-{
-	D3DMATRIX temp = m_stack[ m_stackTop ];
-	m_stack.AddToTail( temp );
-	m_stackTop ++;
-    return S_OK;
-}
-
-HRESULT CD3DXMatrixStack::Pop()
-{
-	int elem = m_stackTop--;
-	m_stack.Remove( elem );
-    return S_OK;
-}
-
-HRESULT CD3DXMatrixStack::LoadIdentity()
-{
-	D3DXMATRIX *mat = GetTop();
-
-	D3DXMatrixIdentity( mat );
-}
-
-HRESULT CD3DXMatrixStack::LoadMatrix( const D3DXMATRIX *pMat )
-{
-	*(GetTop()) = *pMat;
-}
-
-
-HRESULT CD3DXMatrixStack::MultMatrix( const D3DXMATRIX *pMat )
-{
-
-	// http://msdn.microsoft.com/en-us/library/bb174057(VS.85).aspx
-	//	This method right-multiplies the given matrix to the current matrix
-	//	(transformation is about the current world origin).
-	//		m_pstack[m_currentPos] = m_pstack[m_currentPos] * (*pMat);
-	//	This method does not add an item to the stack, it replaces the current
-	//  matrix with the product of the current matrix and the given matrix.
-
-
-	DXABSTRACT_BREAK_ON_ERROR();
-}
-
-HRESULT CD3DXMatrixStack::MultMatrixLocal( const D3DXMATRIX *pMat )
-{
-	//	http://msdn.microsoft.com/en-us/library/bb174058(VS.85).aspx
-	//	This method left-multiplies the given matrix to the current matrix
-	//	(transformation is about the local origin of the object).
-	//		m_pstack[m_currentPos] = (*pMat) * m_pstack[m_currentPos];
-	//	This method does not add an item to the stack, it replaces the current
-	//	matrix with the product of the given matrix and the current matrix.
-
-
-	DXABSTRACT_BREAK_ON_ERROR();
-}
-
-HRESULT CD3DXMatrixStack::ScaleLocal(FLOAT x, FLOAT y, FLOAT z)
-{
-	//	http://msdn.microsoft.com/en-us/library/bb174066(VS.85).aspx
-	//	Scale the current matrix about the object origin.
-	//	This method left-multiplies the current matrix with the computed
-	//	scale matrix. The transformation is about the local origin of the object.
-	//
-	//	D3DXMATRIX tmp;
-	//	D3DXMatrixScaling(&tmp, x, y, z);
-	//	m_stack[m_currentPos] = tmp * m_stack[m_currentPos];
-
-	DXABSTRACT_BREAK_ON_ERROR();
-	return S_OK;
-}
-
-
-HRESULT CD3DXMatrixStack::RotateAxisLocal(CONST D3DXVECTOR3* pV, FLOAT Angle)
-{
-	//	http://msdn.microsoft.com/en-us/library/bb174062(VS.85).aspx
-	//	Left multiply the current matrix with the computed rotation
-	//	matrix, counterclockwise about the given axis with the given angle.
-	//	(rotation is about the local origin of the object)
-
-	//	D3DXMATRIX tmp;
-	//	D3DXMatrixRotationAxis( &tmp, pV, angle );
-	//	m_stack[m_currentPos] = tmp * m_stack[m_currentPos];
-	//	Because the rotation is left-multiplied to the matrix stack, the rotation
-	//	is relative to the object's local coordinate space.
-	
-	DXABSTRACT_BREAK_ON_ERROR();
-	return S_OK;
-}
-
-HRESULT CD3DXMatrixStack::TranslateLocal(FLOAT x, FLOAT y, FLOAT z)
-{
-	//	http://msdn.microsoft.com/en-us/library/bb174068(VS.85).aspx
-	//	Left multiply the current matrix with the computed translation
-	//	matrix. (transformation is about the local origin of the object)
-
-	//	D3DXMATRIX tmp;
-	//	D3DXMatrixTranslation( &tmp, x, y, z );
-	//	m_stack[m_currentPos] = tmp * m_stack[m_currentPos];
-
-	DXABSTRACT_BREAK_ON_ERROR();
-	return S_OK;
-}
-
-
-
-
-const char* D3DXGetPixelShaderProfile( IDirect3DDevice9 *pDevice )
+const char* D3DXGetPixelShaderProfile( IDirect3DDevice9* pDevice )
 {
 	DXABSTRACT_BREAK_ON_ERROR();
 	return "";
 }
 
 #ifdef _MSC_VER
-#pragma warning (push)
-#pragma warning (disable:4701) // potentially uninitialized local variable 'temp' used
+#pragma warning( push )
+#pragma warning( disable: 4701 ) // potentially uninitialized local variable 'temp' used
 #endif
-D3DXMATRIX* D3DXMatrixMultiply( D3DXMATRIX *pOut, CONST D3DXMATRIX *pM1, CONST D3DXMATRIX *pM2 )
+D3DXMATRIX* D3DXMatrixMultiply( D3DXMATRIX* pOut, CONST D3DXMATRIX* pM1, CONST D3DXMATRIX* pM2 )
 {
 	D3DXMATRIX temp;
-	
-	for( int i=0; i<4; i++)
+
+	for ( int i = 0; i < 4; i++ )
 	{
-		for( int j=0; j<4; j++)
+		for ( int j = 0; j < 4; j++ )
 		{
-			temp.m[i][j]	=	(pM1->m[ i ][ 0 ] * pM2->m[ 0 ][ j ])
-							+	(pM1->m[ i ][ 1 ] * pM2->m[ 1 ][ j ])
-							+	(pM1->m[ i ][ 2 ] * pM2->m[ 2 ][ j ])
-							+	(pM1->m[ i ][ 3 ] * pM2->m[ 3 ][ j ]);
+			temp.m[i][j] = ( pM1->m[i][0] * pM2->m[0][j] ) + ( pM1->m[i][1] * pM2->m[1][j] )
+						   + ( pM1->m[i][2] * pM2->m[2][j] ) + ( pM1->m[i][3] * pM2->m[3][j] );
 		}
 	}
 	*pOut = temp;
 	return pOut;
 }
 #ifdef _MSC_VER
-#pragma warning(pop)
+#pragma warning( pop )
 #endif
 
 // Transform a 3D vector by a given matrix, projecting the result back into w = 1
 // http://msdn.microsoft.com/en-us/library/ee417622(VS.85).aspx
-D3DXVECTOR3* D3DXVec3TransformCoord(D3DXVECTOR3 *pOut, CONST D3DXVECTOR3 *pV, CONST D3DXMATRIX *pM)
+D3DXVECTOR3* D3DXVec3TransformCoord( D3DXVECTOR3* pOut, CONST D3DXVECTOR3* pV, CONST D3DXMATRIX* pM )
 {
 	D3DXVECTOR3 vOut;
 
-	float norm = (pM->m[0][3] * pV->x) + (pM->m[1][3] * pV->y) + (pM->m[2][3] *pV->z) + pM->m[3][3];
+	float norm = ( pM->m[0][3] * pV->x ) + ( pM->m[1][3] * pV->y ) + ( pM->m[2][3] * pV->z ) + pM->m[3][3];
 	if ( norm )
 	{
 		float norm_inv = 1.0f / norm;
-		vOut.x = (pM->m[0][0] * pV->x + pM->m[1][0] * pV->y + pM->m[2][0] * pV->z + pM->m[3][0]) * norm_inv;
-		vOut.y = (pM->m[0][1] * pV->x + pM->m[1][1] * pV->y + pM->m[2][1] * pV->z + pM->m[3][1]) * norm_inv;
-		vOut.z = (pM->m[0][2] * pV->x + pM->m[1][2] * pV->y + pM->m[2][2] * pV->z + pM->m[3][2]) * norm_inv;
+		vOut.x		   = ( pM->m[0][0] * pV->x + pM->m[1][0] * pV->y + pM->m[2][0] * pV->z + pM->m[3][0] ) * norm_inv;
+		vOut.y		   = ( pM->m[0][1] * pV->x + pM->m[1][1] * pV->y + pM->m[2][1] * pV->z + pM->m[3][1] ) * norm_inv;
+		vOut.z		   = ( pM->m[0][2] * pV->x + pM->m[1][2] * pV->y + pM->m[2][2] * pV->z + pM->m[3][2] ) * norm_inv;
 	}
 	else
 	{
@@ -286,8 +221,7 @@ D3DXVECTOR3* D3DXVec3TransformCoord(D3DXVECTOR3 *pOut, CONST D3DXVECTOR3 *pV, CO
 	return pOut;
 }
 
-
-D3DXMATRIX* D3DXMatrixTranslation( D3DXMATRIX *pOut, FLOAT x, FLOAT y, FLOAT z )
+D3DXMATRIX* D3DXMatrixTranslation( D3DXMATRIX* pOut, FLOAT x, FLOAT y, FLOAT z )
 {
 	D3DXMatrixIdentity( pOut );
 	pOut->m[3][0] = x;
@@ -296,29 +230,29 @@ D3DXMATRIX* D3DXMatrixTranslation( D3DXMATRIX *pOut, FLOAT x, FLOAT y, FLOAT z )
 	return pOut;
 }
 
-D3DXMATRIX* D3DXMatrixInverse( D3DXMATRIX *pOut, FLOAT *pDeterminant, CONST D3DXMATRIX *pM )
+D3DXMATRIX* D3DXMatrixInverse( D3DXMATRIX* pOut, FLOAT* pDeterminant, CONST D3DXMATRIX* pM )
 {
-	Assert( sizeof( D3DXMATRIX ) == (16 * sizeof(float) ) );
-	Assert( sizeof( VMatrix ) == (16 * sizeof(float) ) );
-	Assert( pDeterminant == NULL );	// homey don't play that
+	Assert( sizeof( D3DXMATRIX ) == ( 16 * sizeof( float ) ) );
+	Assert( sizeof( VMatrix ) == ( 16 * sizeof( float ) ) );
+	Assert( pDeterminant == NULL ); // homey don't play that
 
-	VMatrix *origM = (VMatrix*)pM;
-	VMatrix *destM = (VMatrix*)pOut;
+	VMatrix* origM = ( VMatrix* )pM;
+	VMatrix* destM = ( VMatrix* )pOut;
 
-	bool success = MatrixInverseGeneral( *origM, *destM ); (void)success;
+	bool success = MatrixInverseGeneral( *origM, *destM );
+	( void )success;
 	Assert( success );
 
 	return pOut;
 }
 
-
-D3DXMATRIX* D3DXMatrixTranspose( D3DXMATRIX *pOut, CONST D3DXMATRIX *pM )
+D3DXMATRIX* D3DXMatrixTranspose( D3DXMATRIX* pOut, CONST D3DXMATRIX* pM )
 {
-	if (pOut != pM)
+	if ( pOut != pM )
 	{
-		for( int i=0; i<4; i++)
+		for ( int i = 0; i < 4; i++ )
 		{
-			for( int j=0; j<4; j++)
+			for ( int j = 0; j < 4; j++ )
 			{
 				pOut->m[i][j] = pM->m[j][i];
 			}
@@ -333,116 +267,202 @@ D3DXMATRIX* D3DXMatrixTranspose( D3DXMATRIX *pOut, CONST D3DXMATRIX *pM )
 	return NULL;
 }
 
-
-D3DXPLANE* D3DXPlaneNormalize( D3DXPLANE *pOut, CONST D3DXPLANE *pP)
+D3DXPLANE* D3DXPlaneNormalize( D3DXPLANE* pOut, CONST D3DXPLANE* pP )
 {
 	// not very different from normalizing a vector.
 	// figure out the square root of the sum-of-squares of the x,y,z components
 	// make sure that's non zero
 	// then divide all four components by that value
 	// or return some dummy plane like 0,0,1,0 if it fails
-	
-	float	len = sqrt( (pP->a * pP->a) + (pP->b * pP->b) + (pP->c * pP->c) );
-	if (len > 1e-10)	//FIXME need a real epsilon here ?
+
+	float len = sqrt( ( pP->a * pP->a ) + ( pP->b * pP->b ) + ( pP->c * pP->c ) );
+	if ( len > 1e-10 ) // FIXME need a real epsilon here ?
 	{
-		pOut->a = pP->a / len;		pOut->b = pP->b / len;		pOut->c = pP->c / len;		pOut->d = pP->d / len;
+		pOut->a = pP->a / len;
+		pOut->b = pP->b / len;
+		pOut->c = pP->c / len;
+		pOut->d = pP->d / len;
 	}
 	else
 	{
-		pOut->a = 0.0f;				pOut->b = 0.0f;				pOut->c = 1.0f;				pOut->d = 0.0f;
+		pOut->a = 0.0f;
+		pOut->b = 0.0f;
+		pOut->c = 1.0f;
+		pOut->d = 0.0f;
 	}
 	return pOut;
 }
 
-
-D3DXVECTOR4* D3DXVec4Transform( D3DXVECTOR4 *pOut, CONST D3DXVECTOR4 *pV, CONST D3DXMATRIX *pM )
+D3DXVECTOR4* D3DXVec4Transform( D3DXVECTOR4* pOut, CONST D3DXVECTOR4* pV, CONST D3DXMATRIX* pM )
 {
-	VMatrix *mat = (VMatrix*)pM;
-	Vector4D *vIn = (Vector4D*)pV;
-	Vector4D *vOut = (Vector4D*)pOut;
+	VMatrix* mat   = ( VMatrix* )pM;
+	Vector4D* vIn  = ( Vector4D* )pV;
+	Vector4D* vOut = ( Vector4D* )pOut;
 
 	Vector4DMultiplyTranspose( *mat, *vIn, *vOut );
 
 	return pOut;
 }
 
-
-
-D3DXVECTOR4* D3DXVec4Normalize( D3DXVECTOR4 *pOut, CONST D3DXVECTOR4 *pV )
+D3DXVECTOR4* D3DXVec4Normalize( D3DXVECTOR4* pOut, CONST D3DXVECTOR4* pV )
 {
-	Vector4D *vIn = (Vector4D*) pV;
-	Vector4D *vOut = (Vector4D*) pOut;
+	Vector4D* vIn  = ( Vector4D* )pV;
+	Vector4D* vOut = ( Vector4D* )pOut;
 
 	*vOut = *vIn;
 	Vector4DNormalize( *vOut );
-	
+
 	return pOut;
 }
 
-
-D3DXMATRIX* D3DXMatrixOrthoOffCenterRH( D3DXMATRIX *pOut, FLOAT l, FLOAT r, FLOAT b, FLOAT t, FLOAT zn,FLOAT zf )
+D3DXMATRIX* D3DXMatrixOrthoOffCenterRH( D3DXMATRIX* pOut, FLOAT l, FLOAT r, FLOAT b, FLOAT t, FLOAT zn, FLOAT zf )
 {
 	DXABSTRACT_BREAK_ON_ERROR();
 	return NULL;
 }
 
-
-D3DXMATRIX* D3DXMatrixPerspectiveRH( D3DXMATRIX *pOut, FLOAT w, FLOAT h, FLOAT zn, FLOAT zf )
+D3DXMATRIX* D3DXMatrixPerspectiveRH( D3DXMATRIX* pOut, FLOAT w, FLOAT h, FLOAT zn, FLOAT zf )
 {
 	DXABSTRACT_BREAK_ON_ERROR();
 	return NULL;
 }
 
-
-D3DXMATRIX* D3DXMatrixPerspectiveOffCenterRH( D3DXMATRIX *pOut, FLOAT l, FLOAT r, FLOAT b, FLOAT t, FLOAT zn, FLOAT zf )
+D3DXMATRIX* D3DXMatrixPerspectiveOffCenterRH( D3DXMATRIX* pOut, FLOAT l, FLOAT r, FLOAT b, FLOAT t, FLOAT zn, FLOAT zf )
 {
 	DXABSTRACT_BREAK_ON_ERROR();
 	return NULL;
 }
 
-
-D3DXPLANE* D3DXPlaneTransform( D3DXPLANE *pOut, CONST D3DXPLANE *pP, CONST D3DXMATRIX *pM )
+D3DXPLANE* D3DXPlaneTransform( D3DXPLANE* pOut, CONST D3DXPLANE* pP, CONST D3DXMATRIX* pM )
 {
-	float *out = &pOut->a;
+	float* out = &pOut->a;
 
 	// dot dot dot
-	for( int x=0; x<4; x++ )
+	for ( int x = 0; x < 4; x++ )
 	{
-		out[x] =	(pM->m[0][x] * pP->a)
-				+	(pM->m[1][x] * pP->b)
-				+	(pM->m[2][x] * pP->c)
-				+	(pM->m[3][x] * pP->d);
+		out[x] = ( pM->m[0][x] * pP->a ) + ( pM->m[1][x] * pP->b ) + ( pM->m[2][x] * pP->c ) + ( pM->m[3][x] * pP->d );
 	}
-	
+
 	return pOut;
 }
-
 
 void D3DPERF_SetOptions( DWORD dwOptions )
 {
 }
 
-
-HRESULT D3DXCompileShader(
-        LPCSTR                          pSrcData,
-        UINT                            SrcDataLen,
-        CONST D3DXMACRO*                pDefines,
-        LPD3DXINCLUDE                   pInclude,
-        LPCSTR                          pFunctionName,
-        LPCSTR                          pProfile,
-        DWORD                           Flags,
-        LPD3DXBUFFER*                   ppShader,
-        LPD3DXBUFFER*                   ppErrorMsgs,
-        LPD3DXCONSTANTTABLE*            ppConstantTable)
+HRESULT D3DXCompileShader( LPCSTR pSrcData,
+						   UINT SrcDataLen,
+						   CONST D3DXMACRO* pDefines,
+						   LPD3DXINCLUDE pInclude,
+						   LPCSTR pFunctionName,
+						   LPCSTR pProfile,
+						   DWORD Flags,
+						   LPD3DXBUFFER* ppShader,
+						   LPD3DXBUFFER* ppErrorMsgs,
+						   LPD3DXCONSTANTTABLE* ppConstantTable )
 {
-	DXABSTRACT_BREAK_ON_ERROR();	// is anyone calling this ?
+	DXABSTRACT_BREAK_ON_ERROR(); // is anyone calling this ?
 	return S_OK;
 }
 
-DWORD WINAPI D3DXGetShaderVersion(const DWORD *byte_code) {
+DWORD WINAPI D3DXGetShaderVersion( const DWORD* byte_code )
+{
 	return 2;
 }
 
-uint64 GetVidMemBytes( void ) {
+uint64 GetVidMemBytes( void )
+{
 	return UINT64_MAX;
+}
+
+// Thanks to wine
+D3DXMATRIX* WINAPI D3DXMatrixRotationYawPitchRoll( D3DXMATRIX* out, FLOAT yaw, FLOAT pitch, FLOAT roll )
+{
+	FLOAT sroll, croll, spitch, cpitch, syaw, cyaw;
+
+	sroll  = sinf( roll );
+	croll  = cosf( roll );
+	spitch = sinf( pitch );
+	cpitch = cosf( pitch );
+	syaw   = sinf( yaw );
+	cyaw   = cosf( yaw );
+
+	out->m[0][0] = sroll * spitch * syaw + croll * cyaw;
+	out->m[0][1] = sroll * cpitch;
+	out->m[0][2] = sroll * spitch * cyaw - croll * syaw;
+	out->m[0][3] = 0.0f;
+	out->m[1][0] = croll * spitch * syaw - sroll * cyaw;
+	out->m[1][1] = croll * cpitch;
+	out->m[1][2] = croll * spitch * cyaw + sroll * syaw;
+	out->m[1][3] = 0.0f;
+	out->m[2][0] = cpitch * syaw;
+	out->m[2][1] = -spitch;
+	out->m[2][2] = cpitch * cyaw;
+	out->m[2][3] = 0.0f;
+	out->m[3][0] = 0.0f;
+	out->m[3][1] = 0.0f;
+	out->m[3][2] = 0.0f;
+	out->m[3][3] = 1.0f;
+
+	return out;
+}
+
+D3DXMATRIX* WINAPI D3DXMatrixRotationAxis( D3DXMATRIX* out, const D3DXVECTOR3* v, FLOAT angle )
+{
+	D3DXVECTOR3 nv;
+	FLOAT sangle, cangle, cdiff;
+
+	D3DXVec3Normalize( &nv, v );
+	sangle = sinf( angle );
+	cangle = cosf( angle );
+	cdiff  = 1.0f - cangle;
+
+	out->m[0][0] = cdiff * nv.x * nv.x + cangle;
+	out->m[1][0] = cdiff * nv.x * nv.y - sangle * nv.z;
+	out->m[2][0] = cdiff * nv.x * nv.z + sangle * nv.y;
+	out->m[3][0] = 0.0f;
+	out->m[0][1] = cdiff * nv.y * nv.x + sangle * nv.z;
+	out->m[1][1] = cdiff * nv.y * nv.y + cangle;
+	out->m[2][1] = cdiff * nv.y * nv.z - sangle * nv.x;
+	out->m[3][1] = 0.0f;
+	out->m[0][2] = cdiff * nv.z * nv.x - sangle * nv.y;
+	out->m[1][2] = cdiff * nv.z * nv.y + sangle * nv.x;
+	out->m[2][2] = cdiff * nv.z * nv.z + cangle;
+	out->m[3][2] = 0.0f;
+	out->m[0][3] = 0.0f;
+	out->m[1][3] = 0.0f;
+	out->m[2][3] = 0.0f;
+	out->m[3][3] = 1.0f;
+
+	return out;
+}
+
+D3DXVECTOR3* WINAPI D3DXVec3Normalize( D3DXVECTOR3* pout, const D3DXVECTOR3* pv )
+{
+	FLOAT norm;
+
+	norm = D3DXVec3Length( pv );
+	if ( !norm )
+	{
+		pout->x = 0.0f;
+		pout->y = 0.0f;
+		pout->z = 0.0f;
+	}
+	else
+	{
+		pout->x = pv->x / norm;
+		pout->y = pv->y / norm;
+		pout->z = pv->z / norm;
+	}
+
+	return pout;
+}
+
+D3DXMATRIX* WINAPI D3DXMatrixScaling( D3DXMATRIX* pout, FLOAT sx, FLOAT sy, FLOAT sz )
+{
+	D3DXMatrixIdentity( pout );
+	pout->m[0][0] = sx;
+	pout->m[1][1] = sy;
+	pout->m[2][2] = sz;
+	return pout;
 }

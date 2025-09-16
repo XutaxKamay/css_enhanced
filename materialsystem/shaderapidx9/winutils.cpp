@@ -68,24 +68,21 @@ void Sleep( unsigned int ms )
 }
 
 #ifdef DXVK_ENABLED
+// TODO_ENHANCED
 bool IsIconic( HWND hWnd )
 {
-	// FIXME for now just act non-minimized all the time
-	//DebuggerBreak();
 	return false;
 }
 
 BOOL ClientToScreen( HWND hWnd, LPPOINT pPoint )
 {
-	DebuggerBreak();
-	return true;
+	return false;
 }
 BOOL GetClientRect(HWND hWnd, LPRECT pRect) {
 	pRect->left = 0;
 	pRect->top = 0;
 	pRect->right = 0;
 	pRect->bottom = 0;
-	DebuggerBreak();
 	return FALSE;
 }
 #else

@@ -96,7 +96,7 @@
 // use in Windows/C++.
 
 #ifdef DXVK_ENABLED
-#include "windows_base.h"
+#include "dxvk_win_inc.h"
 typedef CHAR TCHAR;
 DECLARE_HANDLE(HZIP);
 #else
