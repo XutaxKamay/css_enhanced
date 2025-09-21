@@ -40,6 +40,7 @@ class C_BaseToggle : public C_BaseEntity
 	DECLARE_CLASS(C_BaseToggle, C_BaseEntity);
 	DECLARE_CLIENTCLASS();
 	DECLARE_PREDICTABLE();
+	DECLARE_DATADESC();
 public:
 	C_BaseToggle();
 

@@ -4,6 +4,8 @@
 
 #include "tier0/memdbgon.h"
 
+extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
+
 // ###################################################################
 //	> BaseFilter
 // ###################################################################
@@ -93,7 +95,7 @@ class C_FilterMultiple : public C_BaseFilter
 	DECLARE_CLIENTCLASS();
 
 	CNetworkVar(filter_t,	m_nFilterType);
-	char	    m_iFilterName[MAX_FILTERS][MAX_PATH];
+	string_t	m_iFilterName[MAX_FILTERS];
 	EHANDLE		m_hFilter[MAX_FILTERS];
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity );
@@ -122,7 +124,7 @@ BEGIN_DATADESC( C_FilterMultiple )
 END_DATADESC()
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterMultiple, DT_FilterMultiple, CFilterMultiple )
-	RecvPropArray( RecvPropString( RECVINFO( m_iFilterName[0]) ), m_iFilterName ),
+	RecvPropArray( RecvPropString( RECVINFO( m_iFilterName[0]), 0, RecvProxy_StringT), m_iFilterName ),
 	RecvPropInt( RECVINFO(m_nFilterType) )
 END_RECV_TABLE()
 
@@ -244,7 +246,7 @@ class C_FilterName : public C_BaseFilter
 	DECLARE_CLIENTCLASS();
 
 public:
-	char m_iFilterName[MAX_PATH];
+	string_t m_iFilterName;
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -271,7 +273,7 @@ END_DATADESC()
 
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterName, DT_FilterName, CFilterName )
-	RecvPropString( RECVINFO(m_iFilterName) )
+	RecvPropString( RECVINFO(m_iFilterName), 0, RecvProxy_StringT )
 END_RECV_TABLE()
 
 // ###################################################################
@@ -284,7 +286,7 @@ class C_FilterClass : public C_BaseFilter
 	DECLARE_CLIENTCLASS();
 
 public:
-	char m_iFilterClass[MAX_PATH];
+	string_t m_iFilterClass;
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
@@ -302,7 +304,7 @@ BEGIN_DATADESC( C_FilterClass )
 END_DATADESC()
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterClass, DT_FilterClass, CFilterClass )
-	RecvPropString( RECVINFO(m_iFilterClass) )
+	RecvPropString( RECVINFO(m_iFilterClass), 0, RecvProxy_StringT )
 END_RECV_TABLE()
 
 // ###################################################################

@@ -116,6 +116,7 @@ int CEventAction::s_iNextIDStamp = 0;
 //-----------------------------------------------------------------------------
 CEventAction::CEventAction( const char *ActionData )
 {
+	ConColorMsg(Color(0, 0, 255, 255), "Server CEventAction::CEventAction: %s\n", ActionData);
 	m_pNext = NULL;
 	m_iIDStamp = ++s_iNextIDStamp;
 

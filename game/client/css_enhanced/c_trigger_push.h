@@ -10,6 +10,7 @@ public:
 	DECLARE_CLASS( C_TriggerPush, C_BaseTrigger );
     DECLARE_CLIENTCLASS();
     DECLARE_PREDICTABLE();
+	DECLARE_DATADESC();
 
 	virtual void Touch( CBaseEntity *pOther );
 

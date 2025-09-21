@@ -11,6 +11,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
+
 LINK_ENTITY_TO_CLASS(trigger_teleport, C_TriggerTeleport);
 
 // TODO_ENHANCED: what to do if m_iLandmark changes?
@@ -18,16 +20,15 @@ BEGIN_PREDICTION_DATA(C_TriggerTeleport)
 //	DEFINE_PRED_FIELD(m_iLandmark, FIELD_STRING, FTYPEDESC_INSENDTABLE),
 END_PREDICTION_DATA();
 
-void RecvProxy_LandMark(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_TriggerTeleport *entity = (C_TriggerTeleport *) pStruct;
-
-	Q_strncpy( entity->m_iLandmark, pData->m_Value.m_pString, MAX_PATH );
-}
-
 IMPLEMENT_CLIENTCLASS_DT(C_TriggerTeleport, DT_TriggerTeleport, CTriggerTeleport)
-	RecvPropString(RECVINFO(m_iLandmark), NULL, RecvProxy_LandMark)
+	RecvPropString( RECVINFO( m_iLandmark ), NULL, RecvProxy_StringT )
 END_RECV_TABLE();
+
+BEGIN_DATADESC( C_TriggerTeleport )
+
+	DEFINE_KEYFIELD( m_iLandmark, FIELD_STRING, "landmark" ),
+
+END_DATADESC()
 
 void C_TriggerTeleport::Touch( CBaseEntity *pOther )
 {

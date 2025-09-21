@@ -87,11 +87,11 @@ public:
 
 	bool		m_bDisabled;
 	// eChangeTrackerBufSize
-	char m_iFilterName[MAX_PATH];
+	string_t m_iFilterName;
 	CHandle<class C_BaseFilter>	m_hFilter;
 
 	// unlike m_iName this should be constant
-	char m_target[MAX_PATH];
+	string_t m_target;
 
 protected:
 	// Network the outputs
@@ -118,27 +118,5 @@ public:
 };
 
 extern CUtlHash< C_BaseEntity* > g_TriggerEntities;
-
-//-----------------------------------------------------------------------------
-// Purpose: Variable sized repeatable trigger.  Must be targeted at one or more entities.
-//			If "delay" is set, the trigger waits some time after activating before firing.
-//			"wait" : Seconds between triggerings. (.2 default/minimum)
-//-----------------------------------------------------------------------------
-class C_TriggerMultiple : public C_BaseTrigger
-{
-public:
-	DECLARE_CLASS(C_TriggerMultiple, C_BaseTrigger);
-	DECLARE_CLIENTCLASS();
-	DECLARE_PREDICTABLE();
-
-	virtual void Spawn(void);
-
-	void MultiTouch(C_BaseEntity *pOther);
-	void MultiWaitOver(void);
-	void ActivateMultiTrigger(C_BaseEntity *pActivator);
-
-	// Outputs
-	C_OutputEvent m_OnTrigger;
-};
 
 #endif // TRIGGERS_H

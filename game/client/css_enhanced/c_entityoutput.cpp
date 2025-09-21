@@ -26,7 +26,7 @@ int C_EventAction::s_iNextIDStamp = 0;
 //-----------------------------------------------------------------------------
 C_EventAction::C_EventAction( const char *ActionData )
 {
-	ConColorMsg(Color(0, 255, 0, 255), "C_EventAction::C_EventAction: %s\n", ActionData);
+	ConColorMsg(Color(0, 255, 0, 255), "Client C_EventAction::C_EventAction: %s\n", ActionData);
 
 	m_pNext = NULL;
 	m_iIDStamp = ++s_iNextIDStamp;

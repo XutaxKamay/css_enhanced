@@ -45,6 +45,7 @@
 #include "inetchannelinfo.h"
 #include "proto_version.h"
 #include "debugoverlay_shared.h"
+#include "mapentities_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -456,22 +457,17 @@ BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_PredictableId )
 END_RECV_TABLE()
 #endif
 
-void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut)
+void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut)
 {
-	static CUtlSymbolTable NameTable;
+	C_BaseEntity* entity = ( C_BaseEntity* )pStruct;
+	auto pString		 = ( string_t* )pOut;
 
-	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
+	*pString = AllocPooledString( pData->m_Value.m_pString );
 
-	entity->m_iName = MAKE_STRING( NameTable.String( NameTable.AddString( pData->m_Value.m_pString ) ) );
-}
-
-void RecvProxy_ClassName(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	static CUtlSymbolTable ClassTable;
-
-	C_BaseEntity *entity = (C_BaseEntity *) pStruct;
-
-	entity->m_iClassname = MAKE_STRING( ClassTable.String( ClassTable.AddString( pData->m_Value.m_pString ) ) );
+	if ( !STRING( *pString ) )
+	{
+		*pString = MAKE_STRING( "" );
+	}
 }
 
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
@@ -505,8 +501,8 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
 	// Receive the name
-	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_Name),
-	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), NULL, RecvProxy_ClassName),
+	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_StringT ),
+	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), NULL, RecvProxy_StringT ),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
@@ -792,7 +788,7 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
-	m_iClassname = MAKE_STRING( typeid( *this ).name() );
+	m_iClassname = MAKE_STRING( AllocPooledString( typeid( *this ).name() ) );
 	m_iName = MAKE_STRING( "" );
 }
 
@@ -2325,6 +2321,54 @@ void C_BaseEntity::ValidateModelIndex( void )
 	SetModelByIndex( m_nModelIndex );
 }
 
+const char *MapEntity_ParseEntity(CBaseEntity *&pEntity, const char *pEntData)
+{
+	CEntityMapData entData( (char*)pEntData );
+	char model[MAPKEY_MAXLENGTH];
+
+	if (!entData.ExtractValue("model", model))
+	{
+		return entData.CurrentBufferPosition();
+	}
+
+	int i = Q_atoi(&model[0] + 1);
+
+	if ( ( pEntity->GetModelIndex() - 1 ) == i )
+	{
+		// ConMsg( "found model %s: %i == %i\n", pEntity->GetClassname(), i, pEntity->GetModelIndex() - 1 );
+		pEntity->ParseMapData( &entData );
+	}
+	// else
+	// {
+	// 	ConMsg( "model failed %s: %i != %i\n", pEntity->GetClassname(), i, pEntity->GetModelIndex() - 1 );
+	// }
+
+	return entData.CurrentBufferPosition();
+}
+
+void MapEntity_ParseAllEntities(CBaseEntity *pEntity, const char *pMapData)
+{
+	char szTokenBuffer[MAPKEY_MAXLENGTH];
+
+	for ( ; true; pMapData = MapEntity_SkipToNextEntity(pMapData, szTokenBuffer) )
+	{
+		char token[MAPKEY_MAXLENGTH];
+		pMapData = MapEntity_ParseToken( pMapData, token );
+
+		if (!pMapData)
+			break;
+
+		if (token[0] != '{')
+		{
+			Error( "ParseAllEntities: found %s when expecting {", token);
+			continue;
+		}
+
+		const char *pCurMapData = pMapData;
+		pMapData = MapEntity_ParseEntity(pEntity, pMapData);
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Entity data has been parsed and unpacked.  Now do any necessary decoding, munging
 // Input  : bnewentity - was this entity new in this update packet?
@@ -2334,6 +2378,11 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	MDLCACHE_CRITICAL_SECTION();
 
 	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, "postdataupdate" );
+
+	if ( updateType == DATA_UPDATE_CREATED )
+	{
+		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
+	}
 
 	// NOTE: This *has* to happen first. Otherwise, Origin + angles may be wrong 
 	if ( m_nRenderFX == kRenderFxRagdoll && updateType == DATA_UPDATE_CREATED )

@@ -12,10 +12,11 @@ public:
 	DECLARE_CLASS( C_TriggerTeleport, C_BaseTrigger );
     DECLARE_CLIENTCLASS();
     DECLARE_PREDICTABLE();
+	DECLARE_DATADESC();
 
 	virtual void Touch( CBaseEntity *pOther );
 
-	char m_iLandmark[MAX_PATH];
+	string_t m_iLandmark;
 };
 
 #endif // C_TRIGGERS_TELEPORT_H

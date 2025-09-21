@@ -17,6 +17,7 @@ enum togglemovetypes_t
 extern void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, void *pOut );
 extern void RecvProxy_MoveCollide(const CRecvProxyData *pData, void *pStruct, void *pOut);
 extern void RecvProxy_MoveType(const CRecvProxyData *pData, void *pStruct, void *pOut);
+extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
 
 BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
@@ -31,16 +32,13 @@ BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
 END_PREDICTION_DATA();
 
-extern void RecvProxy_Name(const CRecvProxyData *pData, void *pStruct, void *pOut);
-extern void RecvProxy_ClassName(const CRecvProxyData *pData, void *pStruct, void *pOut);
-
 IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropDataTable(RECVINFO_DT(m_Collision), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty)),
 	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)),
 	RecvPropQAngles(RECVINFO_NAME(m_angNetworkAngles, m_angRotation)),
 	RecvPropString(RECVINFO(m_sMaster)),
-	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_Name),
-	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_ClassName),
+	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_StringT),
+	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_StringT),
 	RecvPropString(RECVINFO(m_iszDamageFilterName)),
 	RecvPropInt(RECVINFO(m_nModelIndex)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),
@@ -51,6 +49,25 @@ IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropInt(RECVINFO( m_nSimulatedTickCount))
 END_RECV_TABLE();
 
+BEGIN_DATADESC( C_BaseToggle )
+
+	DEFINE_FIELD( m_toggle_state, FIELD_INTEGER ),
+	DEFINE_FIELD( m_flMoveDistance, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flWait, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flLip, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecPosition1, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecPosition2, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecMoveAng, FIELD_VECTOR ),		// UNDONE: Position could go through transition, but also angle?
+	DEFINE_FIELD( m_vecAngle1, FIELD_VECTOR ),		// UNDONE: Position could go through transition, but also angle?
+	DEFINE_FIELD( m_vecAngle2, FIELD_VECTOR ),		// UNDONE: Position could go through transition, but also angle?
+	DEFINE_FIELD( m_flHeight, FIELD_FLOAT ),
+	DEFINE_FIELD( m_hActivator, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_vecFinalDest, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecFinalAngle, FIELD_VECTOR ),
+	DEFINE_FIELD( m_sMaster, FIELD_STRING),
+	DEFINE_FIELD( m_movementType, FIELD_INTEGER ),	// Linear or angular movement? (togglemovetypes_t)
+
+END_DATADESC()
 
 C_BaseToggle::C_BaseToggle()
 {

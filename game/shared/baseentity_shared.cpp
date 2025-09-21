@@ -471,8 +471,13 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
 		{
 			if ( ::ParseKeyvalue(this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue) )
+			{
+				// ConMsg( "(%s) key: %-16s value: %s\n", dmap->dataClassName, szKeyName, szValue );
 				return true;
+			}
 		}
+
+		// ConMsg( "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
 	}
 	else
 	{
