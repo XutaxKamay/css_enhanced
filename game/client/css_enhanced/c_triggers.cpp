@@ -59,13 +59,13 @@ CON_COMMAND(report_triggerinfo, "")
 		C_BaseTrigger* pTrigger = (C_BaseTrigger*) ( pEntity );
 
 	ConMsg(
-			"------ Trigger Information ------\n"
-		"  >> Trigger Index 	: %i\n"
-		"  >> Name           	: %s\n"
-			"  >> Classname         : %s\n"
-		"  >> Target Name    	: %s\n"
-		"  >> Filter Name    	: %s\n"
-		"  >> Origin         	: %.2f, %.2f, %.2f\n"
+		"------ Trigger Information ------\n"
+		"  >> Trigger Index: %i\n"
+		"  >> Name         : %s\n"
+		"  >> Classname    : %s\n"
+		"  >> Target Name  : %s\n"
+		"  >> Filter Name  : %s\n"
+		"  >> Origin       : %.2f, %.2f, %.2f\n"
 		"---------------------------------\n\n",
 		pTrigger->entindex(),
 		pTrigger->GetEntityName(), pTrigger->GetClassname(), pTrigger->m_target, pTrigger->m_iFilterName,
@@ -230,16 +230,13 @@ void C_BaseTrigger::UpdateFilter(void)
 {
 	// We do this since, since we dont know what order the entities are sent in, so a trigger might be sent
 	// before the client know about the filter entity
-	if (prediction->IsFirstTimePredicted() && m_hFilter.Get() == nullptr)
+	if ( m_iFilterName[0] == 0 )
 	{
-		if ( m_iFilterName[0] == 0 )
-		{
-			m_hFilter = NULL;
-		}
-		else
-		{
-			m_hFilter = static_cast< C_BaseFilter* >( UTIL_FindEntityByName( m_iFilterName ) );
-		}
+		m_hFilter = NULL;
+	}
+	else
+	{
+		m_hFilter = static_cast< C_BaseFilter* >( UTIL_FindEntityByName( m_iFilterName ) );
 	}
 }
 

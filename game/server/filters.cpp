@@ -133,7 +133,7 @@ END_DATADESC()
 void SendProxy_String_tToString( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
 
 IMPLEMENT_SERVERCLASS_ST( CFilterMultiple, DT_FilterMultiple )
-	SendPropArray( SendPropString( SENDINFO_ARRAY( m_iFilterName ), 0, SendProxy_String_tToString ), m_iFilterName ),
+	SendPropArray( SendPropStringT( SENDINFO_ARRAY( m_iFilterName ) ), m_iFilterName ),
 	SendPropInt( SENDINFO(m_nFilterType) )
 END_SEND_TABLE()
 
@@ -263,6 +263,7 @@ public:
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
+		ConMsg("server: %s %s %s\n", pEntity->GetEntityName(), STRING(pEntity->m_iClassname), STRING(m_iFilterName.Get()));
 		// special check for !player as GetEntityName for player won't return "!player" as a name
 		if (FStrEq(m_iFilterName->ToCStr(), "!player"))
 		{

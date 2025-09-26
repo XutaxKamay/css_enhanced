@@ -20,26 +20,26 @@ extern void RecvProxy_MoveType(const CRecvProxyData *pData, void *pStruct, void 
 extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
 
 BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
-	DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
-	DEFINE_PRED_FIELD(m_vecNetworkOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_angNetworkAngles, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_iszDamageFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_spawnflags, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_nModelIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_CollisionGroup, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
-	DEFINE_PRED_FIELD(m_fEffects, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
-	DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
+	// DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
+	// DEFINE_PRED_FIELD(m_vecNetworkOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_angNetworkAngles, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_iszDamageFilterName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_spawnflags, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_nModelIndex, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_CollisionGroup, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
+	// DEFINE_PRED_FIELD(m_fEffects, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
+	// DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
 END_PREDICTION_DATA();
 
 IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropDataTable(RECVINFO_DT(m_Collision), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty)),
 	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)),
 	RecvPropQAngles(RECVINFO_NAME(m_angNetworkAngles, m_angRotation)),
-	RecvPropString(RECVINFO(m_sMaster)),
+	RecvPropString(RECVINFO(m_sMaster), 0, RecvProxy_StringT),
 	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_StringT),
 	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_StringT),
-	RecvPropString(RECVINFO(m_iszDamageFilterName)),
+	RecvPropString(RECVINFO(m_iszDamageFilterName), 0, RecvProxy_StringT),
 	RecvPropInt(RECVINFO(m_nModelIndex)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),
 	RecvPropInt(RECVINFO(m_spawnflags)),

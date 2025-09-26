@@ -221,7 +221,19 @@ void CEventQueue::AddEvent( const EventQueuePrioritizedEvent_t& event )
 {
 	EventQueuePrioritizedEvent_t* newEvent = new EventQueuePrioritizedEvent_t;
 	*newEvent							   = event;
-	AddEvent( newEvent );
+
+	EventQueuePrioritizedEvent_t* pe;
+	for ( pe = &m_Events; pe->m_pNext != NULL; pe = pe->m_pNext )
+		;
+
+	// insert
+	newEvent->m_pNext = pe->m_pNext;
+	newEvent->m_pPrev = pe;
+	pe->m_pNext		  = newEvent;
+	if ( newEvent->m_pNext )
+	{
+		newEvent->m_pNext->m_pPrev = newEvent;
+	}
 }
 
 //-----------------------------------------------------------------------------

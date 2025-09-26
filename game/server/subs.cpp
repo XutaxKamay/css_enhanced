@@ -165,7 +165,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
 	SendPropQAngles(SENDINFO(m_angRotation), 0, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 	SendPropStringT(SENDINFO(m_sMaster)),
 	SendPropStringT(SENDINFO(m_iName)),
-	SendPropString(SENDINFO_NAME(m_iClassname, m_iNetworkClassname)),
+	SendPropStringT(SENDINFO_NAME(m_iClassname, m_iNetworkClassname)),
 	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
 	SendPropModelIndex(SENDINFO(m_nModelIndex)),
 	SendPropInt(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),

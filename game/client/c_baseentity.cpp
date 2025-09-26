@@ -463,6 +463,7 @@ void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut)
 	auto pString		 = ( string_t* )pOut;
 
 	*pString = AllocPooledString( pData->m_Value.m_pString );
+	ConMsg("recv: %s\n", STRING(*pString));
 
 	if ( !STRING( *pString ) )
 	{
@@ -788,8 +789,8 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
-	m_iClassname = MAKE_STRING( AllocPooledString( typeid( *this ).name() ) );
-	m_iName = MAKE_STRING( "" );
+	m_iClassname = AllocPooledString( typeid( *this ).name() );
+	m_iName		 = MAKE_STRING( "" );
 }
 
 
@@ -4637,7 +4638,7 @@ const char *C_BaseEntity::GetClassname( void )
 		}
 	}
 
-	return m_iClassname;
+	return STRING( m_iClassname );
 }
 
 const char *C_BaseEntity::GetDebugName( void )

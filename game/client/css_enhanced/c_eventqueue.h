@@ -72,6 +72,11 @@ public:
 		return m_Events.m_pNext;
 	}
 
+	inline EventQueuePrioritizedEvent_t& GetEvents()
+	{
+		return m_Events;
+	}
+
 	void AddEvent( EventQueuePrioritizedEvent_t* event );
 	void AddEvent( const EventQueuePrioritizedEvent_t& event );
 

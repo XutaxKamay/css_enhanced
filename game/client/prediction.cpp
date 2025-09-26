@@ -988,7 +988,16 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	RunPostThink( player );
 
-    ServiceEventQueue( player );
+	// for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
+	// {
+	// 	ConMsg( "event: %s %s %s %s\n",
+	// 			pEvent->m_iTarget,
+	// 			pEvent->m_iTargetInput,
+	// 			pEvent->m_VariantValue.String(),
+	// 			pEvent->m_pEntTarget ? pEvent->m_pEntTarget->m_iClassname : "NULL" );
+	// }
+
+	ServiceEventQueue( player );
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
@@ -1328,10 +1337,10 @@ void CPrediction::RestorePredictedTouched( int current_command )
 #if !defined( NO_ENTITY_PREDICTION )
 	VPROF( "CPrediction::RestorePredictedTouched" );
 
-	const auto slot			   = current_command % MULTIPLAYER_BACKUP;
-	bool saveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
-	const auto& touchedHistory = m_TouchedHistory[slot];
-	const auto& hashMapEntities =  g_pFastEntityLookUp->m_HashMapEntities;
+	const auto slot					  = current_command % MULTIPLAYER_BACKUP;
+	const auto bSaveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
+	const auto& touchedHistory		  = m_TouchedHistory[slot];
+	const auto& hashMapEntities		  = g_pFastEntityLookUp->m_HashMapEntities;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
@@ -1370,7 +1379,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 		}
 	}
 
-	CBaseEntity::sm_bDisableTouchFuncs = saveDisableTouchFuncs;
+	CBaseEntity::sm_bDisableTouchFuncs = bSaveDisableTouchFuncs;
 
 	g_EventQueue.Clear();
 
@@ -1427,13 +1436,13 @@ void CPrediction::StorePredictedTouched( int current_command )
 		}
 	}
 
-	auto& savedEventQueue = m_EventQueueHistory[slot];
+	auto& SavedEventQueue = m_EventQueueHistory[slot];
 
-	savedEventQueue.Clear();
+	SavedEventQueue.Clear();
 
 	for ( auto pEvent = g_EventQueue.GetFirstPriorityEvent(); pEvent != NULL; pEvent = pEvent->m_pNext )
 	{
-		savedEventQueue.AddEvent( *pEvent );
+		SavedEventQueue.AddEvent( *pEvent );
 	}
 #endif
 }
