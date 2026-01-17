@@ -1,6 +1,6 @@
 # Counter-Strike: Source Enhanced
 
-Discord server: https://discord.gg/FdxhmZh6
+Discord server: https://discord.gg/mxrGa82P
 
 Started from a fork of: https://github.com/nillerusr/source-engine \
 A huge thanks to him for having port most of the valve project generator stuff to waf.
