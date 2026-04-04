@@ -4,8 +4,6 @@
 
 #include "tier0/memdbgon.h"
 
-extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
-
 // ###################################################################
 //	> BaseFilter
 // ###################################################################
@@ -124,7 +122,7 @@ BEGIN_DATADESC( C_FilterMultiple )
 END_DATADESC()
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterMultiple, DT_FilterMultiple, CFilterMultiple )
-	RecvPropArray( RecvPropString( RECVINFO( m_iFilterName[0]), 0, RecvProxy_StringT), m_iFilterName ),
+	RecvPropArray( RecvPropString( RECVINFO( m_iFilterName[0]), 0, RecvProxy_StringToStringT ), m_iFilterName ),
 	RecvPropInt( RECVINFO(m_nFilterType) )
 END_RECV_TABLE()
 
@@ -250,7 +248,7 @@ public:
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
-		ConMsg("client: %s %s %s\n", STRING(pEntity->m_iName), STRING(pEntity->m_iClassname), STRING(m_iFilterName));
+		// printf("client: %s(%p) %s %s\n", STRING(pEntity->m_iName), STRING(pEntity->m_iName), STRING(pEntity->m_iClassname), STRING(m_iFilterName));
 		// special check for !player as GetEntityName for player won't return "!player" as a name
 		if (FStrEq(STRING(m_iFilterName), "!player"))
 		{
@@ -274,7 +272,7 @@ END_DATADESC()
 
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterName, DT_FilterName, CFilterName )
-	RecvPropString( RECVINFO(m_iFilterName), 0, RecvProxy_StringT )
+	RecvPropString( RECVINFO(m_iFilterName), 0, RecvProxy_StringToStringT )
 END_RECV_TABLE()
 
 // ###################################################################
@@ -305,7 +303,7 @@ BEGIN_DATADESC( C_FilterClass )
 END_DATADESC()
 
 IMPLEMENT_CLIENTCLASS_DT( C_FilterClass, DT_FilterClass, CFilterClass )
-	RecvPropString( RECVINFO(m_iFilterClass), 0, RecvProxy_StringT )
+	RecvPropString( RECVINFO(m_iFilterClass), 0, RecvProxy_StringToStringT )
 END_RECV_TABLE()
 
 // ###################################################################

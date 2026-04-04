@@ -16,8 +16,6 @@
 
 #include "tier0/memdbgon.h"
 
-extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
-
 CUtlHash< C_BaseEntity* > g_TriggerEntities(
   MAX_EDICTS,
   0,
@@ -171,7 +169,7 @@ void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseTrigger, DT_BaseTrigger, CBaseTrigger)
 	RecvPropInt(RECVINFO(m_bDisabled), NULL, RecvProxy_Disabled),
-	RecvPropString(RECVINFO(m_target), NULL, RecvProxy_StringT),
+	RecvPropString(RECVINFO(m_target), 0, RecvProxy_StringToStringT),
 	RecvPropString(RECVINFO(m_iFilterName), NULL, RecvProxy_FilterName),
 END_RECV_TABLE();
 

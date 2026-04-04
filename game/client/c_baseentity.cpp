@@ -457,20 +457,6 @@ BEGIN_RECV_TABLE_NOBASE( C_BaseEntity, DT_PredictableId )
 END_RECV_TABLE()
 #endif
 
-void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_BaseEntity* entity = ( C_BaseEntity* )pStruct;
-	auto pString		 = ( string_t* )pOut;
-
-	*pString = AllocPooledString( pData->m_Value.m_pString );
-	ConMsg("recv: %s\n", STRING(*pString));
-
-	if ( !STRING( *pString ) )
-	{
-		*pString = MAKE_STRING( "" );
-	}
-}
-
 BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropDataTable( "AnimTimeMustBeFirst", 0, 0, &REFERENCE_RECV_TABLE(DT_AnimTimeMustBeFirst) ),
 	RecvPropInt( RECVINFO( m_ubInterpolationFrame ) ),
@@ -502,8 +488,8 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
 	// Receive the name
-	RecvPropString(RECVINFO(m_iName), NULL, RecvProxy_StringT ),
-	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), NULL, RecvProxy_StringT ),
+	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_StringToStringT),
+	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_StringToStringT),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
 	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),

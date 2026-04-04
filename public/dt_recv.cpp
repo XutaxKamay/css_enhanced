@@ -8,9 +8,14 @@
 #include "mathlib/vector.h"
 #include "tier1/strtools.h"
 #include "dt_utlvector_common.h"
+#include "utlhashtable.h"
+#include "utlstring.h"
+#include "string_t.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+static CUtlHashtable<CUtlConstString> g_RecvStringTable;
 
 #if !defined(_STATIC_LINKED) || defined(CLIENT_DLL)
 
@@ -516,6 +521,20 @@ void RecvProxy_StringToString( const CRecvProxyData *pData, void *pStruct, void 
 	}
 	
 	pStrOut[pData->m_pRecvProp->m_StringBufferSize-1] = 0;
+}
+
+void RecvProxy_StringToStringT( const CRecvProxyData* pData, void* pStruct, void* pOut )
+{
+	auto pString = ( string_t* )pOut;
+
+	*pString = MAKE_STRING( g_RecvStringTable[ g_RecvStringTable.Insert( pData->m_Value.m_pString ) ].Get() );
+
+	// printf( "recv: %s(%p)\n", STRING( *pString ), STRING( *pString ) );
+
+	if ( !STRING( *pString ) )
+	{
+		*pString = MAKE_STRING( "" );
+	}
 }
 
 void DataTableRecvProxy_StaticDataTable( const RecvProp *pProp, void **pOut, void *pData, int objectID )

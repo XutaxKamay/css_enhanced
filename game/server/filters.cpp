@@ -263,7 +263,7 @@ public:
 
 	bool PassesFilterImpl( CBaseEntity *pCaller, CBaseEntity *pEntity )
 	{
-		ConMsg("server: %s %s %s\n", pEntity->GetEntityName(), STRING(pEntity->m_iClassname), STRING(m_iFilterName.Get()));
+		// printf("server: %s %s %s\n", pEntity->GetEntityName(), STRING(pEntity->m_iClassname), STRING(m_iFilterName.Get()));
 		// special check for !player as GetEntityName for player won't return "!player" as a name
 		if (FStrEq(m_iFilterName->ToCStr(), "!player"))
 		{

@@ -11,8 +11,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern void RecvProxy_StringT(const CRecvProxyData *pData, void *pStruct, void *pOut);
-
 LINK_ENTITY_TO_CLASS(trigger_teleport, C_TriggerTeleport);
 
 // TODO_ENHANCED: what to do if m_iLandmark changes?
@@ -21,7 +19,7 @@ BEGIN_PREDICTION_DATA(C_TriggerTeleport)
 END_PREDICTION_DATA();
 
 IMPLEMENT_CLIENTCLASS_DT(C_TriggerTeleport, DT_TriggerTeleport, CTriggerTeleport)
-	RecvPropString( RECVINFO( m_iLandmark ), NULL, RecvProxy_StringT )
+	RecvPropString( RECVINFO( m_iLandmark ), 0, RecvProxy_StringToStringT )
 END_RECV_TABLE();
 
 BEGIN_DATADESC( C_TriggerTeleport )
