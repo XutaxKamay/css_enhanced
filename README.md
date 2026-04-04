@@ -1,13 +1,14 @@
 # Counter-Strike: Source Enhanced
 
-Discord server: https://discord.gg/FdxhmZh6
+Discord server: [Permanent Link](https://discord.gg/WGeNnBksK5)
 
-Started from a fork of: https://github.com/nillerusr/source-engine \
-A huge thanks to him for having port most of the valve project generator stuff to waf.
+It has been started from a fork of from [nillerusr](https://github.com/nillerusr/source-engine), a huge thanks to him for having port most of the valve project generator stuff to waf.
 
 ## How to build:
 First install dependencies: https://github.com/nillerusr/source-engine/wiki/Source-Engine-(EN) \
-You also need zstd library.
+You also need:
+- dxvk native library
+- zstd library
 
 To compile for CS:S Enhanced a command line can look like so:
 ```./waf configure clangdb install -p -o build -T fastnative --prefix ./gamedata/css_enhanced/game```
@@ -26,30 +27,39 @@ To compile for CS:S Enhanced a command line can look like so:
 
 ## What was enhanced:
 
-A lot! If you're curious you can look on the commit log, but here's the most interesting things:
+A lot! Here is a comprehensive list of the core changes and enhancements based on our codebase rework:
 
-- Trigger prediction, output event prediction. (this caused the player's mistmatching between server and client)
-- Local player interpolation fixed without doing sub-ticks. (this is known as your screen not matching the server/client's tick view)
-- Lag compensation fixed. (Animations are server controlled now)
-- SetupBones being different from client and server due to the fact that IKs weren't enabled.
-- No autobhop lag.
-- fps_max 0 is possible now without speedhacking. (you can get more than 1k fps)
-- More performance in general, for example in Windows, I removed the legacy input system that took around 300 fps in fullscreen.
-- You can use ARM servers to run a dedicated server (this is huge, since servers have a lot of power consumption).
-- Network compression mostly removed so the client get the exact values from the server
-- zstd compression with trained data so that it compress (and decompress) very fast for a very good ratio. (around 1/10)
-- Added new weapon, M82A1
+### Networking & Synchronization
+- **Precise Float Encoding:** Network compression (quantization) on floats was mostly removed, so the client receives full 32-bit exact values from the server, avoiding coordinate and rotation precision loss.
+- **ZSTD Compression:** Implemented ZSTD compression with pre-trained dictionary data for entity updates, compressing/decompressing very fast for an excellent ratio (around 1/10).
+- **TCP Snapshots:** Added option (`sv_send_snapshot_on_tcp`) to send reliable entity snapshots via TCP instead of UDP. Previously, if UDP packets containing entity updates were lost, the client would lack the data needed to interpolate entity positions. Because the client missed this history while the server maintained the true state, lag compensation would completely break down during packet loss. Sending snapshots asynchronously via TCP ensures the client always receives the entity updates, guaranteeing perfectly reliable lag compensation.
+- **Tick Synchronization (TODO):** The server now sends back the client's perceived tick in `NET_Tick` to precisely manage clock drift. Snapshot tick IDs and command queue info are also tracked. *(Note: This feature is still a work-in-progress)*
+- **Increased Network Limits:** Network rate limit raised drastically (up to 64 MB/s), frame history increased for better lag compensation window, and max user message size increased to support larger game events.
 
-And more to come (TODO):
-- Fix SSE ARM emulation, it seems to cause issues with animations (setupbones)
-- New weapons coming, thinking gluon gun
-- Shareable skins where you can use your own skins and other people will see them.
-- And much more to come ...
-- Replay
-- Source TV and recordings that can display the exact things that the player has seen on his screen by re-using lag compensation.
-- A better hit indicator ... (first good todo, check cl_enable_hitmarks)
-- A timer
-- General bug fixes like edge bugs, surf ramp bugs ...
-- Sphere/cylinder hitboxes
-- Avatars
-- Clans
+### Prediction, Hit Registration & Input
+- **Trigger & Output Event Prediction:** Client-side trigger and solid movement prediction (trigger_push, trigger_multiple, trigger_teleport ...). This eliminates the classic "mismatching between server and client" console warnings and interaction delay. *(Note: Output event prediction still misses `logic_*` entities and some others like doors, buttons).*
+- **Local Player Interpolation:** Completely rewritten to be time-based (`cl_interpolation_amount`) rather than ratio-based. Additionally, interpolated network variables for the local player are now explicitly calculated during prediction and user command processing using `interpolation_amount_frac`, ensuring perfectly accurate interpolation across all framerates without relying on sub-ticks.
+- **Lag Compensation Overhaul:** The entire server-side lag compensation system was rewritten from scratch. Instead of the old system that just stored basic position data, it now uses a proper interpolation framework that smoothly tracks everything: player positions, angles, animations, and movement states. This means the server can accurately reconstruct exactly what the client saw at any point in time, resulting in much more reliable hit registration. The system is also designed to eventually support lag compensation for non-player entities like moving platforms and triggers.
+- **View Angle Synchronization:** The mouse view angle update (`CL_ExtraMovementUpdate`) was moved to occur *before* frame processing instead of after. Previously, the rendering view was always one frame ahead of the view angles sent to the server in `CreateMove`, causing a constant mismatch. This change ensures the server's view perfectly synchronizes with what you see on screen.
+- **No Autobhop Lag:** Bunnyhopping movement operates perfectly smoothly.
+
+### Performance & Engine Limits
+- **Unlimited FPS:** `fps_max 0` is now possible without triggering speedhacking false positives, allowing framerates well over 1k FPS.
+- **Input System Performance:** Removed the legacy Windows raw input system processing when in fullscreen mode, reclaiming around ~300 FPS.
+- **DXVK Integration:** Added native SDL windowing flags to support DXVK rendering paths.
+
+### Modding, Game Events & Features
+- **Dynamic Game Events:** The network serialization for game events (`IGameEvent`) was completely rewritten. Instead of relying on strict schema definitions (`.res` files) where the client and server must agree on the event structure beforehand, events are now serialized dynamically over the network (sending key names and types on the fly). This allows attaching arbitrary data to events without engine restrictions, powering new events like `bullet_impact`, `bullet_hit_player`, and `player_lag_hitboxes`.
+- **New Weapon:** Added the Barrett M82A1 sniper rifle.
+- **Separate RCON Port:** RCON traffic has been moved to a separate dedicated port (27024) instead of sharing the main game traffic port.
+- **Build & CI/CD:** Added automated GitHub Actions prerelease workflows for Windows and Linux AMD64, along with comprehensive `.clang-format` rules for modern C++ styling.
+
+## Future Plans (TODO)
+- **New Weapons:** Expanding the arsenal (e.g., Gluon Gun).
+- **Shareable Custom Skins:** A system allowing players to use their own skins and have them visible to other players on the server.
+- **Advanced Replay & SourceTV:** Upgraded demo recording and SourceTV that perfectly recreates the player's perspective by re-using lag compensation data.
+- **Enhanced Hit Indicators:** Continued improvements to hit feedback (e.g., `cl_enable_hitmarks`).
+- **Hitbox Upgrades:** Moving towards sphere/cylinder-based hitboxes for better precision.
+- **Engine Bug Fixes:** Patching long-standing engine quirks like edge bugs and surf ramp bugs.
+- **Social Features:** Implementing Avatars and a Clan system.
+- **In-Game Timer:** A built-in timer for speedrunning/movement modes.
