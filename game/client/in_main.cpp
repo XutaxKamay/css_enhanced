@@ -1318,19 +1318,22 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 
 #ifdef CSTRIKE_DLL
 	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
-	static ConVarRef cl_showfirebullethitboxes( "cl_showfirebullethitboxes" );
-	static ConVarRef cl_showimpacts( "cl_showimpacts" );
+	static ConVarRef cl_debug_hitbox_enable( "cl_debug_hitbox_enable" );
+	static ConVarRef cl_debug_hitbox_show_prediction( "cl_debug_hitbox_show_prediction" );
+	static ConVarRef cl_debug_hitbox_show_server( "cl_debug_hitbox_show_server" );
+	static ConVarRef cl_debug_hitbox_show_rendering( "cl_debug_hitbox_show_rendering" );
 
 	cmd->debug_hitboxes = CUserCmd::DEBUG_HITBOXES_OFF;
 
-	if ( cl_showfirebullethitboxes.GetBool() )
+	if ( cl_debug_hitbox_enable.GetBool() && cl_debug_hitbox_show_prediction.GetBool() )
 	{
-		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_FIRE;
+		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_SHOW_FIRE;
 	}
 
-	if ( cl_showimpacts.GetBool() || debug_screenshot_bullet_position.GetBool() )
+	if ( cl_debug_hitbox_enable.GetBool() && ( cl_debug_hitbox_show_rendering.GetBool() || cl_debug_hitbox_show_server.GetBool()
+		 || debug_screenshot_bullet_position.GetBool() ) )
 	{
-		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_ON_HIT;
+		cmd->debug_hitboxes |= CUserCmd::DEBUG_HITBOXES_SHOW_HIT;
 	}
 #endif
 

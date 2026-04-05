@@ -373,8 +373,9 @@ public:
 	int								GetHitboxSet( void );
 	char const						*GetHitboxSetName( void );
 	int								GetHitboxSetCount( void );
-	void							DrawServerHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], float duration = 0.0f, bool monocolor = false );
-	void							DrawClientHitboxes( float duration = 0.0f, bool monocolor = false );
+	void							DrawHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], float duration = 0.0f, Color color = Color( 255, 255, 255, 127 ) );
+	void							DrawHitboxes( float duration = 0.0f, Color color = Color( 255, 255, 255, 127 ) );
+	void							DrawHitboxes( Vector positions[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], int numBones, const int boneMap[MAXSTUDIOBONES], float duration, Color color );
 
 	C_BaseAnimating*				FindFollowedEntity();
 

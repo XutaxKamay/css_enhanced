@@ -67,6 +67,8 @@
 	#undef CCSPlayer
 #endif
 #include "debugoverlay_shared.h"
+#include "css_enhanced/hud_lagcomp_debug.h"
+#include "css_enhanced/hud_lagcomp_debug.h"
 #include "materialsystem/imesh.h"		//for materials->FindMaterial
 #include "iviewrender.h"				//for view->
 
@@ -90,12 +92,38 @@ extern ConVar	spec_freeze_distance_max;
 //=============================================================================
 // HPE_END
 //=============================================================================
-ConVar cl_showhitboxes("cl_showhitboxes", "0", FCVAR_CHEAT);
-ConVar cl_showimpacts("cl_showimpacts", "0");
-ConVar cl_showfirebullethitboxes("cl_showfirebullethitboxes", "0");
-ConVar cl_show_debug_duration( "cl_show_debug_duration", "60" );
+ConVar cl_showhitboxes( "cl_showhitboxes", "0", FCVAR_CHEAT );
 ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
 ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
+
+ConVar cl_debug_hitbox_enable( "cl_debug_hitbox_enable", "0", 0, "Master toggle for hitbox/lag compensation debug HUD and overlays" );
+ConVar cl_debug_hitbox_tolerance( "cl_debug_hitbox_tolerance", "0.1", 0, "Float tolerance for comparing prediction/server/rendering values" );
+ConVar cl_debug_hitbox_show_overlays( "cl_debug_hitbox_show_overlays", "1", 0, "Draw 3D hitbox overlays in world space (set to 0 for HUD-only mode)" );
+ConVar cl_debug_hitbox_show_prediction( "cl_debug_hitbox_show_prediction", "1", 0, "Show prediction hitboxes (green) and bullet traces" );
+ConVar cl_debug_hitbox_show_server( "cl_debug_hitbox_show_server", "1", 0, "Show server hitboxes (blue) from lag compensation events" );
+ConVar cl_debug_hitbox_show_rendering( "cl_debug_hitbox_show_rendering", "1", 0, "Show current rendering hitboxes (red)" );
+ConVar cl_debug_hitbox_show_bullet_traces( "cl_debug_hitbox_show_bullet_traces", "1", 0, "Show bullet trace paths (swept boxes)" );
+ConVar cl_debug_hitbox_show_only_on_error( "cl_debug_hitbox_show_only_on_error", "0", 0, "Only draw hitbox overlays when tolerance-exceeding mismatches are detected" );
+ConVar cl_debug_hitbox_duration( "cl_debug_hitbox_duration", "60", 0, "Duration in seconds that debug overlays persist" );
+ConVar cl_debug_hitbox_hud_max_entries( "cl_debug_hitbox_hud_max_entries", "8", 0, "Max players shown in HUD list (closest to crosshair first)" );
+
+// Hitbox overlay colors (space-separated RGBA 0-255)
+ConVar cl_debug_hitbox_color_server( "cl_debug_hitbox_color_server", "0 0 255 127", 0, "RGBA color for server hitbox overlays (bones from event data)" );
+ConVar cl_debug_hitbox_color_server_computed( "cl_debug_hitbox_color_server_computed", "0 255 255 127", 0, "RGBA color for server computed overlays (SetupBones from server vars)" );
+ConVar cl_debug_hitbox_color_prediction( "cl_debug_hitbox_color_prediction", "0 255 0 127", 0, "RGBA color for prediction overlays (bones cached in HitboxRecord)" );
+ConVar cl_debug_hitbox_color_prediction_computed( "cl_debug_hitbox_color_prediction_computed", "128 0 255 127", 0, "RGBA color for prediction computed overlays (SetupBones from prediction vars)" );
+ConVar cl_debug_hitbox_color_match( "cl_debug_hitbox_color_match", "255 255 255 127", 0, "RGBA color when all states match" );
+
+// Bullet trace colors
+ConVar cl_debug_hitbox_bullet_color_server( "cl_debug_hitbox_bullet_color_server", "0 0 255 127", 0, "RGBA color for server bullet trace" );
+ConVar cl_debug_hitbox_bullet_color_prediction( "cl_debug_hitbox_bullet_color_prediction", "0 255 0 127", 0, "RGBA color for prediction bullet trace" );
+
+static Color ParseDebugColor( ConVar& cv )
+{
+    int r = 0, g = 0, b = 0, a = 255;
+    sscanf( cv.GetString(), "%d %d %d %d", &r, &g, &b, &a );
+    return Color( r, g, b, a );
+}
 
 ConVar cl_left_hand_ik( "cl_left_hand_ik", "0", 0, "Attach player's left hand to rifle with IK." );
 
@@ -2125,462 +2153,147 @@ void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int even
 		BaseClass::FireEvent( origin, angles, event, options );
 }
 
+void C_CSPlayer::CaptureCurrentState( HitboxRecord& outRecord )
+{
+	outRecord.m_vecRenderOrigin = GetRenderOrigin();
+	outRecord.m_angRenderAngles = GetRenderAngles();
+	outRecord.m_nSequence		= GetSequence();
+	outRecord.m_flCycle			= GetCycle();
+
+	CStudioHdr* pHdr = GetModelPtr();
+	if ( pHdr )
+	{
+		GetPoseParameters( pHdr, outRecord.m_flPoseParameters );
+		GetBoneControllers( outRecord.m_flEncodedControllers );
+	}
+
+	for ( int i = 0; i < GetNumAnimOverlays(); i++ )
+	{
+		CAnimationLayer* layer = GetAnimOverlay( i );
+		if ( layer )
+		{
+			outRecord.m_AnimationLayer[i].m_flCycle	  = layer->m_flCycle;
+			outRecord.m_AnimationLayer[i].m_nOrder	  = layer->m_nOrder;
+			outRecord.m_AnimationLayer[i].m_nSequence = layer->m_nSequence;
+			outRecord.m_AnimationLayer[i].m_flWeight  = layer->m_flWeight;
+			outRecord.m_AnimationLayer[i].m_fFlags	  = layer->m_fFlags;
+		}
+	}
+}
+
+void C_CSPlayer::RestoreStateFromRecord( const HitboxRecord& record )
+{
+	SetSequence( record.m_nSequence );
+	SetCycle( record.m_flCycle );
+	SetAbsOrigin( record.m_vecRenderOrigin );
+	m_angRenderAngles = record.m_angRenderAngles;
+
+	for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
+	{
+		m_flPoseParameter[i] = record.m_flPoseParameters[i];
+	}
+	for ( int i = 0; i < MAXSTUDIOBONECTRLS; i++ )
+	{
+		m_flEncodedController[i] = record.m_flEncodedControllers[i];
+	}
+	for ( int i = 0; i < GetNumAnimOverlays(); i++ )
+	{
+		CAnimationLayer* layer = GetAnimOverlay( i );
+		if ( layer )
+		{
+			layer->m_flCycle   = record.m_AnimationLayer[i].m_flCycle;
+			layer->m_nOrder	   = record.m_AnimationLayer[i].m_nOrder;
+			layer->m_nSequence = record.m_AnimationLayer[i].m_nSequence;
+			layer->m_flWeight  = record.m_AnimationLayer[i].m_flWeight;
+			layer->m_fFlags	   = record.m_AnimationLayer[i].m_fFlags;
+		}
+	}
+}
+
+void C_CSPlayer::CaptureBoneMatrix( CStudioHdr* pHdr,
+									Vector outPositions[MAXSTUDIOBONES],
+									QAngle outAngles[MAXSTUDIOBONES],
+									int& outNumBones,
+									int outBoneMap[MAXSTUDIOBONES] )
+{
+	if ( !pHdr )
+	{
+		outNumBones = 0;
+		return;
+	}
+
+	mstudiohitboxset_t* set = pHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+	{
+		outNumBones = 0;
+		return;
+	}
+
+	outNumBones = 0;
+	for ( int i = 0; i < set->numhitboxes; i++ )
+	{
+		mstudiobbox_t* pbox = set->pHitbox( i );
+		int boneIdx			= pbox->bone;
+
+		bool found = false;
+		for ( int j = 0; j < outNumBones; j++ )
+		{
+			if ( outBoneMap[j] == boneIdx )
+			{
+				found = true;
+				break;
+			}
+		}
+		if ( !found && boneIdx >= 0 && boneIdx < MAXSTUDIOBONES )
+		{
+			GetBonePosition( boneIdx, outPositions[outNumBones], outAngles[outNumBones] );
+			outBoneMap[outNumBones] = boneIdx;
+			outNumBones++;
+		}
+	}
+}
+
+void C_CSPlayer::ForceSetupBones( CStudioHdr* pHdr,
+								  Vector outPositions[MAXSTUDIOBONES],
+								  QAngle outAngles[MAXSTUDIOBONES],
+								  int& outNumBones,
+								  int outBoneMap[MAXSTUDIOBONES],
+								  const char* debugContext )
+{
+	PushEnableAbsRecomputations( true );
+	PushAllowBoneAccess( true, false, debugContext );
+	InvalidateBoneCache();
+	m_bForceSequenceTransitions = true;
+	SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
+	m_bForceSequenceTransitions = false;
+	if ( outPositions && outAngles )
+		CaptureBoneMatrix( pHdr, outPositions, outAngles, outNumBones, outBoneMap );
+	PopBoneAccess( debugContext );
+	PopEnableAbsRecomputations();
+}
+
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
-	static ConVarRef cl_showfirebullethitboxes( "cl_showfirebullethitboxes" );
-	static ConVarRef cl_showimpacts( "cl_showimpacts" );
 	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
 
 	BaseClass::FireGameEvent( event );
 
-	bool shouldShowImpacts			  = cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 3;
-	bool shouldShowFireBulletHitboxes = cl_showfirebullethitboxes.GetInt() == 1
-										|| cl_showfirebullethitboxes.GetInt() == 3;
-
-	// TODO_ENHANCED: compare from client's prediction values !
-	const auto ShowEventHitboxes = [&]( float flDuration )
-	{
-		MDLCACHE_CRITICAL_SECTION();
-
-		const int index = event->GetInt( "userid" );
-		if ( index == GetUserID() && IsLocalPlayer() )
-		{
-			const auto playerIndex = event->GetInt( "player_index" );
-			const auto player	   = ( C_CSPlayer* )UTIL_PlayerByIndex( playerIndex );
-
-			if ( player && !player->IsLocalPlayer() )
-			{
-				const auto nAttackerTickBase = event->GetInt( "tickbase" );
-				const auto pStudioHdr		 = player->GetModelPtr();
-				const auto numhitboxes		 = event->GetInt( "num_hitboxes" );
-
-				QAngle angles[MAXSTUDIOBONES];
-				Vector positions[MAXSTUDIOBONES];
-
-				player->m_bIsInsideLagCompensationContext = true;
-				player->PushEnableAbsRecomputations( true );
-
-				AssertFatal( numhitboxes == pStudioHdr->pHitboxSet( player->m_nHitboxSet )->numhitboxes );
-
-				for ( int i = 0; i < numhitboxes; i++ )
-				{
-					char buffer[256];
-					V_sprintf_safe( buffer, "hitbox_index_%i", i );
-					const auto hitboxIndex = event->GetInt( buffer );
-
-					V_sprintf_safe( buffer, "hitbox_position_x_%i", i );
-					positions[hitboxIndex].x = event->GetFloat( buffer );
-					V_sprintf_safe( buffer, "hitbox_position_y_%i", i );
-					positions[hitboxIndex].y = event->GetFloat( buffer );
-					V_sprintf_safe( buffer, "hitbox_position_z_%i", i );
-					positions[hitboxIndex].z = event->GetFloat( buffer );
-
-					V_sprintf_safe( buffer, "hitbox_angle_x_%i", i );
-					angles[hitboxIndex].x = event->GetFloat( buffer );
-					V_sprintf_safe( buffer, "hitbox_angle_y_%i", i );
-					angles[hitboxIndex].y = event->GetFloat( buffer );
-					V_sprintf_safe( buffer, "hitbox_angle_z_%i", i );
-					angles[hitboxIndex].z = event->GetFloat( buffer );
-				}
-
-				player->DrawServerHitboxes( positions, angles, flDuration, true );
-
-				// Let's see what the client thinks to check if there's any problems with hitboxes
-				float flBackupPoseParams[MAXSTUDIOPOSEPARAM];
-				float flBackupBoneControllers[MAXSTUDIOBONECTRLS];
-
-				C_AnimationLayer backupAnimLayers[C_BaseAnimatingOverlay::MAX_OVERLAYS];
-				Vector vecBackupPosition = player->GetRenderOrigin();
-				QAngle angBackupAngles	 = player->GetRenderAngles();
-				auto flOldCycle			 = player->GetCycle();
-				auto iOldSequence		 = player->GetSequence();
-
-				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
-				{
-					flBackupPoseParams[i] = player->m_flPoseParameter[i];
-				}
-
-				for ( int i = 0; i < MAXSTUDIOBONECTRLS; i++ )
-				{
-					flBackupBoneControllers[i] = player->m_flEncodedController[i];
-				}
-
-				for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
-				{
-					backupAnimLayers[i] = *player->GetAnimOverlay( i );
-				}
-
-				player->SetSequence( event->GetInt( "sequence" ) );
-				player->SetCycle( event->GetFloat( "cycle" ) );
-				player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
-											  event->GetFloat( "position_y" ),
-											  event->GetFloat( "position_z" ) ) );
-
-				player->m_angRenderAngles = QAngle( event->GetFloat( "angle_x" ),
-													event->GetFloat( "angle_y" ),
-													event->GetFloat( "angle_z" ) );
-
-				const auto numposeparams = event->GetInt( "num_poseparams" );
-				AssertFatal( numposeparams == pStudioHdr->GetNumPoseParameters() );
-
-				for ( int i = 0; i < numposeparams; i++ )
-				{
-					char buffer[256];
-					V_sprintf_safe( buffer, "pose_param_%i", i );
-
-					player->m_flPoseParameter[i] = event->GetFloat( buffer );
-				}
-
-				const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
-				AssertFatal( numbonecontrollers == pStudioHdr->GetNumBoneControllers() );
-
-				for ( int i = 0; i < numbonecontrollers; i++ )
-				{
-					char buffer[256];
-					V_sprintf_safe( buffer, "bone_controller_%i", i );
-
-					player->m_flEncodedController[i] = event->GetFloat( buffer );
-				}
-
-				auto numanimoverlays = event->GetInt( "num_anim_overlays" );
-				AssertFatal( numanimoverlays == player->GetNumAnimOverlays() );
-
-				for ( int i = 0; i < numanimoverlays; i++ )
-				{
-					auto animOverlay = player->GetAnimOverlay( i );
-
-					char buffer[256];
-					V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
-					animOverlay->m_flCycle = event->GetFloat( buffer );
-
-					V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
-					animOverlay->m_nSequence = event->GetInt( buffer );
-
-					V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
-					animOverlay->m_flWeight = event->GetFloat( buffer );
-
-					V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
-					animOverlay->m_nOrder = event->GetInt( buffer );
-
-					V_sprintf_safe( buffer, "anim_overlay_flags_%i", i );
-					animOverlay->m_fFlags = event->GetInt( buffer );
-				}
-
-				// Let's see if anything wrong has happened, print some infos.
-				HitboxRecord* pRecord = nullptr;
-				auto playerIndex	  = player->index;
-
-				for ( int i = 0; i < MAX_HISTORY_HITBOX_RECORDS; i++ )
-				{
-					pRecord = m_HitboxTrack[playerIndex]->Get( i );
-
-					if ( pRecord && ( pRecord->m_nAttackerTickBase == nAttackerTickBase ) )
-					{
-						break;
-					}
-				}
-
-				if ( pRecord )
-				{
-					// Let's check what went wrong.
-					int pos = 0;
-
-					auto origin		  = player->GetRenderOrigin();
-					auto simtickc	  = event->GetInt( "simtickc" );
-					auto animtickc	  = event->GetInt( "animtickc" );
-					auto interpamount = event->GetFloat( "interpamount" );
-					std::string msg;
-
-					bool bShouldShowPlayerConMsg = false;
-
-					if ( pRecord->m_flInterpolationAmountFrac != interpamount )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer,
-										"interpamount: %f != %f",
-										interpamount,
-										pRecord->m_flInterpolationAmountFrac );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					if ( pRecord->m_nSimulatedTickCount != simtickc )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer, "simtickc: %lld != %lld", simtickc, pRecord->m_nSimulatedTickCount );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					if ( pRecord->m_nAnimatedTickCount != animtickc )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer, "animtickc: %lld != %lld", animtickc, pRecord->m_nAnimatedTickCount );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					if ( pRecord->m_vecRenderOrigin != origin )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer,
-										"pos: %f != %f, %f != %f, %f != %f",
-										origin.x,
-										pRecord->m_vecRenderOrigin.x,
-										origin.y,
-										pRecord->m_vecRenderOrigin.y,
-										origin.z,
-										pRecord->m_vecRenderOrigin.z );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					auto angles = player->GetRenderAngles();
-
-					if ( pRecord->m_angRenderAngles != angles )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer,
-										"angles: %f != %f, %f != %f, %f != %f",
-										angles.x,
-										pRecord->m_angRenderAngles.x,
-										angles.y,
-										pRecord->m_angRenderAngles.y,
-										angles.z,
-										pRecord->m_angRenderAngles.z );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					if ( pRecord->m_flCycle != player->m_flCycle )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer, "cycle: %f != %f", player->m_flCycle, pRecord->m_flCycle );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					if ( pRecord->m_nSequence != player->m_nSequence )
-					{
-						char buffer[256];
-						V_sprintf_safe( buffer,
-										"sequence: %s(%i) != %s(%i)",
-										player->GetSequenceName( player->m_nSequence ),
-										player->m_nSequence,
-										player->GetSequenceName( pRecord->m_nSequence ),
-										pRecord->m_nSequence );
-
-						bShouldShowPlayerConMsg	 = true;
-						msg						+= std::string( "    " ) + buffer + '\n';
-						NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-						pos++;
-					}
-
-					for ( int i = 0; i < pStudioHdr->GetNumPoseParameters(); i++ )
-					{
-						if ( pRecord->m_flPoseParameters[i] != player->m_flPoseParameter[i] )
-						{
-							char buffer[256];
-							V_sprintf_safe( buffer,
-											"pose parameter %s (%i): %f != %f",
-											pStudioHdr->pPoseParameter( i ).pszName(),
-											i,
-											player->m_flPoseParameter[i],
-											pRecord->m_flPoseParameters[i] );
-
-							bShouldShowPlayerConMsg	 = true;
-							msg						+= std::string( "    " ) + buffer + '\n';
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-							pos++;
-						}
-					}
-
-					for ( int i = 0; i < pStudioHdr->GetNumBoneControllers(); i++ )
-					{
-						if ( pRecord->m_flEncodedControllers[i] != player->m_flEncodedController[i] )
-						{
-							char buffer[256];
-							V_sprintf_safe( buffer,
-											"bone controller %i (%i): %f != %f",
-											pStudioHdr->pBonecontroller( i )->bone,
-											i,
-											player->m_flEncodedController[i],
-											pRecord->m_flEncodedControllers[i] );
-
-							bShouldShowPlayerConMsg	 = true;
-							msg						+= std::string( "    " ) + buffer + '\n';
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-							pos++;
-						}
-					}
-
-					for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
-					{
-						auto animOverlay = player->GetAnimOverlay( i );
-
-						if ( animOverlay->m_flCycle != pRecord->m_AnimationLayer[i].m_flCycle
-							 || animOverlay->m_flWeight != pRecord->m_AnimationLayer[i].m_flWeight
-							 || animOverlay->m_nSequence != pRecord->m_AnimationLayer[i].m_nSequence
-							 || animOverlay->m_nOrder != pRecord->m_AnimationLayer[i].m_nOrder
-							 || animOverlay->m_fFlags != pRecord->m_AnimationLayer[i].m_fFlags )
-						{
-							char buffer[256];
-							V_sprintf_safe( buffer,
-											"anim overlay %i:  sequence: %s != %s ( %i != %i ), cycle: %f != %f, "
-											"weight: %f != %f, order %i != %i, flags: %i != %i",
-											i,
-											GetSequenceName( animOverlay->m_nSequence ),
-											GetSequenceName( pRecord->m_AnimationLayer[i].m_nSequence ),
-											animOverlay->m_nSequence,
-											pRecord->m_AnimationLayer[i].m_nSequence,
-											animOverlay->m_flCycle,
-											pRecord->m_AnimationLayer[i].m_flCycle,
-											animOverlay->m_flWeight,
-											pRecord->m_AnimationLayer[i].m_flWeight,
-											animOverlay->m_nOrder,
-											pRecord->m_AnimationLayer[i].m_nOrder,
-											animOverlay->m_fFlags,
-											pRecord->m_AnimationLayer[i].m_fFlags );
-
-							bShouldShowPlayerConMsg	 = true;
-							msg						+= std::string( "    " ) + buffer + '\n';
-							NDebugOverlay::EntityTextAtPosition( pRecord->m_vecRenderOrigin, pos, buffer, flDuration );
-							pos++;
-						}
-					}
-
-					if ( bShouldShowPlayerConMsg )
-					{
-						ConMsg( "[%i]: Debugging player %s(%i) with hitbox:\n%s\n",
-								nAttackerTickBase,
-								player->GetPlayerName(),
-								playerIndex,
-								msg.c_str() );
-					}
-				}
-				else
-				{
-					DevMsg( "Could not get record info for player %s (%i) with tickbase %i\n",
-							player->GetPlayerName(),
-							playerIndex,
-							nAttackerTickBase );
-				}
-
-				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
-				// Be sure we setup the bones again.
-				player->InvalidateBoneCache();
-				player->m_bForceSequenceTransitions = true;
-				player->SetupBones( NULL, -1, BONE_USED_BY_ANYTHING, gpGlobals->curtime );
-				player->m_bForceSequenceTransitions = false;
-				player->DrawClientHitboxes( flDuration, false );
-				player->PopBoneAccess( "Lag compensation context" );
-
-				// Set back original stuff.
-				player->SetSequence( iOldSequence );
-				player->SetCycle( flOldCycle );
-				player->SetAbsOrigin( vecBackupPosition );
-				player->m_angRenderAngles = angBackupAngles;
-
-				for ( int i = 0; i < MAXSTUDIOPOSEPARAM; i++ )
-				{
-					player->m_flPoseParameter[i] = flBackupPoseParams[i];
-				}
-
-				for ( int i = 0; i < MAXSTUDIOBONECTRLS; i++ )
-				{
-					player->m_flEncodedController[i] = flBackupBoneControllers[i];
-				}
-
-				for ( int i = 0; i < numanimoverlays; i++ )
-				{
-					auto animOverlay = player->GetAnimOverlay( i );
-					*animOverlay	 = backupAnimLayers[i];
-				}
-
-				player->PushAllowBoneAccess( true, false, "Lag compensation context" );
-				player->InvalidateBoneCache();
-				player->PopBoneAccess( "Lag compensation context" );
-				player->PopEnableAbsRecomputations();
-				player->m_bIsInsideLagCompensationContext = false;
-			}
-		}
-	};
-
-	if ( FStrEq( event->GetName(), "bullet_impact" ) && shouldShowImpacts )
-	{
-		const int index = event->GetInt( "userid" );
-		if ( index == GetUserID() && IsLocalPlayer() )
-		{
-			Vector src( event->GetFloat( "src_x" ), event->GetFloat( "src_y" ), event->GetFloat( "src_z" ) );
-			Vector dst( event->GetFloat( "dst_x" ), event->GetFloat( "dst_y" ), event->GetFloat( "dst_z" ) );
-			float flBulletRadius = event->GetFloat( "radius" );
-
-			Vector mins( -flBulletRadius );
-			Vector maxs( flBulletRadius );
-
-			DrawBullet( src, dst, mins, maxs, 0, 0, 255, 127, cl_show_debug_duration.GetFloat() );
-
-			// If both happens to be on the same frame, let it be.
-			if ( debug_screenshot_bullet_position.GetBool() )
-			{
-				gpGlobals->client_taking_screenshot = true;
-			}
-		}
-	}
-	else if ( FStrEq( event->GetName(), "bullet_hit_player" ) && shouldShowImpacts )
-	{
-		ShowEventHitboxes( cl_show_debug_duration.GetFloat() );
-
-		// If both happens to be on the same frame, let it be.
-		if ( debug_screenshot_bullet_position.GetBool() )
-		{
-			gpGlobals->client_taking_screenshot = true;
-		}
-	}
-	else if ( FStrEq( event->GetName(), "bullet_player_hitboxes" ) && shouldShowFireBulletHitboxes )
-	{
-		ShowEventHitboxes( cl_show_debug_duration.GetFloat() );
-	}
-	else if ( cl_enable_hitmarks.GetBool() && FStrEq( event->GetName(), "player_hurt" ) )
+	// Hitmarks always work regardless of debug mode
+	if ( cl_enable_hitmarks.GetBool() && FStrEq( event->GetName(), "player_hurt" ) )
 	{
 		const int index = event->GetInt( "attacker" );
-
 		if ( index == GetUserID() && IsLocalPlayer() )
 		{
 			const auto playerUserID = event->GetInt( "userid" );
 			const auto player		= ( C_CSPlayer* )UTIL_PlayerByUserId( playerUserID );
-
 			if ( player && !player->IsLocalPlayer() )
 			{
-				m_bHitMark = true;
-
+				m_bHitMark			= true;
 				auto health_damages = event->GetInt( "dmg_health" );
 				auto armor_damages	= event->GetInt( "dmg_armor" );
-				// auto hitgroup		= event->GetInt( "hitgroup" );
-
 				CLocalPlayerFilter filter;
 				EmitSound( filter, GetSoundSourceIndex(), "Player.Hitmark" );
-
 				CHudChat* hudChat = ( CHudChat* )GET_HUDELEMENT( CHudChat );
-
 				if ( hudChat && cl_enable_hitmarks_chat.GetBool() )
 				{
 					hudChat->Printf( CHAT_FILTER_NONE,
@@ -2599,6 +2312,668 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 				}
 			}
 		}
+	}
+
+	if ( !cl_debug_hitbox_enable.GetBool() )
+	{
+		return;
+	}
+
+	const float flDuration		 = cl_debug_hitbox_duration.GetFloat();
+	const float flTolerance		 = cl_debug_hitbox_tolerance.GetFloat();
+	const bool bShowOverlays	 = cl_debug_hitbox_show_overlays.GetBool();
+	const bool bShowPrediction	 = cl_debug_hitbox_show_prediction.GetBool();
+	const bool bShowServer		 = cl_debug_hitbox_show_server.GetBool();
+	const bool bShowRendering	 = cl_debug_hitbox_show_rendering.GetBool();
+	const bool bShowBulletTraces = cl_debug_hitbox_show_bullet_traces.GetBool();
+	const bool bShowOnlyOnError	 = cl_debug_hitbox_show_only_on_error.GetBool();
+
+	if ( FStrEq( event->GetName(), "bullet_hit_player" ) || FStrEq( event->GetName(), "bullet_player_hitboxes" ) )
+	{
+		ProcessDebugHitboxEvent( event,
+								 flDuration,
+								 flTolerance,
+								 bShowOverlays,
+								 bShowPrediction,
+								 bShowServer,
+								 bShowRendering,
+								 bShowOnlyOnError );
+		if ( debug_screenshot_bullet_position.GetBool() )
+		{
+			gpGlobals->client_taking_screenshot = true;
+		}
+	}
+	else if ( FStrEq( event->GetName(), "bullet_impact" ) )
+	{
+		ProcessDebugBulletImpact( event, flDuration, flTolerance, bShowBulletTraces );
+		if ( debug_screenshot_bullet_position.GetBool() )
+		{
+			gpGlobals->client_taking_screenshot = true;
+		}
+	}
+}
+
+void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
+										  float flDuration,
+										  float flTolerance,
+										  bool bShowOverlays,
+										  bool bShowPrediction,
+										  bool bShowServer,
+										  bool bShowRendering,
+										  bool bShowOnlyOnError )
+{
+	MDLCACHE_CRITICAL_SECTION();
+
+	const int index = event->GetInt( "userid" );
+	if ( index != GetUserID() || !IsLocalPlayer() )
+	{
+		return;
+	}
+
+	const auto playerIndex = event->GetInt( "player_index" );
+	const auto player	   = ( C_CSPlayer* )UTIL_PlayerByIndex( playerIndex );
+	if ( !player || player->IsLocalPlayer() )
+	{
+		return;
+	}
+
+	const auto nAttackerTickBase = event->GetInt( "tickbase" );
+	const auto pStudioHdr		 = player->GetModelPtr();
+	const auto numhitboxes		 = event->GetInt( "num_hitboxes" );
+
+	QAngle angles[MAXSTUDIOBONES];
+	Vector positions[MAXSTUDIOBONES];
+
+	player->m_bIsInsideLagCompensationContext = true;
+
+	AssertFatal( numhitboxes == pStudioHdr->pHitboxSet( player->m_nHitboxSet )->numhitboxes );
+
+	for ( int i = 0; i < numhitboxes; i++ )
+	{
+		char buffer[256];
+		V_sprintf_safe( buffer, "hitbox_index_%i", i );
+		const auto hitboxIndex = event->GetInt( buffer );
+		V_sprintf_safe( buffer, "hitbox_position_x_%i", i );
+		positions[hitboxIndex].x = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "hitbox_position_y_%i", i );
+		positions[hitboxIndex].y = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "hitbox_position_z_%i", i );
+		positions[hitboxIndex].z = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "hitbox_angle_x_%i", i );
+		angles[hitboxIndex].x = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "hitbox_angle_y_%i", i );
+		angles[hitboxIndex].y = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "hitbox_angle_z_%i", i );
+		angles[hitboxIndex].z = event->GetFloat( buffer );
+	}
+
+	// 1. Save current rendering state
+	HitboxRecord rndRecord;
+	player->CaptureCurrentState( rndRecord );
+
+	// 2. Restore player to server state (from event data)
+	player->SetSequence( event->GetInt( "sequence" ) );
+	player->SetCycle( event->GetFloat( "cycle" ) );
+	player->SetAbsOrigin( Vector( event->GetFloat( "position_x" ),
+								  event->GetFloat( "position_y" ),
+								  event->GetFloat( "position_z" ) ) );
+	player->m_angRenderAngles = QAngle( event->GetFloat( "angle_x" ),
+										event->GetFloat( "angle_y" ),
+										event->GetFloat( "angle_z" ) );
+
+	const auto numposeparams = event->GetInt( "num_poseparams" );
+	AssertFatal( numposeparams == pStudioHdr->GetNumPoseParameters() );
+	for ( int i = 0; i < numposeparams; i++ )
+	{
+		char buffer[256];
+		V_sprintf_safe( buffer, "pose_param_%i", i );
+		player->m_flPoseParameter[i] = event->GetFloat( buffer );
+	}
+
+	const auto numbonecontrollers = event->GetInt( "num_bonecontrollers" );
+	AssertFatal( numbonecontrollers == pStudioHdr->GetNumBoneControllers() );
+	for ( int i = 0; i < numbonecontrollers; i++ )
+	{
+		char buffer[256];
+		V_sprintf_safe( buffer, "bone_controller_%i", i );
+		player->m_flEncodedController[i] = event->GetFloat( buffer );
+	}
+
+	auto numanimoverlays = event->GetInt( "num_anim_overlays" );
+	AssertFatal( numanimoverlays == player->GetNumAnimOverlays() );
+	for ( int i = 0; i < numanimoverlays; i++ )
+	{
+		auto animOverlay = player->GetAnimOverlay( i );
+		char buffer[256];
+		V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
+		animOverlay->m_flCycle = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
+		animOverlay->m_nSequence = event->GetInt( buffer );
+		V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
+		animOverlay->m_flWeight = event->GetFloat( buffer );
+		V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
+		animOverlay->m_nOrder = event->GetInt( buffer );
+		V_sprintf_safe( buffer, "anim_overlay_flags_%i", i );
+		animOverlay->m_fFlags = event->GetInt( buffer );
+	}
+
+	// 3. Capture Server state + bones from event
+	HitboxRecord srvRecord;
+	player->CaptureCurrentState( srvRecord );
+	int nSrvBones = 0;
+	int srvBoneMap[MAXSTUDIOBONES];
+	for ( int i = 0; i < numhitboxes; i++ )
+	{
+		char buffer[256];
+		V_sprintf_safe( buffer, "hitbox_index_%i", i );
+		int boneIdx = event->GetInt( buffer );
+		bool found	= false;
+		for ( int j = 0; j < nSrvBones; j++ )
+		{
+			if ( srvBoneMap[j] == boneIdx )
+			{
+				found = true;
+				break;
+			}
+		}
+		if ( !found && boneIdx >= 0 && boneIdx < MAXSTUDIOBONES )
+		{
+			srvRecord.m_bonePositions[nSrvBones] = positions[boneIdx];
+			srvRecord.m_boneAngles[nSrvBones]	 = angles[boneIdx];
+			srvBoneMap[nSrvBones]				 = boneIdx;
+			nSrvBones++;
+		}
+	}
+
+	// 4. SetupBones with server state → Server Computed bone matrix
+	Vector srvComputedBones[MAXSTUDIOBONES];
+	QAngle srvComputedBoneAngles[MAXSTUDIOBONES];
+	int nSrvComputedBones = 0;
+	int srvComputedBoneMap[MAXSTUDIOBONES];
+	player->ForceSetupBones( pStudioHdr,
+							 srvComputedBones,
+							 srvComputedBoneAngles,
+							 nSrvComputedBones,
+							 srvComputedBoneMap,
+							 "Server computed" );
+
+	// Find prediction record
+	HitboxRecord* pRecord  = nullptr;
+	auto lookupPlayerIndex = player->index;
+	for ( int i = 0; i < MAX_HISTORY_HITBOX_RECORDS; i++ )
+	{
+		pRecord = m_HitboxTrack[lookupPlayerIndex]->Get( i );
+		if ( pRecord && ( pRecord->m_nAttackerTickBase == nAttackerTickBase ) )
+		{
+			break;
+		}
+	}
+
+	// 5. Restore prediction state
+	bool bHasPred = ( pRecord != nullptr );
+	if ( bHasPred )
+	{
+		player->RestoreStateFromRecord( *pRecord );
+	}
+
+	// 6. Get Prediction bone matrix from HitboxRecord (pre-captured in FX_FireBullets)
+	Vector predBones[MAXSTUDIOBONES];
+	QAngle predBoneAngles[MAXSTUDIOBONES];
+	int nPredBones = 0;
+	int predBoneMap[MAXSTUDIOBONES];
+	if ( bHasPred )
+	{
+		for ( int i = 0; i < nSrvBones; i++ )
+		{
+			int boneIdx = srvBoneMap[i];
+			// Find this bone in the record's bone map
+			int slot = -1;
+			for ( int j = 0; j < pRecord->m_nNumHitboxBones; j++ )
+			{
+				if ( pRecord->m_hitboxBoneIndexes[j] == boneIdx )
+				{
+					slot = j;
+					break;
+				}
+			}
+			if ( slot >= 0 )
+			{
+				predBones[i]	  = pRecord->m_bonePositions[slot];
+				predBoneAngles[i] = pRecord->m_boneAngles[slot];
+				predBoneMap[i]	  = boneIdx;
+				nPredBones++;
+			}
+		}
+	}
+
+	// 7. SetupBones with prediction state → Prediction Computed bone matrix
+	Vector predComputedBones[MAXSTUDIOBONES];
+	QAngle predComputedBoneAngles[MAXSTUDIOBONES];
+	int nPredComputedBones = 0;
+	int predComputedBoneMap[MAXSTUDIOBONES];
+	if ( bHasPred )
+	{
+		player->ForceSetupBones( pStudioHdr,
+								 predComputedBones,
+								 predComputedBoneAngles,
+								 nPredComputedBones,
+								 predComputedBoneMap,
+								 "Prediction computed" );
+	}
+
+	// 8. Restore rendering state
+	player->RestoreStateFromRecord( rndRecord );
+	player->ForceSetupBones( pStudioHdr, NULL, NULL, nSrvComputedBones, srvComputedBoneMap, "Rendering restore" );
+
+	// --- 5 Comparisons ---
+	bool bAnyMismatch					   = false;
+	int nSrvPredVarsDiffs				   = 0;
+	int nSrvPredBonesDiffs				   = 0;
+	int nSrvSrvComputedBonesDiffs		   = 0;
+	int nSrvPredComputedBonesDiffs		   = 0;
+	int nSrvComputedPredComputedBonesDiffs = 0;
+	CUtlVector< CUtlString > mismatchDetails;
+
+	auto AddDiff = [&]( const char* label, float a, float b, int& count )
+	{
+		if ( fabsf( a - b ) > flTolerance && fabsf( a - b ) > FLT_EPSILON )
+		{
+			char buf[256];
+			V_sprintf_safe( buf, "%s: %.4f != %.4f (diff %.4f)", label, a, b, fabsf( a - b ) );
+			mismatchDetails.AddToTail( CUtlString( buf ) );
+			count++;
+			bAnyMismatch = true;
+		}
+	};
+
+	auto AddDiffInt = [&]( const char* label, int a, int b, int& count )
+	{
+		if ( a != b )
+		{
+			char buf[256];
+			V_sprintf_safe( buf, "%s: %i != %i", label, a, b );
+			mismatchDetails.AddToTail( CUtlString( buf ) );
+			count++;
+			bAnyMismatch = true;
+		}
+	};
+
+	auto CompareBoneMatrices = [&]( const char* label, const Vector* a, const Vector* b, int nBones, const int* boneMap, int& count )
+	{
+		for ( int i = 0; i < nBones; i++ )
+		{
+			float diff = VectorLength( a[i] - b[i] );
+			if ( diff > flTolerance && diff > FLT_EPSILON )
+			{
+				char buf[256];
+				V_sprintf_safe( buf, "%s bone[%d]: diff %.4f", label, boneMap[i], diff );
+				mismatchDetails.AddToTail( CUtlString( buf ) );
+				count++;
+				bAnyMismatch = true;
+			}
+		}
+	};
+
+	// 1) SRV raw vars vs PRED raw vars
+	if ( bHasPred )
+	{
+		AddDiff( "SRV vs PRED pos",
+				 VectorLength( srvRecord.m_vecRenderOrigin - pRecord->m_vecRenderOrigin ),
+				 0.f,
+				 nSrvPredVarsDiffs );
+		AddDiff( "SRV vs PRED ang",
+				 sqrtf( ( srvRecord.m_angRenderAngles.x - pRecord->m_angRenderAngles.x )
+						  * ( srvRecord.m_angRenderAngles.x - pRecord->m_angRenderAngles.x )
+						+ ( srvRecord.m_angRenderAngles.y - pRecord->m_angRenderAngles.y )
+							* ( srvRecord.m_angRenderAngles.y - pRecord->m_angRenderAngles.y )
+						+ ( srvRecord.m_angRenderAngles.z - pRecord->m_angRenderAngles.z )
+							* ( srvRecord.m_angRenderAngles.z - pRecord->m_angRenderAngles.z ) ),
+				 0.f,
+				 nSrvPredVarsDiffs );
+		AddDiff( "SRV vs PRED cycle", srvRecord.m_flCycle, pRecord->m_flCycle, nSrvPredVarsDiffs );
+		AddDiffInt( "SRV vs PRED seq", srvRecord.m_nSequence, pRecord->m_nSequence, nSrvPredVarsDiffs );
+		for ( int i = 0; i < pStudioHdr->GetNumPoseParameters(); i++ )
+		{
+			AddDiff( "SRV vs PRED pp",
+					 srvRecord.m_flPoseParameters[i],
+					 pRecord->m_flPoseParameters[i],
+					 nSrvPredVarsDiffs );
+		}
+		for ( int i = 0; i < pStudioHdr->GetNumBoneControllers(); i++ )
+		{
+			AddDiff( "SRV vs PRED bc",
+					 srvRecord.m_flEncodedControllers[i],
+					 pRecord->m_flEncodedControllers[i],
+					 nSrvPredVarsDiffs );
+		}
+		for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
+		{
+			AddDiff( "SRV vs PRED ov cyc",
+					 srvRecord.m_AnimationLayer[i].m_flCycle,
+					 pRecord->m_AnimationLayer[i].m_flCycle,
+					 nSrvPredVarsDiffs );
+			AddDiffInt( "SRV vs PRED ov seq",
+						srvRecord.m_AnimationLayer[i].m_nSequence,
+						pRecord->m_AnimationLayer[i].m_nSequence,
+						nSrvPredVarsDiffs );
+		}
+	}
+
+	// 2) SRV bones (event) vs PRED bones (HitboxRecord)
+	if ( bHasPred )
+	{
+		CompareBoneMatrices( "SRV vs PRED:", srvRecord.m_bonePositions, predBones, nSrvBones, srvBoneMap, nSrvPredBonesDiffs );
+	}
+
+	// 3) SRV bones (event) vs SRV Computed bones
+	CompareBoneMatrices( "SRV vs SRV computed:", srvRecord.m_bonePositions, srvComputedBones, nSrvBones, srvBoneMap, nSrvSrvComputedBonesDiffs );
+
+	// 4) SRV bones (event) vs PRED Computed bones
+	if ( bHasPred )
+	{
+		CompareBoneMatrices( "SRV vs PRED computed:", srvRecord.m_bonePositions,
+							 predComputedBones,
+							 nSrvBones,
+							 srvBoneMap,
+							 nSrvPredComputedBonesDiffs );
+	}
+
+	// 5) SRV Computed vs PRED Computed
+	if ( bHasPred )
+	{
+		CompareBoneMatrices( "SRV comp vs PRED comp:", srvComputedBones,
+							 predComputedBones,
+							 nSrvBones,
+							 srvBoneMap,
+							 nSrvComputedPredComputedBonesDiffs );
+	}
+
+	if ( bAnyMismatch )
+	{
+		std::string msg;
+		for ( int i = 0; i < mismatchDetails.Count(); i++ )
+		{
+			msg += std::string( "    " ) + mismatchDetails[i].Get() + '\n';
+			NDebugOverlay::EntityTextAtPosition( srvRecord.m_vecRenderOrigin,
+												 i,
+												 mismatchDetails[i].Get(),
+												 flDuration,
+												 255,
+												 0,
+												 0,
+												 255 );
+		}
+		ConMsg( "[%i]: Debugging player %s(%i):\n%s\n",
+				nAttackerTickBase,
+				player->GetPlayerName(),
+				lookupPlayerIndex,
+				msg.c_str() );
+	}
+
+	// Populate HUD entry
+	LagCompDebugEntry hudEntry;
+	memset( &hudEntry, 0, sizeof( hudEntry ) );
+	hudEntry.playerIndex = lookupPlayerIndex;
+	V_strncpy( hudEntry.playerName, player->GetPlayerName(), sizeof( hudEntry.playerName ) );
+	hudEntry.server.m_vecOrigin		 = srvRecord.m_vecRenderOrigin;
+	hudEntry.server.m_angAngles		 = srvRecord.m_angRenderAngles;
+	hudEntry.server.m_nSequence		 = srvRecord.m_nSequence;
+	hudEntry.server.m_flCycle		 = srvRecord.m_flCycle;
+	hudEntry.server.m_nNumPoseParams = pStudioHdr->GetNumPoseParameters();
+	hudEntry.server.m_nNumBoneCtrls	 = pStudioHdr->GetNumBoneControllers();
+	hudEntry.server.m_nNumOverlays	 = player->GetNumAnimOverlays();
+	for ( int i = 0; i < hudEntry.server.m_nNumPoseParams; i++ )
+	{
+		hudEntry.server.m_flPoseParams[i] = srvRecord.m_flPoseParameters[i];
+	}
+	for ( int i = 0; i < hudEntry.server.m_nNumBoneCtrls; i++ )
+	{
+		hudEntry.server.m_flBoneCtrls[i] = srvRecord.m_flEncodedControllers[i];
+	}
+	for ( int i = 0; i < hudEntry.server.m_nNumOverlays; i++ )
+	{
+		hudEntry.server.m_animLayers[i].m_nSequence = srvRecord.m_AnimationLayer[i].m_nSequence;
+		hudEntry.server.m_animLayers[i].m_flCycle	= srvRecord.m_AnimationLayer[i].m_flCycle;
+		hudEntry.server.m_animLayers[i].m_flWeight	= srvRecord.m_AnimationLayer[i].m_flWeight;
+		hudEntry.server.m_animLayers[i].m_nOrder	= srvRecord.m_AnimationLayer[i].m_nOrder;
+		hudEntry.server.m_animLayers[i].m_fFlags	= srvRecord.m_AnimationLayer[i].m_fFlags;
+	}
+	hudEntry.server.m_nNumHitboxBones = nSrvBones;
+	for ( int i = 0; i < nSrvBones; i++ )
+	{
+		hudEntry.server.m_bonePositions[i]	   = srvRecord.m_bonePositions[i];
+		hudEntry.server.m_boneAngles[i]		   = srvRecord.m_boneAngles[i];
+		hudEntry.server.m_hitboxBoneIndexes[i] = srvBoneMap[i];
+	}
+
+	// Server computed bones
+	hudEntry.serverComputed.m_nNumHitboxBones = nSrvComputedBones;
+	for ( int i = 0; i < nSrvComputedBones; i++ )
+	{
+		hudEntry.serverComputed.m_bonePositions[i]	   = srvComputedBones[i];
+		hudEntry.serverComputed.m_boneAngles[i]		   = srvComputedBoneAngles[i];
+		hudEntry.serverComputed.m_hitboxBoneIndexes[i] = srvComputedBoneMap[i];
+	}
+
+	hudEntry.bHasPrediction = bHasPred;
+	if ( bHasPred )
+	{
+		hudEntry.prediction.m_vecOrigin		 = pRecord->m_vecRenderOrigin;
+		hudEntry.prediction.m_angAngles		 = pRecord->m_angRenderAngles;
+		hudEntry.prediction.m_nSequence		 = pRecord->m_nSequence;
+		hudEntry.prediction.m_flCycle		 = pRecord->m_flCycle;
+		hudEntry.prediction.m_nNumPoseParams = pStudioHdr->GetNumPoseParameters();
+		hudEntry.prediction.m_nNumBoneCtrls	 = pStudioHdr->GetNumBoneControllers();
+		hudEntry.prediction.m_nNumOverlays	 = player->GetNumAnimOverlays();
+		for ( int i = 0; i < hudEntry.prediction.m_nNumPoseParams; i++ )
+		{
+			hudEntry.prediction.m_flPoseParams[i] = pRecord->m_flPoseParameters[i];
+		}
+		for ( int i = 0; i < hudEntry.prediction.m_nNumBoneCtrls; i++ )
+		{
+			hudEntry.prediction.m_flBoneCtrls[i] = pRecord->m_flEncodedControllers[i];
+		}
+		for ( int i = 0; i < hudEntry.prediction.m_nNumOverlays; i++ )
+		{
+			hudEntry.prediction.m_animLayers[i].m_nSequence = pRecord->m_AnimationLayer[i].m_nSequence;
+			hudEntry.prediction.m_animLayers[i].m_flCycle	= pRecord->m_AnimationLayer[i].m_flCycle;
+			hudEntry.prediction.m_animLayers[i].m_flWeight	= pRecord->m_AnimationLayer[i].m_flWeight;
+			hudEntry.prediction.m_animLayers[i].m_nOrder	= pRecord->m_AnimationLayer[i].m_nOrder;
+			hudEntry.prediction.m_animLayers[i].m_fFlags	= pRecord->m_AnimationLayer[i].m_fFlags;
+		}
+		hudEntry.prediction.m_nNumHitboxBones = nPredBones;
+		for ( int i = 0; i < nPredBones; i++ )
+		{
+			hudEntry.prediction.m_bonePositions[i]	   = predBones[i];
+			hudEntry.prediction.m_boneAngles[i]		   = predBoneAngles[i];
+			hudEntry.prediction.m_hitboxBoneIndexes[i] = predBoneMap[i];
+		}
+		// Prediction computed bones
+		hudEntry.predictionComputed.m_nNumHitboxBones = nPredComputedBones;
+		for ( int i = 0; i < nPredComputedBones; i++ )
+		{
+			hudEntry.predictionComputed.m_bonePositions[i]	   = predComputedBones[i];
+			hudEntry.predictionComputed.m_boneAngles[i]		   = predComputedBoneAngles[i];
+			hudEntry.predictionComputed.m_hitboxBoneIndexes[i] = predComputedBoneMap[i];
+		}
+	}
+
+	hudEntry.bSrvPredVarsMatch					= ( nSrvPredVarsDiffs == 0 );
+	hudEntry.bSrvPredBonesMatch					= ( nSrvPredBonesDiffs == 0 );
+	hudEntry.bSrvSrvComputedBonesMatch			= ( nSrvSrvComputedBonesDiffs == 0 );
+	hudEntry.bSrvPredComputedBonesMatch			= ( nSrvPredComputedBonesDiffs == 0 );
+	hudEntry.bSrvComputedPredComputedBonesMatch = ( nSrvComputedPredComputedBonesDiffs == 0 );
+	hudEntry.bOverallMatch						= !bAnyMismatch;
+	hudEntry.nSrvPredVarsDiffs					= nSrvPredVarsDiffs;
+	hudEntry.nSrvPredBonesDiffs					= nSrvPredBonesDiffs;
+	hudEntry.nSrvSrvComputedBonesDiffs			= nSrvSrvComputedBonesDiffs;
+	hudEntry.nSrvPredComputedBonesDiffs			= nSrvPredComputedBonesDiffs;
+	hudEntry.nSrvComputedPredComputedBonesDiffs = nSrvComputedPredComputedBonesDiffs;
+	for ( int i = 0; i < mismatchDetails.Count(); i++ )
+	{
+		hudEntry.mismatchDetails.AddToTail( mismatchDetails[i] );
+	}
+
+	CHudLagCompDebug* pHud = ( CHudLagCompDebug* )GET_HUDELEMENT( CHudLagCompDebug );
+	if ( pHud )
+	{
+		pHud->SetEntry( hudEntry );
+	}
+
+	// Draw 3D overlays using pre-captured bone matrices (no redundant SetupBones calls)
+	if ( bShowOverlays )
+	{
+		Color colServer			= ParseDebugColor( cl_debug_hitbox_color_server );
+		Color colServerComputed = ParseDebugColor( cl_debug_hitbox_color_server_computed );
+		Color colPrediction		= ParseDebugColor( cl_debug_hitbox_color_prediction );
+		Color colPredComputed	= ParseDebugColor( cl_debug_hitbox_color_prediction_computed );
+		Color colMatch			= ParseDebugColor( cl_debug_hitbox_color_match );
+
+		if ( bAnyMismatch )
+		{
+			if ( bShowServer )
+			{
+				player->DrawHitboxes( srvRecord.m_bonePositions,
+									  srvRecord.m_boneAngles,
+									  nSrvBones,
+									  srvBoneMap,
+									  flDuration,
+									  colServer );
+			}
+
+			if ( bShowServer )
+			{
+				player->DrawHitboxes( srvComputedBones,
+									  srvComputedBoneAngles,
+									  nSrvComputedBones,
+									  srvComputedBoneMap,
+									  flDuration,
+									  colServerComputed );
+			}
+
+			if ( bHasPred && bShowPrediction )
+			{
+				player->DrawHitboxes( predBones, predBoneAngles, nPredBones, predBoneMap, flDuration, colPrediction );
+			}
+
+			if ( bHasPred && bShowRendering )
+			{
+				player->DrawHitboxes( predComputedBones,
+									  predComputedBoneAngles,
+									  nPredComputedBones,
+									  predComputedBoneMap,
+									  flDuration,
+									  colPredComputed );
+			}
+
+			const Vector& headPos = positions[0];
+			char statusBuf[128];
+			V_sprintf_safe( statusBuf,
+							"MISMATCH (%d diffs)",
+							nSrvPredVarsDiffs + nSrvPredBonesDiffs + nSrvSrvComputedBonesDiffs
+							  + nSrvPredComputedBonesDiffs + nSrvComputedPredComputedBonesDiffs );
+			NDebugOverlay::EntityTextAtPosition( headPos, 0, statusBuf, flDuration, 255, 0, 0, 255 );
+		}
+		else if ( !bShowOnlyOnError )
+		{
+			player->DrawHitboxes( srvRecord.m_bonePositions,
+								  srvRecord.m_boneAngles,
+								  nSrvBones,
+								  srvBoneMap,
+								  flDuration,
+								  colMatch );
+			const Vector& headPos = positions[0];
+			NDebugOverlay::EntityTextAtPosition( headPos, 0, "MATCH", flDuration, 255, 255, 255, 255 );
+		}
+	}
+}
+
+void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
+										   float flDuration,
+										   float flTolerance,
+										   bool bShowBulletTraces )
+{
+	if ( !bShowBulletTraces )
+	{
+		return;
+	}
+
+	const int index = event->GetInt( "userid" );
+	if ( index != GetUserID() || !IsLocalPlayer() )
+	{
+		return;
+	}
+
+	Vector srvSrc( event->GetFloat( "src_x" ), event->GetFloat( "src_y" ), event->GetFloat( "src_z" ) );
+	Vector srvDst( event->GetFloat( "dst_x" ), event->GetFloat( "dst_y" ), event->GetFloat( "dst_z" ) );
+	float flBulletRadius = event->GetFloat( "radius" );
+	Vector mins( -flBulletRadius );
+	Vector maxs( flBulletRadius );
+	int srvTickbase = event->GetInt( "tickbase" );
+	int srvBullet	= event->GetInt( "bullet" );
+
+	BulletTraceRecord* pPredTrace = nullptr;
+	for ( int i = 0; i < m_BulletTraceTrack.m_nFilled; i++ )
+	{
+		BulletTraceRecord* rec = m_BulletTraceTrack.Get( i );
+		if ( rec && rec->m_nAttackerTickBase == srvTickbase && rec->m_nBullet == srvBullet )
+		{
+			pPredTrace = rec;
+			break;
+		}
+	}
+
+	bool bTraceMatch = false;
+	if ( pPredTrace )
+	{
+		float srcDiff = VectorLength( srvSrc - pPredTrace->m_vecSrc );
+		float dstDiff = VectorLength( srvDst - pPredTrace->m_vecDst );
+		bTraceMatch	  = ( srcDiff <= flTolerance && dstDiff <= flTolerance );
+	}
+
+	Color colBulletServer	  = ParseDebugColor( cl_debug_hitbox_bullet_color_server );
+	Color colBulletPrediction = ParseDebugColor( cl_debug_hitbox_bullet_color_prediction );
+
+	if ( bTraceMatch )
+	{
+		Color colMatch = ParseDebugColor( cl_debug_hitbox_color_match );
+		DrawBullet( srvSrc, srvDst, mins, maxs, colMatch.r(), colMatch.g(), colMatch.b(), colMatch.a(), flDuration );
+		char buf[256];
+		V_sprintf_safe( buf,
+						"Bullet trace: MATCH (src diff: %f, dst diff: %f)",
+						pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : 0.f,
+						pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : 0.f );
+		NDebugOverlay::EntityTextAtPosition( srvDst, 0, buf, flDuration, 255, 255, 255, 255 );
+	}
+	else
+	{
+		DrawBullet( srvSrc,
+					srvDst,
+					mins,
+					maxs,
+					colBulletServer.r(),
+					colBulletServer.g(),
+					colBulletServer.b(),
+					colBulletServer.a(),
+					flDuration );
+		if ( pPredTrace )
+		{
+			DrawBullet( pPredTrace->m_vecSrc,
+						pPredTrace->m_vecDst,
+						pPredTrace->m_vecMins,
+						pPredTrace->m_vecMaxs,
+						colBulletPrediction.r(),
+						colBulletPrediction.g(),
+						colBulletPrediction.b(),
+						colBulletPrediction.a(),
+						flDuration );
+		}
+		char buf[256];
+		V_sprintf_safe( buf,
+						"Bullet trace: MISMATCH (src diff: %f, dst diff: %f)",
+						pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : -1.f,
+						pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : -1.f );
+		NDebugOverlay::EntityTextAtPosition( srvDst, 0, buf, flDuration, 255, 0, 0, 255 );
 	}
 }
 
@@ -2706,7 +3081,7 @@ void C_CSPlayer::Simulate( void )
 
 	if ( ( cl_showhitboxes.GetInt() == 1 || cl_showhitboxes.GetInt() == 2 ) && !IsLocalPlayer() )
 	{
-		DrawClientHitboxes( gpGlobals->frametime, true );
+		DrawHitboxes( gpGlobals->frametime, Color( 255, 255, 255, 127 ) );
 	}
 }
 

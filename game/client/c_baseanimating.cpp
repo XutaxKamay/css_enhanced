@@ -5540,7 +5540,7 @@ static Vector	hullcolor[8] =
 	Vector( 1.0, 1.0, 1.0 )
 };
 
-void C_BaseAnimating::DrawServerHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], float duration /*= 0.0f*/, bool monocolor /*= false*/  )
+void C_BaseAnimating::DrawHitboxes( Vector position[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], float duration /*= 0.0f*/, Color color /*= Color( 255, 255, 255, 127 )*/ )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
@@ -5550,80 +5550,36 @@ void C_BaseAnimating::DrawServerHitboxes( Vector position[MAXSTUDIOBONES], QAngl
 	if ( !set )
 		return;
 
-	int r = 0;
-	int g = 0;
-	int b = 255;
+	int r = color.r();
+	int g = color.g();
+	int b = color.b();
+	int a = color.a();
 
 	for ( int i = 0; i < set->numhitboxes; i++ )
 	{
 		mstudiobbox_t *pbox = set->pHitbox( i );
 
-		if ( !monocolor )
-		{
-			int j = (pbox->group % 8);
-			r = ( int ) ( 255.0f * hullcolor[j][0] );
-			g = ( int ) ( 255.0f * hullcolor[j][1] );
-			b = ( int ) ( 255.0f * hullcolor[j][2] );
-		}
-
-		debugoverlay->AddBoxOverlay( position[pbox->bone], pbox->bbmin, pbox->bbmax, angles[pbox->bone], r, g, b, 127, duration );
+		debugoverlay->AddBoxOverlay( position[pbox->bone], pbox->bbmin, pbox->bbmax, angles[pbox->bone], r, g, b, a, duration );
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: Draw the current hitboxes
-//-----------------------------------------------------------------------------
-void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monocolor /*= false*/  )
+void C_BaseAnimating::DrawHitboxes( float duration /*= 0.0f*/, Color color /*= Color( 255, 255, 255, 127 )*/ )
 {
 	CStudioHdr *pStudioHdr = GetModelPtr();
 	if ( !pStudioHdr )
 		return;
 
-	mstudiohitboxset_t *set =pStudioHdr->pHitboxSet( m_nHitboxSet );
+	mstudiohitboxset_t *set = pStudioHdr->pHitboxSet( m_nHitboxSet );
 	if ( !set )
 		return;
 
+	int r = color.r();
+	int g = color.g();
+	int b = color.b();
+	int a = color.a();
+
 	Vector position;
 	QAngle angles;
-
-	int r = 0;
-	int g = 255;
-	int b = 0;
-
-	if ( !monocolor )
-	{
-		g = 0;
-		r = 255;
-	}
-
-	// printf( "got sequence: %i, cycle: %f\n", GetSequence(), GetCycle() );
-
-	// for ( int i = 0; i < pStudioHdr->GetNumPoseParameters(); i++ )
-	// {
-	// 	printf( "pose_param_%i: %f\n", i, GetPoseParameter( i ) );
-	// }
-
-	// float bc[MAXSTUDIOBONECTRLS];
-	// GetBoneControllers(bc);
-
-	// for ( int i = 0; i < pStudioHdr->GetNumBoneControllers(); i++ )
-	// {
-	// 	printf( "bone_controller_%i: %f\n", i, bc[i] );
-	// }
-
-	// C_BasePlayer* player = ( C_BasePlayer* )this;
-
-	// if ( player->IsPlayer() )
-	// {
-	// 	for ( int i = 0; i < player->GetNumAnimOverlays(); i++ )
-	// 	{
-	// 		auto animOverlay = player->GetAnimOverlay( i );
-	// 		printf( "anim_overlay_cycle_%i: %f\n", i, animOverlay->m_flCycle.GetRaw() );
-	// 		printf( "anim_overlay_sequence_%i: %i\n", i, animOverlay->m_nSequence.GetRaw() );
-	// 		printf( "anim_overlay_weight_%i: %f\n", i, animOverlay->m_flWeight.GetRaw() );
-	// 		printf( "anim_overlay_order_%i: %i\n", i, animOverlay->m_nOrder );
-	// 	}
-	// }
 
 	for ( int i = 0; i < set->numhitboxes; i++ )
 	{
@@ -5631,7 +5587,34 @@ void C_BaseAnimating::DrawClientHitboxes( float duration /*= 0.0f*/, bool monoco
 
 		GetBonePosition( pbox->bone, position, angles );
 
-		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, 127 ,duration );
+		debugoverlay->AddBoxOverlay( position, pbox->bbmin, pbox->bbmax, angles, r, g, b, a, duration );
+	}
+}
+
+void C_BaseAnimating::DrawHitboxes( Vector positions[MAXSTUDIOBONES], QAngle angles[MAXSTUDIOBONES], int numBones, const int boneMap[MAXSTUDIOBONES], float duration, Color color )
+{
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( !pStudioHdr )
+		return;
+
+	mstudiohitboxset_t *set = pStudioHdr->pHitboxSet( m_nHitboxSet );
+	if ( !set )
+		return;
+
+	int r = color.r();
+	int g = color.g();
+	int b = color.b();
+	int a = color.a();
+
+	for ( int i = 0; i < numBones; i++ )
+	{
+		int boneIdx = boneMap[i];
+		for ( int j = 0; j < set->numhitboxes; j++ )
+		{
+			mstudiobbox_t *pbox = set->pHitbox( j );
+			if ( pbox->bone == boneIdx )
+				debugoverlay->AddBoxOverlay( positions[i], pbox->bbmin, pbox->bbmax, angles[i], r, g, b, a, duration );
+		}
 	}
 }
 

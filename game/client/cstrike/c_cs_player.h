@@ -410,6 +410,19 @@ private:
 		int m_fFlags;
 	};
 
+	struct BulletTraceRecord
+	{
+		Vector m_vecSrc;
+		Vector m_vecDst;
+		Vector m_vecMins;
+		Vector m_vecMaxs;
+		int m_nAttackerTickBase;
+		int m_nBullet;
+	};
+
+	using bullet_trace_track_t = CUtlCircularBuffer< BulletTraceRecord, MAX_HISTORY_HITBOX_RECORDS >;
+	bullet_trace_track_t m_BulletTraceTrack;
+
 	struct HitboxRecord
 	{
 		uint64 m_nSimulatedTickCount;
@@ -423,6 +436,12 @@ private:
 		AnimLayerRecord m_AnimationLayer[MAX_LAYER_RECORDS];
 		float m_flPoseParameters[MAXSTUDIOPOSEPARAM];
 		float m_flEncodedControllers[MAXSTUDIOBONECTRLS];
+
+		// Bone positions/angles from cached bone matrix (filled at record time)
+		Vector m_bonePositions[MAXSTUDIOBONES];
+		QAngle m_boneAngles[MAXSTUDIOBONES];
+		int m_nNumHitboxBones;
+		int m_hitboxBoneIndexes[MAXSTUDIOBONES];
 	};
 
 	using hitbox_track_t = CUtlCircularBuffer< HitboxRecord, MAX_HISTORY_HITBOX_RECORDS >;
@@ -432,6 +451,18 @@ private:
 	bool m_bIsInsideLagCompensationContext;
 	float m_flHitMarkerDisplayCurrentTime;
 	bool m_bHitMark;
+
+  private:
+	void RestoreStateFromRecord( const HitboxRecord& record );
+	void ForceSetupBones( CStudioHdr* pHdr, Vector outPositions[MAXSTUDIOBONES], QAngle outAngles[MAXSTUDIOBONES], int& outNumBones, int outBoneMap[MAXSTUDIOBONES], const char* debugContext );
+	void ProcessDebugHitboxEvent( IGameEvent* event, float flDuration, float flTolerance, bool bShowOverlays, bool bShowPrediction, bool bShowServer, bool bShowRendering, bool bShowOnlyOnError );
+	void ProcessDebugBulletImpact( IGameEvent* event, float flDuration, float flTolerance, bool bShowBulletTraces );
+
+  public:
+	void CaptureCurrentState( HitboxRecord& outRecord );
+	void CaptureBoneMatrix( CStudioHdr* pHdr, Vector outPositions[MAXSTUDIOBONES], QAngle outAngles[MAXSTUDIOBONES], int& outNumBones, int outBoneMap[MAXSTUDIOBONES] );
+
+	friend class CHudLagCompDebug;
 };
 
 C_CSPlayer* GetLocalOrInEyeCSPlayer( void );

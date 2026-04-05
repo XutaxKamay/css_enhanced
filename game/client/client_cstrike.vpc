@@ -142,8 +142,8 @@ $Project "Client (CStrike)"
 				$File	"cstrike\cs_hud_achievement_tracker.cpp"
 				$File	"cstrike\radio_status.cpp"
 				$File	"cstrike\radio_status.h"
-			}
-			
+			$File	"css_enhanced\hud_lagcomp_debug.cpp"
+			$File	"css_enhanced\hud_lagcomp_debug.h"
 			$Folder "Weapon"
 			{
 				$File	"$SRCDIR\game\shared\cstrike\weapon_ak47.cpp"

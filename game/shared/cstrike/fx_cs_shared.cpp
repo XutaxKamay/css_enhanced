@@ -297,10 +297,9 @@ void FX_FireBullets(
 	float y0 = fRadius0 * sinf(fTheta0);
 
 #ifdef CLIENT_DLL
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-	static ConVarRef cl_showimpacts( "cl_showimpacts" );
+    static ConVarRef cl_debug_hitbox_enable( "cl_debug_hitbox_enable" );
 
-	if ( playerCmd && !playerCmd->hasbeenpredicted && ( cl_showfirebullethitboxes.GetBool() || cl_showimpacts.GetBool() ) )
+	if ( playerCmd && !playerCmd->hasbeenpredicted && cl_debug_hitbox_enable.GetBool() )
 	{
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
@@ -313,32 +312,8 @@ void FX_FireBullets(
 
 			C_CSPlayer::HitboxRecord record;
 
-			record.m_nSimulatedTickCount	   = lagPlayer->m_nInterpolatedSimulatedTickCount;
-			record.m_nAnimatedTickCount		   = lagPlayer->m_nInterpolatedAnimatedTickCount;
-			record.m_flInterpolationAmountFrac = playerCmd->interpolated_amount_frac;
-			record.m_vecRenderOrigin		   = lagPlayer->GetRenderOrigin();
-			record.m_angRenderAngles		   = lagPlayer->GetRenderAngles();
-			record.m_nAttackerTickBase		   = pPlayer->m_nTickBase;
-			record.m_flCycle				   = lagPlayer->GetCycle();
-			record.m_nSequence				   = lagPlayer->GetSequence();
-
-			lagPlayer->GetPoseParameters( lagPlayer->GetModelPtr(), record.m_flPoseParameters );
-			lagPlayer->GetBoneControllers( record.m_flEncodedControllers );
-
-			for ( int i = 0; i < lagPlayer->GetNumAnimOverlays(); i++ )
-			{
-				CAnimationLayer* layer = lagPlayer->GetAnimOverlay( i );
-
-				if ( layer )
-				{
-					record.m_AnimationLayer[i].m_flCycle   = layer->m_flCycle;
-					record.m_AnimationLayer[i].m_nOrder	   = layer->m_nOrder;
-					record.m_AnimationLayer[i].m_nSequence = layer->m_nSequence;
-					record.m_AnimationLayer[i].m_flWeight  = layer->m_flWeight;
-					record.m_AnimationLayer[i].m_fFlags	   = layer->m_fFlags;
-				}
-			}
-
+			lagPlayer->CaptureCurrentState( record );
+			lagPlayer->CaptureBoneMatrix( lagPlayer->GetModelPtr(), record.m_bonePositions, record.m_boneAngles, record.m_nNumHitboxBones, record.m_hitboxBoneIndexes );
 			pPlayer->m_HitboxTrack[lagPlayer->index]->Push( std::move( record ) );
 		}
 	}

@@ -445,7 +445,7 @@ inline void UTIL_TraceLineIgnoreTwoEntities(const Vector& vecAbsStart, const Vec
 }
 
 #ifdef CLIENT_DLL
-extern ConVar cl_show_debug_duration;
+extern ConVar cl_debug_hitbox_duration;
 void CCSPlayer::DrawBullet(const Vector& src,
                     const Vector& endpos,
                     const Vector& mins,
@@ -536,19 +536,21 @@ void CCSPlayer::FireBullet(
     MDLCACHE_CRITICAL_SECTION();
 
 	// Only show for one bullet.
-    bool shouldDebugHitboxesOnFire = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_FIRE && iBullet == 0;
-    bool shouldDebugHitboxesOnHit = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_ON_HIT;
+    bool shouldDebugHitboxesOnFire = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_SHOW_FIRE && iBullet == 0;
+    bool shouldDebugHitboxesOnHit = m_pCurrentCommand->debug_hitboxes & CUserCmd::DEBUG_HITBOXES_SHOW_HIT;
 
     // TODO_ENHANCED:
     // Send only to only one client,
     // others clients don't need the information on how other players lag compensated players.
 #ifdef CLIENT_DLL
-    static ConVarRef cl_showfirebullethitboxes("cl_showfirebullethitboxes");
-    static ConVarRef cl_showimpacts("cl_showimpacts");
-    shouldDebugHitboxesOnHit = shouldDebugHitboxesOnHit && (cl_showimpacts.GetInt() == 1 || cl_showimpacts.GetInt() == 2);
-    shouldDebugHitboxesOnFire = shouldDebugHitboxesOnFire && (cl_showfirebullethitboxes.GetInt() == 1 || cl_showfirebullethitboxes.GetInt() == 2);
-#endif
+    static ConVarRef cl_debug_hitbox_enable( "cl_debug_hitbox_enable" );
+    static ConVarRef cl_debug_hitbox_show_prediction( "cl_debug_hitbox_show_prediction" );
+    static ConVarRef cl_debug_hitbox_show_server( "cl_debug_hitbox_show_server" );
+    static ConVarRef cl_debug_hitbox_show_rendering( "cl_debug_hitbox_show_rendering" );
+    shouldDebugHitboxesOnHit = shouldDebugHitboxesOnHit && cl_debug_hitbox_enable.GetBool() && (cl_debug_hitbox_show_rendering.GetBool() || cl_debug_hitbox_show_server.GetBool());
 
+    shouldDebugHitboxesOnFire = shouldDebugHitboxesOnFire && cl_debug_hitbox_enable.GetBool() && cl_debug_hitbox_show_prediction.GetBool();
+#endif
 #ifndef CLIENT_DLL
 	auto WritePlayerHitboxEvent = [&]( CBasePlayer* lagPlayer, const char* context )
 	{
@@ -661,12 +663,7 @@ void CCSPlayer::FireBullet(
 			CBasePlayer* lagPlayer = UTIL_PlayerByIndex( i );
 			if ( lagPlayer && lagPlayer != this && lagPlayer->IsAlive() )
 			{
-#ifdef CLIENT_DLL
-				if ( !m_pCurrentCommand->hasbeenpredicted )
-				{
-					lagPlayer->DrawClientHitboxes( cl_show_debug_duration.GetFloat(), true );
-				}
-#else
+#ifndef CLIENT_DLL
 				WritePlayerHitboxEvent( lagPlayer, "bullet_player_hitboxes" );
 #endif
 			}
@@ -730,15 +727,15 @@ void CCSPlayer::FireBullet(
 #ifdef CLIENT_DLL
 			if ( !m_pCurrentCommand->hasbeenpredicted )
 			{
-				DrawBullet( vecSrc,
-							tr.endpos,
-							vecBulletRadiusMins,
-							vecBulletRadiusMaxs,
-							0,
-							255,
-							0,
-							127,
-							cl_show_debug_duration.GetFloat() );
+				// Store predicted bullet trace for later comparison in FireGameEvent
+				BulletTraceRecord traceRec;
+				traceRec.m_vecSrc = vecSrc;
+				traceRec.m_vecDst = tr.endpos;
+				traceRec.m_vecMins = vecBulletRadiusMins;
+				traceRec.m_vecMaxs = vecBulletRadiusMaxs;
+				traceRec.m_nAttackerTickBase = m_nTickBase;
+				traceRec.m_nBullet = iBullet;
+				m_BulletTraceTrack.Push( traceRec );
 			}
 #else
 			IGameEvent* event = gameeventmanager->CreateEvent( "bullet_impact" );
@@ -760,12 +757,7 @@ void CCSPlayer::FireBullet(
 			if ( tr.m_pEnt && tr.m_pEnt->IsPlayer() && !shouldDebugHitboxesOnFire )
 			{
 				const auto lagPlayer = UTIL_PlayerByIndex( tr.m_pEnt->entindex() );
-#ifdef CLIENT_DLL
-				if ( !m_pCurrentCommand->hasbeenpredicted )
-				{
-					lagPlayer->DrawClientHitboxes( cl_show_debug_duration.GetFloat(), true );
-				}
-#else
+#ifndef CLIENT_DLL
 				WritePlayerHitboxEvent( lagPlayer, "bullet_hit_player" );
 #endif
 			}
