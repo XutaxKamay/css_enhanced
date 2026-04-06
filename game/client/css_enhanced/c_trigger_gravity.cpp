@@ -10,7 +10,7 @@ LINK_ENTITY_TO_CLASS( trigger_gravity, C_TriggerGravity );
 BEGIN_DATADESC( C_TriggerGravity )
 
 	// Function Pointers
-	DEFINE_FUNCTION(GravityTouch),
+	// DEFINE_FUNCTION(GravityTouch),
 
 END_DATADESC()
 

@@ -1158,7 +1158,7 @@ void CSDLMgr::OnFrameRendered()
 		if ( !rawinput_set_one_time.GetBool() )
 		{
 			rawinput_set_one_time.SetValue( 1 );
-			rawinput.SetValue( 1 );
+			rawinput->SetValue( 1 );
 		}
 #endif
 		m_bRawInput = !m_bCursorVisible && rawinput->GetBool();

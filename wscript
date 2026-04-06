@@ -177,10 +177,18 @@ def run_test(self, fragment, msg):
 	return False if result == None else True
 
 def define_platform(conf):
+	if conf.options.DEDICATED:
+		conf.options.SDL = False
+		conf.options.DXVK = False
+		conf.define('DEDICATED', 1)
+
+	if conf.env.DEST_OS == 'android' or conf.env.DEST_CPU == 'aarch64' or conf.env.DEST_CPU == 'darwin':
+		conf.options.DXVK = False
+
 	conf.env.DEDICATED = conf.options.DEDICATED
 	conf.env.TESTS = conf.options.TESTS
 	conf.env.TOGLES = conf.options.TOGLES
-	conf.env.GL = conf.options.GL and not conf.options.TESTS and not conf.options.DEDICATED
+	conf.env.GL = conf.options.GL and not conf.options.TESTS and not conf.options.DEDICATED and not conf.options.DXVK
 	conf.env.OPUS = conf.options.OPUS
 
 	arch32 = conf.run_test(CPP_32BIT_CHECK, 'Testing 32bit support')
@@ -192,9 +200,7 @@ def define_platform(conf):
 	if conf.options.DXVK:
 		conf.define('DXVK_ENABLED', 1)
 
-	if conf.options.DEDICATED:
-		conf.options.SDL = False
-		conf.define('DEDICATED', 1)
+	conf.env.USE_DXVK = conf.options.DXVK
 
 	if conf.options.TESTS:
 		conf.define('UNITTESTS', 1)
@@ -303,10 +309,10 @@ def options(opt):
 	grp.add_option('-D', '--debug-engine', action = 'store_true', dest = 'DEBUG_ENGINE', default = False,
 		help = 'build with -DDEBUG [default: %(default)r]')
 
-	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = True,
+	grp.add_option('--use-sdl', action = 'store', dest = 'SDL', type = int, default = sys.platform != 'win32',
 		help = 'build engine with SDL [default: %(default)r]')
 
-	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = False,
+	grp.add_option('--use-togl', action = 'store', dest = 'GL', type = int, default = sys.platform != 'win32',
 		help = 'build engine with ToGL [default: %(default)r]')
 
 	grp.add_option('--build-games', action = 'store', dest = 'GAMES', type = str, default = 'cstrike',
@@ -321,8 +327,8 @@ def options(opt):
 	grp.add_option('--togles', action = 'store_true', dest = 'TOGLES', default = False,
 		help = 'build engine with ToGLES [default: %(default)r]')
 
-	grp.add_option('--dxvk', action = 'store_true', dest = 'DXVK', default = True,
-		help = 'build engine with DXVK [default: %(default)r]')
+	grp.add_option('--dxvk', dest = 'DXVK', default = 'true',
+		help = 'build engine with DXVK (true/false) [default: %(default)s]')
 
 	# TODO(nillerusr): add wscript for opus building
 	grp.add_option('--enable-opus', action = 'store_true', dest = 'OPUS', default = False,
@@ -476,6 +482,10 @@ def configure(conf):
 		Logs.info('WARNING: will build engine for 32-bit target')
 		conf.load('force_32bit')
 
+	# Convert DXVK option string to boolean
+	if isinstance(conf.options.DXVK, str):
+		conf.options.DXVK = conf.options.DXVK.lower() == 'true'
+
 	define_platform(conf)
 
 	if conf.options.DXVK:
@@ -534,13 +544,12 @@ def configure(conf):
 
 	if conf.env.DEST_OS == 'android':
 		flags += [
-			# TODO_ENHANCED:
-			'-I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk'
 			'-I'+os.path.abspath('.')+'/thirdparty/curl/include',
 			'-I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'-I'+os.path.abspath('.')+'/thirdparty/openal-soft/include/',
 			'-I'+os.path.abspath('.')+'/thirdparty/fontconfig',
 			'-I'+os.path.abspath('.')+'/thirdparty/freetype/include',
+			'-I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'-llog',
 			'-lz'
 		]
@@ -560,15 +569,12 @@ def configure(conf):
 	if conf.env.DEST_OS == 'freebsd':
 		linkflags += ['-lexecinfo']
 
-	if conf.options.DXVK:
-		flags += ['-I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk',]
-
 	if conf.env.DEST_OS != 'win32':
 		cflags += flags
 		linkflags += flags
 	else:
 		cflags += [
-			'/I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk',
+			'/I'+os.path.abspath('.')+'/thirdparty/zlib',
 			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
@@ -582,9 +588,6 @@ def configure(conf):
 			'/EHsc'
 		]
 
-		if conf.options.DXVK:
-			cflags += '/I'+os.path.abspath('.')+'/thirdparty/dxvk/include/dxvk'
-		
 		if conf.options.BUILD_TYPE == 'debug':
 			linkflags += [
 				'/FORCE:MULTIPLE',
@@ -650,7 +653,15 @@ def configure(conf):
 	conf.env.append_unique('LINKFLAGS', linkflags)
 	conf.env.append_unique('INCLUDES', [os.path.abspath('common/')])
 
-	check_deps( conf )
+	# DEBUG: print critical configuration before dependency checks
+	print("DEBUG: DEST_OS =", conf.env.DEST_OS)
+	print("DEBUG: DEST_CPU =", conf.env.DEST_CPU)
+	print("DEBUG: DXVK option =", conf.options.DXVK)
+	print("DEBUG: LINKFLAGS before check_deps =", linkflags)
+	expected_path = '/LIBPATH:' + os.path.abspath('.') + '/lib/win32/' + conf.env.DEST_CPU + '/'
+	print("DEBUG: Expected lib/win32 path =", expected_path)
+
+	check_deps(conf)
 
 	# indicate if we are packaging for Linux/BSD
 	if conf.env.DEST_OS != 'android':

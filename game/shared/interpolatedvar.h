@@ -14,6 +14,7 @@
 constexpr auto MAX_INTERPOLATION_TICK_HISTORY = 128;
 
 #include <string>
+#include <sstream>
 
 #include "tier1/utllinkedlist.h"
 #include "rangecheckedvar.h"
@@ -33,21 +34,36 @@ class LayerRecord;
 
 namespace std
 {
-	inline std::string to_string( QAngle& obj )
+	inline std::string to_string( const QAngle& obj )
 	{
-		return "[" + std::to_string( obj.x ) + ", " + std::to_string( obj.y ) + ", " + std::to_string( obj.z ) + "]";
+		std::ostringstream ss;
+		ss << "[" << obj.x << ", " << obj.y << ", " << obj.z << "]";
+		return ss.str();
 	}
 
-	inline std::string to_string( Vector& obj )
+	inline std::string to_string( const Vector& obj )
 	{
-		return "[" + std::to_string( obj.x ) + ", " + std::to_string( obj.y ) + ", " + std::to_string( obj.z ) + "]";
+		std::ostringstream ss;
+		ss << "[" << obj.x << ", " << obj.y << ", " << obj.z << "]";
+		return ss.str();
 	}
 
-	inline std::string to_string( Quaternion& obj )
+	inline std::string to_string( const Quaternion& obj )
 	{
-		return "[" + std::to_string( obj.x ) + ", " + std::to_string( obj.y ) + ", " + std::to_string( obj.z ) + ", "
-			   + std::to_string( obj.w ) + "]";
+		std::ostringstream ss;
+		ss << "[" << obj.x << ", " << obj.y << ", " << obj.z << ", " << obj.w << "]";
+		return ss.str();
 	}
+
+#ifdef __ANDROID__
+	// Android GCC 4.9 doesn't have std::to_string for unsigned long long / uint64_t
+	inline std::string to_string( unsigned long long value )
+	{
+		char buf[32];
+		V_snprintf( buf, sizeof( buf ), "%llu", value );
+		return buf;
+	}
+#endif
 
 #ifdef CLIENT_DLL
 	std::string to_string( C_AnimationLayer& obj );
@@ -436,7 +452,7 @@ class CInterpolatedVar : public IInterpolatedVar
 	{
 		ReferenceResult result;
 
-		switch ( m_InterpolationType )
+		switch ( ( int )m_InterpolationType )
 		{
 			case CInterpolationType::LINEAR:
 			{
@@ -516,7 +532,7 @@ class CInterpolatedVar : public IInterpolatedVar
 			auto snapshotTickCount = *pSnapshotTickCount;
 
 			// Did we found a target ?
-			if ( nTargetTick == snapshotTickCount)
+			if ( nTargetTick == snapshotTickCount )
 			{
 				nAmountOfTicks = i;
 				break;
@@ -713,7 +729,9 @@ class CInterpolatedVarArray
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
-			m_Array[i].SetDebugName( "unknown_" + std::to_string( i ) );
+			std::ostringstream ss;
+			ss << "unknown_" << i;
+			m_Array[i].SetDebugName( ss.str() );
 			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
 		}
 	}
@@ -722,7 +740,9 @@ class CInterpolatedVarArray
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
-			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
+			std::ostringstream ss;
+			ss << szDebugName << "_" << i;
+			m_Array[i].SetDebugName( ss.str() );
 			m_Array[i].SetReferenceData( &m_Array[i].GetLastKnownValue(), sizeof( T ) );
 			m_Array[i].SetLatchType( LatchType );
 		}
@@ -734,7 +754,9 @@ class CInterpolatedVarArray
 	{
 		for ( size_t i = 0; i < ARRAY_SIZE; i++ )
 		{
-			m_Array[i].SetDebugName( szDebugName + "_" + std::to_string( i ) );
+			std::ostringstream ss;
+			ss << szDebugName << "_" << i;
+			m_Array[i].SetDebugName( ss.str() );
 			m_Array[i].SetReferenceData( &pReferenceVariable[i], sizeof( T ) );
 			m_Array[i].SetLatchType( LatchType );
 		}

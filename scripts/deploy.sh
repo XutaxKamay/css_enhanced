@@ -1,9 +1,17 @@
 #!/bin/sh
+# Usage: scripts/deploy.sh <output_zip_name>
+# Requires: SSH_KEY env var
 
-git submodule init && git submodule update
-sudo dpkg --add-architecture i386
-sudo apt-get update
-sudo apt-get install -f -y libopenal-dev:i386 g++-multilib gcc-multilib libpng-dev:i386 libjpeg-dev:i386 libfreetype6-dev:i386 libfontconfig1-dev:i386 libcurl4-gnutls-dev:i386 libsdl2-dev:i386 zlib1g-dev:i386 libbz2-dev:i386
+cd ./gamedata/css_enhanced/game
 
-PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig ./waf configure -T debug
-./waf build --target=engine
+if command -v 7z > /dev/null; then
+  7z a "$1" ./
+else
+  zip -r "$1" ./
+fi
+
+mkdir -p ~/.ssh
+eval $(ssh-agent)
+ssh-add - <<< "$SSH_KEY"
+ssh-keyscan cssserv.xutaxkamay.com >> ~/.ssh/known_hosts
+scp "$1" root@cssserv.xutaxkamay.com:/var/www/html

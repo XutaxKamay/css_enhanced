@@ -47,7 +47,7 @@ def build(bld):
 		'../../public/tier0/memoverride.cpp'
 	]
 
-	if bld.options.DXVK:
+	if bld.env.USE_DXVK:
 		source += ['dxvk_stubs.cpp']
 
 	if bld.env.DEST_OS == 'win32' and not bld.env.GL:
@@ -72,12 +72,12 @@ def build(bld):
 
 	libs = ['tier0','tier1','tier2','vstdlib','togl','bitmap','mathlib']
 
-	if bld.options.DXVK:
+	if bld.env.USE_DXVK:
 		libs += ['DXVK']
 
 	if bld.env.DEST_OS == 'android':
 		libs += ['ANDROID_SUPPORT']
-	elif bld.options.DXVK:
+	elif bld.env.USE_DXVK:
 		libs += ['DXVK']
 	elif bld.env.DEST_OS == 'win32' and not bld.env.GL:
 		libs += ['D3D9', 'D3DX9', 'bzip2']

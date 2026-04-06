@@ -57,9 +57,16 @@ public:
 #endif
 #endif
 
+#if !defined( DX_TO_GL_ABSTRACTION )
+#include <d3d9.h>
+#elif defined( TOGLES )
+#include <togles/linuxwin/dxabstract.h>
+#else
+#include <togl/linuxwin/dxabstract.h>
+#endif
+
 #ifdef DXVK_ENABLED
 #define DOUBLE double
-#include <d3d9.h>
 
 // most wine inclusions dont work for native
 // #define __D3DX9SHADER_H__
@@ -136,7 +143,6 @@ typedef void *HardwareShader_t;
 
 
 #ifdef DXVK_ENABLED
-#include <d3d9.h>
 
 // #define __D3DX9SHADER_H__
 #define __D3DX9EFFECT_H__
@@ -191,7 +197,11 @@ typedef intp PixelShader_t;
 #define D3DSAMP_NOTSUPPORTED					D3DSAMP_FORCE_DWORD
 #define D3DRS_NOTSUPPORTED						D3DRS_FORCE_DWORD
 
+#if defined( TOGLES )
+#include "togles/rendermechanism.h"
+#else
 #include "togl/rendermechanism.h"
+#endif
 
 #if defined( _X360 )
 

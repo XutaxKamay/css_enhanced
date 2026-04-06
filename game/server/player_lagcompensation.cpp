@@ -432,7 +432,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 	}
 #endif
 
-	if constexpr ( bPush )
+	if ( bPush )
 	{
 		// Has the entity just been created ?
 		if ( pEntity->m_nSimulatedTickCount != 0 )
@@ -521,7 +521,7 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 		}
 	}
 
-	if constexpr ( bPush )
+	if ( bPush )
 	{
 		// Has the entity just been created ?
 		if ( pAnim && pAnim->m_nAnimatedTickCount != 0 )

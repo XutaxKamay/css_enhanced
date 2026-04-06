@@ -274,7 +274,7 @@ def build(bld):
 
 	libs = ['tier0','shaderlib','tier1','mathlib']
 
-	if bld.options.DXVK:
+	if bld.env.USE_DXVK:
 		libs += ['DXVK']
 
 	if bld.env.DEST_OS == 'android':

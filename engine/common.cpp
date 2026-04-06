@@ -1308,6 +1308,20 @@ static constexpr int ZSTD_COMPRESSION_LEVEL = 0; // ZSTD_btultra2
 static auto g_pZSTDCCtx                     = ZSTD_createCCtx();
 
 template<typename T>
+T* CreateZSTDDictionaryFromBuffer(CUtlBuffer& buffer);
+
+template<>
+ZSTD_CDict* CreateZSTDDictionaryFromBuffer<ZSTD_CDict>(CUtlBuffer& buffer)
+{
+    return ZSTD_createCDict(buffer.Base(), buffer.Size(), ZSTD_COMPRESSION_LEVEL);
+}
+
+template<>
+ZSTD_DDict* CreateZSTDDictionaryFromBuffer<ZSTD_DDict>(CUtlBuffer& buffer)
+{
+    return ZSTD_createDDict(buffer.Base(), buffer.Size());
+}
+template<typename T>
 static T* GetZSTD_Dictionary()
 {
     static T* dict = nullptr;
@@ -1327,17 +1341,7 @@ static T* GetZSTD_Dictionary()
                                      dictionaryFilePath);
                        }
 
-                       if constexpr (std::is_same<T, ZSTD_CDict>::value)
-                       {
-                           dict = ZSTD_createCDict(buffer.Base(),
-                                                   buffer.Size(),
-                                                   ZSTD_COMPRESSION_LEVEL);
-                       }
-                       else if constexpr (std::is_same<T, ZSTD_DDict>::value)
-                       {
-                           dict = ZSTD_createDDict(buffer.Base(),
-                                                   buffer.Size());
-                       }
+                       dict = CreateZSTDDictionaryFromBuffer<T>(buffer);
 
                        ErrorIfNot(dict != NULL, ("GetZSTD_Dictionary() failed!\n"));
                    });

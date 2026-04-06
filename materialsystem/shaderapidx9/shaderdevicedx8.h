@@ -367,13 +367,13 @@ extern CShaderDeviceDx8* g_pShaderDeviceDx8;
 //-----------------------------------------------------------------------------
 // Inline methods
 //-----------------------------------------------------------------------------
-FORCEINLINE bool CShaderDeviceDx8::IsActive() const
+inline bool CShaderDeviceDx8::IsActive() const
 {
 	return ( g_pD3DDevice != NULL );
 }
 
 // used to determine if we're deactivated
-FORCEINLINE bool CShaderDeviceDx8::IsDeactivated() const 
+inline bool CShaderDeviceDx8::IsDeactivated() const 
 { 
 	return ( IsPC() && ( ( m_DeviceState != DEVICE_STATE_OK ) || m_bQueuedDeviceLost || m_numReleaseResourcesRefCount ) ); 
 }

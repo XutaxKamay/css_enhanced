@@ -22,8 +22,8 @@ END_RECV_TABLE();
 BEGIN_DATADESC( C_TriggerMultiple )
 
 	// Function Pointers
-	DEFINE_FUNCTION(MultiTouch),
-	DEFINE_FUNCTION(MultiWaitOver ),
+	// DEFINE_FUNCTION(MultiTouch),
+	// DEFINE_FUNCTION(MultiWaitOver ),
 
 	// Outputs
 	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger")

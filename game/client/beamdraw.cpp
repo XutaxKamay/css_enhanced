@@ -654,6 +654,10 @@ void DrawTeslaSegs( int noise_divisions, float *prgNoise, const model_t* spritem
 //			* - 
 //-----------------------------------------------------------------------------
 
+#ifdef __ANDROID__
+#pragma GCC push_options
+#pragma GCC optimize ("O1")
+#endif
 void DrawSplineSegs( int noise_divisions, float *prgNoise, 
 				const model_t* beammodel, const model_t* halomodel, float flHaloScale,
 				float frame, int rendermode, int numAttachments, Vector* attachment, 
@@ -965,6 +969,9 @@ void DrawSplineSegs( int noise_divisions, float *prgNoise,
 		DrawHalo(pHaloMaterial,pEnd,flHaloScale,scaledColor, flHDRColorScale);
 	}
 }
+#ifdef __ANDROID__
+#pragma GCC pop_options
+#endif
 
 
 //-----------------------------------------------------------------------------
