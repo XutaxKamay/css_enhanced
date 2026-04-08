@@ -24,9 +24,9 @@ IMPLEMENT_CLIENTCLASS_DT(C_TriggerPush, DT_TriggerPush, CTriggerPush)
 END_RECV_TABLE();
 
 BEGIN_DATADESC( C_TriggerPush )
-	DEFINE_KEYFIELD( m_vecPushDir, FIELD_VECTOR, "pushdir" ),
-	DEFINE_KEYFIELD( m_flAlternateTicksFix, FIELD_FLOAT, "alternateticksfix" ),
-	DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
+	// DEFINE_KEYFIELD( m_vecPushDir, FIELD_VECTOR, "pushdir" ),
+	// DEFINE_KEYFIELD( m_flAlternateTicksFix, FIELD_FLOAT, "alternateticksfix" ),
+	// DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
 END_DATADESC()
 
 //-----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#include "sendproxy.h"
 
 // Landmark class
 void CPointEntity::Spawn( void )
@@ -155,7 +156,12 @@ BEGIN_DATADESC( CBaseToggle )
 
 END_DATADESC()
 
-IMPLEMENT_SERVERCLASS_ST( CBaseToggle, DT_BaseToggle )
+extern void SendProxy_ClassName( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
+
+// send table [[For CSS_ENHANCED]]
+IMPLEMENT_SERVERCLASS_ST(CBaseToggle, DT_BaseToggle)
+	SendPropStringT(SENDINFO(m_sMaster)),
+	SendPropInt(SENDINFO(m_spawnflags))
 END_SEND_TABLE();
 
 CBaseToggle::CBaseToggle()

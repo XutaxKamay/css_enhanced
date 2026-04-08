@@ -274,12 +274,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 0), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 1), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
 	SendPropFloat		( SENDINFO_VECTORELEM(m_vecVelocity, 2), 32, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
-
-#if PREDICTION_ERROR_CHECK_LEVEL > 1 
-	SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
-#else
-	SendPropVector		( SENDINFO( m_vecBaseVelocity ), -1, SPROP_NOSCALE ),
-#endif
+	SendPropVector		( SENDINFO( m_vecBaseVelocity ) ),
 	SendPropInt			( SENDINFO( m_nSimulatedTickCount ) ),
 
 #ifdef TF_DLL

@@ -18,7 +18,7 @@ extern void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, v
 extern void RecvProxy_MoveCollide(const CRecvProxyData *pData, void *pStruct, void *pOut);
 extern void RecvProxy_MoveType(const CRecvProxyData *pData, void *pStruct, void *pOut);
 
-BEGIN_PREDICTION_DATA(C_BaseToggle)
+BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	// DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
 	// DEFINE_PRED_FIELD(m_vecNetworkOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
 	// DEFINE_PRED_FIELD(m_angNetworkAngles, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
@@ -32,6 +32,8 @@ BEGIN_PREDICTION_DATA(C_BaseToggle)
 END_PREDICTION_DATA();
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseToggle, DT_BaseToggle, CBaseToggle)
+	RecvPropString(RECVINFO(m_sMaster), 0, RecvProxy_StringToStringT),
+	RecvPropInt(RECVINFO(m_spawnflags)),
 END_RECV_TABLE();
 
 BEGIN_DATADESC( C_BaseToggle )
