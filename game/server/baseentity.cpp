@@ -1009,6 +1009,21 @@ int CBaseEntity::DrawDebugTextOverlays(void)
 			EntityText( offset,tempstr,0 );
 			offset++;
 		}
+		// Print parent chain
+		CBaseEntity *pParent = GetParent();
+		int parentLevel = 0;
+		while ( pParent )
+		{
+			Q_snprintf( tempstr, sizeof(tempstr), "Parent[%d]: %s (%s) Pos: %0.1f, %0.1f, %0.1f",
+					parentLevel,
+					pParent->GetDebugName(),
+					pParent->GetClassname(),
+					pParent->GetAbsOrigin().x, pParent->GetAbsOrigin().y, pParent->GetAbsOrigin().z );
+			EntityText( offset, tempstr, 0 );
+			offset++;
+			pParent = pParent->GetParent();
+			parentLevel++;
+		}
 	}
 
 	if (m_debugOverlays & OVERLAY_VIEWOFFSET)
@@ -6995,3 +7010,61 @@ void CC_Ent_Orient( const CCommand& args )
 }
 
 static ConCommand ent_orient("ent_orient", CC_Ent_Orient, "Orient the specified entity to match the player's angles. By default, only orients target entity's YAW. Use the 'allangles' option to orient on all axis.\n\tFormat: ent_orient <entity name> <optional: allangles>", FCVAR_CHEAT);
+
+static void PrintEntityDebugInfo( const CCommand &args )
+{
+	CBaseEntity *pEntity = NULL;
+
+	int iEntity = -1;
+	if ( args.ArgC() >= 2 )
+	{
+		iEntity = atoi( args[ 1 ] );
+	}
+
+	pEntity = UTIL_EntityByIndex( iEntity );
+
+	if ( !pEntity )
+	{
+		ConMsg( "Entity not found\n" );
+		return;
+	}
+
+	ConMsg( "=== Entity Debug Info ===\n" );
+	ConMsg( "Index: %d\n", pEntity->entindex() );
+	ConMsg( "Name: %s\n", pEntity->GetDebugName() );
+	ConMsg( "Class: %s\n", pEntity->GetClassname() );
+	ConMsg( "GetLocalOrigin: %.2f, %.2f, %.2f\n", 
+			pEntity->GetLocalOrigin().x, pEntity->GetLocalOrigin().y, pEntity->GetLocalOrigin().z );
+	ConMsg( "GetAbsOrigin: %.2f, %.2f, %.2f\n", 
+			pEntity->GetAbsOrigin().x, pEntity->GetAbsOrigin().y, pEntity->GetAbsOrigin().z );
+	ConMsg( "Collision Origin: %.2f, %.2f, %.2f\n",
+			pEntity->CollisionProp()->GetCollisionOrigin().x,
+			pEntity->CollisionProp()->GetCollisionOrigin().y,
+			pEntity->CollisionProp()->GetCollisionOrigin().z );
+	ConMsg( "Model: %s\n", STRING(pEntity->GetModelName()) );
+
+	Vector mins = pEntity->CollisionProp()->OBBMins();
+	Vector maxs = pEntity->CollisionProp()->OBBMaxs();
+	ConMsg( "OBB Mins: %.2f, %.2f, %.2f\n", mins.x, mins.y, mins.z );
+	ConMsg( "OBB Maxs: %.2f, %.2f, %.2f\n", maxs.x, maxs.y, maxs.z );
+	ConMsg( "Tick: %li\n", pEntity->m_nSimulatedTickCount );
+
+	// Print parent chain
+	CBaseEntity *pParent = pEntity->GetMoveParent();
+	int parentLevel = 0;
+	while ( pParent )
+	{
+		ConMsg( "Parent[%d]: %s (%s) Pos: %.2f, %.2f, %.2f Tick: %li\n",
+				parentLevel,
+				pParent->GetDebugName(),
+				pParent->GetClassname(),
+				pParent->GetAbsOrigin().x, pParent->GetAbsOrigin().y, pParent->GetAbsOrigin().z, pEntity->m_nSimulatedTickCount );
+		pParent = pParent->GetMoveParent();
+		parentLevel++;
+	}
+}
+
+CON_COMMAND_F( ent_text_2, "Prints entity debug info to console. Usage: cl_ent_text_2 [entity_index]", FCVAR_CHEAT )
+{
+	PrintEntityDebugInfo( args );
+}

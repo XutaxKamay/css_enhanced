@@ -18,7 +18,7 @@ extern void RecvProxy_EffectFlags( const CRecvProxyData *pData, void *pStruct, v
 extern void RecvProxy_MoveCollide(const CRecvProxyData *pData, void *pStruct, void *pOut);
 extern void RecvProxy_MoveType(const CRecvProxyData *pData, void *pStruct, void *pOut);
 
-BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
+BEGIN_PREDICTION_DATA(C_BaseToggle)
 	// DEFINE_PRED_TYPEDESCRIPTION(m_Collision, CCollisionProperty),
 	// DEFINE_PRED_FIELD(m_vecNetworkOrigin, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
 	// DEFINE_PRED_FIELD(m_angNetworkAngles, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
@@ -31,21 +31,7 @@ BEGIN_PREDICTION_DATA_NO_BASE(C_BaseToggle)
 	// DEFINE_FIELD(m_iEFlags, FIELD_INTEGER),
 END_PREDICTION_DATA();
 
-IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_BaseToggle, DT_BaseToggle, CBaseToggle)
-	RecvPropDataTable(RECVINFO_DT(m_Collision), 0, &REFERENCE_RECV_TABLE(DT_CollisionProperty)),
-	RecvPropVector(RECVINFO_NAME(m_vecNetworkOrigin, m_vecOrigin)),
-	RecvPropQAngles(RECVINFO_NAME(m_angNetworkAngles, m_angRotation)),
-	RecvPropString(RECVINFO(m_sMaster), 0, RecvProxy_StringToStringT),
-	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_StringToStringT),
-	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_StringToStringT),
-	RecvPropString(RECVINFO(m_iszDamageFilterName), 0, RecvProxy_StringToStringT),
-	RecvPropInt(RECVINFO(m_nModelIndex)),
-	RecvPropInt(RECVINFO(m_CollisionGroup)),
-	RecvPropInt(RECVINFO(m_spawnflags)),
-	RecvPropInt(RECVINFO(m_fEffects), 0, RecvProxy_EffectFlags ),
-	RecvPropInt( "movecollide", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveCollide ),
-	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
-	RecvPropInt(RECVINFO( m_nSimulatedTickCount))
+IMPLEMENT_CLIENTCLASS_DT(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 END_RECV_TABLE();
 
 BEGIN_DATADESC( C_BaseToggle )

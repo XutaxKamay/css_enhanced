@@ -13,7 +13,6 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-#include "sendproxy.h"
 
 // Landmark class
 void CPointEntity::Spawn( void )
@@ -156,24 +155,7 @@ BEGIN_DATADESC( CBaseToggle )
 
 END_DATADESC()
 
-extern void SendProxy_ClassName( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID );
-
-// send table [[For CSS_ENHANCED]]
-IMPLEMENT_SERVERCLASS_ST_NOBASE(CBaseToggle, DT_BaseToggle)
-	SendPropDataTable(SENDINFO_DT(m_Collision), &REFERENCE_SEND_TABLE(DT_CollisionProperty)),
-	SendPropVector(SENDINFO(m_vecOrigin), 0,  SPROP_NOSCALE|SPROP_COORD|SPROP_CHANGES_OFTEN ),
-	SendPropQAngles(SENDINFO(m_angRotation), 0, SPROP_NOSCALE|SPROP_CHANGES_OFTEN ),
-	SendPropStringT(SENDINFO(m_sMaster)),
-	SendPropStringT(SENDINFO(m_iName)),
-	SendPropStringT(SENDINFO_NAME(m_iClassname, m_iNetworkClassname)),
-	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
-	SendPropModelIndex(SENDINFO(m_nModelIndex)),
-	SendPropInt(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),
-	SendPropInt(SENDINFO(m_spawnflags)),
-	SendPropInt(SENDINFO(m_fEffects),EF_MAX_BITS, SPROP_UNSIGNED),
-	SendPropInt(SENDINFO_NAME(m_MoveCollide, movecollide), MOVECOLLIDE_MAX_BITS, SPROP_UNSIGNED),
-	SendPropInt(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
-	SendPropInt(SENDINFO(m_nSimulatedTickCount))
+IMPLEMENT_SERVERCLASS_ST( CBaseToggle, DT_BaseToggle )
 END_SEND_TABLE();
 
 CBaseToggle::CBaseToggle()

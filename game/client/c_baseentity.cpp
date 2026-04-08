@@ -1948,6 +1948,11 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 	if ( !bnewentity )
 	{
 		m_InterpolatedVariableList.RestoreToLastKnownValue();
+
+		// TODO_ENHANCED:
+		// This is needed, technically we should need to call BaseInterpolate2 and compare old values,
+		// but there's a bug where origin is the same.
+		InvalidatePhysicsRecursive( POSITION_CHANGED | ANGLES_CHANGED | VELOCITY_CHANGED );
 	}
 
 	if ( bnewentity && !IsClientCreated() )
@@ -5368,6 +5373,73 @@ CON_COMMAND_F( cl_ent_rbox, "Displays the client's render box for the entity und
 {
 	ToggleBBoxVisualization( CBaseEntity::VISUALIZE_RENDER_BOUNDS, args );
 }
+static void PrintEntityDebugInfo( const CCommand &args )
+{
+	C_BaseEntity *pEntity = NULL;
+
+	int iEntity = -1;
+	if ( args.ArgC() >= 2 )
+	{
+		iEntity = atoi( args[ 1 ] );
+	}
+
+	if ( iEntity == -1 )
+	{
+		pEntity = FindEntityInFrontOfLocalPlayer();
+	}
+	else
+	{
+		pEntity = cl_entitylist->GetBaseEntity( iEntity );
+	}
+
+	if ( !pEntity )
+	{
+		ConMsg( "Entity not found\n" );
+		return;
+	}
+
+	ConMsg( "=== Entity Debug Info ===\n" );
+	ConMsg( "Index: %d\n", pEntity->entindex() );
+	ConMsg( "Name: %s\n", pEntity->GetDebugName() );
+	ConMsg( "Class: %s\n", pEntity->GetClassname() );
+	ConMsg( "GetLocalOrigin: %.2f, %.2f, %.2f\n", 
+			pEntity->GetLocalOrigin().x, pEntity->GetLocalOrigin().y, pEntity->GetLocalOrigin().z );
+	ConMsg( "GetAbsOrigin: %.2f, %.2f, %.2f\n", 
+			pEntity->GetAbsOrigin().x, pEntity->GetAbsOrigin().y, pEntity->GetAbsOrigin().z );
+	ConMsg( "Collision Origin: %.2f, %.2f, %.2f\n",
+			pEntity->CollisionProp()->GetCollisionOrigin().x,
+			pEntity->CollisionProp()->GetCollisionOrigin().y,
+			pEntity->CollisionProp()->GetCollisionOrigin().z );
+	ConMsg( "Render Origin: %.2f, %.2f, %.2f\n",
+			pEntity->GetRenderOrigin().x, pEntity->GetRenderOrigin().y, pEntity->GetRenderOrigin().z );
+	ConMsg( "Model: %s\n", pEntity->GetModelName() ? STRING(pEntity->GetModelName()) : "none" );
+
+	Vector mins = pEntity->CollisionProp()->OBBMins();
+	Vector maxs = pEntity->CollisionProp()->OBBMaxs();
+	ConMsg( "OBB Mins: %.2f, %.2f, %.2f\n", mins.x, mins.y, mins.z );
+	ConMsg( "OBB Maxs: %.2f, %.2f, %.2f\n", maxs.x, maxs.y, maxs.z );
+	ConMsg( "Tick: %li\n", pEntity->m_iv_nSimulatedTickCount.GetLastKnownValue() );
+
+	// Print parent chain
+	C_BaseEntity *pParent = pEntity->GetMoveParent();
+	int parentLevel = 0;
+	while ( pParent )
+	{
+		ConMsg( "Parent[%d]: %s (%s) Pos: %.2f, %.2f, %.2f Tick: %li\n",
+				parentLevel,
+				pParent->GetDebugName(),
+				pParent->GetClassname(),
+				pParent->GetAbsOrigin().x, pParent->GetAbsOrigin().y, pParent->GetAbsOrigin().z, pEntity->m_iv_nSimulatedTickCount.GetLastKnownValue() );
+		pParent = pParent->GetMoveParent();
+		parentLevel++;
+	}
+}
+
+CON_COMMAND_F( cl_ent_text_2, "Prints entity debug info to console. Usage: cl_ent_text_2 [entity_index]", FCVAR_CHEAT )
+{
+	PrintEntityDebugInfo( args );
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: 
