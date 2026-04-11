@@ -26,31 +26,19 @@ static const int GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS = -1;
 class CGlowObjectManager
 {
 public:
-	CGlowObjectManager() :
-	m_nFirstFreeSlot( GlowObjectDefinition_t::END_OF_FREE_LIST )
+	CGlowObjectManager()
 	{
 	}
 
 	int RegisterGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor, float flGlowAlpha, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, int nSplitScreenSlot )
 	{
-		int nIndex;
-		if ( m_nFirstFreeSlot == GlowObjectDefinition_t::END_OF_FREE_LIST )
-		{
-			nIndex = m_GlowObjectDefinitions.AddToTail();
-		}
-		else
-		{
-			nIndex = m_nFirstFreeSlot;
-			m_nFirstFreeSlot = m_GlowObjectDefinitions[nIndex].m_nNextFreeSlot;
-		}
-		
+		int nIndex = m_GlowObjectDefinitions.AddToTail();
 		m_GlowObjectDefinitions[nIndex].m_hEntity = pEntity;
 		m_GlowObjectDefinitions[nIndex].m_vGlowColor = vGlowColor;
 		m_GlowObjectDefinitions[nIndex].m_flGlowAlpha = flGlowAlpha;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenOccluded = bRenderWhenOccluded;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenUnoccluded = bRenderWhenUnoccluded;
 		m_GlowObjectDefinitions[nIndex].m_nSplitScreenSlot = nSplitScreenSlot;
-		m_GlowObjectDefinitions[nIndex].m_nNextFreeSlot = GlowObjectDefinition_t::ENTRY_IN_USE;
 
 		return nIndex;
 	}
@@ -59,9 +47,12 @@ public:
 	{
 		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 
-		m_GlowObjectDefinitions[nGlowObjectHandle].m_nNextFreeSlot = m_nFirstFreeSlot;
+		if ( !m_GlowObjectDefinitions.IsValidIndex( nGlowObjectHandle ) )
+		{
+			return;
+		}
+
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_hEntity = NULL;
-		m_nFirstFreeSlot = nGlowObjectHandle;
 	}
 
 	void SetEntity( int nGlowObjectHandle, C_BaseEntity *pEntity )
@@ -105,7 +96,7 @@ public:
 	{
 		for ( int i = 0; i < m_GlowObjectDefinitions.Count(); ++ i )
 		{
-			if ( !m_GlowObjectDefinitions[i].IsUnused() && m_GlowObjectDefinitions[i].m_hEntity.Get() == pEntity )
+			if ( m_GlowObjectDefinitions[i].m_hEntity.Get() == pEntity )
 			{
 				return true;
 			}
@@ -131,7 +122,6 @@ private:
 				   !m_hEntity->IsDormant();
 		}
 
-		bool IsUnused() const { return m_nNextFreeSlot != GlowObjectDefinition_t::ENTRY_IN_USE; }
 		void DrawModel();
 
 		EHANDLE m_hEntity;
@@ -141,13 +131,6 @@ private:
 		bool m_bRenderWhenOccluded;
 		bool m_bRenderWhenUnoccluded;
 		int m_nSplitScreenSlot;
-
-		// Linked list of free slots
-		int m_nNextFreeSlot;
-
-		// Special values for GlowObjectDefinition_t::m_nNextFreeSlot
-		static const int END_OF_FREE_LIST = -1;
-		static const int ENTRY_IN_USE = -2;
 	};
 
 	void DrawGlowVisible( int nSplitScreenSlot, CMatRenderContextPtr& pRenderContext );
@@ -155,7 +138,6 @@ private:
 	void DrawGlowAlways( int nSplitScreenSlot, CMatRenderContextPtr& pRenderContext );
 
 	CUtlVector< GlowObjectDefinition_t > m_GlowObjectDefinitions;
-	int m_nFirstFreeSlot;
 };
 
 extern CGlowObjectManager g_GlowObjectManager;

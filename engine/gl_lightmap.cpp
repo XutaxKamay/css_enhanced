@@ -1396,7 +1396,7 @@ void R_RedownloadAllLightmaps()
 	// Can't build lightmaps if the source data has been dumped
 	CMatRenderContextPtr pRenderContext( materials );
 	ICallQueue *pCallQueue = pRenderContext->GetCallQueue();
-	if ( !host_state.worldbrush->unloadedlightmaps )
+	if ( host_state.worldbrush && !host_state.worldbrush->unloadedlightmaps )
 	{		
 		int iSurfaceCount = host_state.worldbrush->numsurfaces;
 		

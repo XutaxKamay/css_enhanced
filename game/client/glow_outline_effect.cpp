@@ -125,7 +125,7 @@ void CGlowObjectManager::DrawGlowAlways(int nSplitScreenSlot, CMatRenderContextP
 	for (int i = 0; i < m_GlowObjectDefinitions.Count(); i++)
 	{
 		auto& current = m_GlowObjectDefinitions[i];
-		if (current.IsUnused() || !current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || !current.m_bRenderWhenUnoccluded)
+		if (!current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || !current.m_bRenderWhenUnoccluded)
 			continue;
 
 		Vector vGlowColor = current.m_vGlowColor * current.m_flGlowAlpha;
@@ -190,7 +190,7 @@ void CGlowObjectManager::DrawGlowOccluded(int nSplitScreenSlot, CMatRenderContex
 		for (int i = 0; i < m_GlowObjectDefinitions.Count(); i++)
 		{
 			auto& current = m_GlowObjectDefinitions[i];
-			if (current.IsUnused() || !current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || current.m_bRenderWhenUnoccluded)
+			if (!current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || current.m_bRenderWhenUnoccluded)
 				continue;
 
 			current.DrawModel();
@@ -217,7 +217,7 @@ void CGlowObjectManager::DrawGlowOccluded(int nSplitScreenSlot, CMatRenderContex
 	for (int i = 0; i < m_GlowObjectDefinitions.Count(); i++)
 	{
 		auto& current = m_GlowObjectDefinitions[i];
-		if (current.IsUnused() || !current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || current.m_bRenderWhenUnoccluded)
+		if (!current.ShouldDraw(nSplitScreenSlot) || !current.m_bRenderWhenOccluded || current.m_bRenderWhenUnoccluded)
 			continue;
 
 		const Vector vGlowColor = current.m_vGlowColor * current.m_flGlowAlpha;
@@ -245,7 +245,7 @@ void CGlowObjectManager::DrawGlowVisible(int nSplitScreenSlot, CMatRenderContext
 	for (int i = 0; i < m_GlowObjectDefinitions.Count(); i++)
 	{
 		auto& current = m_GlowObjectDefinitions[i];
-		if (current.IsUnused() || !current.ShouldDraw(nSplitScreenSlot) || current.m_bRenderWhenOccluded || !current.m_bRenderWhenUnoccluded)
+		if (!current.ShouldDraw(nSplitScreenSlot) || current.m_bRenderWhenOccluded || !current.m_bRenderWhenUnoccluded)
 			continue;
 
 		Vector vGlowColor = current.m_vGlowColor * current.m_flGlowAlpha;
@@ -265,7 +265,7 @@ void CGlowObjectManager::ApplyEntityGlowEffects( const CViewSetup *pSetup, int n
 
 		for (int i = 0; i < m_GlowObjectDefinitions.Count(); i++)
 		{
-			if (m_GlowObjectDefinitions[i].IsUnused() || !m_GlowObjectDefinitions[i].ShouldDraw(nSplitScreenSlot))
+			if (!m_GlowObjectDefinitions[i].ShouldDraw(nSplitScreenSlot))
 				continue;
 
 			atLeastOneGlow = true;
