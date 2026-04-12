@@ -177,6 +177,11 @@ CBaseToggle::CBaseToggle()
 #endif
 }
 
+int CBaseToggle::UpdateTransmitState( void )
+{
+	return SetTransmitState( FL_EDICT_ALWAYS );
+}
+
 bool CBaseToggle::KeyValue( const char *szKeyName, const char *szValue )
 {
 	if (FStrEq(szKeyName, "lip"))
