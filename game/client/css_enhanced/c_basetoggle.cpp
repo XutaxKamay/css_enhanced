@@ -33,6 +33,7 @@ END_PREDICTION_DATA();
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseToggle, DT_BaseToggle, CBaseToggle)
 	RecvPropString(RECVINFO(m_sMaster), 0, RecvProxy_StringToStringT),
+	RecvPropString(RECVINFO(m_iszDamageFilterName), 0, RecvProxy_StringToStringT),
 	RecvPropInt(RECVINFO(m_spawnflags)),
 END_RECV_TABLE();
 

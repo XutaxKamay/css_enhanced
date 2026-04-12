@@ -161,6 +161,7 @@ extern void SendProxy_ClassName( const SendProp *pProp, const void *pStruct, con
 // send table [[For CSS_ENHANCED]]
 IMPLEMENT_SERVERCLASS_ST(CBaseToggle, DT_BaseToggle)
 	SendPropStringT(SENDINFO(m_sMaster)),
+	SendPropStringT(SENDINFO(m_iszDamageFilterName)),
 	SendPropInt(SENDINFO(m_spawnflags))
 END_SEND_TABLE();
 

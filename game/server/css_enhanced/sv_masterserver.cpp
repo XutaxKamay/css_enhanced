@@ -13,7 +13,7 @@
 
 #include "cs_player.h"
 #include "cs_shareddefs.h"
-#include "tier0/threadtools.h"
+#include "vstdlib/jobthread.h"
 #include "utlvector.h"
 #include "curl/curl.h"
 
@@ -199,28 +199,28 @@ void MasterServer_RequestDefaultClanTag( int playerIndex, const char *token )
 	req->playerIndex = playerIndex;
 	Q_strncpy( req->token, token, sizeof( req->token ) );
 
-	ThreadHandle_t hThread = CreateSimpleThread( ClanTagWorkerThread, req );
-	ReleaseThreadHandle( hThread );
+	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( ClanTagWorkerThread, req ) ) );
 }
 
-void MasterServer_ProcessResponses()
+void MasterServer_SetDefaultClanTag( void )
 {
 	s_ResponseMutex.Lock();
 
 	for ( int i = 0; i < s_PendingResponses.Count(); i++ )
 	{
-		const MasterServerResponse_t &resp = s_PendingResponses[i];
+		const MasterServerResponse_t& resp = s_PendingResponses[i];
 
 		switch ( resp.type )
 		{
 			case MasterServerResponse_t::RESPONSE_CLAN_TAG:
 			{
-				CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( resp.playerIndex ) );
+				CCSPlayer* pPlayer = ToCSPlayer( UTIL_PlayerByIndex( resp.playerIndex ) );
 				if ( pPlayer && pPlayer->IsConnected() )
 				{
 					pPlayer->SetClanTag( resp.clanTag );
 					DevMsg( "[MasterServer] Set clan tag '%s' for player '%s'\n",
-						resp.clanTag, pPlayer->GetPlayerName() );
+							resp.clanTag,
+							pPlayer->GetPlayerName() );
 				}
 				break;
 			}
@@ -249,6 +249,11 @@ void MasterServer_ProcessResponses()
 			MasterServer_RequestDefaultClanTag( i, pszToken );
 		}
 	}
+}
+
+void MasterServer_ProcessResponses()
+{
+	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( MasterServer_SetDefaultClanTag ) ) );
 }
 
 #endif // CSTRIKE_DLL

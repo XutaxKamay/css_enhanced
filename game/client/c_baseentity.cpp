@@ -1947,12 +1947,18 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 
 	if ( !bnewentity )
 	{
+		Vector oldOrigin = GetLocalOrigin();
+		QAngle oldAngles = GetLocalAngles();
+		Vector oldVel = GetLocalVelocity();
+
 		m_InterpolatedVariableList.RestoreToLastKnownValue();
+
+		BaseInterpolatePart2( oldOrigin, oldAngles, oldVel, 0 );
 
 		// TODO_ENHANCED:
 		// This is needed, technically we should need to call BaseInterpolate2 and compare old values,
 		// but there's a bug where origin is the same.
-		InvalidatePhysicsRecursive( POSITION_CHANGED | ANGLES_CHANGED | VELOCITY_CHANGED );
+		// InvalidatePhysicsRecursive( POSITION_CHANGED | ANGLES_CHANGED | VELOCITY_CHANGED );
 	}
 
 	if ( bnewentity && !IsClientCreated() )
