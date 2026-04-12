@@ -173,7 +173,7 @@ static uintp ClanTagWorkerThread( void *pParam )
 		}
 		else
 		{
-			Msg( "[MasterServer] Clan tag query returned HTTP %ld for player %d\n", httpCode, req->playerIndex );
+			DevMsg( "[MasterServer] Clan tag query returned HTTP %ld for player %d\n", httpCode, req->playerIndex );
 		}
 	}
 	else
@@ -219,7 +219,7 @@ void MasterServer_ProcessResponses()
 				if ( pPlayer && pPlayer->IsConnected() )
 				{
 					pPlayer->SetClanTag( resp.clanTag );
-					Msg( "[MasterServer] Set clan tag '%s' for player '%s'\n",
+					DevMsg( "[MasterServer] Set clan tag '%s' for player '%s'\n",
 						resp.clanTag, pPlayer->GetPlayerName() );
 				}
 				break;

@@ -160,7 +160,7 @@ void CTokenReceiver::ProcessPendingToken()
 		CRC32_Init( &crc );
 		CRC32_ProcessBuffer( &crc, s_szPendingToken, Q_strlen( s_szPendingToken ) );
 		CRC32_Final( &crc );
-		Msg( "[TokenReceiver] Token set (CRC32: %08X)\n", crc );
+		DevMsg( "[TokenReceiver] Token set (CRC32: %08X)\n", crc );
 
 		s_bHasPendingToken = false;
 	}
@@ -174,7 +174,7 @@ void CTokenReceiver::RunServer()
 	WSADATA wsaData;
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
 	{
-		Msg( "[TokenReceiver] WSAStartup failed\n" );
+		DevMsg( "[TokenReceiver] WSAStartup failed\n" );
 		return;
 	}
 #endif
@@ -182,7 +182,7 @@ void CTokenReceiver::RunServer()
 	m_iSocket = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( m_iSocket == INVALID_SOCKET )
 	{
-		Msg( "[TokenReceiver] Failed to create socket\n" );
+		DevMsg( "[TokenReceiver] Failed to create socket\n" );
 		return;
 	}
 
@@ -196,7 +196,7 @@ void CTokenReceiver::RunServer()
 
 	if ( bind( m_iSocket, (sockaddr *)&serverAddr, sizeof( serverAddr ) ) == SOCKET_ERROR )
 	{
-		Msg( "[TokenReceiver] Failed to bind to port %d\n", m_nPort );
+		DevMsg( "[TokenReceiver] Failed to bind to port %d\n", m_nPort );
 		CloseSocket( m_iSocket );
 		m_iSocket = -1;
 #ifdef _WIN32
@@ -207,7 +207,7 @@ void CTokenReceiver::RunServer()
 
 	if ( listen( m_iSocket, 1 ) == SOCKET_ERROR )
 	{
-		Msg( "[TokenReceiver] Failed to listen\n" );
+		DevMsg( "[TokenReceiver] Failed to listen\n" );
 		CloseSocket( m_iSocket );
 		m_iSocket = -1;
 #ifdef _WIN32
@@ -216,7 +216,7 @@ void CTokenReceiver::RunServer()
 		return;
 	}
 
-	Msg( "[TokenReceiver] Listening on 127.0.0.1:%d\n", m_nPort );
+	DevMsg( "[TokenReceiver] Listening on 127.0.0.1:%d\n", m_nPort );
 
 	while ( m_bRunning )
 	{
@@ -282,7 +282,7 @@ void CTokenReceiver::RunServer()
 	WSACleanup();
 #endif
 
-	Msg( "[TokenReceiver] Server stopped\n" );
+	DevMsg( "[TokenReceiver] Server stopped\n" );
 }
 
 uintp CTokenReceiver::ServerThreadProc( void *pParam )
