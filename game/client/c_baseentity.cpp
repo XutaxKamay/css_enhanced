@@ -50,6 +50,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+void MapEntity_ParseAllEntities(CBaseEntity *pEntity, const char *pMapData);
+
 static bool g_bWasSkipping = (bool)-1;
 static bool g_bWasThreaded =(bool)-1;
 static int  g_nThreadModeTicks = 0;
@@ -1934,6 +1936,11 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 {
 	VPROF( "C_BaseEntity::PreDataUpdate" );
 
+	if ( updateType == DATA_UPDATE_CREATED )
+	{
+		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
+	}
+
 	// Register for an OnDataChanged call and call OnPreDataChanged().
 	if ( AddDataChangeEvent( this, updateType, &m_DataChangeEventRef ) )
 	{
@@ -2376,11 +2383,6 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	MDLCACHE_CRITICAL_SECTION();
 
 	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, "postdataupdate" );
-
-	if ( updateType == DATA_UPDATE_CREATED )
-	{
-		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
-	}
 
 	// NOTE: This *has* to happen first. Otherwise, Origin + angles may be wrong 
 	if ( m_nRenderFX == kRenderFxRagdoll && updateType == DATA_UPDATE_CREATED )
@@ -4640,7 +4642,17 @@ const char *C_BaseEntity::GetClassname( void )
 
 const char *C_BaseEntity::GetDebugName( void )
 {
-	return GetClassname();
+	if ( this == NULL )
+		return "<<null>>";
+
+	if ( m_iName != NULL_STRING )
+	{
+		return STRING(m_iName);
+	}
+	else
+	{
+		return STRING(m_iClassname);
+	}
 }
 
 //-----------------------------------------------------------------------------

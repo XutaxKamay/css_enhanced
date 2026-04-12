@@ -7059,7 +7059,7 @@ static void PrintEntityDebugInfo( const CCommand &args )
 	}
 }
 
-CON_COMMAND_F( ent_text_2, "Prints entity debug info to console. Usage: cl_ent_text_2 [entity_index]", FCVAR_CHEAT )
+CON_COMMAND_F( ent_text_2, "Prints entity debug info to console. Usage: ent_text_2 [entity_index]", FCVAR_CHEAT )
 {
 	PrintEntityDebugInfo( args );
 }
