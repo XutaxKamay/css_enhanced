@@ -46,6 +46,7 @@
 
 	#include "cs_gamestats.h"
 	#include "cs_urlretrieveprices.h"
+	#include "sv_masterserver.h"
 	#include "networkstringtable_gamedll.h"
 	#include "player_resource.h"
 	#include "cs_player_resource.h"
@@ -2931,6 +2932,8 @@ ConVar cl_autohelp(
 	{
 		CGameRules::Think();
 
+		MasterServer_ProcessResponses();
+
 		for ( int i = 0; i < GetNumberOfTeams(); i++ )
 		{
 			GetGlobalTeam( i )->Think();
@@ -5306,6 +5309,12 @@ void CCSGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		if ( pShowHints && atoi( pShowHints ) <= 0 )
 		{
 			pCSPlayer->m_bShowHints = false;
+		}
+
+		const char *pszToken = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_token" );
+		if ( pszToken && pszToken[0] && Q_strcmp( pszToken, "0" ) != 0 )
+		{
+			MasterServer_RequestDefaultClanTag( pPlayer->entindex(), pszToken );
 		}
 	}
 }

@@ -42,3 +42,9 @@ source-engine.sln
 *.lst
 *.so
 *.patch
+masterserver/*.key
+masterserver/*.txt
+masterserver/*.db
+masterserver/*.db-wal
+masterserver/*.db-shm
+masterserver/*.crt

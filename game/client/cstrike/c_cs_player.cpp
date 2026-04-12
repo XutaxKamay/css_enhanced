@@ -67,8 +67,8 @@
 	#undef CCSPlayer
 #endif
 #include "debugoverlay_shared.h"
-#include "css_enhanced/hud_lagcomp_debug.h"
-#include "css_enhanced/hud_lagcomp_debug.h"
+#include "css_enhanced/c_hud_lagcomp_debug.h"
+#include "css_enhanced/c_hud_lagcomp_debug.h"
 #include "materialsystem/imesh.h"		//for materials->FindMaterial
 #include "iviewrender.h"				//for view->
 

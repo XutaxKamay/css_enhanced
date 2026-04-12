@@ -83,6 +83,7 @@
 #include "appframework/IAppSystemGroup.h"
 #include "scenefilecache/ISceneFileCache.h"
 #include "tier2/tier2dm.h"
+#include "css_enhanced/c_token_receiver.h"
 #include "tier3/tier3.h"
 #include "ihudlcd.h"
 #include "toolframework_client.h"
@@ -1134,6 +1135,9 @@ bool CHLClient::ReplayPostInit()
 //-----------------------------------------------------------------------------
 void CHLClient::PostInit()
 {
+	// TODO_ENHANCED: this is for setting clans and auth
+	g_TokenReceiver.Start();
+
 	IGameSystem::PostInitAllSystems();
 
 #ifdef SIXENSE
@@ -1267,6 +1271,8 @@ void CHLClient::HudUpdate( bool bActive )
 #if defined( TF_CLIENT_DLL )
 	CRTime::UpdateRealTime();
 #endif
+
+	g_TokenReceiver.ProcessPendingToken();
 
 	GetClientVoiceMgr()->Frame( frametime );
 

@@ -50,7 +50,7 @@ $Configuration
 	
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	"$BASE;.\;$SRCDIR\game\shared;$SRCDIR\utils\common;$SRCDIR\game\shared\econ;$SRCDIR\game\server\NextBot"
+		$AdditionalIncludeDirectories	"$BASE;.\;$SRCDIR\game\shared;$SRCDIR\utils\common;$SRCDIR\game\shared\econ;$SRCDIR\game\server\NextBot;$SRCDIR\game\server\css_enhanced"
 		$PreprocessorDefinitions		"$BASE;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;"
 		$PreprocessorDefinitions		"$BASE;SWDS" [$POSIX]
 		$PreprocessorDefinitions		"$BASE;fopen=dont_use_fopen" [$WINDOWS||$X360]
@@ -996,6 +996,12 @@ $Project
 		$File	"$SRCDIR\game\shared\econ\ihasowner.h"
 		//Haptics
 		$File	"$SRCDIR\public\haptics\haptic_utils.h"	[$WIN32]
+	}
+
+	$Folder	"CSS Enhanced"
+	{
+		$File	"css_enhanced\sv_masterserver.cpp"
+		$File	"css_enhanced\sv_masterserver.h"
 	}
 
 	$Folder	"Tools Framework"

@@ -8180,3 +8180,38 @@ void UTIL_AwardMoneyToTeam( int iAmount, int iTeam, CBaseEntity *pIgnore )
 	}
 }
 
+
+CON_COMMAND( sv_setclan, "Sets a player's clan tag. Usage: sv_setclan <player_name> <clan_tag>" )
+{
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
+	if ( args.ArgC() < 3 )
+	{
+		Msg( "Usage: sv_setclan <player_name> <clan_tag>\n" );
+		return;
+	}
+
+	const char *playerName = args[1];
+	const char *clanTag = args[2];
+
+	CCSPlayer *pPlayer = NULL;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CCSPlayer *p = (CCSPlayer*)UTIL_PlayerByIndex( i );
+		if ( p && p->GetPlayerName() && Q_stricmp( p->GetPlayerName(), playerName ) == 0 )
+		{
+			pPlayer = p;
+			break;
+		}
+	}
+
+	if ( !pPlayer )
+	{
+		Msg( "Player not found: %s\n", playerName );
+		return;
+	}
+
+	pPlayer->SetClanTag( clanTag );
+	Msg( "Set clan tag for %s to %s\n", playerName, clanTag );
+}

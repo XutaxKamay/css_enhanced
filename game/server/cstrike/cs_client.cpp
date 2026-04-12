@@ -30,6 +30,7 @@
 #include "cs_bot.h"
 #include "tier0/vprof.h"
 #include "teamplayroundbased_gamerules.h"
+#include "sv_masterserver.h"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -75,6 +76,16 @@ void FinishClientPutInServer( CCSPlayer *pPlayer )
 
 	// notify other clients of player joining the game
 	UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
+
+	// Query masterserver for the player's default clan tag
+	if ( !pPlayer->IsBot() )
+	{
+		const char *pszToken = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_token" );
+		if ( pszToken && pszToken[0] && Q_strcmp( pszToken, "0" ) != 0 )
+		{
+			MasterServer_RequestDefaultClanTag( pPlayer->entindex(), pszToken );
+		}
+	}
 }
 
 /*

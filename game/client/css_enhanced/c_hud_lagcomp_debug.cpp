@@ -1,5 +1,5 @@
 #include "cbase.h"
-#include "hud_lagcomp_debug.h"
+#include "c_hud_lagcomp_debug.h"
 #include "iclientmode.h"
 #include <vgui/ISurface.h>
 #include <vgui_controls/Panel.h>

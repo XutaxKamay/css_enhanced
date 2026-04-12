@@ -50,7 +50,7 @@ $Configuration
 
 	$Compiler
 	{
-		$AdditionalIncludeDirectories	".\;$BASE;$SRCDIR\vgui2\include;$SRCDIR\vgui2\controls;$SRCDIR\game\shared;.\game_controls;$SRCDIR\thirdparty\sixensesdk\include"
+		$AdditionalIncludeDirectories	".\;$BASE;$SRCDIR\vgui2\include;$SRCDIR\vgui2\controls;$SRCDIR\game\shared;.\game_controls;$SRCDIR\thirdparty\sixensesdk\include;$SRCDIR\game\client\css_enhanced"
 		$PreprocessorDefinitions		"$BASE;NO_STRING_T;CLIENT_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;" 
 		$PreprocessorDefinitions		"$BASE;ENABLE_CHROMEHTMLWINDOW;fopen=dont_use_fopen" [$WIN32]
 		$PreprocessorDefinitions		"$BASE;ENABLE_CHROMEHTMLWINDOW;" [$OSXALL]
@@ -163,7 +163,7 @@ $Project
 		}
 	}
 		
-	$Folder	"Source Files"
+	$Folder "CSS Enhanced"
 	{
 		$File	"css_enhanced\c_saverestore.cpp"
 		$File	"css_enhanced\c_basetoggle.cpp"
@@ -178,6 +178,12 @@ $Project
 		$File	"css_enhanced\c_trigger_teleport.cpp"
 		$File	"css_enhanced\c_trigger_gravity.cpp"
 		$File	"css_enhanced\variant_t.cpp"
+		$File	"css_enhanced\c_token_receiver.cpp"
+		$File	"css_enhanced\c_token_receiver.h"
+	}
+
+	$Folder	"Source Files"
+	{
 		$File	"hl2\C_Func_Monitor.cpp"
 		$File	"geiger.cpp"
 		$File	"history_resource.cpp"
