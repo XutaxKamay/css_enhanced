@@ -404,6 +404,7 @@ def check_deps(conf):
 				conf.check_cfg(package='sdl2', uselib_store='SDL2', args=['--cflags', '--libs'])
 			if conf.options.DEDICATED:
 				conf.check_cfg(package='libedit', uselib_store='EDIT', args=['--cflags', '--libs'])
+				conf.check_cfg(package='libcurl', uselib_store='CURL', args=['--cflags', '--libs'])
 			else:
 				conf.check_pkg('freetype2', 'FT2', FT2_CHECK)
 				conf.check_pkg('fontconfig', 'FC', FC_CHECK)
