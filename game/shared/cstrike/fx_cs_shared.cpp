@@ -297,9 +297,7 @@ void FX_FireBullets(
 	float y0 = fRadius0 * sinf(fTheta0);
 
 #ifdef CLIENT_DLL
-    static ConVarRef cl_debug_hitbox_enable( "cl_debug_hitbox_enable" );
-
-	if ( playerCmd && !playerCmd->hasbeenpredicted && cl_debug_hitbox_enable.GetBool() )
+	if ( playerCmd && !playerCmd->hasbeenpredicted && playerCmd->debug_flags != 0 )
 	{
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
@@ -396,4 +394,113 @@ void FX_PlantBomb( int iPlayerIndex, const Vector &vOrigin, PlantBombOption_t op
 	TE_PlantBomb( iPlayerIndex, vOrigin, option );
 #endif
 }
+
+#ifndef CLIENT_DLL
+void WritePlayerHitboxEvent( CBasePlayer* shooter,
+							 CBasePlayer* lagPlayer,
+							 const char* context,
+							 int bullet,
+							 float interpAmount )
+{
+	IGameEvent* event = gameeventmanager->CreateEvent( context );
+	if ( event )
+	{
+		event->SetInt( "userid", shooter->GetUserID() );
+		event->SetInt( "player_index", lagPlayer->entindex() );
+		event->SetInt( "tickbase", TIME_TO_TICKS( shooter->GetTimeBase() ) );
+		event->SetInt( "bullet", bullet );
+		event->SetFloat( "interpamount", interpAmount );
+		event->SetInt( "simtickc", lagPlayer->m_nSimulatedTickCount );
+		event->SetInt( "animtickc", lagPlayer->m_nAnimatedTickCount );
+
+		Vector positions[MAXSTUDIOBONES];
+		QAngle angles[MAXSTUDIOBONES];
+		int indexes[MAXSTUDIOBONES];
+
+		auto angle	  = lagPlayer->GetRenderAngles();
+		auto position = lagPlayer->GetAbsOrigin();
+
+		event->SetFloat( "position_x", position.x );
+		event->SetFloat( "position_y", position.y );
+		event->SetFloat( "position_z", position.z );
+
+		event->SetFloat( "angle_x", angle.x );
+		event->SetFloat( "angle_y", angle.y );
+		event->SetFloat( "angle_z", angle.z );
+
+		event->SetFloat( "cycle", lagPlayer->GetCycle() );
+		event->SetInt( "sequence", lagPlayer->GetSequence() );
+
+		int numhitboxes = lagPlayer->GetServerHitboxes( positions, angles, indexes );
+		event->SetInt( "num_hitboxes", numhitboxes );
+
+		for ( int i = 0; i < numhitboxes; i++ )
+		{
+			char buffer[256];
+			V_sprintf_safe( buffer, "hitbox_index_%i", i );
+			event->SetInt( buffer, indexes[i] );
+			V_sprintf_safe( buffer, "hitbox_position_x_%i", i );
+			event->SetFloat( buffer, positions[indexes[i]].x );
+			V_sprintf_safe( buffer, "hitbox_position_y_%i", i );
+			event->SetFloat( buffer, positions[indexes[i]].y );
+			V_sprintf_safe( buffer, "hitbox_position_z_%i", i );
+			event->SetFloat( buffer, positions[indexes[i]].z );
+			V_sprintf_safe( buffer, "hitbox_angle_x_%i", i );
+			event->SetFloat( buffer, angles[indexes[i]].x );
+			V_sprintf_safe( buffer, "hitbox_angle_y_%i", i );
+			event->SetFloat( buffer, angles[indexes[i]].y );
+			V_sprintf_safe( buffer, "hitbox_angle_z_%i", i );
+			event->SetFloat( buffer, angles[indexes[i]].z );
+		}
+
+		auto model = lagPlayer->GetModelPtr();
+
+		auto numposeparams = model->GetNumPoseParameters();
+		event->SetInt( "num_poseparams", numposeparams );
+
+		for ( int i = 0; i < numposeparams; i++ )
+		{
+			char buffer[256];
+			V_sprintf_safe( buffer, "pose_param_%i", i );
+			event->SetFloat( buffer, lagPlayer->GetPoseParameterArray()[i] );
+		}
+
+		auto numbonecontrollers = model->GetNumBoneControllers();
+		event->SetInt( "num_bonecontrollers", numbonecontrollers );
+
+		for ( int i = 0; i < numbonecontrollers; i++ )
+		{
+			char buffer[256];
+			V_sprintf_safe( buffer, "bone_controller_%i", i );
+			event->SetFloat( buffer, lagPlayer->GetBoneControllerArray()[i] );
+		}
+
+		auto numanimoverlays = lagPlayer->GetNumAnimOverlays();
+		event->SetInt( "num_anim_overlays", numanimoverlays );
+
+		for ( int i = 0; i < numanimoverlays; i++ )
+		{
+			auto animOverlay = lagPlayer->GetAnimOverlay( i );
+
+			char buffer[256];
+			V_sprintf_safe( buffer, "anim_overlay_cycle_%i", i );
+			event->SetFloat( buffer, animOverlay->m_flCycle.Get() );
+
+			V_sprintf_safe( buffer, "anim_overlay_sequence_%i", i );
+			event->SetInt( buffer, animOverlay->m_nSequence.Get() );
+
+			V_sprintf_safe( buffer, "anim_overlay_weight_%i", i );
+			event->SetFloat( buffer, animOverlay->m_flWeight.Get() );
+
+			V_sprintf_safe( buffer, "anim_overlay_order_%i", i );
+			event->SetInt( buffer, animOverlay->m_nOrder.Get() );
+
+			V_sprintf_safe( buffer, "anim_overlay_flags_%i", i );
+			event->SetInt( buffer, animOverlay->m_fFlags.Get() );
+		}
+
+		gameeventmanager->FireEvent( event );
+	}
+}
+#endif
 

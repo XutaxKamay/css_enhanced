@@ -44,4 +44,12 @@ enum PlantBombOption_t
 };
 void FX_PlantBomb( int iPlayer, const Vector &vOrigin, PlantBombOption_t option );
 
+#ifndef CLIENT_DLL
+void WritePlayerHitboxEvent( CBasePlayer* shooter,
+							 CBasePlayer* lagPlayer,
+							 const char* context,
+							 int bullet,
+							 float interpAmount );
+#endif
+
 #endif // FX_CS_SHARED_H

@@ -67,8 +67,7 @@
 	#undef CCSPlayer
 #endif
 #include "debugoverlay_shared.h"
-#include "css_enhanced/c_hud_lagcomp_debug.h"
-#include "css_enhanced/c_hud_lagcomp_debug.h"
+#include "css_enhanced/c_hud_bullet_debugger.h"
 #include "materialsystem/imesh.h"		//for materials->FindMaterial
 #include "iviewrender.h"				//for view->
 
@@ -96,27 +95,28 @@ ConVar cl_showhitboxes( "cl_showhitboxes", "0", FCVAR_CHEAT );
 ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
 ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
 
-ConVar cl_debug_hitbox_enable( "cl_debug_hitbox_enable", "0", 0, "Master toggle for hitbox/lag compensation debug HUD and overlays" );
-ConVar cl_debug_hitbox_tolerance( "cl_debug_hitbox_tolerance", "0.1", 0, "Float tolerance for comparing prediction/server/rendering values" );
-ConVar cl_debug_hitbox_show_overlays( "cl_debug_hitbox_show_overlays", "1", 0, "Draw 3D hitbox overlays in world space (set to 0 for HUD-only mode)" );
-ConVar cl_debug_hitbox_show_prediction( "cl_debug_hitbox_show_prediction", "1", 0, "Show prediction hitboxes (green) and bullet traces" );
-ConVar cl_debug_hitbox_show_server( "cl_debug_hitbox_show_server", "1", 0, "Show server hitboxes (blue) from lag compensation events" );
-ConVar cl_debug_hitbox_show_rendering( "cl_debug_hitbox_show_rendering", "1", 0, "Show current rendering hitboxes (red)" );
-ConVar cl_debug_hitbox_show_bullet_traces( "cl_debug_hitbox_show_bullet_traces", "1", 0, "Show bullet trace paths (swept boxes)" );
-ConVar cl_debug_hitbox_show_only_on_error( "cl_debug_hitbox_show_only_on_error", "0", 0, "Only draw hitbox overlays when tolerance-exceeding mismatches are detected" );
-ConVar cl_debug_hitbox_duration( "cl_debug_hitbox_duration", "60", 0, "Duration in seconds that debug overlays persist" );
-ConVar cl_debug_hitbox_hud_max_entries( "cl_debug_hitbox_hud_max_entries", "8", 0, "Max players shown in HUD list (closest to crosshair first)" );
+// Convars defined in c_hud_bullet_debugger.cpp
+extern ConVar cl_bullet_debugger_enable;
+extern ConVar cl_bullet_debugger_hud_enable;
+extern ConVar cl_bullet_debugger_show_hitboxes;
+extern ConVar cl_bullet_debugger_show_prediction;
+extern ConVar cl_bullet_debugger_show_server;
+extern ConVar cl_bullet_debugger_show_prediction_computed;
+extern ConVar cl_bullet_debugger_show_traces;
+extern ConVar cl_bullet_debugger_show_only_on_error;
+extern ConVar cl_bullet_debugger_tolerance;
+extern ConVar cl_bullet_debugger_duration;
+extern ConCommand toggle_bullet_debugger_panel;
 
-// Hitbox overlay colors (space-separated RGBA 0-255)
-ConVar cl_debug_hitbox_color_server( "cl_debug_hitbox_color_server", "0 0 255 127", 0, "RGBA color for server hitbox overlays (bones from event data)" );
-ConVar cl_debug_hitbox_color_server_computed( "cl_debug_hitbox_color_server_computed", "0 255 255 127", 0, "RGBA color for server computed overlays (SetupBones from server vars)" );
-ConVar cl_debug_hitbox_color_prediction( "cl_debug_hitbox_color_prediction", "0 255 0 127", 0, "RGBA color for prediction overlays (bones cached in HitboxRecord)" );
-ConVar cl_debug_hitbox_color_prediction_computed( "cl_debug_hitbox_color_prediction_computed", "128 0 255 127", 0, "RGBA color for prediction computed overlays (SetupBones from prediction vars)" );
-ConVar cl_debug_hitbox_color_match( "cl_debug_hitbox_color_match", "255 255 255 127", 0, "RGBA color when all states match" );
+ConVar cl_bullet_debugger_hitbox_color_server( "cl_bullet_debugger_hitbox_color_server", "0 255 255 127", FCVAR_ARCHIVE, "RGBA color for server hitbox overlays" );
+ConVar cl_bullet_debugger_hitbox_color_server_computed( "cl_bullet_debugger_hitbox_color_server_computed", "255 165 0 127", FCVAR_ARCHIVE, "RGBA color for server computed hitbox overlays" );
+ConVar cl_bullet_debugger_hitbox_color_prediction( "cl_bullet_debugger_hitbox_color_prediction", "0 255 0 127", FCVAR_ARCHIVE, "RGBA color for prediction overlays" );
+ConVar cl_bullet_debugger_hitbox_color_prediction_computed( "cl_bullet_debugger_hitbox_color_prediction_computed", "128 0 255 127", FCVAR_ARCHIVE, "RGBA color for prediction computed overlays" );
+ConVar cl_bullet_debugger_hitbox_color_match( "cl_bullet_debugger_hitbox_color_match", "255 255 255 127", FCVAR_ARCHIVE, "RGBA color when all states match" );
 
 // Bullet trace colors
-ConVar cl_debug_hitbox_bullet_color_server( "cl_debug_hitbox_bullet_color_server", "0 0 255 127", 0, "RGBA color for server bullet trace" );
-ConVar cl_debug_hitbox_bullet_color_prediction( "cl_debug_hitbox_bullet_color_prediction", "0 255 0 127", 0, "RGBA color for prediction bullet trace" );
+ConVar cl_bullet_debugger_trace_color_server( "cl_bullet_debugger_trace_color_server", "0 0 255 127", FCVAR_ARCHIVE, "RGBA color for server bullet trace" );
+ConVar cl_bullet_debugger_trace_color_prediction( "cl_bullet_debugger_trace_color_prediction", "0 255 0 127", FCVAR_ARCHIVE, "RGBA color for prediction bullet trace" );
 
 static Color ParseDebugColor( ConVar& cv )
 {
@@ -2314,30 +2314,21 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 		}
 	}
 
-	if ( !cl_debug_hitbox_enable.GetBool() )
+	if ( FStrEq( event->GetName(), "bullet_player_hitboxes" ) || FStrEq( event->GetName(), "bullet_hit_player" ) )
 	{
-		return;
-	}
+		if ( !cl_bullet_debugger_enable.GetBool() )
+		{
+			return;
+		}
 
-	const float flDuration		 = cl_debug_hitbox_duration.GetFloat();
-	const float flTolerance		 = cl_debug_hitbox_tolerance.GetFloat();
-	const bool bShowOverlays	 = cl_debug_hitbox_show_overlays.GetBool();
-	const bool bShowPrediction	 = cl_debug_hitbox_show_prediction.GetBool();
-	const bool bShowServer		 = cl_debug_hitbox_show_server.GetBool();
-	const bool bShowRendering	 = cl_debug_hitbox_show_rendering.GetBool();
-	const bool bShowBulletTraces = cl_debug_hitbox_show_bullet_traces.GetBool();
-	const bool bShowOnlyOnError	 = cl_debug_hitbox_show_only_on_error.GetBool();
-
-	if ( FStrEq( event->GetName(), "bullet_hit_player" ) || FStrEq( event->GetName(), "bullet_player_hitboxes" ) )
-	{
 		ProcessDebugHitboxEvent( event,
-								 flDuration,
-								 flTolerance,
-								 bShowOverlays,
-								 bShowPrediction,
-								 bShowServer,
-								 bShowRendering,
-								 bShowOnlyOnError );
+								 cl_bullet_debugger_duration.GetFloat(),
+								 cl_bullet_debugger_tolerance.GetFloat(),
+								 cl_bullet_debugger_show_hitboxes.GetBool() || cl_bullet_debugger_show_traces.GetBool(),
+								 cl_bullet_debugger_show_prediction.GetBool(),
+								 cl_bullet_debugger_show_server.GetBool(),
+								 cl_bullet_debugger_show_prediction_computed.GetBool(),
+								 cl_bullet_debugger_show_only_on_error.GetBool() );
 		if ( debug_screenshot_bullet_position.GetBool() )
 		{
 			gpGlobals->client_taking_screenshot = true;
@@ -2345,7 +2336,16 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 	}
 	else if ( FStrEq( event->GetName(), "bullet_impact" ) )
 	{
-		ProcessDebugBulletImpact( event, flDuration, flTolerance, bShowBulletTraces );
+		if ( !cl_bullet_debugger_enable.GetBool() )
+		{
+			return;
+		}
+
+		ProcessDebugBulletImpact( event,
+								  cl_bullet_debugger_duration.GetFloat(),
+								  cl_bullet_debugger_tolerance.GetFloat(),
+								  cl_bullet_debugger_show_traces.GetBool() );
+
 		if ( debug_screenshot_bullet_position.GetBool() )
 		{
 			gpGlobals->client_taking_screenshot = true;
@@ -2359,7 +2359,7 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 										  bool bShowOverlays,
 										  bool bShowPrediction,
 										  bool bShowServer,
-										  bool bShowRendering,
+										  bool bShowPredictionComputed,
 										  bool bShowOnlyOnError )
 {
 	MDLCACHE_CRITICAL_SECTION();
@@ -2711,7 +2711,7 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 	}
 
 	// Populate HUD entry
-	LagCompDebugEntry hudEntry;
+	BulletDebugEntry hudEntry;
 	memset( &hudEntry, 0, sizeof( hudEntry ) );
 	hudEntry.playerIndex = lookupPlayerIndex;
 	V_strncpy( hudEntry.playerName, player->GetPlayerName(), sizeof( hudEntry.playerName ) );
@@ -2814,7 +2814,7 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 		hudEntry.mismatchDetails.AddToTail( mismatchDetails[i] );
 	}
 
-	CHudLagCompDebug* pHud = ( CHudLagCompDebug* )GET_HUDELEMENT( CHudLagCompDebug );
+	CHudBulletDebugger* pHud = ( CHudBulletDebugger* )GET_HUDELEMENT( CHudBulletDebugger );
 	if ( pHud )
 	{
 		pHud->SetEntry( hudEntry );
@@ -2823,11 +2823,11 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 	// Draw 3D overlays using pre-captured bone matrices (no redundant SetupBones calls)
 	if ( bShowOverlays )
 	{
-		Color colServer			= ParseDebugColor( cl_debug_hitbox_color_server );
-		Color colServerComputed = ParseDebugColor( cl_debug_hitbox_color_server_computed );
-		Color colPrediction		= ParseDebugColor( cl_debug_hitbox_color_prediction );
-		Color colPredComputed	= ParseDebugColor( cl_debug_hitbox_color_prediction_computed );
-		Color colMatch			= ParseDebugColor( cl_debug_hitbox_color_match );
+		Color colServer			= ParseDebugColor( cl_bullet_debugger_hitbox_color_server );
+		Color colServerComputed = ParseDebugColor( cl_bullet_debugger_hitbox_color_server_computed );
+		Color colPrediction		= ParseDebugColor( cl_bullet_debugger_hitbox_color_prediction );
+		Color colPredComputed	= ParseDebugColor( cl_bullet_debugger_hitbox_color_prediction_computed );
+		Color colMatch			= ParseDebugColor( cl_bullet_debugger_hitbox_color_match );
 
 		if ( bAnyMismatch )
 		{
@@ -2856,7 +2856,7 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 				player->DrawHitboxes( predBones, predBoneAngles, nPredBones, predBoneMap, flDuration, colPrediction );
 			}
 
-			if ( bHasPred && bShowRendering )
+			if ( bHasPred && bShowPredictionComputed )
 			{
 				player->DrawHitboxes( predComputedBones,
 									  predComputedBoneAngles,
@@ -2911,12 +2911,13 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 	Vector maxs( flBulletRadius );
 	int srvTickbase = event->GetInt( "tickbase" );
 	int srvBullet	= event->GetInt( "bullet" );
+	int srvTraceIter = event->GetInt( "trace_iteration" );
 
 	BulletTraceRecord* pPredTrace = nullptr;
 	for ( int i = 0; i < m_BulletTraceTrack.m_nFilled; i++ )
 	{
 		BulletTraceRecord* rec = m_BulletTraceTrack.Get( i );
-		if ( rec && rec->m_nAttackerTickBase == srvTickbase && rec->m_nBullet == srvBullet )
+		if ( rec && rec->m_nAttackerTickBase == srvTickbase && rec->m_nBullet == srvBullet && rec->m_nTraceIteration == srvTraceIter)
 		{
 			pPredTrace = rec;
 			break;
@@ -2931,12 +2932,12 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 		bTraceMatch	  = ( srcDiff <= flTolerance && dstDiff <= flTolerance );
 	}
 
-	Color colBulletServer	  = ParseDebugColor( cl_debug_hitbox_bullet_color_server );
-	Color colBulletPrediction = ParseDebugColor( cl_debug_hitbox_bullet_color_prediction );
+	Color colBulletServer	  = ParseDebugColor( cl_bullet_debugger_trace_color_server );
+	Color colBulletPrediction = ParseDebugColor( cl_bullet_debugger_trace_color_prediction );
 
 	if ( bTraceMatch )
 	{
-		Color colMatch = ParseDebugColor( cl_debug_hitbox_color_match );
+		Color colMatch = ParseDebugColor( cl_bullet_debugger_hitbox_color_match );
 		DrawBullet( srvSrc, srvDst, mins, maxs, colMatch.r(), colMatch.g(), colMatch.b(), colMatch.a(), flDuration );
 		char buf[256];
 		V_sprintf_safe( buf,
@@ -2974,6 +2975,16 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 						pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : -1.f,
 						pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : -1.f );
 		NDebugOverlay::EntityTextAtPosition( srvDst, 0, buf, flDuration, 255, 0, 0, 255 );
+	}
+
+	float srcDiff = pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : 0.f;
+	float dstDiff = pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : 0.f;
+
+	// Update HUD with trace result
+	CHudBulletDebugger* pHud = ( CHudBulletDebugger* )GET_HUDELEMENT( CHudBulletDebugger );
+	if ( pHud )
+	{
+		pHud->UpdateTraceResult( bTraceMatch, srcDiff, dstDiff );
 	}
 }
 

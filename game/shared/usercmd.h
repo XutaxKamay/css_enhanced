@@ -94,7 +94,7 @@ public:
 			simulationdata[i] = {};
 		}
 #endif
-		debug_hitboxes = DEBUG_HITBOXES_OFF;
+		debug_flags = DEBUG_FLAG_NONE;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact.RemoveAll();
 #endif
@@ -124,7 +124,7 @@ public:
 			simulationdata[i] = src.simulationdata[i];
 		}
 #endif
-		debug_hitboxes = src.debug_hitboxes;
+		debug_flags = src.debug_flags;
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 		entitygroundcontact = src.entitygroundcontact;
 #endif
@@ -155,7 +155,7 @@ public:
 #ifdef USERCMD_DEBUG_SIMULATION_DATA
 		CRC32_ProcessBuffer( &crc, simulationdata, sizeof( simulationdata ) );
 #endif
-		CRC32_ProcessBuffer( &crc, &debug_hitboxes, sizeof( debug_hitboxes ) );
+		CRC32_ProcessBuffer( &crc, &debug_flags, sizeof( debug_flags ) );
 		CRC32_ProcessBuffer( &crc, &interpolated_amount_frac, sizeof( interpolated_amount_frac ) );
 		CRC32_ProcessBuffer( &crc, &snapshot_tickcount, sizeof( snapshot_tickcount ) );
 		CRC32_Final( &crc );
@@ -198,14 +198,14 @@ public:
 	SimulationData simulationdata[MAX_EDICTS];
 #endif
 
-	enum debug_hitboxes_t : uint8
+	enum debug_flags_t : uint8
 	{
-		DEBUG_HITBOXES_OFF              = 0,
-		DEBUG_HITBOXES_SHOW_FIRE        = 1 << 0,
-		DEBUG_HITBOXES_SHOW_HIT         = 1 << 1
+		DEBUG_FLAG_NONE              = 0,
+		DEBUG_FLAG_FIRE        = 1 << 0,
+		DEBUG_FLAG_HIT         = 1 << 1
 	};
 
-	uint8 debug_hitboxes;
+	uint8 debug_flags;
 
 	// TODO_ENHANCED: check README_ENHANCED in host.cpp!
 	float interpolated_amount_frac;

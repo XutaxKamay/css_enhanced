@@ -418,6 +418,8 @@ private:
 		Vector m_vecMaxs;
 		int m_nAttackerTickBase;
 		int m_nBullet;
+		int m_nTraceIteration;
+		bool m_bPenetrated;
 	};
 
 	using bullet_trace_track_t = CUtlCircularBuffer< BulletTraceRecord, MAX_HISTORY_HITBOX_RECORDS >;
@@ -455,7 +457,7 @@ private:
   private:
 	void RestoreStateFromRecord( const HitboxRecord& record );
 	void ForceSetupBones( CStudioHdr* pHdr, Vector outPositions[MAXSTUDIOBONES], QAngle outAngles[MAXSTUDIOBONES], int& outNumBones, int outBoneMap[MAXSTUDIOBONES], const char* debugContext );
-	void ProcessDebugHitboxEvent( IGameEvent* event, float flDuration, float flTolerance, bool bShowOverlays, bool bShowPrediction, bool bShowServer, bool bShowRendering, bool bShowOnlyOnError );
+	void ProcessDebugHitboxEvent( IGameEvent* event, float flDuration, float flTolerance, bool bShowOverlays, bool bShowPrediction, bool bShowServer, bool bShowPredictionComputed, bool bShowOnlyOnError );
 	void ProcessDebugBulletImpact( IGameEvent* event, float flDuration, float flTolerance, bool bShowBulletTraces );
 
   public:

@@ -1,5 +1,5 @@
-#ifndef HUD_LAGCOMP_DEBUG_H
-#define HUD_LAGCOMP_DEBUG_H
+#ifndef HUD_BULLET_DEBUGGER_H
+#define HUD_BULLET_DEBUGGER_H
 
 #include "hudelement.h"
 #include <vgui_controls/Panel.h>
@@ -32,7 +32,7 @@ struct DebugPlayerState
 	int m_hitboxBoneIndexes[MAXSTUDIOBONES];
 };
 
-struct LagCompDebugEntry
+struct BulletDebugEntry
 {
 	int playerIndex;
 	char playerName[64];
@@ -56,33 +56,41 @@ struct LagCompDebugEntry
 	int nSrvPredComputedBonesDiffs;
 	int nSrvComputedPredComputedBonesDiffs;
 
+	// Bullet trace matching
+	bool bHasBulletTrace;
+	bool bBulletTraceMatch;
+	float flTraceSrcDiff;
+	float flTraceDstDiff;
+
 	CUtlVector< CUtlString > mismatchDetails;
 };
 
-class CHudLagCompDebug : public CHudElement,
+class CHudBulletDebugger : public CHudElement,
 						 public vgui::Panel
 {
-	DECLARE_CLASS_SIMPLE( CHudLagCompDebug, vgui::Panel );
+	DECLARE_CLASS_SIMPLE( CHudBulletDebugger, vgui::Panel );
 
   public:
-	CHudLagCompDebug( const char* pElementName );
+	CHudBulletDebugger( const char* pElementName );
+	~CHudBulletDebugger();
 
 	void Init( void );
 	void Reset( void );
 	bool ShouldDraw( void );
 
-	void SetEntry( const LagCompDebugEntry& entry );
+	void SetEntry( const BulletDebugEntry& entry );
+	void UpdateTraceResult( bool bMatch, float srcDiff, float dstDiff );
 	void ClearEntry( void );
 
   private:
 	void Paint();
 	void ApplySchemeSettings( vgui::IScheme* pScheme );
 
-	LagCompDebugEntry m_Entry;
+	BulletDebugEntry m_Entry;
 	vgui::HFont m_hFont;
 	vgui::HFont m_hFontSmall;
 };
 
-DECLARE_HUDELEMENT( CHudLagCompDebug );
+DECLARE_HUDELEMENT( CHudBulletDebugger );
 
-#endif // HUD_LAGCOMP_DEBUG_H
+#endif // HUD_BULLET_DEBUGGER_H
