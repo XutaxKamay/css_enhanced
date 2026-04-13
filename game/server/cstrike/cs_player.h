@@ -733,7 +733,7 @@ public:
 	CNetworkVar( bool, m_bDetected );
 
 private:
-	CountdownTimer m_ladderSurpressionTimer;
+	float m_ladderSurpressionTimer;
 	Vector m_lastLadderNormal;
 	Vector m_lastLadderPos;
 

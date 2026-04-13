@@ -964,7 +964,7 @@ void CCSPlayer::OnLand( float fVelocity )
 */
 void CCSPlayer::SurpressLadderChecks( const Vector& pos, const Vector& normal )
 {
-	m_ladderSurpressionTimer.Start( 1.0f );
+	m_ladderSurpressionTimer = gpGlobals->curtime + 1.0f;
 	m_lastLadderPos = pos;
 	m_lastLadderNormal = normal;
 }
@@ -979,7 +979,7 @@ void CCSPlayer::SurpressLadderChecks( const Vector& pos, const Vector& normal )
 */
 bool CCSPlayer::CanGrabLadder( const Vector& pos, const Vector& normal )
 {
-	if ( m_ladderSurpressionTimer.GetRemainingTime() <= 0.0f )
+	if ( gpGlobals->curtime >= m_ladderSurpressionTimer )
 	{
 		return true;
 	}
