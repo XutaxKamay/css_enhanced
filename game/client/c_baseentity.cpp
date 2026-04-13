@@ -1936,11 +1936,6 @@ void C_BaseEntity::PreDataUpdate( DataUpdateType_t updateType )
 {
 	VPROF( "C_BaseEntity::PreDataUpdate" );
 
-	if ( updateType == DATA_UPDATE_CREATED )
-	{
-		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
-	}
-
 	// Register for an OnDataChanged call and call OnPreDataChanged().
 	if ( AddDataChangeEvent( this, updateType, &m_DataChangeEventRef ) )
 	{
@@ -2383,6 +2378,11 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	MDLCACHE_CRITICAL_SECTION();
 
 	PREDICTION_TRACKVALUECHANGESCOPE_ENTITY( this, "postdataupdate" );
+
+	if ( updateType == DATA_UPDATE_CREATED )
+	{
+		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
+	}
 
 	// NOTE: This *has* to happen first. Otherwise, Origin + angles may be wrong 
 	if ( m_nRenderFX == kRenderFxRagdoll && updateType == DATA_UPDATE_CREATED )

@@ -340,130 +340,139 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		*s = '\0';
 	}
 
-	if (FStrEq(szKeyName, "basevelocity"))
+	// TODO_ENHANCED: this is a dirty trick, basically every networked entities have already those sets by server and
+	// they are sent, we ignore to avoid conflicts, we're only interesing in datamaps for the client
+#ifdef CLIENT_DLL
+	if ( IsClientCreated() )
 	{
-		Vector vecOrigin;
-		UTIL_StringToVector( vecOrigin.Base(), szValue );
-
-		SetBaseVelocity( vecOrigin );
-	}
-
-	if ( FStrEq( szKeyName, "rendercolor" ) || FStrEq( szKeyName, "rendercolor32" ))
-	{
-		color32 tmp;
-		UTIL_StringToColor32( &tmp, szValue );
-		SetRenderColor( tmp.r, tmp.g, tmp.b );
-		// don't copy alpha, legacy support uses renderamt
-		return true;
-	}
-	
-	if ( FStrEq( szKeyName, "renderamt" ) )
-	{
-		SetRenderColorA( atoi( szValue ) );
-		return true;
-	}
-
-	if ( FStrEq( szKeyName, "disableshadows" ))
-	{
-		int val = atoi( szValue );
-		if (val)
+#endif
+		if ( FStrEq( szKeyName, "basevelocity" ) )
 		{
-			AddEffects( EF_NOSHADOW );
-		}
-		return true;
-	}
+			Vector vecBaseVelocity;
+			UTIL_StringToVector( vecBaseVelocity.Base(), szValue );
 
-	if ( FStrEq( szKeyName, "mins" ))
-	{
-		Vector mins;
-		UTIL_StringToVector( mins.Base(), szValue );
-		CollisionProp()->SetCollisionBounds( mins, CollisionProp()->OBBMaxs() );
-		return true;
-	}
-
-	if ( FStrEq( szKeyName, "maxs" ))
-	{
-		Vector maxs;
-		UTIL_StringToVector( maxs.Base(), szValue );
-		CollisionProp()->SetCollisionBounds( CollisionProp()->OBBMins(), maxs );
-		return true;
-	}
-
-	if ( FStrEq( szKeyName, "disablereceiveshadows" ))
-	{
-		int val = atoi( szValue );
-		if (val)
-		{
-			AddEffects( EF_NORECEIVESHADOW );
-		}
-		return true;
-	}
-
-	if ( FStrEq( szKeyName, "nodamageforces" ))
-	{
-		int val = atoi( szValue );
-		if (val)
-		{
-			AddEFlags( EFL_NO_DAMAGE_FORCES );
-		}
-		return true;
-	}
-
-	// Fix up single angles
-	if( FStrEq( szKeyName, "angle" ) )
-	{
-		static char szBuf[64];
-
-		float y = atof( szValue );
-		if (y >= 0)
-		{
-			Q_snprintf( szBuf,sizeof(szBuf), "%f %f %f", GetLocalAngles()[0], y, GetLocalAngles()[2] );
-		}
-		else if ((int)y == -1)
-		{
-			Q_strncpy( szBuf, "-90 0 0", sizeof(szBuf) );
-		}
-		else
-		{
-			Q_strncpy( szBuf, "90 0 0", sizeof(szBuf) );
+			SetBaseVelocity( vecBaseVelocity );
+			return true;
 		}
 
-		// Do this so inherited classes looking for 'angles' don't have to bother with 'angle'
-		return KeyValue( "angles", szBuf );
-	}
+		if ( FStrEq( szKeyName, "rendercolor" ) || FStrEq( szKeyName, "rendercolor32" ) )
+		{
+			color32 tmp;
+			UTIL_StringToColor32( &tmp, szValue );
+			SetRenderColor( tmp.r, tmp.g, tmp.b );
+			// don't copy alpha, legacy support uses renderamt
+			return true;
+		}
 
-	// NOTE: Have to do these separate because they set two values instead of one
-	if( FStrEq( szKeyName, "angles" ) )
-	{
-		QAngle angles;
-		UTIL_StringToVector( angles.Base(), szValue );
+		if ( FStrEq( szKeyName, "renderamt" ) )
+		{
+			SetRenderColorA( atoi( szValue ) );
+			return true;
+		}
 
-		// If you're hitting this assert, it's probably because you're
-		// calling SetLocalAngles from within a KeyValues method.. use SetAbsAngles instead!
-		Assert( (GetMoveParent() == NULL) && !IsEFlagSet( EFL_DIRTY_ABSTRANSFORM ) );
-		SetAbsAngles( angles );
-		return true;
-	}
+		if ( FStrEq( szKeyName, "disableshadows" ) )
+		{
+			int val = atoi( szValue );
+			if ( val )
+			{
+				AddEffects( EF_NOSHADOW );
+			}
+			return true;
+		}
 
-	if( FStrEq( szKeyName, "origin" ) )
-	{
-		Vector vecOrigin;
-		UTIL_StringToVector( vecOrigin.Base(), szValue );
+		if ( FStrEq( szKeyName, "mins" ) )
+		{
+			Vector mins;
+			UTIL_StringToVector( mins.Base(), szValue );
+			CollisionProp()->SetCollisionBounds( mins, CollisionProp()->OBBMaxs() );
+			return true;
+		}
 
-		// If you're hitting this assert, it's probably because you're
-		// calling SetLocalOrigin from within a KeyValues method.. use SetAbsOrigin instead!
-		Assert( (GetMoveParent() == NULL) && !IsEFlagSet( EFL_DIRTY_ABSTRANSFORM ) );
-		SetAbsOrigin( vecOrigin );
-		return true;
+		if ( FStrEq( szKeyName, "maxs" ) )
+		{
+			Vector maxs;
+			UTIL_StringToVector( maxs.Base(), szValue );
+			CollisionProp()->SetCollisionBounds( CollisionProp()->OBBMins(), maxs );
+			return true;
+		}
+
+		if ( FStrEq( szKeyName, "disablereceiveshadows" ) )
+		{
+			int val = atoi( szValue );
+			if ( val )
+			{
+				AddEffects( EF_NORECEIVESHADOW );
+			}
+			return true;
+		}
+
+		if ( FStrEq( szKeyName, "nodamageforces" ) )
+		{
+			int val = atoi( szValue );
+			if ( val )
+			{
+				AddEFlags( EFL_NO_DAMAGE_FORCES );
+			}
+			return true;
+		}
+
+		// Fix up single angles
+		if ( FStrEq( szKeyName, "angle" ) )
+		{
+			static char szBuf[64];
+
+			float y = atof( szValue );
+			if ( y >= 0 )
+			{
+				Q_snprintf( szBuf, sizeof( szBuf ), "%f %f %f", GetLocalAngles()[0], y, GetLocalAngles()[2] );
+			}
+			else if ( ( int )y == -1 )
+			{
+				Q_strncpy( szBuf, "-90 0 0", sizeof( szBuf ) );
+			}
+			else
+			{
+				Q_strncpy( szBuf, "90 0 0", sizeof( szBuf ) );
+			}
+
+			// Do this so inherited classes looking for 'angles' don't have to bother with 'angle'
+			return KeyValue( "angles", szBuf );
+		}
+
+		// NOTE: Have to do these separate because they set two values instead of one
+		if ( FStrEq( szKeyName, "angles" ) )
+		{
+			QAngle angles;
+			UTIL_StringToVector( angles.Base(), szValue );
+
+			// If you're hitting this assert, it's probably because you're
+			// calling SetLocalAngles from within a KeyValues method.. use SetAbsAngles instead!
+			Assert( ( GetMoveParent() == NULL ) && !IsEFlagSet( EFL_DIRTY_ABSTRANSFORM ) );
+			SetAbsAngles( angles );
+			return true;
+		}
+
+		if ( FStrEq( szKeyName, "origin" ) )
+		{
+			Vector vecOrigin;
+			UTIL_StringToVector( vecOrigin.Base(), szValue );
+
+			// If you're hitting this assert, it's probably because you're
+			// calling SetLocalOrigin from within a KeyValues method.. use SetAbsOrigin instead!
+			Assert( ( GetMoveParent() == NULL ) && !IsEFlagSet( EFL_DIRTY_ABSTRANSFORM ) );
+			SetAbsOrigin( vecOrigin );
+			return true;
+		}
+
+		if ( FStrEq( szKeyName, "targetname" ) )
+		{
+			m_iName = AllocPooledString( szValue );
+			return true;
+		}
+
+#ifdef CLIENT_DLL
 	}
-	
-// #ifdef GAME_DLL
-	if ( FStrEq( szKeyName, "targetname" ) )
-	{
-		m_iName = AllocPooledString( szValue );
-		return true;
-	}
-// #endif
+#endif
 
 	// loop through the data description, and try and place the keys in
 	if ( !*ent_debugkeys.GetString() )
