@@ -1760,7 +1760,7 @@ BEGIN_DATADESC_NO_BASE( CBaseEntity )
 	DEFINE_KEYFIELD( m_flSpeed, FIELD_FLOAT, "speed" ),
 	DEFINE_KEYFIELD( m_nRenderFX, FIELD_CHARACTER, "renderfx" ),
 	DEFINE_KEYFIELD( m_nRenderMode, FIELD_CHARACTER, "rendermode" ),
-	DEFINE_FIELD( m_flSimulationTime, FIELD_TIME ),
+//	DEFINE_FIELD( m_flSimulationTime, FIELD_TIME ),
 	DEFINE_FIELD( m_nLastThinkTick, FIELD_TICK ),
 
 	DEFINE_KEYFIELD( m_nNextThinkTick, FIELD_TICK, "nextthink" ),

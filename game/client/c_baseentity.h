@@ -146,6 +146,8 @@ struct thinkfunc_t
 	string_t	m_iszContext;
 	int			m_nNextThinkTick;
 	int			m_nLastThinkTick;
+
+	DECLARE_SIMPLE_DATADESC();
 };
 
 #define CREATE_PREDICTED_ENTITY( className )	\
@@ -233,7 +235,12 @@ public:
 	virtual C_BaseAnimating*		GetBaseAnimating() { return NULL; }
 	virtual void					SetClassname( const char *className );
 
-	string_t						m_iClassname;
+	// members
+	string_t m_iClassname;  // identifier for entity creation and save/restore
+	string_t m_iGlobalname; // identifier for carrying entity across level transitions
+	string_t m_iParent;	// the name of the entities parent; linked into m_pParent during Activate()
+
+	int		m_iHammerID; // Hammer unique edit id number
 
 // IClientUnknown overrides.
 public:

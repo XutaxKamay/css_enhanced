@@ -605,6 +605,16 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 #endif
 END_PREDICTION_DATA()
 
+
+BEGIN_SIMPLE_DATADESC( thinkfunc_t )
+
+	DEFINE_FIELD( m_iszContext,	FIELD_STRING ),
+	// DEFINE_FIELD( m_pfnThink,		FIELD_FUNCTION ),		// Manually written
+	DEFINE_FIELD( m_nNextThinkTick,	FIELD_TICK	),
+	DEFINE_FIELD( m_nLastThinkTick,	FIELD_TICK	),
+
+END_DATADESC()
+
 //-----------------------------------------------------------------------------
 // Global methods related to when abs data is correct
 //-----------------------------------------------------------------------------
@@ -5728,6 +5738,10 @@ bool C_BaseEntity::IsFloating()
 
 
 BEGIN_DATADESC_NO_BASE( C_BaseEntity )
+	DEFINE_KEYFIELD( m_iClassname, FIELD_STRING, "classname" ),
+	DEFINE_GLOBAL_KEYFIELD( m_iGlobalname, FIELD_STRING, "globalname" ),
+	DEFINE_KEYFIELD( m_iParent, FIELD_STRING, "parentname" ),
+	DEFINE_KEYFIELD( m_iHammerID, FIELD_INTEGER, "hammerid" ), // save ID numbers so that entities can be tracked between save/restore and vmf
 	DEFINE_FIELD( m_ModelName, FIELD_STRING ),
 	DEFINE_FIELD( m_vecAbsOrigin, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_angAbsRotation, FIELD_VECTOR ),
