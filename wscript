@@ -696,6 +696,8 @@ def build(bld):
 	if bld.env.DEST_OS == 'win32':
 		projects['game'] += ['utils/bzip2']
 		projects['dedicated'] += ['utils/bzip2']
+		libcurl_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, 'libcurl.dll')
+		bld.install_files(bld.env.LIBDIR, [libcurl_path])
 
 	if bld.env.OPUS or bld.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']
