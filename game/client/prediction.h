@@ -146,7 +146,7 @@ private:
 
     struct SavedTouch_t
 	{
-		int entityTouched;
+		int nEntityTouched;
 		int touchStamp;
 		int flags;
 	};
@@ -155,7 +155,7 @@ private:
 	{
 		CUtlVector< SavedTouch_t > savedTouches;
 		CUtlVector< EHANDLE > touchedTriggerEntities;
-		EHANDLE pEntity;
+		int nEntityIndex;
 	};
 
 	CUtlVector< TouchedHistory > m_TouchedHistory[MULTIPLAYER_BACKUP];

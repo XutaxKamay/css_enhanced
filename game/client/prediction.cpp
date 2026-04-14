@@ -1343,31 +1343,33 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	const auto bSaveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 	const auto& touchedHistory		  = m_TouchedHistory[slot];
 	const auto& hashMapEntities		  = g_pFastEntityLookUp->m_HashMapEntities;
+	const auto& entities			  = g_pFastEntityLookUp->m_Entities;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
 	CBaseEntity::sm_bDisableTouchFuncs = true;
 
 	for ( const auto& savedTouchList : touchedHistory )
 	{
-		const auto pEntity		 = savedTouchList.pEntity;
+		const auto pEntity		 = entities[ savedTouchList.nEntityIndex ];
 		const auto& savedTouches = savedTouchList.savedTouches;
 
-		if ( !pEntity.IsValid() )
+		// TODO_ENHANCED: there's a bug where an entity can be removed and give invalid entity pointer after round
+		// restart.
+
+		if ( !pEntity )
 		{
 			continue;
 		}
 
 		for ( const auto& savedTouched : savedTouches )
 		{
-			const auto hashMapEntityIndex = hashMapEntities.Find( savedTouched.entityTouched );
+			const auto pTouchedEntity = entities[ savedTouched.nEntityTouched ];
 
 			// Entity doesn't exist anymore, don't bother ...
-			if ( hashMapEntityIndex == hashMapEntities.InvalidIndex() )
+			if ( !pTouchedEntity )
 			{
 				continue;
 			}
-
-			const auto pTouchedEntity = hashMapEntities.Element( hashMapEntityIndex );
 
 			pEntity->PhysicsMarkEntityAsTouched( pTouchedEntity );
 			pTouchedEntity->PhysicsMarkEntityAsTouched( pEntity );
@@ -1413,8 +1415,8 @@ void CPrediction::StorePredictedTouched( int current_command )
 	{
 		const auto root = ( touchlink_t* )touchlinkAccessor->GetDataObject( pEntity );
 
-		auto& savedTouchList   = touchedHistory.Element( touchedHistory.AddToTail() );
-		savedTouchList.pEntity = pEntity;
+		auto& savedTouchList		= touchedHistory.Element( touchedHistory.AddToTail() );
+		savedTouchList.nEntityIndex = pEntity->entindex();
 
 		auto& savedTouches = savedTouchList.savedTouches;
 
@@ -1423,7 +1425,7 @@ void CPrediction::StorePredictedTouched( int current_command )
 			for ( auto link = root->nextLink; link != root; link = link->nextLink )
 			{
 				SavedTouch_t touch;
-				touch.entityTouched = link->entityTouched->index;
+				touch.nEntityTouched = link->entityTouched->index;
 				touch.touchStamp	= link->touchStamp;
 				touch.flags			= link->flags;
 				savedTouches.AddToTail( std::move( touch ) );
