@@ -20,6 +20,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#undef AddJob
+
 #define MASTERSERVER_HTTPS_HOST "cssserv.xutaxkamay.com"
 #define MASTERSERVER_HTTPS_PORT 27011
 #define MASTERSERVER_CLAN_DEFAULT_URL "https://" MASTERSERVER_HTTPS_HOST ":27011/clan/default/"

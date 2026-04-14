@@ -578,6 +578,7 @@ def configure(conf):
 		cflags += [
 			'/I'+os.path.abspath('.')+'/thirdparty/zlib',
 			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
+			'/I'+os.path.abspath('.')+'/thirdparty/curl/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
 			'/GF',
