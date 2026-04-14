@@ -82,7 +82,6 @@ def cleanup_files():
 def main():
     global passed, failed
 
-    # Clean state
     cleanup_files()
 
     # Start the server
@@ -108,9 +107,11 @@ def main():
     # Read API key from the DB
     import sqlite3
 
-    api_key = sqlite3.connect(DB_FILE).execute(
-        "SELECT value FROM config WHERE key = 'api_key'"
-    ).fetchone()[0]
+    api_key = (
+        sqlite3.connect(DB_FILE)
+        .execute("SELECT value FROM config WHERE key = 'api_key'")
+        .fetchone()[0]
+    )
 
     try:
         run_tests(api_key)
@@ -140,10 +141,10 @@ def run_tests(api_key):
     check("GET /clan/list (empty)", [], get("/clan/list"))
 
     r = post("/clan/create", {"tag": "Alpha"})
-    check("POST /clan/create Alpha", {"id": 1, "tag": "Alpha"}, r)
+    check("POST /clan_create Alpha", {"id": 1, "tag": "Alpha"}, r)
 
     r = post("/clan/create", {"tag": "Bravo"})
-    check("POST /clan/create Bravo", {"id": 2, "tag": "Bravo"}, r)
+    check("POST /clan_create Bravo", {"id": 2, "tag": "Bravo"}, r)
 
     r = get("/clan/list")
     check("GET /clan/list (2 clans)", 2, len(r))
@@ -151,13 +152,13 @@ def run_tests(api_key):
     check("GET /user/list (empty)", [], get("/user/list"))
 
     r = post("/user/create", {"name": "Alice"})
-    check("POST /user/create Alice (name)", "Alice", r["name"])
-    check("POST /user/create Alice (id)", 1, r["id"])
-    check("POST /user/create Alice (token len)", 48, len(r["token"]))
+    check("POST /user_create Alice (name)", "Alice", r["name"])
+    check("POST /user_create Alice (id)", 1, r["id"])
+    check("POST /user_create Alice (token len)", 48, len(r["token"]))
     alice_token = r["token"]
 
     r = post("/user/create", {"name": "Bob"})
-    check("POST /user/create Bob", "Bob", r["name"])
+    check("POST /user_create Bob", "Bob", r["name"])
     bob_token = r["token"]
 
     r = get("/user/list")
@@ -178,14 +179,8 @@ def run_tests(api_key):
     r = post("/user/clans/default", {"user_name": "Alice", "clan_tag": "Alpha"})
     check("Set Alice default -> Alpha", "ok", r["status"])
 
-    r = get(f"/clan/default/{alice_token}")
-    check("GET Alice default clan", "Alpha", r["tag"])
-
     r = post("/user/clans/default", {"user_name": "Bob", "clan_tag": "Alpha"})
     check("Set Bob default -> Alpha", "ok", r["status"])
-
-    r = get(f"/clan/default/{bob_token}")
-    check("GET Bob default clan", "Alpha", r["tag"])
 
     r = post("/user/clans/remove", {"user_name": "Alice", "clan_tag": "Bravo"})
     check("Remove Alice <- Bravo", "ok", r["status"])
@@ -202,7 +197,7 @@ def run_tests(api_key):
     r = post("/server/add", {"ip": "172.16.0.1"})
     check("Add server 172.16.0.1 (default port)", "ok", r["status"])
 
-    # ── UDP ───────────────────────────────────────────────
+    # ── UDP Server ───────────────────────────────────────
     print("\nUDP Server")
 
     header, msg_type, servers = udp_query()
@@ -245,8 +240,8 @@ def run_tests(api_key):
     r = get("/does/not/exist")
     check("Unknown GET path", "Not found", r["error"])
 
-    r = get("/clan/default/fake_token")
-    check("Default clan bad token", "No default clan", r["error"])
+    r = get("/clan/default/127.0.0.1/session123")
+    check("Unknown session", "Session not found", r.get("error"))
 
     r = post("/user/delete", {"name": "Nobody"})
     check("Delete unknown user", "User not found", r["error"])
@@ -275,6 +270,46 @@ def run_tests(api_key):
     r = get("/user/list")
     check("1 user remaining", 1, len(r))
     check("Remaining user is Alice", "Alice", r[0]["name"])
+
+    # ── Auth / Session ───────────────────────────────────
+    print("\nAuth / Session")
+
+    r = post("/user/create", {"name": "Charlie"})
+    check("POST /user_create Charlie", "Charlie", r["name"])
+    charlie_token = r["token"]
+
+    r = post("/clan/create", {"tag": "Delta"})
+    r = post("/user/clans/default", {"user_name": "Charlie", "clan_tag": "Delta"})
+
+    r = post("/server/add", {"ip": "127.0.0.1", "port": 27015})
+    check("Add localhost server", "ok", r.get("status"))
+
+    r = https_request("POST", "/auth", {"token": charlie_token})
+    check("POST /auth Charlie", "session_id" in r, True)
+    session_id = r.get("session_id")
+
+    client_ip = "127.0.0.1"
+    r = get(f"/clan/default/{client_ip}/{session_id}")
+    check("GET Charlie default clan", "Delta", r.get("tag"))
+
+    r = get(f"/clan/default/192.168.1.1/{session_id}")
+    check("Client IP mismatch", "Client IP mismatch", r.get("error"))
+
+    r = get(f"/clan/default/{client_ip}/invalidsession")
+    check("Invalid session", "Session not found", r.get("error"))
+
+    r = https_request("POST", "/auth", {"token": "bad_token"})
+    check("Invalid token", "Invalid token", r.get("error"))
+
+    r = https_request("POST", "/auth", {})
+    check("Missing token", "Token required", r.get("error"))
+
+    time.sleep(31)
+    r = get(f"/clan/default/{client_ip}/{session_id}")
+    check("Session expired", "Session expired", r.get("error"))
+
+    r = https_request("POST", "/auth", {"token": charlie_token})
+    check("Re-auth after expiry", "session_id" in r, True)
 
 
 if __name__ == "__main__":

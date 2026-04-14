@@ -2,7 +2,7 @@
 //
 // Purpose: Server-side masterserver HTTPS API client.
 //          Queries the masterserver to retrieve player information
-//          (e.g., default clan tag) using their masterserver token.
+//          (e.g., default clan tag) using their masterserver session id.
 //
 //=============================================================================//
 
@@ -81,7 +81,7 @@ static float s_flNextPollTime[MAX_PLAYERS + 1];
 struct ClanTagRequestParams_t
 {
 	int playerIndex;
-	char token[128];
+	char sessionID[128];
 };
 
 //-----------------------------------------------------------------------------
@@ -134,7 +134,7 @@ static uintp ClanTagWorkerThread( void *pParam )
 	}
 
 	char url[512];
-	Q_snprintf( url, sizeof( url ), "%s%s", MASTERSERVER_CLAN_DEFAULT_URL, req->token );
+	Q_snprintf( url, sizeof( url ), "%s%s", MASTERSERVER_CLAN_DEFAULT_URL, req->sessionID );
 
 	CurlWriteBuffer_t response;
 	response.pos = 0;
@@ -192,14 +192,14 @@ static uintp ClanTagWorkerThread( void *pParam )
 // Public API
 //-----------------------------------------------------------------------------
 
-void MasterServer_RequestDefaultClanTag( int playerIndex, const char *token )
+void MasterServer_RequestDefaultClanTag( int playerIndex, const char *sessionID )
 {
-	if ( !token || !token[0] || Q_strcmp( token, "0" ) == 0 )
+	if ( !sessionID || !sessionID[0] || Q_strcmp( sessionID, "0" ) == 0 )
 		return;
 
 	ClanTagRequestParams_t *req = new ClanTagRequestParams_t;
 	req->playerIndex = playerIndex;
-	Q_strncpy( req->token, token, sizeof( req->token ) );
+	Q_strncpy( req->sessionID, sessionID, sizeof( req->sessionID ) );
 
 	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( ClanTagWorkerThread, req ) ) );
 }
@@ -245,10 +245,10 @@ void MasterServer_SetDefaultClanTag( void )
 
 		s_flNextPollTime[i] = gpGlobals->curtime + MASTERSERVER_POLL_INTERVAL;
 
-		const char *pszToken = engine->GetClientConVarValue( i, "cl_masterserver_token" );
-		if ( pszToken && pszToken[0] && Q_strcmp( pszToken, "0" ) != 0 )
+		const char *pszSessionID = engine->GetClientConVarValue( i, "cl_masterserver_session_id" );
+		if ( pszSessionID && pszSessionID[0] && Q_strcmp( pszSessionID, "0" ) != 0 )
 		{
-			MasterServer_RequestDefaultClanTag( i, pszToken );
+			MasterServer_RequestDefaultClanTag( i, pszSessionID );
 		}
 	}
 }

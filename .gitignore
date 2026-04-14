@@ -48,3 +48,6 @@ masterserver/*.db
 masterserver/*.db-wal
 masterserver/*.db-shm
 masterserver/*.crt
+.qt*
+css_enhanced.*
+

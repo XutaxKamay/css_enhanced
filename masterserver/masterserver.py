@@ -7,6 +7,8 @@ import sqlite3
 import ssl
 import struct
 import threading
+import time
+
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from subprocess import run, DEVNULL
@@ -28,6 +30,14 @@ HTTPS_PORT = 27011
 CONNECTIONLESS_HEADER = 0xFFFFFFFF
 C2M_CLIENTQUERY = 0x31
 M2C_QUERY = 0x4A
+
+SESSION_TIMEOUT = 30  # 30 seconds
+
+# ---------------------------------------------------------------------------
+# Session store  (session_id -> {user_id, client_ip, timestamp})
+# ---------------------------------------------------------------------------
+
+_sessions = {}  # session_id -> {user_id, client_ip, timestamp}
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -96,6 +106,7 @@ def load_api_key():
 # Lookup helpers
 # ---------------------------------------------------------------------------
 
+
 def find_user_id(conn, name=None, user_id=None):
     if user_id:
         return user_id
@@ -125,20 +136,36 @@ def parse_ip(ip_string):
 # TLS certificate
 # ---------------------------------------------------------------------------
 
+
 def generate_certificate():
     if os.path.exists(CERT_FILE):
         return
     run(
-        ["openssl", "req", "-x509", "-newkey", "rsa:2048",
-         "-keyout", KEY_FILE, "-out", CERT_FILE,
-         "-days", "365", "-nodes", "-subj", "/CN=localhost"],
-        stdout=DEVNULL, stderr=DEVNULL,
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-keyout",
+            KEY_FILE,
+            "-out",
+            CERT_FILE,
+            "-days",
+            "365",
+            "-nodes",
+            "-subj",
+            "/CN=localhost",
+        ],
+        stdout=DEVNULL,
+        stderr=DEVNULL,
     )
 
 
 # ---------------------------------------------------------------------------
 # UDP game-server browser  (payload is pre-built, only rebuilt on changes)
 # ---------------------------------------------------------------------------
+
 
 class UDPServer:
     def __init__(self):
@@ -172,6 +199,7 @@ udp_server = None
 
 # ---- GET -----------------------------------------------------------------
 
+
 def get_clan_list(handler, conn, path, data):
     rows = conn.execute("SELECT id, tag FROM clans").fetchall()
     handler.json_response(200, [{"id": r[0], "tag": r[1]} for r in rows])
@@ -179,17 +207,51 @@ def get_clan_list(handler, conn, path, data):
 
 def get_user_list(handler, conn, path, data):
     rows = conn.execute("SELECT id, token, name, default_clan FROM users").fetchall()
-    handler.json_response(200, [
-        {"id": r[0], "token": r[1], "name": r[2], "default_clan": r[3]}
-        for r in rows
-    ])
+    handler.json_response(
+        200,
+        [{"id": r[0], "token": r[1], "name": r[2], "default_clan": r[3]} for r in rows],
+    )
 
 
 def get_clan_default(handler, conn, path, data):
-    token = path.split("/")[-1]
+    parts = path.rstrip("/").split("/")
+    if len(parts) != 5:
+        return handler.json_error(
+            400, "Invalid path format, expected /clan/default/{client_ip}/{session_id}"
+        )
+
+    client_ip = parts[-2]
+    session_id = parts[-1]
+
+    now = time.time()
+
+    session = _sessions.get(session_id)
+    if not session:
+        return handler.json_error(404, "Session not found")
+
+    if now - session["timestamp"] > SESSION_TIMEOUT:
+        del _sessions[session_id]
+        return handler.json_error(401, "Session expired")
+
+    if session["client_ip"] != client_ip:
+        return handler.json_error(403, "Client IP mismatch")
+
+    server_ip = handler.client_address[0]
+    server_ip_int = parse_ip(server_ip)
+    if server_ip_int is None:
+        return handler.json_error(400, "Invalid server IP")
+
+    row = conn.execute(
+        "SELECT ip FROM servers WHERE ip = ?", (server_ip_int,)
+    ).fetchone()
+    if not row:
+        return handler.json_error(403, "Server not authorized")
+
+    user_id = session["user_id"]
     row = conn.execute(
         "SELECT c.tag FROM users u LEFT JOIN clans c ON u.default_clan = c.id "
-        "WHERE u.token = ?", (token,),
+        "WHERE u.id = ?",
+        (user_id,),
     ).fetchone()
     if row and row[0]:
         handler.json_response(200, {"tag": row[0]})
@@ -198,6 +260,7 @@ def get_clan_default(handler, conn, path, data):
 
 
 # ---- POST ----------------------------------------------------------------
+
 
 def post_clan_create(handler, conn, path, data):
     tag = data.get("tag")
@@ -213,7 +276,9 @@ def post_clan_delete(handler, conn, path, data):
     key = data.get("tag") or data.get("clan_tag") or data.get("id")
     if not key:
         return handler.json_error(400, "Clan id or tag required")
-    row = conn.execute("SELECT id FROM clans WHERE tag = ? OR id = ?", (key, key)).fetchone()
+    row = conn.execute(
+        "SELECT id FROM clans WHERE tag = ? OR id = ?", (key, key)
+    ).fetchone()
     if not row:
         return handler.json_error(404, "Clan not found")
     conn.execute("DELETE FROM user_clans WHERE clan_id = ?", (row[0],))
@@ -237,7 +302,9 @@ def post_user_delete(handler, conn, path, data):
     key = data.get("name") or data.get("user_name") or data.get("id")
     if not key:
         return handler.json_error(400, "User id or name required")
-    row = conn.execute("SELECT id FROM users WHERE name = ? OR id = ?", (key, key)).fetchone()
+    row = conn.execute(
+        "SELECT id FROM users WHERE name = ? OR id = ?", (key, key)
+    ).fetchone()
     if not row:
         return handler.json_error(404, "User not found")
     conn.execute("DELETE FROM user_clans WHERE user_id = ?", (row[0],))
@@ -274,7 +341,9 @@ def post_user_clans_default(handler, conn, path, data):
     user_id = find_user_id(conn, data.get("user_name")) or data.get("user_id")
     clan_id = find_clan_id(conn, data.get("clan_tag")) or data.get("clan_id")
     if user_id and clan_id:
-        conn.execute("UPDATE users SET default_clan = ? WHERE id = ?", (clan_id, user_id))
+        conn.execute(
+            "UPDATE users SET default_clan = ? WHERE id = ?", (clan_id, user_id)
+        )
         conn.commit()
     handler.json_response(200, {"status": "ok"})
 
@@ -309,6 +378,31 @@ def post_server_delete(handler, conn, path, data):
     handler.json_response(200, {"status": "ok"})
 
 
+def post_auth(handler, conn, path, data):
+    token = data.get("token")
+    if not token:
+        return handler.json_error(400, "Token required")
+
+    row = conn.execute("SELECT id FROM users WHERE token = ?", (token,)).fetchone()
+    if not row:
+        return handler.json_error(401, "Invalid token")
+
+    user_id = row[0]
+    client_ip = handler.client_address[0]
+
+    session_id = secrets.token_hex(16)
+
+    _sessions[session_id] = {
+        "user_id": user_id,
+        "client_ip": client_ip,
+        "timestamp": time.time(),
+    }
+
+    log(f"[INFO] Created session {session_id} for user {user_id} from {client_ip}")
+
+    handler.json_response(200, {"session_id": session_id})
+
+
 # ---------------------------------------------------------------------------
 # Route tables  —  add new endpoints here
 # ---------------------------------------------------------------------------
@@ -323,20 +417,22 @@ GET_PREFIX_ROUTES = {
 }
 
 POST_ROUTES = {
-    "/clan/create":        post_clan_create,
-    "/clan/delete":        post_clan_delete,
-    "/user/create":        post_user_create,
-    "/user/delete":        post_user_delete,
-    "/user/clans/add":     post_user_clans_add,
-    "/user/clans/remove":  post_user_clans_remove,
+    "/clan/create": post_clan_create,
+    "/clan/delete": post_clan_delete,
+    "/user/create": post_user_create,
+    "/user/delete": post_user_delete,
+    "/user/clans/add": post_user_clans_add,
+    "/user/clans/remove": post_user_clans_remove,
     "/user/clans/default": post_user_clans_default,
-    "/server/add":         post_server_add,
-    "/server/delete":      post_server_delete,
+    "/server/add": post_server_add,
+    "/server/delete": post_server_delete,
+    "/auth": post_auth,
 }
 
 # ---------------------------------------------------------------------------
 # HTTP request handler & threaded server
 # ---------------------------------------------------------------------------
+
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
@@ -377,8 +473,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length > 0 else b""
         data = json.loads(body.decode()) if body else {}
 
-        if data.get("api_key") != _api_key:
-            return self.json_error(401, "Invalid API key")
+        if path != "/auth":
+            if data.get("api_key") != _api_key:
+                return self.json_error(401, "Invalid API key")
 
         handler = POST_ROUTES.get(path)
         if handler:
@@ -390,6 +487,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main():
     global udp_server

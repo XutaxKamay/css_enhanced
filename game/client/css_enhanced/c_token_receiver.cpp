@@ -3,6 +3,7 @@
 #include "convar.h"
 #include "checksum_crc.h"
 #include "tier0/threadtools.h"
+#include "mathlib/mathlib.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -27,9 +28,14 @@ typedef int socklen_t;
 #define TOKEN_MAX_LENGTH	128
 
 static ConVar cl_masterserver_token( "cl_masterserver_token",
-									 "0",
-									 FCVAR_ARCHIVE | FCVAR_USERINFO,
-									 "Master server token for clan identification" );
+									 "",
+									 FCVAR_ARCHIVE,
+									 "Master server token for authentification" );
+
+static ConVar cl_masterserver_session_id( "cl_masterserver_session_id",
+										  "",
+										  FCVAR_ARCHIVE | FCVAR_USERINFO,
+										  "Master server session for identification to servers" );
 
 CTokenReceiver g_TokenReceiver;
 
