@@ -2443,15 +2443,6 @@ void CTriggerTeleport::Touch( CBaseEntity *pOther )
 
     tmp += vecLandmarkOffset;
 
-    auto player = dynamic_cast<CBasePlayer*>(pOther);
-
-    // TODO_ENHANCED: There's better way to do this with fixangle ...
-    // So we can enforce server angles ...
-    if (player)
-    {
-        pAngles = NULL;
-    }
-
     pOther->Teleport(&tmp, pAngles, pVelocity);
 }
 

@@ -244,7 +244,9 @@ END_RECV_TABLE()
 
 		RecvPropInt			( RECVINFO( m_nWaterLevel ) ),
 		RecvPropFloat		( RECVINFO( m_flLaggedMovementValue )),
-		RecvPropVector(RECVINFO(m_vecPreviouslyPredictedOrigin))
+		RecvPropVector		( RECVINFO( m_vecPreviouslyPredictedOrigin ) ),
+		RecvPropQAngles		( RECVINFO( m_angTeleportAngle ) ),
+		RecvPropBool		( RECVINFO( m_bTeleportedThisTick ) )
 END_RECV_TABLE()
 
 	
@@ -392,6 +394,8 @@ BEGIN_PREDICTION_DATA( C_BasePlayer )
 
 	DEFINE_FIELD( m_surfaceFriction, FIELD_FLOAT ),
 
+	DEFINE_PRED_FIELD_TOL( m_angTeleportAngle, FIELD_VECTOR, FTYPEDESC_INSENDTABLE, coordTolerance ),
+	DEFINE_PRED_FIELD( m_bTeleportedThisTick, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 END_PREDICTION_DATA()
 
 LINK_ENTITY_TO_CLASS( player, C_BasePlayer );

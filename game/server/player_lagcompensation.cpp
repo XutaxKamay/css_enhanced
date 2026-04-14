@@ -33,6 +33,7 @@
 ConVar sv_unlag( "sv_unlag", "1", 0, "Enables entity lag compensation" );
 // Enable by default to avoid some bugs.
 ConVar sv_lagflushbonecache( "sv_lagflushbonecache", "1", 0, "Flushes entity bone cache on lag compensation" );
+ConVar sv_unlag_teleport_check("sv_unlag_teleport_check", "1", 0, "Should lag compensation work even if a player teleported or not ?");
 constexpr auto MAX_UNLAG_TICKS = 128; // 1 second almost
 
 //-----------------------------------------------------------------------------
@@ -416,6 +417,14 @@ void CLagCompensationManager::TrackEntity( CBaseEntity* pEntity )
 
 	auto pLagTrack = &m_EntityTrack[index];
 	auto pRecord   = &pLagTrack->m_RecordReferenced;
+
+	auto pPlayer = dynamic_cast< CBasePlayer* >( pEntity );
+
+	// If we teleported, clear once
+	if ( pPlayer->m_bTeleportedThisTick && sv_unlag_teleport_check.GetBool() )
+	{
+		pLagTrack->ClearHistory();
+	}
 
 	pRecord->m_nSimulatedTickCount = pEntity->m_nSimulatedTickCount;
 	pRecord->m_angLocalAngles	   = pEntity->GetLocalAngles();

@@ -905,6 +905,8 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	gpGlobals->frametime	= m_bEnginePaused ? 0 : TICK_INTERVAL;
 	gpGlobals->curtime		= player->m_nTickBase * TICK_INTERVAL;
 
+	player->m_bTeleportedThisTick = false;
+
     StartCommand( player, ucmd );
 
     g_pGameMovement->StartTrackPredictionErrors( player );
@@ -1350,7 +1352,10 @@ void CPrediction::RestorePredictedTouched( int current_command )
 		const auto pEntity		 = savedTouchList.pEntity;
 		const auto& savedTouches = savedTouchList.savedTouches;
 
-		C_BaseEntity::PhysicsRemoveTouchedList( pEntity );
+		if ( !pEntity.IsValid() )
+		{
+			continue;
+		}
 
 		for ( const auto& savedTouched : savedTouches )
 		{
@@ -1375,7 +1380,7 @@ void CPrediction::RestorePredictedTouched( int current_command )
 			InvalidateEFlagsRecursive( pEntity,
 									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
-			static_cast< C_BaseTrigger* >( pEntity )->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+			static_cast< C_BaseTrigger* >( pEntity->GetBaseEntity() )->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
 		}
 	}
 

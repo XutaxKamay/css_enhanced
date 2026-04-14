@@ -4047,14 +4047,23 @@ static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &ent
 	// I'm teleporting myself
 	if ( pSourceEntity == pTeleport )
 	{
+		if ( pTeleport->IsPlayer() )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
+			pPlayer->m_bTeleportedThisTick = true;
+		}
+
 		if ( newAngles )
 		{
             pTeleport->SetLocalAngles(*newAngles);
-            // TODO_ENHANCED: this isn't needed anymore. Should be set client side now.
+
 			if ( pTeleport->IsPlayer() )
 			{
 				CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
-				pPlayer->SnapEyeAngles( *newAngles );
+				// pPlayer->SnapEyeAngles( *newAngles );
+				// TODO_ENHANCED: now the prediction does detects when teleportations failed and snaps the angle if it finds an error.
+				pPlayer->m_angTeleportAngle = *newAngles;
+				NormalizeAngles( pPlayer->m_angTeleportAngle.GetForModify() );
 			}
 		}
 

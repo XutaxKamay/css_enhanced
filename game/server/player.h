@@ -1242,6 +1242,9 @@ public:
 
 	BasePlayerInterpolationCommandContext	m_DefaultInterpolationCommandContext;
 	BasePlayerInterpolationCommandContext* 	m_pInterpolationCommandContext;
+
+	CNetworkVar( bool, m_bTeleportedThisTick );
+	CNetworkVar( QAngle, m_angTeleportAngle );
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;

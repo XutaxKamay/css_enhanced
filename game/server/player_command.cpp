@@ -346,6 +346,8 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	gpGlobals->frametime = playerFrameTime;
 	gpGlobals->curtime	 = player->m_nTickBase * TICK_INTERVAL;
 
+	player->m_bTeleportedThisTick = false;
+
 	StartCommand( player, ucmd );
 
 	g_pGameMovement->StartTrackPredictionErrors( player );

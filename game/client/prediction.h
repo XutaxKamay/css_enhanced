@@ -155,7 +155,7 @@ private:
 	{
 		CUtlVector< SavedTouch_t > savedTouches;
 		CUtlVector< EHANDLE > touchedTriggerEntities;
-		C_BaseEntity* pEntity;
+		EHANDLE pEntity;
 	};
 
 	CUtlVector< TouchedHistory > m_TouchedHistory[MULTIPLAYER_BACKUP];

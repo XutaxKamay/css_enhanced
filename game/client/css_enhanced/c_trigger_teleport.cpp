@@ -93,10 +93,13 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
     UTIL_SetOrigin( pOther, tmp );
     pOther->SetNetworkOrigin( tmp );
 
-	if ( ( C_BasePlayer* )pOther == C_BasePlayer::GetLocalPlayer() )
+	auto pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+
+	if ( ( C_BasePlayer* )pOther == pLocalPlayer )
 	{
 		// TODO_ENHANCED: do we really want this?
 		prediction->SetViewOrigin( tmp );
+		pLocalPlayer->m_bTeleportedThisTick = true;
 	}
 
 	if (pAngles)
@@ -109,7 +112,7 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
         }
         // else
         {
-            if ((C_BasePlayer*)pOther == C_BasePlayer::GetLocalPlayer())
+            if ( (C_BasePlayer*)pOther == pLocalPlayer )
             {
                 auto angles = *pAngles;
 
@@ -118,6 +121,9 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
                 {
                     engine->SetViewAngles( angles );
                 }
+
+				pLocalPlayer->m_angTeleportAngle = angles;
+				NormalizeAngles( pLocalPlayer->m_angTeleportAngle );
             }
         }
     }

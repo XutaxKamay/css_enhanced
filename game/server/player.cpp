@@ -8117,7 +8117,9 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 
 		SendPropInt			( SENDINFO( m_nWaterLevel ), 2, SPROP_UNSIGNED ),
 		SendPropFloat		( SENDINFO( m_flLaggedMovementValue ), 0, SPROP_NOSCALE ),
-		SendPropVector      ( SENDINFO( m_vecPreviouslyPredictedOrigin ), 0, SPROP_NOSCALE)
+		SendPropVector		( SENDINFO( m_vecPreviouslyPredictedOrigin ), 0, SPROP_NOSCALE ),
+		SendPropBool		( SENDINFO( m_bTeleportedThisTick ) ),
+		SendPropQAngles		( SENDINFO( m_angTeleportAngle ), 0, SPROP_NOSCALE )
 END_SEND_TABLE()
 
 
