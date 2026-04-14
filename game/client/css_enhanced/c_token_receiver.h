@@ -9,7 +9,7 @@
 
 class CTokenReceiver
 {
-public:
+  public:
 	CTokenReceiver();
 	~CTokenReceiver();
 
@@ -19,12 +19,13 @@ public:
 	// Call from main thread to apply any pending token
 	void ProcessPendingToken();
 
-private:
+  private:
 	void RunServer();
-	static uintp ServerThreadProc( void *pParam );
+	static uintp ServerThreadProc( void* pParam );
 
 	int m_nPort;
 	volatile bool m_bRunning;
+	volatile bool m_bInitialized;
 	int m_iSocket;
 };
 

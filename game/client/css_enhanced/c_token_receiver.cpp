@@ -24,7 +24,7 @@ typedef int socklen_t;
 #include "tier0/memdbgon.h"
 
 #define TOKEN_RECEIVER_PORT 27080
-#define TOKEN_MAX_LENGTH 128
+#define TOKEN_MAX_LENGTH	128
 
 static ConVar cl_masterserver_token( "cl_masterserver_token",
 									 "0",
@@ -54,25 +54,28 @@ static void CloseSocket( SOCKET sock )
 
 static bool IsValidTokenChar( char c )
 {
-	return ( c >= 'a' && c <= 'z' ) ||
-		   ( c >= 'A' && c <= 'Z' ) ||
-		   ( c >= '0' && c <= '9' ) ||
-		   c == '-' || c == '_';
+	return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == '-' || c == '_';
 }
 
-static bool ValidateToken( const char *token )
+static bool ValidateToken( const char* token )
 {
 	if ( !token || !token[0] )
+	{
 		return false;
+	}
 
 	int len = Q_strlen( token );
 	if ( len >= TOKEN_MAX_LENGTH )
+	{
 		return false;
+	}
 
 	for ( int i = 0; i < len; i++ )
 	{
 		if ( !IsValidTokenChar( token[i] ) )
+		{
 			return false;
+		}
 	}
 
 	return true;
@@ -81,29 +84,39 @@ static bool ValidateToken( const char *token )
 //-----------------------------------------------------------------------------
 // Parse token from a minimal HTTP POST body: {"token": "value"}
 //-----------------------------------------------------------------------------
-static bool ParseTokenFromBody( const char *body, char *outToken, int outSize )
+static bool ParseTokenFromBody( const char* body, char* outToken, int outSize )
 {
-	const char *tokenKey = Q_strstr( body, "\"token\"" );
+	const char* tokenKey = Q_strstr( body, "\"token\"" );
 	if ( !tokenKey )
+	{
 		return false;
+	}
 
-	const char *colon = Q_strstr( tokenKey + 7, ":" );
+	const char* colon = Q_strstr( tokenKey + 7, ":" );
 	if ( !colon )
+	{
 		return false;
+	}
 
-	const char *p = colon + 1;
+	const char* p = colon + 1;
 	while ( *p == ' ' || *p == '\t' )
+	{
 		p++;
+	}
 
 	if ( *p != '"' )
+	{
 		return false;
+	}
 
 	p++;
-	const char *valueEnd = Q_strstr( p, "\"" );
+	const char* valueEnd = Q_strstr( p, "\"" );
 	if ( !valueEnd )
+	{
 		return false;
+	}
 
-	int len = MIN( (int)( valueEnd - p ), outSize - 1 );
+	int len = MIN( ( int )( valueEnd - p ), outSize - 1 );
 	Q_strncpy( outToken, p, len + 1 );
 	return true;
 }
@@ -114,8 +127,10 @@ static bool ParseTokenFromBody( const char *body, char *outToken, int outSize )
 CTokenReceiver::CTokenReceiver()
  : m_nPort( TOKEN_RECEIVER_PORT ),
    m_bRunning( false ),
+   m_bInitialized( false ),
    m_iSocket( -1 )
 {
+	s_szPendingToken[0] = '\0';
 }
 
 CTokenReceiver::~CTokenReceiver()
@@ -125,10 +140,13 @@ CTokenReceiver::~CTokenReceiver()
 
 void CTokenReceiver::Start()
 {
-	if ( m_bRunning )
+	if ( m_bInitialized )
+	{
 		return;
+	}
 
-	m_bRunning = true;
+	m_bRunning	   = true;
+	m_bInitialized = true;
 
 	ThreadHandle_t hThread = CreateSimpleThread( ServerThreadProc, this );
 	ReleaseThreadHandle( hThread );
@@ -136,10 +154,13 @@ void CTokenReceiver::Start()
 
 void CTokenReceiver::Stop()
 {
-	if ( !m_bRunning )
+	if ( !m_bInitialized )
+	{
 		return;
+	}
 
-	m_bRunning = false;
+	m_bRunning	   = false;
+	m_bInitialized = false;
 
 	if ( m_iSocket >= 0 )
 	{
@@ -187,14 +208,14 @@ void CTokenReceiver::RunServer()
 	}
 
 	int reuse = 1;
-	setsockopt( m_iSocket, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof( reuse ) );
+	setsockopt( m_iSocket, SOL_SOCKET, SO_REUSEADDR, ( const char* )&reuse, sizeof( reuse ) );
 
 	sockaddr_in serverAddr;
 	serverAddr.sin_family	   = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
 	serverAddr.sin_port		   = htons( m_nPort );
 
-	if ( bind( m_iSocket, (sockaddr *)&serverAddr, sizeof( serverAddr ) ) == SOCKET_ERROR )
+	if ( bind( m_iSocket, ( sockaddr* )&serverAddr, sizeof( serverAddr ) ) == SOCKET_ERROR )
 	{
 		DevMsg( "[TokenReceiver] Failed to bind to port %d\n", m_nPort );
 		CloseSocket( m_iSocket );
@@ -222,13 +243,15 @@ void CTokenReceiver::RunServer()
 	{
 		sockaddr_in clientAddr;
 		socklen_t clientLen = sizeof( clientAddr );
-		SOCKET clientSocket = accept( m_iSocket, (sockaddr *)&clientAddr, &clientLen );
+		SOCKET clientSocket = accept( m_iSocket, ( sockaddr* )&clientAddr, &clientLen );
 
 		if ( clientSocket == INVALID_SOCKET )
+		{
 			continue;
+		}
 
 		char buffer[4096] = { 0 };
-		int recvSize = recv( clientSocket, buffer, sizeof( buffer ) - 1, 0 );
+		int recvSize	  = recv( clientSocket, buffer, sizeof( buffer ) - 1, 0 );
 
 		if ( recvSize <= 0 )
 		{
@@ -246,7 +269,7 @@ void CTokenReceiver::RunServer()
 		}
 
 		// Find HTTP body after \r\n\r\n
-		const char *body = Q_strstr( buffer, "\r\n\r\n" );
+		const char* body = Q_strstr( buffer, "\r\n\r\n" );
 		if ( !body )
 		{
 			CloseSocket( clientSocket );
@@ -257,7 +280,8 @@ void CTokenReceiver::RunServer()
 		char token[TOKEN_MAX_LENGTH];
 		if ( !ParseTokenFromBody( body, token, sizeof( token ) ) || !ValidateToken( token ) )
 		{
-			const char *badResponse = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"status\":\"invalid token\"}";
+			const char* badResponse = "HTTP/1.1 400 Bad Request\r\nContent-Type: "
+									  "application/json\r\n\r\n{\"status\":\"invalid token\"}";
 			send( clientSocket, badResponse, Q_strlen( badResponse ), 0 );
 			CloseSocket( clientSocket );
 			continue;
@@ -269,7 +293,7 @@ void CTokenReceiver::RunServer()
 		s_bHasPendingToken = true;
 		s_TokenMutex.Unlock();
 
-		const char *response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"ok\"}";
+		const char* response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"ok\"}";
 		send( clientSocket, response, Q_strlen( response ), 0 );
 
 		CloseSocket( clientSocket );
@@ -282,12 +306,19 @@ void CTokenReceiver::RunServer()
 	WSACleanup();
 #endif
 
+	s_TokenMutex.Lock();
+	s_szPendingToken[0] = '\0';
+	s_bHasPendingToken	= false;
+	s_TokenMutex.Unlock();
+
+	m_bRunning = false;
+
 	DevMsg( "[TokenReceiver] Server stopped\n" );
 }
 
-uintp CTokenReceiver::ServerThreadProc( void *pParam )
+uintp CTokenReceiver::ServerThreadProc( void* pParam )
 {
-	CTokenReceiver *pReceiver = static_cast<CTokenReceiver *>( pParam );
+	CTokenReceiver* pReceiver = static_cast< CTokenReceiver* >( pParam );
 	if ( pReceiver )
 	{
 		pReceiver->RunServer();
