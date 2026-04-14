@@ -1,4 +1,4 @@
 #!/bin/sh
 BUILD_TYPE=${BUILD_TYPE:-release}
-./waf configure -T $BUILD_TYPE --dedicated "$@" &&
+./waf configur --disable-warnse -T $BUILD_TYPE --dedicated "$@" &&
 ./waf build install

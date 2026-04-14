@@ -442,6 +442,7 @@ def check_deps(conf):
 
 	if conf.env.DEST_OS == 'win32':
 		conf.check(lib='libz', uselib_store='ZLIB', define_name='USE_ZLIB')
+		conf.check(lib='libcurl', uselib_store='CURL', define_name='HAVE_CURL')
 		conf.check(lib='libzstd', uselib_store='ZSTD')
 		# conf.check(lib='nvtc', uselib_store='NVTC')
 		# conf.check(lib='ati_compress_mt_vc10', uselib_store='ATI_COMPRESS_MT_VC10')

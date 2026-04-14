@@ -9,33 +9,33 @@ jobs:
   # ============================================
   # ANDROID BUILD
   # ============================================
-  build-android-armv7a:
-    name: Android ARMv7a
-    runs-on: ubuntu-latest
+  # build-android-armv7a:
+  #   name: Android ARMv7a
+  #   runs-on: ubuntu-latest
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        run: bash scripts/deps-android-armv7a.sh
+  #     - name: Install deps
+  #       run: bash scripts/deps-android-armv7a.sh
  
-      - name: Build
-        env:
-          BUILD_TYPE: release
-        run: bash scripts/build-android-armv7a.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       env:
+  #         BUILD_TYPE: release
+  #       run: bash scripts/build-android-armv7a.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Cleanup
-        run: |
-          rm -rf android-ndk-r10e-linux-x86_64.zip
-          rm -rf android-ndk-r10e/
+  #     - name: Cleanup
+  #       run: |
+  #         rm -rf android-ndk-r10e-linux-x86_64.zip
+  #         rm -rf android-ndk-r10e/
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: bash scripts/deploy.sh CSS_Enhanced_Android_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Android_Development_Release.zip
  
   # ============================================
   # CLIENT BUILDS
@@ -67,51 +67,51 @@ jobs:
         shell: bash
         run: bash scripts/deploy.sh CSS_Enhanced_Windows_Development_Release.zip
  
-  build-linux-amd64:
-    name: Linux AMD64
-    runs-on: ubuntu-latest
+  # build-linux-amd64:
+  #   name: Linux AMD64
+  #   runs-on: ubuntu-latest
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        run: bash scripts/deps-ubuntu-amd64.sh
+  #     - name: Install deps
+  #       run: bash scripts/deps-ubuntu-amd64.sh
  
-      - name: Build
-        env:
-          BUILD_TYPE: release_lto
-        run: bash scripts/build-ubuntu-amd64.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       env:
+  #         BUILD_TYPE: release_lto
+  #       run: bash scripts/build-ubuntu-amd64.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: bash scripts/deploy.sh CSS_Enhanced_Linux_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Linux_Development_Release.zip
  
-  build-linux-aarch64:
-    name: Linux ARM64
-    runs-on: ubuntu-24.04-arm
+  # build-linux-aarch64:
+  #   name: Linux ARM64
+  #   runs-on: ubuntu-24.04-arm
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        run: bash scripts/deps-ubuntu-aarch64.sh
+  #     - name: Install deps
+  #       run: bash scripts/deps-ubuntu-aarch64.sh
  
-      - name: Build
-        env:
-          BUILD_TYPE: release_lto
-        run: bash scripts/build-ubuntu-aarch64.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       env:
+  #         BUILD_TYPE: release_lto
+  #       run: bash scripts/build-ubuntu-aarch64.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: bash scripts/deploy.sh CSS_Enhanced_Linux_ARM64_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Linux_ARM64_Development_Release.zip
   
   # TODO_ENHANCED
   # build-macos-amd64:
@@ -141,77 +141,77 @@ jobs:
   # DEDICATED SERVER BUILDS
   # ============================================
  
-  srcds-windows-amd64:
-    name: Dedicated Server Windows AMD64
-    runs-on: windows-latest
+  # srcds-windows-amd64:
+  #   name: Dedicated Server Windows AMD64
+  #   runs-on: windows-latest
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        shell: bash
-        run: bash scripts/deps-windows-amd64.sh
+  #     - name: Install deps
+  #       shell: bash
+  #       run: bash scripts/deps-windows-amd64.sh
  
-      - name: Build
-        shell: bash
-        env:
-          BUILD_TYPE: release_lto
-        run: bash scripts/build-srcds-windows-amd64.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       shell: bash
+  #       env:
+  #         BUILD_TYPE: release_lto
+  #       run: bash scripts/build-srcds-windows-amd64.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        shell: bash
-        run: bash scripts/deploy.sh CSS_Enhanced_Server_Windows_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       shell: bash
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Server_Windows_Development_Release.zip
  
-  srcds-linux-amd64:
-    name: Dedicated Server Linux AMD64
-    runs-on: ubuntu-latest
+  # srcds-linux-amd64:
+  #   name: Dedicated Server Linux AMD64
+  #   runs-on: ubuntu-latest
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        run: bash scripts/deps-ubuntu-amd64.sh
+  #     - name: Install deps
+  #       run: bash scripts/deps-ubuntu-amd64.sh
  
-      - name: Build
-        env:
-          BUILD_TYPE: release_lto
-        run: bash scripts/build-srcds-ubuntu-amd64.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       env:
+  #         BUILD_TYPE: release_lto
+  #       run: bash scripts/build-srcds-ubuntu-amd64.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: bash scripts/deploy.sh CSS_Enhanced_Server_Linux_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Server_Linux_Development_Release.zip
  
-  srcds-linux-aarch64:
-    name: Dedicated Server Linux ARM64
-    runs-on: ubuntu-24.04-arm
+  # srcds-linux-aarch64:
+  #   name: Dedicated Server Linux ARM64
+  #   runs-on: ubuntu-24.04-arm
  
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          lfs: true
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         lfs: true
  
-      - name: Install deps
-        run: bash scripts/deps-ubuntu-aarch64.sh
+  #     - name: Install deps
+  #       run: bash scripts/deps-ubuntu-aarch64.sh
  
-      - name: Build
-        env:
-          BUILD_TYPE: release_lto
-        run: bash scripts/build-srcds-ubuntu-aarch64.sh --prefix ./gamedata/css_enhanced/game
+  #     - name: Build
+  #       env:
+  #         BUILD_TYPE: release_lto
+  #       run: bash scripts/build-srcds-ubuntu-aarch64.sh --prefix ./gamedata/css_enhanced/game
  
-      - name: Deploy
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: bash scripts/deploy.sh CSS_Enhanced_Server_Linux_ARM64_Development_Release.zip
+  #     - name: Deploy
+  #       env:
+  #         SSH_KEY: ${{ secrets.SSH_KEY }}
+  #       run: bash scripts/deploy.sh CSS_Enhanced_Server_Linux_ARM64_Development_Release.zip
   # TODO_ENHANCED
   # srcds-macos-amd64:
   #   name: Dedicated Server macOS AMD64
