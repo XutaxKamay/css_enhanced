@@ -16,9 +16,6 @@ class CTokenReceiver
 	void Start();
 	void Stop();
 
-	// Call from main thread to apply any pending token
-	void ProcessPendingToken();
-
   private:
 	void RunServer();
 	static uintp ServerThreadProc( void* pParam );

@@ -31,7 +31,7 @@ CONNECTIONLESS_HEADER = 0xFFFFFFFF
 C2M_CLIENTQUERY = 0x31
 M2C_QUERY = 0x4A
 
-SESSION_TIMEOUT = 30  # 30 seconds
+SESSION_TIMEOUT = 300  # 5 minutes
 
 # ---------------------------------------------------------------------------
 # Session store  (session_id -> {user_id, client_ip, timestamp})
@@ -180,12 +180,20 @@ class UDPServer:
             buf.extend(struct.pack("<IH", ip, port))
         buf.extend(b"\x00" * 6)
         self._payload = bytes(buf)
+        self._last_count = len(rows)
 
     def run(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("0.0.0.0", UDP_PORT))
+        last_reload = time.time()
         while True:
+            now = time.time()
+            if now - last_reload > 30:
+                current = get_db().execute("SELECT COUNT(*) FROM servers").fetchone()[0]
+                if current != self._last_count:
+                    self.reload()
+                    last_reload = now
             data, addr = sock.recvfrom(2048)
             if data and data[0] == C2M_CLIENTQUERY:
                 sock.sendto(self._payload, addr)
@@ -220,7 +228,7 @@ def get_clan_default(handler, conn, path, data):
             400, "Invalid path format, expected /clan/default/{client_ip}/{session_id}"
         )
 
-    client_ip = parts[-2]
+    client_ip = parts[-2].rsplit(":", 1)[0]
     session_id = parts[-1]
 
     now = time.time()
@@ -379,6 +387,9 @@ def post_server_delete(handler, conn, path, data):
 
 
 def post_auth(handler, conn, path, data):
+    if path.startswith("/auth/"):
+        return post_auth_verify(handler, conn, path)
+
     token = data.get("token")
     if not token:
         return handler.json_error(400, "Token required")
@@ -401,6 +412,38 @@ def post_auth(handler, conn, path, data):
     log(f"[INFO] Created session {session_id} for user {user_id} from {client_ip}")
 
     handler.json_response(200, {"session_id": session_id})
+
+
+def post_auth_verify(handler, conn, path):
+    parts = path.rstrip("/").split("/")
+    if len(parts) != 4:
+        return handler.json_error(400, "Invalid path format, expected /auth/{session_id}/{client_ip}")
+
+    session_id = parts[-2]
+    client_ip = parts[-1].rsplit(":", 1)[0]
+
+    log(f"[AUTH] Verify: session={session_id} client_ip={client_ip}")
+
+    now = time.time()
+
+    session = _sessions.get(session_id)
+    if not session:
+        log(f"[AUTH] Session not found: {session_id}")
+        return handler.json_response(200, {"accepted": "false", "reason": "Session not found"})
+
+    if now - session["timestamp"] > SESSION_TIMEOUT:
+        log(f"[AUTH] Session expired: {session_id}")
+        del _sessions[session_id]
+        return handler.json_response(200, {"accepted": "false", "reason": "Session expired"})
+
+    stored_ip = session.get("client_ip", "")
+    log(f"[AUTH] IP check: stored={stored_ip} want={client_ip}")
+    if stored_ip != client_ip:
+        log(f"[AUTH] Rejected: Client IP mismatch")
+        return handler.json_response(200, {"accepted": "false", "reason": "Client IP mismatch"})
+
+    log(f"[AUTH] Accepted: session={session_id}")
+    handler.json_response(200, {"accepted": "true"})
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +470,10 @@ POST_ROUTES = {
     "/server/add": post_server_add,
     "/server/delete": post_server_delete,
     "/auth": post_auth,
+}
+
+POST_PREFIX_ROUTES = {
+    "/auth/": post_auth,
 }
 
 # ---------------------------------------------------------------------------
@@ -473,13 +520,17 @@ class RequestHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length > 0 else b""
         data = json.loads(body.decode()) if body else {}
 
-        if path != "/auth":
+        if not path.startswith("/auth"):
             if data.get("api_key") != _api_key:
                 return self.json_error(401, "Invalid API key")
 
         handler = POST_ROUTES.get(path)
         if handler:
             return handler(self, get_db(), path, data)
+
+        for prefix, handler in POST_PREFIX_ROUTES.items():
+            if path.startswith(prefix):
+                return handler(self, get_db(), path, data)
 
         self.json_error(404, "Not found")
 

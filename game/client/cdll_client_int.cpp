@@ -1272,8 +1272,6 @@ void CHLClient::HudUpdate( bool bActive )
 	CRTime::UpdateRealTime();
 #endif
 
-	g_TokenReceiver.ProcessPendingToken();
-
 	GetClientVoiceMgr()->Frame( frametime );
 
 	gHUD.UpdateHud( bActive );

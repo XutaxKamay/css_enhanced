@@ -311,6 +311,20 @@ def run_tests(api_key):
     r = https_request("POST", "/auth", {"token": charlie_token})
     check("Re-auth after expiry", "session_id" in r, True)
 
+    print("\nAuth Verify")
+
+    r = https_request("POST", "/auth", {"token": charlie_token})
+    session_id = r.get("session_id")
+
+    r = https_request("POST", f"/auth/{session_id}/{client_ip}", {})
+    check("Verify valid session", {"accepted": True}, r)
+
+    r = https_request("POST", f"/auth/{session_id}/192.168.1.1", {})
+    check("Verify wrong IP", {"accepted": False, "reason": "Client IP mismatch"}, r)
+
+    r = https_request("POST", "/auth/invalid_session/127.0.0.1", {})
+    check("Verify invalid session", {"accepted": False, "reason": "Session not found"}, r)
+
 
 if __name__ == "__main__":
     main()

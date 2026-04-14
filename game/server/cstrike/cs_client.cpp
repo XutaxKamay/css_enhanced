@@ -80,10 +80,11 @@ void FinishClientPutInServer( CCSPlayer *pPlayer )
 	// Query masterserver for the player's default clan tag
 	if ( !pPlayer->IsBot() )
 	{
-		const char *pszToken = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_token" );
-		if ( pszToken && pszToken[0] && Q_strcmp( pszToken, "0" ) != 0 )
+		const char *pszSessionID = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_session_id" );
+		DevMsg( "[MasterServer] ClientPutInServer: player=%d session=%s\n", pPlayer->entindex(), pszSessionID ? pszSessionID : "(null)" );
+		if ( pszSessionID && pszSessionID[0] && Q_strcmp( pszSessionID, "0" ) != 0 )
 		{
-			MasterServer_RequestDefaultClanTag( pPlayer->entindex(), pszToken );
+			MasterServer_RequestAuth( pPlayer->entindex(), pszSessionID );
 		}
 	}
 }

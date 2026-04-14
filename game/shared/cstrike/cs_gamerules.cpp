@@ -5311,10 +5311,10 @@ void CCSGameRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			pCSPlayer->m_bShowHints = false;
 		}
 
-		const char *pszToken = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_token" );
-		if ( pszToken && pszToken[0] && Q_strcmp( pszToken, "0" ) != 0 )
+		const char *pszSessionID = engine->GetClientConVarValue( pPlayer->entindex(), "cl_masterserver_session_id" );
+		if ( pszSessionID && pszSessionID[0] && Q_strcmp( pszSessionID, "0" ) != 0 )
 		{
-			MasterServer_RequestDefaultClanTag( pPlayer->entindex(), pszToken );
+			MasterServer_RequestAuth( pPlayer->entindex(), pszSessionID );
 		}
 	}
 }
