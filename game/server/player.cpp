@@ -605,6 +605,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_nUpdateRate = 20;  // cl_updaterate defualt
 	m_bPredictWeapons = true;
+	m_bPredictTriggers = true;
 	m_bLagCompensation = false;
 	m_iCurrentInterpolationType = CInterpolationType::LINEAR;
 	m_flLaggedMovementValue = 1.0f;

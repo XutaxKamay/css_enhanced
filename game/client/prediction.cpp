@@ -56,7 +56,7 @@ static ConVar	cl_predictionlist	( "cl_predictionlist", "0", FCVAR_CHEAT, "Show w
 static ConVar	cl_predictionentitydump( "cl_pdump", "-1", FCVAR_CHEAT, "Dump info about this entity to screen." );
 static ConVar	cl_predictionentitydumpbyclass( "cl_pclass", "", FCVAR_CHEAT, "Dump entity by prediction classname." );
 static ConVar	cl_pred_optimize( "cl_pred_optimize", "2", 0, "Optimize for not copying data if didn't receive a network update (1), and also for not repredicting if there were no errors (2)." );
-static ConVar	cl_predict_triggers("cl_predict_triggers", "1");
+static ConVar	cl_predict_triggers("cl_predict_triggers", "1", FCVAR_USERINFO | FCVAR_NOT_CONNECTED );
 
 #endif
 
@@ -179,13 +179,16 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 
 	// Find the origin field in the database
 	typedescription_t *td = FindFieldByName( "m_vecNetworkOrigin", player->GetPredDescMap() );
-	Assert( td );
-	if ( !td )
-		return;
 
-	Vector predicted_origin;
+	Vector predicted_origin( vec3_origin );
 
-	memcpy( (Vector *)&predicted_origin, (Vector *)( (byte *)slot + td->fieldOffset[ PC_DATA_PACKED ] ), sizeof( Vector ) );
+	if (td)
+		memcpy( (Vector *)&predicted_origin, (Vector *)( (byte *)slot + td->fieldOffset[ PC_DATA_PACKED ] ), sizeof( Vector ) );
+
+	// Compare what the server returned with what we had predicted it to be
+	VectorSubtract ( predicted_origin, origin, delta );
+
+	len = VectorLength( delta );
 
 	// Find teleport fields
 	typedescription_t *tdTeleport = FindFieldByName( "m_bTeleportedThisTick", player->GetPredDescMap() );
@@ -205,13 +208,23 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 	// Apply teleport angle if error detected
 	if ( bTeleportError )
 	{
-		engine->SetViewAngles( player->m_angTeleportAngle );
-	}
-	
-	// Compare what the server returned with what we had predicted it to be
-	VectorSubtract ( predicted_origin, origin, delta );
+		// TODO_ENHANCED: this uses old behavior with snap angles if disabled
+		if ( cl_predict_triggers.GetBool() )
+		{
+			engine->SetViewAngles( player->m_angTeleportAngle );
+		}
 
-	len = VectorLength( delta );
+		con_nprint_t np;
+		np.fixed_width_font = true;
+		np.color[0] = 1.0f;
+		np.color[1] = 0.95f;
+		np.color[2] = 0.7f;
+		np.index = 20 + ( ++pos % 20 );
+		np.time_to_live = 2.0f;
+
+		engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f) teleport", len, delta.x, delta.y, delta.z );
+	}
+
 	if (len > MAX_PREDICTION_ERROR )
 	{	
 		// A teleport or something, clear out error
@@ -233,10 +246,7 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 				np.index = 20 + ( ++pos % 20 );
 				np.time_to_live = 2.0f;
 
-				if ( bTeleportError )
-					engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f) teleport", len, delta.x, delta.y, delta.z );
-				else
-					engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f)", len, delta.x, delta.y, delta.z );
+				engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f)", len, delta.x, delta.y, delta.z );
 			}
 		}
 	}
@@ -1010,7 +1020,10 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	FinishMove( player, ucmd, g_pMoveData );
 
-    moveHelper->ProcessImpacts();
+	if ( cl_predict_triggers.GetBool() )
+	{
+		moveHelper->ProcessImpacts();
+	}
 
 	RunPostThink( player );
 
@@ -1023,7 +1036,10 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	// 			pEvent->m_pEntTarget ? pEvent->m_pEntTarget->m_iClassname : "NULL" );
 	// }
 
-	ServiceEventQueue( player );
+	if ( cl_predict_triggers.GetBool() )
+	{
+		ServiceEventQueue( player );
+	}
 
 	g_pGameMovement->FinishTrackPredictionErrors( player );
 
@@ -1717,10 +1733,9 @@ bool CPrediction::PerformPrediction( bool received_new_world_update, C_BasePlaye
 
 		Untouch();
 
-		ServiceEventQueue( NULL );
-
 		if ( cl_predict_triggers.GetBool() )
 		{
+			ServiceEventQueue( NULL );
 			StorePredictedTouched( current_command );
 		}
 

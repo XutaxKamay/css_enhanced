@@ -2815,12 +2815,14 @@ void CServerGameClients::ClientSettingsChanged( edict_t *pEdict )
 	{
 		player->m_bPredictWeapons  = Q_atoi( QUICKGETCVARVALUE("cl_predictweapons")) != 0;
 		player->m_bLagCompensation = Q_atoi( QUICKGETCVARVALUE("cl_lagcompensation")) != 0;
+		player->m_bPredictTriggers  = Q_atoi( QUICKGETCVARVALUE("cl_predict_triggers")) != 0;
 	}
 	else
 #endif
 	{
 		player->m_bPredictWeapons  = false;
 		player->m_bLagCompensation = false;
+		player->m_bPredictTriggers = false;
 	}
 	
 
