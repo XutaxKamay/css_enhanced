@@ -223,7 +223,7 @@ static bool VerifySession( const char* sessionID, const char* clientIP, char* ou
 // Helper: fetch clan tag from masterserver
 // Returns true if clan tag found
 //-----------------------------------------------------------------------------
-static bool FetchClanTag( const char* sessionID, const char* clientIP, char* outClanTag, int clanTagSize )
+static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSize )
 {
 	CURL* curl = curl_easy_init();
 	if ( !curl )
@@ -232,7 +232,7 @@ static bool FetchClanTag( const char* sessionID, const char* clientIP, char* out
 	}
 
 	char url[512];
-	Q_snprintf( url, sizeof( url ), "%s%s/%s", MASTERSERVER_CLAN_DEFAULT_URL, clientIP, sessionID );
+	Q_snprintf( url, sizeof( url ), "%s%s", MASTERSERVER_CLAN_DEFAULT_URL, sessionID );
 
 	CurlWriteBuffer_t response;
 	response.pos	 = 0;
@@ -301,7 +301,7 @@ static uintp WorkerThread( void* pParam )
 
 	DevMsg( "[MasterServer] Verification passed, fetching clan tag...\n" );
 
-	if ( FetchClanTag( req->sessionID, req->clientIP, clanTag, sizeof( clanTag ) ) )
+	if ( FetchClanTag( req->sessionID, clanTag, sizeof( clanTag ) ) )
 	{
 		MasterServerResponse_t resp;
 		resp.type		 = MasterServerResponse_t::RESPONSE_CLAN_TAG;
@@ -338,13 +338,15 @@ void MasterServer_RequestAuth( int playerIndex, const char* sessionID )
 
 	// Get client IP from player
 	INetChannelInfo* pNetChan = engine->GetPlayerNetInfo( playerIndex );
-	CCSPlayer* pPlayer = ToCSPlayer( UTIL_PlayerByIndex( playerIndex ) );
+	CCSPlayer* pPlayer		  = ToCSPlayer( UTIL_PlayerByIndex( playerIndex ) );
 
 	if ( pNetChan )
 	{
 		const char* pszIP = pNetChan->GetAddress();
 
-		DevMsg( "[MasterServer] Player %s with IP %s requesting auth\n", pPlayer->GetPlayerName(), pszIP ? pszIP : "(null)" );
+		DevMsg( "[MasterServer] Player %s with IP %s requesting auth\n",
+				pPlayer->GetPlayerName(),
+				pszIP ? pszIP : "(null)" );
 
 		if ( pszIP )
 		{

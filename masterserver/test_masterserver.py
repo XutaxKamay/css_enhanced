@@ -240,7 +240,7 @@ def run_tests(api_key):
     r = get("/does/not/exist")
     check("Unknown GET path", "Not found", r["error"])
 
-    r = get("/clan/default/127.0.0.1/session123")
+    r = get("/clan/default/session123")
     check("Unknown session", "Session not found", r.get("error"))
 
     r = post("/user/delete", {"name": "Nobody"})
@@ -289,13 +289,10 @@ def run_tests(api_key):
     session_id = r.get("session_id")
 
     client_ip = "127.0.0.1"
-    r = get(f"/clan/default/{client_ip}/{session_id}")
+    r = get(f"/clan/default/{session_id}")
     check("GET Charlie default clan", "Delta", r.get("tag"))
 
-    r = get(f"/clan/default/192.168.1.1/{session_id}")
-    check("Client IP mismatch", "Client IP mismatch", r.get("error"))
-
-    r = get(f"/clan/default/{client_ip}/invalidsession")
+    r = get("/clan/default/invalidsession")
     check("Invalid session", "Session not found", r.get("error"))
 
     r = https_request("POST", "/auth", {"token": "bad_token"})
@@ -305,7 +302,7 @@ def run_tests(api_key):
     check("Missing token", "Token required", r.get("error"))
 
     time.sleep(31)
-    r = get(f"/clan/default/{client_ip}/{session_id}")
+    r = get(f"/clan/default/{session_id}")
     check("Session expired", "Session expired", r.get("error"))
 
     r = https_request("POST", "/auth", {"token": charlie_token})
@@ -316,14 +313,15 @@ def run_tests(api_key):
     r = https_request("POST", "/auth", {"token": charlie_token})
     session_id = r.get("session_id")
 
-    r = https_request("POST", f"/auth/{session_id}/{client_ip}", {})
-    check("Verify valid session", {"accepted": True}, r)
+    r = https_request("POST", f"/auth/{session_id}", {})
+    check("Verify valid session", {"accepted": "true"}, r)
 
-    r = https_request("POST", f"/auth/{session_id}/192.168.1.1", {})
-    check("Verify wrong IP", {"accepted": False, "reason": "Client IP mismatch"}, r)
-
-    r = https_request("POST", "/auth/invalid_session/127.0.0.1", {})
-    check("Verify invalid session", {"accepted": False, "reason": "Session not found"}, r)
+    r = https_request("POST", "/auth/invalid_session", {})
+    check(
+        "Verify invalid session",
+        {"accepted": "false", "reason": "Session not found"},
+        r,
+    )
 
 
 if __name__ == "__main__":

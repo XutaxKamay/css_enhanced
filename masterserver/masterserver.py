@@ -31,7 +31,7 @@ CONNECTIONLESS_HEADER = 0xFFFFFFFF
 C2M_CLIENTQUERY = 0x31
 M2C_QUERY = 0x4A
 
-SESSION_TIMEOUT = 300  # 5 minutes
+SESSION_TIMEOUT = 30  # 30 secs
 
 # ---------------------------------------------------------------------------
 # Session store  (session_id -> {user_id, client_ip, timestamp})
@@ -132,6 +132,17 @@ def parse_ip(ip_string):
         return None
 
 
+def check_server_authorized(handler, conn):
+    server_ip = handler.client_address[0]
+    server_ip_int = parse_ip(server_ip)
+    if server_ip_int is None:
+        return False
+    row = conn.execute(
+        "SELECT ip FROM servers WHERE ip = ?", (server_ip_int,)
+    ).fetchone()
+    return row is not None
+
+
 # ---------------------------------------------------------------------------
 # TLS certificate
 # ---------------------------------------------------------------------------
@@ -223,12 +234,11 @@ def get_user_list(handler, conn, path, data):
 
 def get_clan_default(handler, conn, path, data):
     parts = path.rstrip("/").split("/")
-    if len(parts) != 5:
+    if len(parts) != 4:
         return handler.json_error(
-            400, "Invalid path format, expected /clan/default/{client_ip}/{session_id}"
+            400, "Invalid path format, expected /clan/default/{session_id}"
         )
 
-    client_ip = parts[-2].rsplit(":", 1)[0]
     session_id = parts[-1]
 
     now = time.time()
@@ -241,18 +251,7 @@ def get_clan_default(handler, conn, path, data):
         del _sessions[session_id]
         return handler.json_error(401, "Session expired")
 
-    if session["client_ip"] != client_ip:
-        return handler.json_error(403, "Client IP mismatch")
-
-    server_ip = handler.client_address[0]
-    server_ip_int = parse_ip(server_ip)
-    if server_ip_int is None:
-        return handler.json_error(400, "Invalid server IP")
-
-    row = conn.execute(
-        "SELECT ip FROM servers WHERE ip = ?", (server_ip_int,)
-    ).fetchone()
-    if not row:
+    if not check_server_authorized(handler, conn):
         return handler.json_error(403, "Server not authorized")
 
     user_id = session["user_id"]
@@ -416,31 +415,30 @@ def post_auth(handler, conn, path, data):
 
 def post_auth_verify(handler, conn, path):
     parts = path.rstrip("/").split("/")
-    if len(parts) != 4:
-        return handler.json_error(400, "Invalid path format, expected /auth/{session_id}/{client_ip}")
+    if len(parts) != 3:
+        return handler.json_error(
+            400, "Invalid path format, expected /auth/{session_id}"
+        )
 
-    session_id = parts[-2]
-    client_ip = parts[-1].rsplit(":", 1)[0]
+    session_id = parts[-1]
 
-    log(f"[AUTH] Verify: session={session_id} client_ip={client_ip}")
+    log(f"[AUTH] Verify: session={session_id}")
 
     now = time.time()
 
     session = _sessions.get(session_id)
     if not session:
         log(f"[AUTH] Session not found: {session_id}")
-        return handler.json_response(200, {"accepted": "false", "reason": "Session not found"})
+        return handler.json_response(
+            200, {"accepted": "false", "reason": "Session not found"}
+        )
 
     if now - session["timestamp"] > SESSION_TIMEOUT:
         log(f"[AUTH] Session expired: {session_id}")
         del _sessions[session_id]
-        return handler.json_response(200, {"accepted": "false", "reason": "Session expired"})
-
-    stored_ip = session.get("client_ip", "")
-    log(f"[AUTH] IP check: stored={stored_ip} want={client_ip}")
-    if stored_ip != client_ip:
-        log(f"[AUTH] Rejected: Client IP mismatch")
-        return handler.json_response(200, {"accepted": "false", "reason": "Client IP mismatch"})
+        return handler.json_response(
+            200, {"accepted": "false", "reason": "Session expired"}
+        )
 
     log(f"[AUTH] Accepted: session={session_id}")
     handler.json_response(200, {"accepted": "true"})
