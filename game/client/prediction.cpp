@@ -186,6 +186,27 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 	Vector predicted_origin;
 
 	memcpy( (Vector *)&predicted_origin, (Vector *)( (byte *)slot + td->fieldOffset[ PC_DATA_PACKED ] ), sizeof( Vector ) );
+
+	// Find teleport fields
+	typedescription_t *tdTeleport = FindFieldByName( "m_bTeleportedThisTick", player->GetPredDescMap() );
+	typedescription_t *tdAngle = FindFieldByName( "m_angTeleportAngle", player->GetPredDescMap() );
+
+	// Get predicted teleport values
+	bool predTeleported = false;
+	QAngle predAngle( 0, 0, 0 );
+	if ( tdTeleport )
+		predTeleported = *(bool *)( (byte *)slot + tdTeleport->fieldOffset[ PC_DATA_PACKED ] );
+	if ( tdAngle )
+		memcpy( &predAngle, (QAngle *)( (byte *)slot + tdAngle->fieldOffset[ PC_DATA_PACKED ] ), sizeof( QAngle ) );
+
+	bool netTeleported = player->m_bTeleportedThisTick;
+	bool bTeleportError = ( netTeleported && !predTeleported );
+
+	// Apply teleport angle if error detected
+	if ( bTeleportError )
+	{
+		engine->SetViewAngles( player->m_angTeleportAngle );
+	}
 	
 	// Compare what the server returned with what we had predicted it to be
 	VectorSubtract ( predicted_origin, origin, delta );
@@ -212,7 +233,10 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 				np.index = 20 + ( ++pos % 20 );
 				np.time_to_live = 2.0f;
 
-				engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f)", len, delta.x, delta.y, delta.z );
+				if ( bTeleportError )
+					engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f) teleport", len, delta.x, delta.y, delta.z );
+				else
+					engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f)", len, delta.x, delta.y, delta.z );
 			}
 		}
 	}

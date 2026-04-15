@@ -82,16 +82,16 @@ static CUtlVector< MasterServerResponse_t > s_PendingResponses;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-static float s_flNextProcessTime = 0.0f;
+static double s_flNextProcessTime = 0.0;
 
-#define MASTERSERVER_PROCESS_INTERVAL 1.0f
+#define MASTERSERVER_PROCESS_INTERVAL 1.0
 
-//-----------------------------------------------------------------------------
+  //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-// Worker thread parameters
-//-----------------------------------------------------------------------------
-struct RequestParams_t
+  //-----------------------------------------------------------------------------
+  // Worker thread parameters
+  //-----------------------------------------------------------------------------
+  struct RequestParams_t
 {
 	int playerIndex;
 	char sessionID[128];
@@ -304,24 +304,28 @@ static uintp WorkerThread( void* pParam )
 
 	DevMsg( "[MasterServer] Verify result: session=%s accepted=%d error='%s'\n", req->sessionID, verified, error );
 
-	if ( !verified )
 	{
 		MasterServerResponse_t resp;
 		resp.type		 = MasterServerResponse_t::RESPONSE_AUTH;
 		resp.playerIndex = req->playerIndex;
-		resp.accepted	 = false;
+		resp.accepted	 = verified;
 		Q_strncpy( resp.error, error, sizeof( resp.error ) );
 
 		s_ResponseMutex.Lock();
 		s_PendingResponses.AddToTail( resp );
 		s_ResponseMutex.Unlock();
+	}
 
+	if ( !verified )
+	{
 		return 0;
 	}
 
 	DevMsg( "[MasterServer] Verification passed, fetching clan tag...\n" );
 
-	if ( FetchClanTag( req->sessionID, clanTag, sizeof( clanTag ), error, sizeof( error ) ) )
+	FetchClanTag( req->sessionID, clanTag, sizeof( clanTag ), error, sizeof( error ) );
+	DevMsg( "[MasterServer] Clan tag for session=%s is %s\n", req->sessionID, clanTag );
+
 	{
 		MasterServerResponse_t resp;
 		resp.type		 = MasterServerResponse_t::RESPONSE_CLAN_TAG;
@@ -331,13 +335,7 @@ static uintp WorkerThread( void* pParam )
 		s_ResponseMutex.Lock();
 		s_PendingResponses.AddToTail( resp );
 		s_ResponseMutex.Unlock();
-
-		DevMsg( "[MasterServer] Failed to fetch clan tag: session=%s\n", req->sessionID );
-
-		return 0;
 	}
-
-	DevMsg( "[MasterServer] Clan tag not found for session=%s, error='%s'\n", req->sessionID, error );
 
 	return 0;
 }
@@ -442,12 +440,14 @@ void MasterServer_Auth( void )
 
 void MasterServer_ProcessResponses()
 {
-	if ( gpGlobals->curtime < s_flNextProcessTime )
+	auto flTime = Plat_FloatTime();
+
+	if ( flTime < s_flNextProcessTime )
 	{
 		return;
 	}
 
-	s_flNextProcessTime = gpGlobals->curtime + MASTERSERVER_PROCESS_INTERVAL;
+	s_flNextProcessTime = flTime + MASTERSERVER_PROCESS_INTERVAL;
 
 	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( MasterServer_Auth ) ) );
 }
