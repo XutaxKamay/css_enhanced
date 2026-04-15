@@ -32,12 +32,36 @@ C2M_CLIENTQUERY = 0x31
 M2C_QUERY = 0x4A
 
 SESSION_TIMEOUT = 30  # 30 secs
+SESSION_CLEANUP_INTERVAL = 60  # cleanup every 60 secs
+MAX_SESSIONS = 1000  # max sessions to prevent memory/abuse
 
 # ---------------------------------------------------------------------------
 # Session store  (session_id -> {user_id, client_ip, timestamp})
 # ---------------------------------------------------------------------------
 
 _sessions = {}  # session_id -> {user_id, client_ip, timestamp}
+
+
+def cleanup_expired_sessions():
+    """Remove all expired sessions"""
+    now = time.time()
+    expired = [sid for sid, sess in _sessions.items() if now - sess["timestamp"] > SESSION_TIMEOUT]
+    for sid in expired:
+        del _sessions[sid]
+    if expired:
+        log(f"[CLEANUP] Removed {len(expired)} expired sessions")
+
+
+def cleanup_thread():
+    """Background thread that periodically cleans up expired sessions"""
+    while True:
+        time.sleep(SESSION_CLEANUP_INTERVAL)
+        cleanup_expired_sessions()
+
+
+# Start cleanup thread
+_cleanup_thread = threading.Thread(target=cleanup_thread, daemon=True)
+_cleanup_thread.start()
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -399,6 +423,11 @@ def post_auth(handler, conn, path, data):
 
     user_id = row[0]
     client_ip = handler.client_address[0]
+
+    # Check session limit
+    if len(_sessions) >= MAX_SESSIONS:
+        log(f"[WARN] Too many sessions, rejecting new auth")
+        return handler.json_error(503, "Server busy, try again later")
 
     session_id = secrets.token_hex(16)
 

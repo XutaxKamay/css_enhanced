@@ -273,13 +273,6 @@ void CTokenReceiver::Stop()
 		CloseSocket( m_iSocket );
 		m_iSocket = -1;
 	}
-
-	if ( m_hThread )
-	{
-		ThreadJoin( m_hThread, 2000 );
-		ReleaseThreadHandle( m_hThread );
-		m_hThread = 0;
-	}
 }
 
 void CTokenReceiver::RunServer()

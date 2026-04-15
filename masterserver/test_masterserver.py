@@ -323,6 +323,34 @@ def run_tests(api_key):
         r,
     )
 
+    print("\nSession Cleanup - spam test")
+
+    print("  Creating 1000 sessions...")
+    session_ids = []
+    busy_count = 0
+    for i in range(1000):
+        r = https_request("POST", "/auth", {"token": charlie_token})
+        if "session_id" in r:
+            session_ids.append(r["session_id"])
+        elif r.get("error") == "Server busy, try again later":
+            busy_count += 1
+        if i % 100 == 0:
+            print(f"    {i} sessions created...")
+
+    check("Created sessions", 1000, len(session_ids) + busy_count)
+    check("Got server busy at limit", True, busy_count >= 1)
+
+    print("  Waiting for expiry + cleanup...")
+    time.sleep(31)
+
+    expired_count = 0
+    for sid in session_ids[:10]:
+        r = https_request("POST", f"/auth/{sid}", {})
+        if r.get("reason") == "Session expired":
+            expired_count += 1
+
+    check("Sessions expired after 31s", 10, expired_count)
+
 
 if __name__ == "__main__":
     main()

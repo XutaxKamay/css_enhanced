@@ -95,7 +95,6 @@ struct RequestParams_t
 {
 	int playerIndex;
 	char sessionID[128];
-	char clientIP[64]; // IP address of the client
 };
 
 //-----------------------------------------------------------------------------
@@ -147,7 +146,7 @@ static bool ParseJSONStringField( const char* json, const char* field, char* out
 // Helper: verify session with masterserver
 // Returns true if session is valid and accepted
 //-----------------------------------------------------------------------------
-static bool VerifySession( const char* sessionID, const char* clientIP, char* outReason, int reasonSize )
+static bool VerifySession( const char* sessionID, char* outReason, int reasonSize )
 {
 	CURL* curl = curl_easy_init();
 	if ( !curl )
@@ -156,7 +155,7 @@ static bool VerifySession( const char* sessionID, const char* clientIP, char* ou
 	}
 
 	char url[512];
-	Q_snprintf( url, sizeof( url ), "%s%s/%s", MASTERSERVER_AUTH_VERIFY_URL, sessionID, clientIP );
+	Q_snprintf( url, sizeof( url ), "%s%s", MASTERSERVER_AUTH_VERIFY_URL, sessionID );
 
 	DevMsg( "[MasterServer] Verify URL: %s\n", url );
 
@@ -280,7 +279,7 @@ static uintp WorkerThread( void* pParam )
 	char reason[128];
 
 	RequestParams_t* req = ( RequestParams_t* )pParam;
-	bool verified		 = VerifySession( req->sessionID, req->clientIP, reason, sizeof( reason ) );
+	bool verified		 = VerifySession( req->sessionID, reason, sizeof( reason ) );
 
 	DevMsg( "[MasterServer] Verify result: session=%s accepted=%d reason='%s'\n", req->sessionID, verified, reason );
 
@@ -311,7 +310,13 @@ static uintp WorkerThread( void* pParam )
 		s_ResponseMutex.Lock();
 		s_PendingResponses.AddToTail( resp );
 		s_ResponseMutex.Unlock();
+
+		DevMsg( "[MasterServer] Failed to fetch clan tag: session=%s\n", req->sessionID );
+
+		return 0;
 	}
+
+	DevMsg( "[MasterServer] Fetched clan tag: session=%s clantag=%s\n", req->sessionID, clanTag );
 
 	return 0;
 }
@@ -336,7 +341,6 @@ void MasterServer_RequestAuth( int playerIndex, const char* sessionID )
 	req->playerIndex = playerIndex;
 	Q_strncpy( req->sessionID, sessionID, sizeof( req->sessionID ) );
 
-	// Get client IP from player
 	INetChannelInfo* pNetChan = engine->GetPlayerNetInfo( playerIndex );
 	CCSPlayer* pPlayer		  = ToCSPlayer( UTIL_PlayerByIndex( playerIndex ) );
 
@@ -350,8 +354,6 @@ void MasterServer_RequestAuth( int playerIndex, const char* sessionID )
 
 		if ( pszIP )
 		{
-			Q_strncpy( req->clientIP, pszIP, sizeof( req->clientIP ) );
-
 			g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( WorkerThread, req ) ) );
 		}
 	}
