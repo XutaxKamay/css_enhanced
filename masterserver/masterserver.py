@@ -447,6 +447,9 @@ def post_auth(handler, conn, path, data):
 
 
 def post_auth_verify(handler, conn, path):
+    if not check_server_authorized(handler, conn):
+        return handler.json_response(200, {"error": "Server not authorized"})
+
     parts = path.rstrip("/").split("/")
     if len(parts) != 3:
         return handler.json_error(
