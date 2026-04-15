@@ -45,7 +45,11 @@ _sessions = {}  # session_id -> {user_id, client_ip, timestamp}
 def cleanup_expired_sessions():
     """Remove all expired sessions"""
     now = time.time()
-    expired = [sid for sid, sess in _sessions.items() if now - sess["timestamp"] > SESSION_TIMEOUT]
+    expired = [
+        sid
+        for sid, sess in _sessions.items()
+        if now - sess["timestamp"] > SESSION_TIMEOUT
+    ]
     for sid in expired:
         del _sessions[sid]
     if expired:
@@ -276,7 +280,7 @@ def get_clan_default(handler, conn, path, data):
         return handler.json_error(401, "Session expired")
 
     if not check_server_authorized(handler, conn):
-        return handler.json_error(403, "Server not authorized")
+        return handler.json_response(200, {"error": "Server not authorized"})
 
     user_id = session["user_id"]
     row = conn.execute(
@@ -459,14 +463,14 @@ def post_auth_verify(handler, conn, path):
     if not session:
         log(f"[AUTH] Session not found: {session_id}")
         return handler.json_response(
-            200, {"accepted": "false", "reason": "Session not found"}
+            200, {"accepted": "false", "error": "Session not found"}
         )
 
     if now - session["timestamp"] > SESSION_TIMEOUT:
         log(f"[AUTH] Session expired: {session_id}")
         del _sessions[session_id]
         return handler.json_response(
-            200, {"accepted": "false", "reason": "Session expired"}
+            200, {"accepted": "false", "error": "Session expired"}
         )
 
     log(f"[AUTH] Accepted: session={session_id}")

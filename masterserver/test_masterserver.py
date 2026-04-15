@@ -319,7 +319,7 @@ def run_tests(api_key):
     r = https_request("POST", "/auth/invalid_session", {})
     check(
         "Verify invalid session",
-        {"accepted": "false", "reason": "Session not found"},
+        {"accepted": "false", "error": "Session not found"},
         r,
     )
 
@@ -346,7 +346,7 @@ def run_tests(api_key):
     expired_count = 0
     for sid in session_ids[:10]:
         r = https_request("POST", f"/auth/{sid}", {})
-        if r.get("reason") == "Session expired":
+        if r.get("error") == "Session expired":
             expired_count += 1
 
     check("Sessions expired after 31s", 10, expired_count)

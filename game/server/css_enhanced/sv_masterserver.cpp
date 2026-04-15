@@ -49,7 +49,7 @@ struct MasterServerResponse_t
 	ResponseType_t type;
 	int playerIndex;
 	bool accepted;
-	char reason[128];
+	char error[128];
 	char clanTag[MAX_CLAN_TAG_LENGTH];
 };
 
@@ -146,7 +146,7 @@ static bool ParseJSONStringField( const char* json, const char* field, char* out
 // Helper: verify session with masterserver
 // Returns true if session is valid and accepted
 //-----------------------------------------------------------------------------
-static bool VerifySession( const char* sessionID, char* outReason, int reasonSize )
+static bool VerifySession( const char* sessionID, char* outError, int errorSize )
 {
 	CURL* curl = curl_easy_init();
 	if ( !curl )
@@ -181,9 +181,9 @@ static bool VerifySession( const char* sessionID, char* outReason, int reasonSiz
 	curl_easy_setopt( curl, CURLOPT_HTTPHEADER, headers );
 
 	bool accepted = false;
-	if ( outReason && reasonSize > 0 )
+	if ( outError && errorSize > 0 )
 	{
-		outReason[0] = '\0';
+		outError[0] = '\0';
 	}
 
 	CURLcode res = curl_easy_perform( curl );
@@ -206,9 +206,9 @@ static bool VerifySession( const char* sessionID, char* outReason, int reasonSiz
 				accepted = Q_strcmp( acceptedStr, "true" ) == 0;
 			}
 
-			if ( !accepted && outReason && reasonSize > 0 )
+			if ( !accepted && outError && errorSize > 0 )
 			{
-				ParseJSONStringField( response.data, "reason", outReason, reasonSize );
+				ParseJSONStringField( response.data, "error", outError, errorSize );
 			}
 		}
 	}
@@ -222,7 +222,7 @@ static bool VerifySession( const char* sessionID, char* outReason, int reasonSiz
 // Helper: fetch clan tag from masterserver
 // Returns true if clan tag found
 //-----------------------------------------------------------------------------
-static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSize )
+static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSize, char* outError, int errorSize )
 {
 	CURL* curl = curl_easy_init();
 	if ( !curl )
@@ -232,6 +232,8 @@ static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSi
 
 	char url[512];
 	Q_snprintf( url, sizeof( url ), "%s%s", MASTERSERVER_CLAN_DEFAULT_URL, sessionID );
+
+	DevMsg( "[MasterServer] ClanTag URL: %s\n", url );
 
 	CurlWriteBuffer_t response;
 	response.pos	 = 0;
@@ -250,12 +252,22 @@ static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSi
 
 	CURLcode res = curl_easy_perform( curl );
 
+	DevMsg( "[MasterServer] ClanTag CURL result: %d\n", res );
+
 	bool found = false;
+
+	if ( outError && errorSize > 0 )
+	{
+		outError[0] = '\0';
+	}
 
 	if ( res == CURLE_OK )
 	{
 		long httpCode = 0;
 		curl_easy_getinfo( curl, CURLINFO_RESPONSE_CODE, &httpCode );
+
+		DevMsg( "[MasterServer] ClanTag HTTP code: %ld\n", httpCode );
+		DevMsg( "[MasterServer] ClanTag Raw response: '%s'\n", response.data );
 
 		if ( httpCode == 200 )
 		{
@@ -263,6 +275,15 @@ static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSi
 			{
 				found = true;
 			}
+
+			if ( !found && outError && errorSize > 0 )
+			{
+				ParseJSONStringField( response.data, "error", outError, errorSize );
+			}
+		}
+		else if ( outError && errorSize > 0 )
+		{
+			ParseJSONStringField( response.data, "error", outError, errorSize );
 		}
 	}
 
@@ -276,12 +297,12 @@ static bool FetchClanTag( const char* sessionID, char* outClanTag, int clanTagSi
 static uintp WorkerThread( void* pParam )
 {
 	char clanTag[MAX_CLAN_TAG_LENGTH];
-	char reason[128];
+	char error[128];
 
 	RequestParams_t* req = ( RequestParams_t* )pParam;
-	bool verified		 = VerifySession( req->sessionID, reason, sizeof( reason ) );
+	bool verified		 = VerifySession( req->sessionID, error, sizeof( error ) );
 
-	DevMsg( "[MasterServer] Verify result: session=%s accepted=%d reason='%s'\n", req->sessionID, verified, reason );
+	DevMsg( "[MasterServer] Verify result: session=%s accepted=%d error='%s'\n", req->sessionID, verified, error );
 
 	if ( !verified )
 	{
@@ -289,7 +310,7 @@ static uintp WorkerThread( void* pParam )
 		resp.type		 = MasterServerResponse_t::RESPONSE_AUTH;
 		resp.playerIndex = req->playerIndex;
 		resp.accepted	 = false;
-		Q_strncpy( resp.reason, reason, sizeof( resp.reason ) );
+		Q_strncpy( resp.error, error, sizeof( resp.error ) );
 
 		s_ResponseMutex.Lock();
 		s_PendingResponses.AddToTail( resp );
@@ -300,7 +321,7 @@ static uintp WorkerThread( void* pParam )
 
 	DevMsg( "[MasterServer] Verification passed, fetching clan tag...\n" );
 
-	if ( FetchClanTag( req->sessionID, clanTag, sizeof( clanTag ) ) )
+	if ( FetchClanTag( req->sessionID, clanTag, sizeof( clanTag ), error, sizeof( error ) ) )
 	{
 		MasterServerResponse_t resp;
 		resp.type		 = MasterServerResponse_t::RESPONSE_CLAN_TAG;
@@ -316,7 +337,7 @@ static uintp WorkerThread( void* pParam )
 		return 0;
 	}
 
-	DevMsg( "[MasterServer] Fetched clan tag: session=%s clantag=%s\n", req->sessionID, clanTag );
+	DevMsg( "[MasterServer] Clan tag not found for session=%s, error='%s'\n", req->sessionID, error );
 
 	return 0;
 }
@@ -377,14 +398,19 @@ void MasterServer_Auth( void )
 			{
 				if ( !resp.accepted )
 				{
-					DevMsg( "[MasterServer] Kicking player %d: %s\n", resp.playerIndex, resp.reason );
+					CCSPlayer* pPlayer	   = ToCSPlayer( UTIL_PlayerByIndex( resp.playerIndex ) );
+					const char* playerName = pPlayer ? pPlayer->GetPlayerName() : "unknown";
+					DevMsg( "[MasterServer] Kicking player %d (%s): reason='%s'\n",
+							resp.playerIndex,
+							playerName,
+							resp.error );
 
 					if ( sv_masterserver_auth_enforce.GetBool() )
 					{
 						CCSPlayer* pPlayer = ToCSPlayer( UTIL_PlayerByIndex( resp.playerIndex ) );
 						if ( pPlayer && pPlayer->IsConnected() )
 						{
-							engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", pPlayer->GetUserID(), resp.reason ) );
+							engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", pPlayer->GetUserID(), resp.error ) );
 						}
 					}
 				}
