@@ -6,6 +6,7 @@
 #endif
 
 #include "tier0/platform.h"
+#include "tier0/threadtools.h"
 
 class CTokenReceiver
 {
@@ -24,6 +25,7 @@ class CTokenReceiver
 	volatile bool m_bRunning;
 	volatile bool m_bInitialized;
 	int m_iSocket;
+	ThreadHandle_t m_hThread;
 };
 
 extern CTokenReceiver g_TokenReceiver;

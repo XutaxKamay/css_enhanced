@@ -235,7 +235,8 @@ CTokenReceiver::CTokenReceiver()
  : m_nPort( TOKEN_RECEIVER_PORT ),
    m_bRunning( false ),
    m_bInitialized( false ),
-   m_iSocket( -1 )
+   m_iSocket( -1 ),
+   m_hThread( ( ThreadHandle_t )0 )
 {
 }
 
@@ -254,8 +255,7 @@ void CTokenReceiver::Start()
 	m_bRunning	   = true;
 	m_bInitialized = true;
 
-	ThreadHandle_t hThread = CreateSimpleThread( ServerThreadProc, this );
-	ReleaseThreadHandle( hThread );
+	m_hThread = CreateSimpleThread( ServerThreadProc, this );
 }
 
 void CTokenReceiver::Stop()
@@ -272,6 +272,13 @@ void CTokenReceiver::Stop()
 	{
 		CloseSocket( m_iSocket );
 		m_iSocket = -1;
+	}
+
+	if ( m_hThread )
+	{
+		ThreadJoin( m_hThread, 2000 );
+		ReleaseThreadHandle( m_hThread );
+		m_hThread = 0;
 	}
 }
 
@@ -325,8 +332,8 @@ void CTokenReceiver::RunServer()
 
 	DevMsg( "[TokenReceiver] Listening on 127.0.0.1:%d\n", m_nPort );
 
-	float flLastAuthTime				= 0.0f;
-	const float flAuthInterval			= 10.0f; // Re-auth every 10 seconds
+	float flLastAuthTime	   = 0.0f;
+	const float flAuthInterval = 10.0f; // Re-auth every 10 seconds
 
 	// Set socket to non-blocking so we can check for periodic re-auth
 #ifdef _WIN32

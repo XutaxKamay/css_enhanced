@@ -30,7 +30,10 @@
 
 #define MASTERSERVER_POLL_INTERVAL	  10.0f
 
-static ConVar sv_masterserver_auth_enforce( "sv_masterserver_auth_enforce", "0", FCVAR_NOTIFY, "Whether to kick players with invalid auth" );
+static ConVar sv_masterserver_auth_enforce( "sv_masterserver_auth_enforce",
+											"0",
+											FCVAR_NOTIFY,
+											"Whether to kick players with invalid auth" );
 
 //-----------------------------------------------------------------------------
 // Response structure queued from worker threads
@@ -154,6 +157,7 @@ static bool VerifySession( const char* sessionID, const char* clientIP, char* ou
 
 	char url[512];
 	Q_snprintf( url, sizeof( url ), "%s%s/%s", MASTERSERVER_AUTH_VERIFY_URL, sessionID, clientIP );
+
 	DevMsg( "[MasterServer] Verify URL: %s\n", url );
 
 	CurlWriteBuffer_t response;
@@ -248,6 +252,7 @@ static bool FetchClanTag( const char* sessionID, const char* clientIP, char* out
 	CURLcode res = curl_easy_perform( curl );
 
 	bool found = false;
+
 	if ( res == CURLE_OK )
 	{
 		long httpCode = 0;
@@ -271,11 +276,14 @@ static bool FetchClanTag( const char* sessionID, const char* clientIP, char* out
 //-----------------------------------------------------------------------------
 static uintp WorkerThread( void* pParam )
 {
-	RequestParams_t* req = ( RequestParams_t* )pParam;
-
+	char clanTag[MAX_CLAN_TAG_LENGTH];
 	char reason[128];
-	bool verified = VerifySession( req->sessionID, req->clientIP, reason, sizeof( reason ) );
+
+	RequestParams_t* req = ( RequestParams_t* )pParam;
+	bool verified		 = VerifySession( req->sessionID, req->clientIP, reason, sizeof( reason ) );
+
 	DevMsg( "[MasterServer] Verify result: session=%s accepted=%d reason='%s'\n", req->sessionID, verified, reason );
+
 	if ( !verified )
 	{
 		MasterServerResponse_t resp;
@@ -288,13 +296,11 @@ static uintp WorkerThread( void* pParam )
 		s_PendingResponses.AddToTail( resp );
 		s_ResponseMutex.Unlock();
 
-		delete req;
 		return 0;
 	}
 
 	DevMsg( "[MasterServer] Verification passed, fetching clan tag...\n" );
 
-	char clanTag[MAX_CLAN_TAG_LENGTH];
 	if ( FetchClanTag( req->sessionID, req->clientIP, clanTag, sizeof( clanTag ) ) )
 	{
 		MasterServerResponse_t resp;
@@ -306,7 +312,7 @@ static uintp WorkerThread( void* pParam )
 		s_PendingResponses.AddToTail( resp );
 		s_ResponseMutex.Unlock();
 	}
-	delete req;
+
 	return 0;
 }
 
@@ -317,37 +323,40 @@ static uintp WorkerThread( void* pParam )
 void MasterServer_RequestAuth( int playerIndex, const char* sessionID )
 {
 	DevMsg( "[MasterServer] RequestAuth: player=%d session=%s\n", playerIndex, sessionID ? sessionID : "(null)" );
+
 	if ( !sessionID || !sessionID[0] || Q_strcmp( sessionID, "0" ) == 0 )
 	{
 		return;
 	}
 
-	RequestParams_t* req = new RequestParams_t;
-	req->playerIndex			= playerIndex;
+	static RequestParams_t reqs[MAX_PLAYERS + 1];
+
+	auto req = &reqs[playerIndex];
+
+	req->playerIndex = playerIndex;
 	Q_strncpy( req->sessionID, sessionID, sizeof( req->sessionID ) );
 
 	// Get client IP from player
 	INetChannelInfo* pNetChan = engine->GetPlayerNetInfo( playerIndex );
+	CCSPlayer* pPlayer = ToCSPlayer( UTIL_PlayerByIndex( playerIndex ) );
+
 	if ( pNetChan )
 	{
 		const char* pszIP = pNetChan->GetAddress();
-		DevMsg( "[MasterServer] Client IP: %s\n", pszIP ? pszIP : "(null)" );
+
+		DevMsg( "[MasterServer] Player %s with IP %s requesting auth\n", pPlayer->GetPlayerName(), pszIP ? pszIP : "(null)" );
+
 		if ( pszIP )
 		{
 			Q_strncpy( req->clientIP, pszIP, sizeof( req->clientIP ) );
-		}
-		else
-		{
-			Q_strncpy( req->clientIP, "0.0.0.0", sizeof( req->clientIP ) );
+
+			g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( WorkerThread, req ) ) );
 		}
 	}
 	else
 	{
-		// Fallback if we can't get netchannel info
-		Q_strncpy( req->clientIP, "0.0.0.0", sizeof( req->clientIP ) );
+		DevMsg( "[MasterServer] NULL network channel for player %s, can't request auth\n", pPlayer->GetPlayerName() );
 	}
-
-	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( WorkerThread, req ) ) );
 }
 
 void MasterServer_Auth( void )
@@ -365,6 +374,7 @@ void MasterServer_Auth( void )
 				if ( !resp.accepted )
 				{
 					DevMsg( "[MasterServer] Kicking player %d: %s\n", resp.playerIndex, resp.reason );
+
 					if ( sv_masterserver_auth_enforce.GetBool() )
 					{
 						CCSPlayer* pPlayer = ToCSPlayer( UTIL_PlayerByIndex( resp.playerIndex ) );
