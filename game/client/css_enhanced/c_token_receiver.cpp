@@ -1,3 +1,12 @@
+//=============================================================================//
+//
+// Purpose: Token receiver for masterserver authentication.
+//          Listens on localhost for HTTP POST requests containing auth tokens
+//          and periodically re-authenticates with the master server.
+//          Runs in a separate thread to avoid blocking the main game thread.
+//
+//=============================================================================//
+
 #include "cbase.h"
 #include "c_token_receiver.h"
 #include "convar.h"
@@ -29,6 +38,7 @@ typedef int socklen_t;
 #define TOKEN_RECEIVER_PORT 27080
 #define TOKEN_MAX_LENGTH	128
 
+// ConVars for storing token and session ID
 static ConVar cl_masterserver_token( "cl_masterserver_token",
 									 "",
 									 FCVAR_ARCHIVE,
@@ -42,8 +52,10 @@ static ConVar cl_masterserver_session_id( "cl_masterserver_session_id",
 CTokenReceiver g_TokenReceiver;
 
 //-----------------------------------------------------------------------------
-// Helpers
+// Helper functions
 //-----------------------------------------------------------------------------
+
+// Platform-independent socket close
 static void CloseSocket( SOCKET sock )
 {
 #ifdef _WIN32
@@ -53,11 +65,13 @@ static void CloseSocket( SOCKET sock )
 #endif
 }
 
+// Check if a character is valid for a token (alphanumeric, hyphen, underscore)
 static bool IsValidTokenChar( char c )
 {
 	return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == '-' || c == '_';
 }
 
+// Validate token length and characters
 static bool ValidateToken( const char* token )
 {
 	if ( !token || !token[0] )
@@ -82,34 +96,38 @@ static bool ValidateToken( const char* token )
 	return true;
 }
 
-//-----------------------------------------------------------------------------
 // Parse token from a minimal HTTP POST body: {"token": "value"}
-//-----------------------------------------------------------------------------
+// Returns true if token was successfully extracted
 static bool ParseTokenFromBody( const char* body, char* outToken, int outSize )
 {
+	// Find the "token" key in the JSON
 	const char* tokenKey = Q_strstr( body, "\"token\"" );
 	if ( !tokenKey )
 	{
 		return false;
 	}
 
+	// Find the colon after "token"
 	const char* colon = Q_strstr( tokenKey + 7, ":" );
 	if ( !colon )
 	{
 		return false;
 	}
 
+	// Skip whitespace after colon
 	const char* p = colon + 1;
 	while ( *p == ' ' || *p == '\t' )
 	{
 		p++;
 	}
 
+	// Expect opening quote
 	if ( *p != '"' )
 	{
 		return false;
 	}
 
+	// Find the closing quote
 	p++;
 	const char* valueEnd = Q_strstr( p, "\"" );
 	if ( !valueEnd )
@@ -117,20 +135,24 @@ static bool ParseTokenFromBody( const char* body, char* outToken, int outSize )
 		return false;
 	}
 
+	// Copy token value (limited to outSize)
 	int len = MIN( ( int )( valueEnd - p ), outSize - 1 );
 	Q_strncpy( outToken, p, len + 1 );
 	return true;
 }
 
 //-----------------------------------------------------------------------------
-// Helper for HTTP POST to masterserver
+// libcurl callback structures and functions
 //-----------------------------------------------------------------------------
+
+// Buffer for storing HTTP response data
 struct CurlWriteBuffer_t
 {
 	char data[1024];
 	int pos;
 };
 
+// libcurl callback to accumulate response data
 static size_t CurlWriteCallback( void* contents, size_t size, size_t nmemb, void* userp )
 {
 	CurlWriteBuffer_t* buf = ( CurlWriteBuffer_t* )userp;
@@ -143,10 +165,8 @@ static size_t CurlWriteCallback( void* contents, size_t size, size_t nmemb, void
 	return totalSize;
 }
 
-//-----------------------------------------------------------------------------
 // Sends token to masterserver and gets back a session ID
-// Returns true if successful
-//-----------------------------------------------------------------------------
+// Returns true if successful, session ID stored in outSessionID
 static bool GetSessionIDFromMasterServer( const char* token, char* outSessionID, int outSize )
 {
 	if ( !token || !token[0] )
@@ -171,6 +191,7 @@ static bool GetSessionIDFromMasterServer( const char* token, char* outSessionID,
 	response.pos	 = 0;
 	response.data[0] = '\0';
 
+	// Configure curl request
 	curl_easy_setopt( curl, CURLOPT_URL, url );
 	curl_easy_setopt( curl, CURLOPT_POSTFIELDS, postData );
 	curl_easy_setopt( curl, CURLOPT_HTTPHEADER, headers );
@@ -180,6 +201,7 @@ static bool GetSessionIDFromMasterServer( const char* token, char* outSessionID,
 	curl_easy_setopt( curl, CURLOPT_SSL_VERIFYHOST, 0L );
 	curl_easy_setopt( curl, CURLOPT_SSL_VERIFYPEER, 0L );
 
+	// Perform the request
 	CURLcode res  = curl_easy_perform( curl );
 	long httpCode = 0;
 	curl_easy_getinfo( curl, CURLINFO_RESPONSE_CODE, &httpCode );
@@ -187,6 +209,7 @@ static bool GetSessionIDFromMasterServer( const char* token, char* outSessionID,
 	curl_slist_free_all( headers );
 	curl_easy_cleanup( curl );
 
+	// Check response
 	if ( res != CURLE_OK || httpCode != 200 )
 	{
 		return false;
@@ -229,8 +252,9 @@ static bool GetSessionIDFromMasterServer( const char* token, char* outSessionID,
 }
 
 //-----------------------------------------------------------------------------
-// CTokenReceiver
+// CTokenReceiver - Main class implementation
 //-----------------------------------------------------------------------------
+
 CTokenReceiver::CTokenReceiver()
  : m_nPort( TOKEN_RECEIVER_PORT ),
    m_bRunning( false ),
@@ -242,9 +266,11 @@ CTokenReceiver::CTokenReceiver()
 
 CTokenReceiver::~CTokenReceiver()
 {
+	// Ensure thread is stopped on destruction
 	Stop();
 }
 
+// Start the token receiver server in a new thread
 void CTokenReceiver::Start()
 {
 	if ( m_bInitialized )
@@ -252,12 +278,17 @@ void CTokenReceiver::Start()
 		return;
 	}
 
+	// Lock mutex before modifying shared state
+	AUTO_LOCK( m_Mutex );
+
 	m_bRunning	   = true;
 	m_bInitialized = true;
 
+	// Create the server thread
 	m_hThread = CreateSimpleThread( ServerThreadProc, this );
 }
 
+// Stop the token receiver server and wait for thread to finish
 void CTokenReceiver::Stop()
 {
 	if ( !m_bInitialized )
@@ -265,9 +296,21 @@ void CTokenReceiver::Stop()
 		return;
 	}
 
-	m_bRunning	   = false;
-	m_bInitialized = false;
+	// Signal the thread to stop
+	{
+		AUTO_LOCK( m_Mutex );
+		m_bRunning	   = false;
+		m_bInitialized = false;
+	}
 
+	// Wait for the thread to finish (1 second timeout)
+	if ( m_hThread )
+	{
+		ThreadJoin( m_hThread, 1000 );
+		m_hThread = 0;
+	}
+
+	// Clean up socket
 	if ( m_iSocket >= 0 )
 	{
 		CloseSocket( m_iSocket );
@@ -275,27 +318,36 @@ void CTokenReceiver::Stop()
 	}
 }
 
+// Main server loop - runs in a separate thread
 void CTokenReceiver::RunServer()
 {
 #ifdef _WIN32
+	// Initialize Windows sockets
 	WSADATA wsaData;
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
 	{
 		DevMsg( "[TokenReceiver] WSAStartup failed\n" );
+		AUTO_LOCK( m_Mutex );
+		m_bRunning = false;
 		return;
 	}
 #endif
 
+	// Create server socket
 	m_iSocket = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( m_iSocket == INVALID_SOCKET )
 	{
 		DevMsg( "[TokenReceiver] Failed to create socket\n" );
+		AUTO_LOCK( m_Mutex );
+		m_bRunning = false;
 		return;
 	}
 
+	// Allow address reuse (prevents "Address already in use" errors on restart)
 	int reuse = 1;
 	setsockopt( m_iSocket, SOL_SOCKET, SO_REUSEADDR, ( const char* )&reuse, sizeof( reuse ) );
 
+	// Bind to localhost:PORT
 	sockaddr_in serverAddr;
 	serverAddr.sin_family	   = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
@@ -309,9 +361,12 @@ void CTokenReceiver::RunServer()
 #ifdef _WIN32
 		WSACleanup();
 #endif
+		AUTO_LOCK( m_Mutex );
+		m_bRunning = false;
 		return;
 	}
 
+	// Start listening for connections
 	if ( listen( m_iSocket, 1 ) == SOCKET_ERROR )
 	{
 		DevMsg( "[TokenReceiver] Failed to listen\n" );
@@ -320,15 +375,18 @@ void CTokenReceiver::RunServer()
 #ifdef _WIN32
 		WSACleanup();
 #endif
+		AUTO_LOCK( m_Mutex );
+		m_bRunning = false;
 		return;
 	}
 
 	DevMsg( "[TokenReceiver] Listening on 127.0.0.1:%d\n", m_nPort );
 
+	// Server configuration
 	float flLastAuthTime	   = 0.0f;
-	const float flAuthInterval = 10.0f; // Re-auth every 10 seconds
+	const float flAuthInterval = 10.0f; // Re-authenticate every 10 seconds
 
-	// Set socket to non-blocking so we can check for periodic re-auth
+	// Set socket to non-blocking so we can periodically check for shutdown
 #ifdef _WIN32
 	u_long mode = 1;
 	ioctlsocket( m_iSocket, FIONBIO, &mode );
@@ -337,21 +395,45 @@ void CTokenReceiver::RunServer()
 	fcntl( m_iSocket, F_SETFL, flags | O_NONBLOCK );
 #endif
 
-	while ( m_bRunning )
+	// Main server loop - runs until Stop() is called
+	while ( true )
 	{
-		// Periodic re-auth: if we have a token, re-auth every 10 seconds
+		// Check if we've been asked to stop (with mutex held briefly)
+		{
+			AUTO_LOCK( m_Mutex );
+			if ( !m_bRunning )
+			{
+				break;
+			}
+		}
+
 		float flNow = Plat_FloatTime();
 
-		auto currentToken = cl_masterserver_token.GetString();
+		// Copy current token under lock (brief lock)
+		char currentToken[TOKEN_MAX_LENGTH];
+		{
+			AUTO_LOCK( m_Mutex );
+			if ( !m_bRunning )
+			{
+				break;
+			}
+			Q_strncpy( currentToken, cl_masterserver_token.GetString(), sizeof( currentToken ) );
+		}
 
+		// Periodic re-authentication with master server
 		if ( currentToken[0] && Q_strcmp( currentToken, "0" ) != 0 && ( flNow - flLastAuthTime >= flAuthInterval ) )
 		{
 			char sessionID[128] = { 0 };
 
 			if ( GetSessionIDFromMasterServer( currentToken, sessionID, sizeof( sessionID ) ) )
 			{
-				cl_masterserver_session_id.SetValue( sessionID );
-				DevMsg( "[TokenReceiver] Re-auth session ID: %s\n", sessionID );
+				// Update session ID under lock
+				AUTO_LOCK( m_Mutex );
+				if ( m_bRunning )
+				{
+					cl_masterserver_session_id.SetValue( sessionID );
+					DevMsg( "[TokenReceiver] Re-auth session ID: %s\n", sessionID );
+				}
 			}
 			else
 			{
@@ -361,16 +443,19 @@ void CTokenReceiver::RunServer()
 			flLastAuthTime = flNow;
 		}
 
+		// Accept incoming connections (non-blocking)
 		sockaddr_in clientAddr;
 		socklen_t clientLen = sizeof( clientAddr );
 		SOCKET clientSocket = accept( m_iSocket, ( sockaddr* )&clientAddr, &clientLen );
 
 		if ( clientSocket == INVALID_SOCKET )
 		{
+			// No pending connections, sleep briefly and loop
 			ThreadSleep( 100 );
 			continue;
 		}
 
+		// Read HTTP request
 		char buffer[4096] = { 0 };
 		int recvSize	  = recv( clientSocket, buffer, sizeof( buffer ) - 1, 0 );
 
@@ -382,22 +467,23 @@ void CTokenReceiver::RunServer()
 
 		buffer[recvSize] = '\0';
 
-		// Only accept POST /set_token
+		// Only accept POST /set_token requests
 		if ( Q_strstr( buffer, "POST /set_token" ) == NULL )
 		{
 			CloseSocket( clientSocket );
 			continue;
 		}
 
-		// Find HTTP body after \r\n\r\n
+		// Find HTTP body (after blank line)
 		const char* body = Q_strstr( buffer, "\r\n\r\n" );
 		if ( !body )
 		{
 			CloseSocket( clientSocket );
 			continue;
 		}
-		body += 4;
+		body += 4; // Skip the blank line
 
+		// Parse and validate token from request body
 		char token[TOKEN_MAX_LENGTH];
 		if ( !ParseTokenFromBody( body, token, sizeof( token ) ) || !ValidateToken( token ) )
 		{
@@ -408,23 +494,32 @@ void CTokenReceiver::RunServer()
 			continue;
 		}
 
-		// Set the token cvar
-		cl_masterserver_token.SetValue( token );
+		// Set the token under lock
+		{
+			AUTO_LOCK( m_Mutex );
+			if ( m_bRunning )
+			{
+				cl_masterserver_token.SetValue( token );
 
-		CRC32_t crc;
-		CRC32_Init( &crc );
-		CRC32_ProcessBuffer( &crc, token, Q_strlen( token ) );
-		CRC32_Final( &crc );
-		DevMsg( "[TokenReceiver] Token set (CRC32: %08X)\n", crc );
+				// Log CRC for debugging
+				CRC32_t crc;
+				CRC32_Init( &crc );
+				CRC32_ProcessBuffer( &crc, token, Q_strlen( token ) );
+				CRC32_Final( &crc );
+				DevMsg( "[TokenReceiver] Token set (CRC32: %08X)\n", crc );
+			}
+		}
 
 		flLastAuthTime = Plat_FloatTime();
 
+		// Send success response
 		const char* response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"ok\"}";
 		send( clientSocket, response, Q_strlen( response ), 0 );
 
 		CloseSocket( clientSocket );
 	}
 
+	// Cleanup
 	CloseSocket( m_iSocket );
 	m_iSocket = -1;
 
@@ -432,11 +527,14 @@ void CTokenReceiver::RunServer()
 	WSACleanup();
 #endif
 
+	// Signal that we're done
+	AUTO_LOCK( m_Mutex );
 	m_bRunning = false;
 
 	DevMsg( "[TokenReceiver] Server stopped\n" );
 }
 
+// Thread entry point
 uintp CTokenReceiver::ServerThreadProc( void* pParam )
 {
 	CTokenReceiver* pReceiver = static_cast< CTokenReceiver* >( pParam );

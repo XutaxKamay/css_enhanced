@@ -26,6 +26,7 @@ class CTokenReceiver
 	volatile bool m_bInitialized;
 	int m_iSocket;
 	ThreadHandle_t m_hThread;
+	CThreadMutex m_Mutex;
 };
 
 extern CTokenReceiver g_TokenReceiver;
