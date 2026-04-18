@@ -19,7 +19,8 @@
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
 
 #ifdef CLIENT_DLL
-ConVar debug_screenshot_bullet_position("debug_screenshot_bullet_position", "0");
+ConVar cl_bullet_debugger_shoot_position_rendering_trace("cl_bullet_debugger_shoot_position_rendering_trace", "0", FCVAR_ARCHIVE);
+extern ConVar cl_bullet_debugger_enable;
 #include "fx_impact.h"
 
 	// this is a cheap ripoff from CBaseCombatWeapon::WeaponSound():
@@ -320,7 +321,20 @@ void FX_FireBullets(
 	for ( int iBullet=0; iBullet < pWeaponInfo->m_iBullets; iBullet++ )
     {
 #ifdef CLIENT_DLL
-        if (pPlayer->IsLocalPlayer() && debug_screenshot_bullet_position.GetBool())
+        if (playerCmd && !playerCmd->hasbeenpredicted && cl_bullet_debugger_enable.GetBool() && cl_bullet_debugger_shoot_position_rendering_trace.GetInt() > 0)
+        {
+            // Capture fire-time position for comparison with rendered position
+            C_CSPlayer* pCSPlayer = ToCSPlayer( pPlayer );
+            if ( pCSPlayer )
+            {
+                C_CSPlayer::ShootPositionRecord record;
+                record.m_vecFirePosition = vOrigin;
+                record.m_nTickBase = pCSPlayer->m_nTickBase;
+                record.m_bDrawn = false;
+                pCSPlayer->m_BulletShootPositionTrack.Push( std::move( record ) );
+            }
+        }
+        if (playerCmd && !playerCmd->hasbeenpredicted && cl_bullet_debugger_enable.GetBool() && cl_bullet_debugger_shoot_position_rendering_trace.GetInt() > 1)
         {
             gpGlobals->client_taking_screenshot = true;
         }

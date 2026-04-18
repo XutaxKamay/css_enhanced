@@ -389,6 +389,7 @@ private:
                     const Vector& endpos,
                     const Vector& mins,
                     const Vector& maxs,
+					const QAngle& angles,
                     int r,
                     int g,
                     int b,
@@ -416,6 +417,7 @@ private:
 		Vector m_vecDst;
 		Vector m_vecMins;
 		Vector m_vecMaxs;
+		QAngle m_angSrcAngles;
 		int m_nAttackerTickBase;
 		int m_nBullet;
 		int m_nTraceIteration;
@@ -424,6 +426,17 @@ private:
 
 	using bullet_trace_track_t = CUtlCircularBuffer< BulletTraceRecord, MAX_HISTORY_HITBOX_RECORDS >;
 	bullet_trace_track_t m_BulletTraceTrack;
+
+	struct ShootPositionRecord
+	{
+		Vector m_vecFirePosition;
+		int m_nTickBase;
+		bool m_bDrawn;
+	};
+
+	static constexpr auto MAX_HISTORY_SHOOT_POSITION_RECORDS = 64;
+	using shoot_position_track_t = CUtlCircularBuffer< ShootPositionRecord, MAX_HISTORY_SHOOT_POSITION_RECORDS >;
+	shoot_position_track_t m_BulletShootPositionTrack;
 
 	struct HitboxRecord
 	{
@@ -453,7 +466,6 @@ private:
 	bool m_bIsInsideLagCompensationContext;
 	float m_flHitMarkerDisplayCurrentTime;
 	bool m_bHitMark;
-	Vector m_vecRenderedShootingPosition;
 
   private:
 	void RestoreStateFromRecord( const HitboxRecord& record );

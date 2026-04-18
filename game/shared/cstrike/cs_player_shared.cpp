@@ -453,13 +453,14 @@ void CCSPlayer::DrawBullet(const Vector& src,
                     const Vector& endpos,
                     const Vector& mins,
                     const Vector& maxs,
+					const QAngle& angles,
                     int r,
                     int g,
                     int b,
                     int a,
                     float duration)
 {
-    NDebugOverlay::SweptBox(src, endpos, mins, maxs, QAngle(0, 0, 0), r, g, b, a, duration);
+    NDebugOverlay::SweptBox(src, endpos, mins, maxs, angles, r, g, b, a, duration);
     NDebugOverlay::Box(endpos, mins, maxs, r, g, b, a, duration);
 }
 #endif
@@ -627,6 +628,7 @@ void CCSPlayer::FireBullet(
 				traceRec.m_vecDst = tr.endpos;
 				traceRec.m_vecMins = vecBulletRadiusMins;
 				traceRec.m_vecMaxs = vecBulletRadiusMaxs;
+				traceRec.m_angSrcAngles = shootAngles;
 				traceRec.m_nAttackerTickBase = m_nTickBase;
 				traceRec.m_nBullet = iBullet;
 				traceRec.m_nTraceIteration = iTraceIteration;
@@ -643,6 +645,9 @@ void CCSPlayer::FireBullet(
 				event->SetFloat( "dst_x", tr.endpos.x );
 				event->SetFloat( "dst_y", tr.endpos.y );
 				event->SetFloat( "dst_z", tr.endpos.z );
+				event->SetFloat( "angle_x", shootAngles.x );
+				event->SetFloat( "angle_y", shootAngles.y );
+				event->SetFloat( "angle_z", shootAngles.z );
 				event->SetFloat( "radius", flBulletRadius );
 				event->SetInt( "tickbase", TIME_TO_TICKS( GetTimeBase() ) );
 				event->SetInt( "bullet", iBullet );

@@ -106,6 +106,7 @@ extern ConVar cl_bullet_debugger_show_traces;
 extern ConVar cl_bullet_debugger_show_only_on_error;
 extern ConVar cl_bullet_debugger_tolerance;
 extern ConVar cl_bullet_debugger_duration;
+extern ConVar cl_bullet_debugger_shoot_position_rendering_trace;
 extern ConCommand toggle_bullet_debugger_panel;
 
 ConVar cl_bullet_debugger_hitbox_color_server( "cl_bullet_debugger_hitbox_color_server", "0 255 255 127", FCVAR_ARCHIVE, "RGBA color for server hitbox overlays" );
@@ -1395,7 +1396,77 @@ bool C_CSPlayer::Interpolate( size_t nAmountOfTicks, float flInterpolationAmount
 		SetAbsOrigin( GetNetworkOrigin() );
 	}
 
-	m_vecRenderedShootingPosition = Weapon_ShootPosition();
+	// Shoot position rendering trace comparison
+	if ( cl_bullet_debugger_shoot_position_rendering_trace.GetInt() > 0 && cl_bullet_debugger_enable.GetBool() )
+	{
+		auto vecRenderedShootingPosition = Weapon_ShootPosition();
+
+		float flDuration = cl_bullet_debugger_duration.GetFloat();
+		for ( int i = 0; i < m_BulletShootPositionTrack.m_nFilled; i++ )
+		{
+			ShootPositionRecord* rec = m_BulletShootPositionTrack.Get( i );
+			if ( rec && !rec->m_bDrawn )
+			{
+				QAngle viewAngles;
+				engine->GetViewAngles( viewAngles );
+				Vector forward;
+				AngleVectors( viewAngles, &forward );
+
+				Vector boxSize( 2.f );
+				Vector boxOffset = forward * 256.f;
+
+				DrawBullet( rec->m_vecFirePosition,
+							vecRenderedShootingPosition,
+							-boxSize,
+							boxSize,
+							viewAngles,
+							255,
+							0,
+							0,
+							255,
+							flDuration );
+				DrawBullet( rec->m_vecFirePosition,
+							rec->m_vecFirePosition + boxOffset,
+							-boxSize,
+							boxSize,
+							viewAngles,
+							0,
+							0,
+							255,
+							255,
+							flDuration );
+				DrawBullet( vecRenderedShootingPosition,
+							vecRenderedShootingPosition + boxOffset,
+							-boxSize,
+							boxSize,
+							viewAngles,
+							0,
+							255,
+							0,
+							255,
+							flDuration );
+				char bufPos[256];
+				V_sprintf_safe( bufPos,
+								"Shoot pos: diff=%.3f pred=%.3f,%.3f,%.3f render=%.3f,%.3f,%.3f",
+								rec->m_vecFirePosition.DistTo( vecRenderedShootingPosition ),
+								rec->m_vecFirePosition.x,
+								rec->m_vecFirePosition.y,
+								rec->m_vecFirePosition.z,
+								vecRenderedShootingPosition.x,
+								vecRenderedShootingPosition.y,
+								vecRenderedShootingPosition.z );
+				NDebugOverlay::EntityTextAtPosition( vecRenderedShootingPosition + boxOffset,
+													 0,
+													 bufPos,
+													 flDuration,
+													 255,
+													 255,
+													 255,
+													 255 );
+				rec->m_bDrawn = true;
+			}
+		}
+	}
 
 	return true;
 }
@@ -2280,7 +2351,7 @@ void C_CSPlayer::ForceSetupBones( CStudioHdr* pHdr,
 
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
-	static ConVarRef debug_screenshot_bullet_position( "debug_screenshot_bullet_position" );
+	static ConVarRef cl_bullet_debugger_shoot_position_rendering_trace( "cl_bullet_debugger_shoot_position_rendering_trace" );
 
 	BaseClass::FireGameEvent( event );
 
@@ -2335,10 +2406,6 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 								 cl_bullet_debugger_show_server.GetBool(),
 								 cl_bullet_debugger_show_prediction_computed.GetBool(),
 								 cl_bullet_debugger_show_only_on_error.GetBool() );
-		if ( debug_screenshot_bullet_position.GetBool() )
-		{
-			gpGlobals->client_taking_screenshot = true;
-		}
 	}
 	else if ( FStrEq( event->GetName(), "bullet_impact" ) )
 	{
@@ -2351,11 +2418,6 @@ void C_CSPlayer::FireGameEvent( IGameEvent* event )
 								  cl_bullet_debugger_duration.GetFloat(),
 								  cl_bullet_debugger_tolerance.GetFloat(),
 								  cl_bullet_debugger_show_traces.GetBool() );
-
-		if ( debug_screenshot_bullet_position.GetBool() )
-		{
-			gpGlobals->client_taking_screenshot = true;
-		}
 	}
 }
 
@@ -2912,6 +2974,7 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 
 	Vector srvSrc( event->GetFloat( "src_x" ), event->GetFloat( "src_y" ), event->GetFloat( "src_z" ) );
 	Vector srvDst( event->GetFloat( "dst_x" ), event->GetFloat( "dst_y" ), event->GetFloat( "dst_z" ) );
+	QAngle angSrc( event->GetFloat( "angle_x" ), event->GetFloat( "angle_y" ), event->GetFloat( "angle_z" ) );
 	float flBulletRadius = event->GetFloat( "radius" );
 	Vector mins( -flBulletRadius );
 	Vector maxs( flBulletRadius );
@@ -2944,7 +3007,7 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 	if ( bTraceMatch )
 	{
 		Color colMatch = ParseDebugColor( cl_bullet_debugger_hitbox_color_match );
-		DrawBullet( srvSrc, srvDst, mins, maxs, colMatch.r(), colMatch.g(), colMatch.b(), colMatch.a(), flDuration );
+		DrawBullet( srvSrc, srvDst, mins, maxs, angSrc, colMatch.r(), colMatch.g(), colMatch.b(), colMatch.a(), flDuration );
 		char buf[256];
 		V_sprintf_safe( buf,
 						"Bullet trace: MATCH (src diff: %f, dst diff: %f)",
@@ -2958,6 +3021,7 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 					srvDst,
 					mins,
 					maxs,
+					angSrc,
 					colBulletServer.r(),
 					colBulletServer.g(),
 					colBulletServer.b(),
@@ -2969,6 +3033,7 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 						pPredTrace->m_vecDst,
 						pPredTrace->m_vecMins,
 						pPredTrace->m_vecMaxs,
+						angSrc,
 						colBulletPrediction.r(),
 						colBulletPrediction.g(),
 						colBulletPrediction.b(),
