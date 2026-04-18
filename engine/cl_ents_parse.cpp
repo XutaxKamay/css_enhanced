@@ -287,7 +287,7 @@ void CL_FlushEntityPacket( CClientFrame *packet, char const *errorString, ... )
 	Con_NXPrintf( &np, "WARNING:  CL_FlushEntityPacket, %s", str );
 
 	// Free packet memory.
-	delete packet;
+	cl.FreeFrame( packet );
 }
 
 

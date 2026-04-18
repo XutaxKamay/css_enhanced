@@ -45,8 +45,6 @@ public:
 
 	void UnregisterGlowObject( int nGlowObjectHandle )
 	{
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
-
 		if ( !m_GlowObjectDefinitions.IsValidIndex( nGlowObjectHandle ) )
 		{
 			return;
@@ -57,38 +55,32 @@ public:
 
 	void SetEntity( int nGlowObjectHandle, C_BaseEntity *pEntity )
 	{
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_hEntity = pEntity;
 	}
 
 	void SetColor( int nGlowObjectHandle, const Vector &vGlowColor ) 
-	{ 
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
+	{
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_vGlowColor = vGlowColor;
 	}
 
 	void SetAlpha( int nGlowObjectHandle, float flAlpha ) 
 	{ 
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_flGlowAlpha = flAlpha;
 	}
 
 	void SetRenderFlags( int nGlowObjectHandle, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded )
 	{
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_bRenderWhenOccluded = bRenderWhenOccluded;
 		m_GlowObjectDefinitions[nGlowObjectHandle].m_bRenderWhenUnoccluded = bRenderWhenUnoccluded;
 	}
 
 	bool IsRenderingWhenOccluded( int nGlowObjectHandle ) const
 	{
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 		return m_GlowObjectDefinitions[nGlowObjectHandle].m_bRenderWhenOccluded;
 	}
 	
 	bool IsRenderingWhenUnoccluded( int nGlowObjectHandle ) const
 	{
-		Assert( !m_GlowObjectDefinitions[nGlowObjectHandle].IsUnused() );
 		return m_GlowObjectDefinitions[nGlowObjectHandle].m_bRenderWhenUnoccluded;
 	}
 

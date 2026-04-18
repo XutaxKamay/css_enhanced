@@ -151,7 +151,7 @@ void CClientState::FileRequested( const char *fileName, unsigned int transferID 
 void CClientState::FileDenied(const char *fileName, unsigned int transferID ) {}
 void CClientState::FileSent( const char *fileName, unsigned int transferID ) {}
 void CClientState::Disconnect( const char *pszReason, bool showmainmenu  ) {}
-bool CClientState::FullConnect( netadr_t &adr, int iServerTCPPort ) { return true; }
+bool CClientState::FullConnect( netadr_t &adr ) { return true; }
 bool CClientState::SetSignonState ( int state, int count ) { return false;}
 void CClientState::SendClientInfo( void ) {}
 void CClientState::SendServerCmdKeyValues( KeyValues *pKeyValues ) {}

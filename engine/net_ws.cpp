@@ -664,61 +664,22 @@ int NET_OpenSocket ( const char *net_interface, int& port, int protocol )
 
 	address.sin_family = AF_INET;
 
-	int port_offset;	// try binding socket to port, try next 10 is port is already used
-
-	for ( port_offset = 0; port_offset < PORT_TRY_MAX; port_offset++ )
+	if ( port == PORT_ANY )
 	{
-		if ( port == PORT_ANY )
-		{
-			address.sin_port = 0;	// = INADDR_ANY
-		}
-		else
-		{
-			address.sin_port = NET_HostToNetShort((short)( port + port_offset ));
-		}
+		address.sin_port = 0;	// = INADDR_ANY
+	}
+	else
+	{
+		address.sin_port = NET_HostToNetShort((short)( port ));
+	}
 
-		VCR_NONPLAYBACKFN( bind (newsocket, (struct sockaddr *)&address, sizeof(address)), ret, "bind" );
-		if ( ret != -1 )
-		{
-			if ( port != PORT_ANY && port_offset != 0 )
-			{
-				port += port_offset;	// update port
-				ConDMsg( "Socket bound to non-default port %i because original port was already in use.\n", port );
-			}
-			break;
-		}
-
+	VCR_NONPLAYBACKFN( bind (newsocket, (struct sockaddr *)&address, sizeof(address)), ret, "bind" );
+	if ( ret == -1 )
+	{
 		NET_GetLastError();
-
-		if ( port == PORT_ANY || net_error != WSAEADDRINUSE )
-		{
-			Msg ("WARNING: UDP_OpenSocket: bind: %s\n", NET_ErrorString(net_error));
-			NET_CloseSocket(newsocket,-1);
-			return 0;
-		}
-
-		// Try next port
-	}
-
-	const bool bStrictBind = CommandLine()->FindParm( "-strictportbind" );
-	if ( port_offset == PORT_TRY_MAX && !bStrictBind )
-	{
-		Msg( "WARNING: UDP_OpenSocket: unable to bind socket\n" );
-		NET_CloseSocket( newsocket,-1 );
+		Msg ("WARNING: NET_OpenSocket: bind: %s\n", NET_ErrorString(net_error));
+		NET_CloseSocket(newsocket,-1);
 		return 0;
-	}
-
-	if ( port_offset > 0 )
-	{
-		if ( bStrictBind )
-		{
-			// The server op wants to exit if the desired port was not avialable.
-			Sys_Exit( "ERROR: Port %i was unavailable - quitting due to \"-strictportbind\" command-line flag!\n", port - port_offset );
-		}
-		else
-		{
-			Warning( "WARNING: Port %i was unavailable - bound to port %i instead\n", port - port_offset, port );
-		}
 	}
 	
 	return newsocket;

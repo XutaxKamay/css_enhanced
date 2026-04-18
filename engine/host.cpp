@@ -4759,7 +4759,6 @@ bool Host_Changelevel( bool loadfromsavedgame, const char *mapname, const char *
 	return true;
 }
 
-int g_iServerTCPPort = -1;
 /*
 ===============================================================================
 
@@ -4831,9 +4830,7 @@ bool Host_NewGame( char *mapName, bool loadGame, bool bBackgroundLevel, const ch
 
 	NET_SetMutiplayer( sv.IsMultiplayer() );
 
-	g_iServerTCPPort = NET_ListenSocket( sv.m_Socket, true );	// activated server TCP socket
-
-	if ( g_iServerTCPPort == -1 )
+	if ( NET_ListenSocket( sv.m_Socket, true ) == -1 )
 	{
 		Warning( "NET_ListenSocket failed\n" );
 		return false;
