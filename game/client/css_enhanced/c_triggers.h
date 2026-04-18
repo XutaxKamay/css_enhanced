@@ -90,9 +90,6 @@ public:
 	string_t m_iFilterName;
 	CHandle<class C_BaseFilter>	m_hFilter;
 
-	// unlike m_iName this should be constant
-	string_t m_target;
-
 protected:
 	// Network the outputs
 	// so that if a stripper config

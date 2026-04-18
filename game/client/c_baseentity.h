@@ -1688,6 +1688,7 @@ public: // CSSENHANCED
 	float 	m_flMoveDoneTime;
 	int		m_spawnflags;
 	string_t m_iName;
+	string_t m_target;
 
 	// Damage filtering
 	string_t	m_iszDamageFilterName;	// The name of the entity to use as our damage filter.

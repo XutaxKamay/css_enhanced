@@ -1651,7 +1651,7 @@ private:
 	// was pev->flags
 	CNetworkVarForDerived( int, m_fFlags );
 
-	CNetworkVar( string_t, m_iName ); // name used to identify this entity
+	string_t m_iName; // name used to identify this entity
 
 	// Damage modifiers
 	friend class CDamageModifier;

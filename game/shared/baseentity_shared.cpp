@@ -66,13 +66,15 @@ ConVar hl2_episodic( "hl2_episodic", "0", FCVAR_REPLICATED );
 
 #ifdef GAME_DLL
 #include "env_debughistory.h"
+#define DLL_NAME "[Server] "
+#else
+#define DLL_NAME "[Client] "
 #endif
 
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar ent_debugkeys( "ent_debugkeys", "" );
 extern bool ParseKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, const char *szValue );
 extern bool ExtractKeyvalue( void *pObject, typedescription_t *pFields, int iNumFields, const char *szKeyName, char *szValue, int iMaxLen );
 
@@ -340,10 +342,9 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		*s = '\0';
 	}
 
-	// TODO_ENHANCED: this is a dirty trick, basically every networked entities have already those sets by server and
-	// they are sent, we ignore to avoid conflicts, we're only interesing in datamaps for the client
+	// TODO_ENHANCED: If you have bug with position/angles for func_door and props, this is the problem.
 #ifdef CLIENT_DLL
-	if ( IsClientCreated() )
+	// if ( IsClientCreated() )
 	{
 #endif
 		if ( FStrEq( szKeyName, "basevelocity" ) )
@@ -475,54 +476,16 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 #endif
 
 	// loop through the data description, and try and place the keys in
-	if ( !*ent_debugkeys.GetString() )
+	for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
 	{
-		for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
+		if ( ::ParseKeyvalue(this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue) )
 		{
-			if ( ::ParseKeyvalue(this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue) )
-			{
-				// ConMsg( "(%s) key: %-16s value: %s\n", dmap->dataClassName, szKeyName, szValue );
-				return true;
-			}
+			DevMsg( DLL_NAME "(%s-%s) key: %-16s value: %s\n", dmap->dataClassName, STRING(m_iClassname), szKeyName, szValue );
+			return true;
 		}
-
-		// ConMsg( "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
 	}
-	else
-	{
-		// debug version - can be used to see what keys have been parsed in
-		bool printKeyHits = false;
-		const char *debugName = "";
 
-		if ( *ent_debugkeys.GetString() && !Q_stricmp(ent_debugkeys.GetString(), STRING(m_iClassname)) )
-		{
-			// Msg( "-- found entity of type %s\n", STRING(m_iClassname) );
-			printKeyHits = true;
-			debugName = STRING(m_iClassname);
-		}
-
-		// loop through the data description, and try and place the keys in
-		for ( datamap_t *dmap = GetDataDescMap(); dmap != NULL; dmap = dmap->baseMap )
-		{
-			if ( !printKeyHits && *ent_debugkeys.GetString() && !Q_stricmp(dmap->dataClassName, ent_debugkeys.GetString()) )
-			{
-				// Msg( "-- found class of type %s\n", dmap->dataClassName );
-				printKeyHits = true;
-				debugName = dmap->dataClassName;
-			}
-
-			if ( ::ParseKeyvalue(this, dmap->dataDesc, dmap->dataNumFields, szKeyName, szValue) )
-			{
-				if ( printKeyHits )
-					Msg( "(%s) key: %-16s value: %s\n", debugName, szKeyName, szValue );
-				
-				return true;
-			}
-		}
-
-			if ( printKeyHits )
-				Msg( "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
-	}
+	DevMsg( DLL_NAME "!! (%s) key not handled: \"%s\" \"%s\"\n", STRING(m_iClassname), szKeyName, szValue );
 
 
 	// key hasn't been handled
@@ -2634,32 +2597,32 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 					// mapper debug message
 					if (pCaller != NULL)
 					{
-						Q_snprintf(
-							szBuffer,
-							sizeof(szBuffer),
-#ifdef CLIENT_DLL
-							"[Client] "
-#else
-							"[Server] "
-#endif
-							"(%0.2f) input %s: %s.%s(%s)\n",
-							gpGlobals->curtime,
-							pCaller->GetClassname(),
-							GetDebugName(),
-							szInputName,
-							Value.String() );
+						Q_snprintf( szBuffer,
+									sizeof( szBuffer ),
+									DLL_NAME
+									"(%0.2f) input %s: (%p;%s-%p:%s).%s(%s)\n",
+									gpGlobals->curtime,
+									STRING( pCaller->m_iClassname ),
+									STRING( m_iClassname ),
+									STRING( m_iClassname ),
+									STRING( m_iName ),
+									STRING( m_iName ),
+									szInputName,
+									Value.String() );
 					}
 					else
 					{
-						#ifdef CLIENT_DLL
-						Q_snprintf( szBuffer, sizeof(szBuffer),
-#ifdef CLIENT_DLL
-							"[Client] "
-#else
-							"[Server] "
-#endif
-							"(%0.2f) input <NULL>: %s.%s(%s)\n", gpGlobals->curtime, GetDebugName(), szInputName, Value.String() );
-						#endif
+						Q_snprintf( szBuffer,
+									sizeof( szBuffer ),
+									DLL_NAME
+									"(%0.2f) input <NULL>: (%p;%s-%p:%s).%s(%s)\n",
+									gpGlobals->curtime,
+									STRING( m_iClassname ),
+									STRING( m_iClassname ),
+									STRING( m_iName ),
+									STRING( m_iName ),
+									szInputName,
+									Value.String() );
 					}
 					DevMsg( 2, "%s", szBuffer );
 #ifdef GAME_DLL
@@ -2724,11 +2687,7 @@ bool CBaseEntity::AcceptInput( const char *szInputName, CBaseEntity *pActivator,
 	}
 
 	DevMsg( 2,
-#ifdef CLIENT_DLL
-	"[Client] "
-#else
-	"[Server] "
-#endif
+	DLL_NAME
 	"unhandled input: (%s) -> (%s,%s)\n", szInputName, STRING(m_iClassname), GetDebugName()/*,", from (%s,%s)" STRING(pCaller->m_iClassname), STRING(pCaller->m_iName)*/ );
 	return false;
 }

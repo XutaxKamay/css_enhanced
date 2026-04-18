@@ -30,6 +30,7 @@
 #include "css_enhanced/c_eventqueue.h"
 #include "utlvector.h"
 #include "entitydatainstantiator.h"
+#include "coordsize.h"
 
 #ifdef HL2_CLIENT_DLL
 #include "c_basehlplayer.h"
@@ -192,15 +193,11 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 
 	// Find teleport fields
 	typedescription_t *tdTeleport = FindFieldByName( "m_bTeleportedThisTick", player->GetPredDescMap() );
-	typedescription_t *tdAngle = FindFieldByName( "m_angTeleportAngle", player->GetPredDescMap() );
 
 	// Get predicted teleport values
 	bool predTeleported = false;
-	QAngle predAngle( 0, 0, 0 );
 	if ( tdTeleport )
 		predTeleported = *(bool *)( (byte *)slot + tdTeleport->fieldOffset[ PC_DATA_PACKED ] );
-	if ( tdAngle )
-		memcpy( &predAngle, (QAngle *)( (byte *)slot + tdAngle->fieldOffset[ PC_DATA_PACKED ] ), sizeof( QAngle ) );
 
 	bool netTeleported = player->m_bTeleportedThisTick;
 	bool bTeleportError = ( netTeleported && !predTeleported );
@@ -214,29 +211,38 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 			engine->SetViewAngles( player->m_angTeleportAngle );
 		}
 
-		con_nprint_t np;
-		np.fixed_width_font = true;
-		np.color[0] = 1.0f;
-		np.color[1] = 0.95f;
-		np.color[2] = 0.7f;
-		np.index = 20 + ( ++pos % 20 );
-		np.time_to_live = 2.0f;
-
-		engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f) teleport", len, delta.x, delta.y, delta.z );
-	}
-
-	if (len > MAX_PREDICTION_ERROR )
-	{	
-		// A teleport or something, clear out error
-		len = 0;
-	}
-	else
-	{
-		if ( len > MIN_PREDICTION_EPSILON )
+		if ( cl_showerror.GetInt() >= 1 )
 		{
-			player->NotePredictionError( delta );
+			con_nprint_t np;
+			np.fixed_width_font = true;
+			np.color[0]			= 1.0f;
+			np.color[1]			= 0.95f;
+			np.color[2]			= 0.7f;
+			np.index			= 20 + ( ++pos % 20 );
+			np.time_to_live		= 2.0f;
 
-			if ( cl_showerror.GetInt() >= 1 )
+			engine->Con_NXPrintf( &np,
+								  "pred error %6.3f units (%6.3f %6.3f %6.3f) teleport",
+								  len,
+								  delta.x,
+								  delta.y,
+								  delta.z );
+		}
+	}
+
+	// if (len > MAX_PREDICTION_ERROR )
+	// {	
+	// 	// A teleport or something, clear out error
+	// 	len = 0;
+	// }
+	// else
+	// {
+	// 	if ( len > MIN_PREDICTION_EPSILON )
+	// 	{
+	// 		// player->NotePredictionError( delta );
+
+			static constexpr float coordTolerance = 2.0f / (float)( 1 << COORD_FRACTIONAL_BITS );
+			if ( cl_showerror.GetInt() >= 1 && len >= coordTolerance )
 			{
 				con_nprint_t np;
 				np.fixed_width_font = true;
@@ -248,8 +254,8 @@ void CPrediction::CheckError( int nCmdSequencesAck )
 
 				engine->Con_NXPrintf( &np, "pred error %6.3f units (%6.3f %6.3f %6.3f)", len, delta.x, delta.y, delta.z );
 			}
-		}
-	}
+	// 	}
+	// }
 #endif
 }
 
@@ -1382,7 +1388,6 @@ void CPrediction::RestorePredictedTouched( int current_command )
 	const auto slot					  = current_command % MULTIPLAYER_BACKUP;
 	const auto bSaveDisableTouchFuncs = CBaseEntity::sm_bDisableTouchFuncs;
 	const auto& touchedHistory		  = m_TouchedHistory[slot];
-	const auto& hashMapEntities		  = g_pFastEntityLookUp->m_HashMapEntities;
 	const auto& entities			  = g_pFastEntityLookUp->m_Entities;
 
 	// Don't call StartTouch/EndTouch here, let run command do it.
@@ -1400,6 +1405,8 @@ void CPrediction::RestorePredictedTouched( int current_command )
 		{
 			continue;
 		}
+
+		C_BaseEntity::PhysicsRemoveTouchedList( pEntity );
 
 		for ( const auto& savedTouched : savedTouches )
 		{
@@ -1419,10 +1426,11 @@ void CPrediction::RestorePredictedTouched( int current_command )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
-			InvalidateEFlagsRecursive( pEntity,
-									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			// Should be solved since the recalc inside if ( updateType == DATA_UPDATE_CREATED ) in PostDataUpdate
+			// InvalidateEFlagsRecursive( pEntity,
+			// 						   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
-			static_cast< C_BaseTrigger* >( pEntity->GetBaseEntity() )->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
+			static_cast< C_BaseTrigger* >( pEntity )->m_hTouchingEntities = savedTouchList.touchedTriggerEntities;
 		}
 	}
 
@@ -1476,8 +1484,9 @@ void CPrediction::StorePredictedTouched( int current_command )
 		{
 			// TODO_ENHANCED: somehow, the trigger doesn't call CalcAbsolutePosition which causes issues with
 			// trigger_push and others
-			InvalidateEFlagsRecursive( pEntity,
-									   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
+			// Should be solved since the recalc inside if ( updateType == DATA_UPDATE_CREATED ) in PostDataUpdate
+			// InvalidateEFlagsRecursive( pEntity,
+			// 						   EFL_DIRTY_ABSTRANSFORM | EFL_DIRTY_ABSVELOCITY | EFL_DIRTY_ABSANGVELOCITY );
 
 			savedTouchList.touchedTriggerEntities = static_cast< C_BaseTrigger* >( pEntity )->m_hTouchingEntities;
 		}

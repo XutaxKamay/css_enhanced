@@ -250,7 +250,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropInt		(SENDINFO(m_iParentAttachment), NUM_PARENTATTACHMENT_BITS, SPROP_UNSIGNED),
 
 	// Send the name
-	SendPropStringT	(SENDINFO(m_iName)),
+	SendPropStringT	(SENDINFO_NAME( m_iName, m_iNetworkName )),
 	SendPropStringT (SENDINFO_NAME(m_iClassname, m_iNetworkClassname)),
 
 	SendPropInt		(SENDINFO_NAME( m_MoveType, movetype ), MOVETYPE_MAX_BITS, SPROP_UNSIGNED ),
@@ -3631,9 +3631,9 @@ const char *CBaseEntity::GetDebugName(void)
 	if ( this == NULL )
 		return "<<null>>";
 
-	if ( m_iName.Get() != NULL_STRING )
+	if ( m_iName != NULL_STRING )
 	{
-		return STRING(m_iName.Get());
+		return STRING(m_iName);
 	}
 	else
 	{

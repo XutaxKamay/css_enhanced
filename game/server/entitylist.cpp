@@ -605,7 +605,7 @@ CBaseEntity *CGlobalEntityList::FindEntityByName( CBaseEntity *pStartEntity, con
 			continue;
 		}
 
-		if ( ent->m_iName.Get() == NULL_STRING )
+		if ( ent->m_iName == NULL_STRING )
 			continue;
 
 		if ( ent->NameMatches( szName ) )

@@ -453,6 +453,7 @@ private:
 	bool m_bIsInsideLagCompensationContext;
 	float m_flHitMarkerDisplayCurrentTime;
 	bool m_bHitMark;
+	Vector m_vecRenderedShootingPosition;
 
   private:
 	void RestoreStateFromRecord( const HitboxRecord& record );

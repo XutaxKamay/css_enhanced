@@ -1395,6 +1395,8 @@ bool C_CSPlayer::Interpolate( size_t nAmountOfTicks, float flInterpolationAmount
 		SetAbsOrigin( GetNetworkOrigin() );
 	}
 
+	m_vecRenderedShootingPosition = Weapon_ShootPosition();
+
 	return true;
 }
 

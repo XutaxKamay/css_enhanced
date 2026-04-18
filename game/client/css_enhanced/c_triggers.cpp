@@ -133,29 +133,6 @@ BEGIN_PREDICTION_DATA(C_BaseTrigger)
 	// DEFINE_PRED_FIELD(m_iCountPredictedTouchingEntities, FIELD_INTEGER, FTYPEDESC_PRIVATE)
 END_PREDICTION_DATA();
 
-// Incase server decides to change the filter name
-void RecvProxy_FilterName(const CRecvProxyData *pData, void *pStruct, void *pOut)
-{
-	C_BaseTrigger *entity = (C_BaseTrigger *) pStruct;
-
-	entity->m_iFilterName = AllocPooledString( pData->m_Value.m_pString );
-
-	if ( !entity->m_iFilterName )
-	{
-		entity->m_iFilterName = MAKE_STRING( "" );
-	}
-
-	// Update the Filter
-	if ( entity->m_iFilterName[0] == 0 )
-	{
-		entity->m_hFilter = NULL;
-	}
-	else
-	{
-		entity->m_hFilter = static_cast< C_BaseFilter* >( UTIL_FindEntityByName( entity->m_iFilterName ) );
-	}
-}
-
 // Incase server decides to change m_bDisabled
 void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 {
@@ -170,7 +147,7 @@ void RecvProxy_Disabled(const CRecvProxyData *pData, void *pStruct, void *pOut)
 IMPLEMENT_CLIENTCLASS_DT(C_BaseTrigger, DT_BaseTrigger, CBaseTrigger)
 	RecvPropInt(RECVINFO(m_bDisabled), NULL, RecvProxy_Disabled),
 	RecvPropString(RECVINFO(m_target), 0, RecvProxy_StringToStringT),
-	RecvPropString(RECVINFO(m_iFilterName), NULL, RecvProxy_FilterName),
+	RecvPropString(RECVINFO(m_iFilterName), NULL, RecvProxy_StringToStringT),
 END_RECV_TABLE();
 
 LINK_ENTITY_TO_CLASS( trigger, C_BaseTrigger );
@@ -228,7 +205,7 @@ void C_BaseTrigger::UpdateFilter(void)
 {
 	// We do this since, since we dont know what order the entities are sent in, so a trigger might be sent
 	// before the client know about the filter entity
-	if ( m_iFilterName[0] == 0 )
+	if ( !m_iFilterName || m_iFilterName[0] == 0 )
 	{
 		m_hFilter = NULL;
 	}
@@ -487,8 +464,12 @@ void C_BaseTrigger::InputEndTouch( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 {
+	// DevMsg("(%s:%s) Start touching (%s:%s)\n", m_iName, m_iClassname, pOther->m_iName, pOther->m_iClassname);
+
 	if (PassesTriggerFilters(pOther))
 	{
+		// DevMsg("(%s:%s) Start touching (passed filters) (%s:%s)\n", m_iName, m_iClassname, pOther->m_iName, pOther->m_iClassname);
+
 		EHANDLE hOther;
 		hOther = pOther;
 
@@ -516,8 +497,12 @@ void C_BaseTrigger::StartTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 void C_BaseTrigger::EndTouch(CBaseEntity *pOther)
 {
+	// DevMsg("(%s:%s) End touching (%s:%s)\n", m_iName, m_iClassname, pOther->m_iName, pOther->m_iClassname);
+
 	if ( IsTouching( pOther ) )
     {
+		// DevMsg("(%s:%s) End touching (passed is touching) (%s:%s)\n", m_iName, m_iClassname, pOther->m_iName, pOther->m_iClassname);
+
 		EHANDLE hOther;
 		hOther = pOther;
 		m_hTouchingEntities.FindAndRemove( hOther );

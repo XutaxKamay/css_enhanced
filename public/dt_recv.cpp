@@ -12,6 +12,8 @@
 #include "utlstring.h"
 #include "string_t.h"
 
+#include "convar.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -527,14 +529,16 @@ void RecvProxy_StringToStringT( const CRecvProxyData* pData, void* pStruct, void
 {
 	auto pString = ( string_t* )pOut;
 
-	*pString = MAKE_STRING( g_RecvStringTable[ g_RecvStringTable.Insert( pData->m_Value.m_pString ) ].Get() );
+	if ( pData->m_Value.m_pString == nullptr || Q_strlen( pData->m_Value.m_pString ) == 0 )
+	{
+		*pString = MAKE_STRING("");
+	}
+	else
+	{
+		*pString = MAKE_STRING( g_RecvStringTable[g_RecvStringTable.Insert( pData->m_Value.m_pString )].Get() );
+	}
 
 	// printf( "recv: %s(%p)\n", STRING( *pString ), STRING( *pString ) );
-
-	if ( !STRING( *pString ) )
-	{
-		*pString = MAKE_STRING( "" );
-	}
 }
 
 void DataTableRecvProxy_StaticDataTable( const RecvProp *pProp, void **pOut, void *pData, int objectID )
@@ -548,3 +552,20 @@ void DataTableRecvProxy_PointerDataTable( const RecvProp *pProp, void **pOut, vo
 }
 
 #endif
+
+#ifdef CLIENT_DLL
+CON_COMMAND_F( dump_recvproxy_strings_client, "Prints all strings from RecvProxy_StringToStringT", FCVAR_NONE )
+#else
+CON_COMMAND_F( dump_recvproxy_strings_server, "Prints all strings from RecvProxy_StringToStringT", FCVAR_NONE )
+#endif
+{
+	Msg("---- RecvProxy_StringToStringT dump ---\n");
+
+	for ( auto it = g_RecvStringTable.FirstHandle(); it != g_RecvStringTable.InvalidHandle();
+		  it	  = g_RecvStringTable.NextHandle( it ) )
+	{
+		const auto& pszString = g_RecvStringTable.Element( it );
+
+		Msg( "    %p => %s\n", pszString.Get(), pszString.Get() );
+	}
+}

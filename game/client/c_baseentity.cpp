@@ -490,7 +490,7 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt( RECVINFO( m_iParentAttachment ) ),
 
 	// Receive the name
-	RecvPropString(RECVINFO(m_iName), 0, RecvProxy_StringToStringT),
+	RecvPropString(RECVINFO_NAME(m_iName, m_iNetworkName), 0, RecvProxy_StringToStringT),
 	RecvPropString(RECVINFO_NAME(m_iClassname, m_iNetworkClassname), 0, RecvProxy_StringToStringT),
 
 	RecvPropInt( "movetype", 0, SIZEOF_IGNORE, 0, RecvProxy_MoveType ),
@@ -525,9 +525,8 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 
 	// These have a special proxy to handle send/receive
 	DEFINE_PRED_TYPEDESCRIPTION( m_Collision, CCollisionProperty ),
-
-	DEFINE_PRED_FIELD( m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
-
+	// DEFINE_PRED_FIELD( m_iName, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
+	// DEFINE_PRED_FIELD( m_iClassname, FIELD_STRING, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_MoveType, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_MoveCollide, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 
@@ -787,7 +786,7 @@ C_BaseEntity::C_BaseEntity() :
 	m_iv_nSimulatedTickCount.GetLastKnownValue() = 0;
 	SetTouch( NULL );
 	SetThink( NULL );
-	m_iClassname = AllocPooledString( typeid( *this ).name() );
+	m_iClassname = MAKE_STRING( typeid( *this ).name() );
 	m_iName		 = MAKE_STRING( "" );
 }
 
@@ -2358,7 +2357,7 @@ const char *MapEntity_ParseEntity(CBaseEntity *&pEntity, const char *pEntData)
 
 void MapEntity_ParseAllEntities(CBaseEntity *pEntity, const char *pMapData)
 {
-	char szTokenBuffer[MAPKEY_MAXLENGTH];
+	char szTokenBuffer[1<<16];
 
 	for ( ; true; pMapData = MapEntity_SkipToNextEntity(pMapData, szTokenBuffer) )
 	{
@@ -2392,6 +2391,9 @@ void C_BaseEntity::PostDataUpdate( DataUpdateType_t updateType )
 	if ( updateType == DATA_UPDATE_CREATED )
 	{
 		MapEntity_ParseAllEntities( this, engine->GetMapEntitiesString() );
+		// TODO_ENHANCED: Force recalc because SetAbsOrigin is getting called with a parent sometimes which causes plenty of others issues
+		InvalidatePhysicsRecursive( POSITION_CHANGED | ANGLES_CHANGED | VELOCITY_CHANGED );
+		CalcAbsolutePosition();
 	}
 
 	// NOTE: This *has* to happen first. Otherwise, Origin + angles may be wrong 
@@ -5741,12 +5743,116 @@ BEGIN_DATADESC_NO_BASE( C_BaseEntity )
 	DEFINE_KEYFIELD( m_iClassname, FIELD_STRING, "classname" ),
 	DEFINE_GLOBAL_KEYFIELD( m_iGlobalname, FIELD_STRING, "globalname" ),
 	DEFINE_KEYFIELD( m_iParent, FIELD_STRING, "parentname" ),
+
 	DEFINE_KEYFIELD( m_iHammerID, FIELD_INTEGER, "hammerid" ), // save ID numbers so that entities can be tracked between save/restore and vmf
-	DEFINE_FIELD( m_ModelName, FIELD_STRING ),
-	DEFINE_FIELD( m_vecAbsOrigin, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( m_angAbsRotation, FIELD_VECTOR ),
+
+	DEFINE_KEYFIELD( m_flSpeed, FIELD_FLOAT, "speed" ),
+	DEFINE_KEYFIELD( m_nRenderFX, FIELD_CHARACTER, "renderfx" ),
+	DEFINE_KEYFIELD( m_nRenderMode, FIELD_CHARACTER, "rendermode" ),
+//	DEFINE_FIELD( m_flSimulationTime, FIELD_TIME ),
+	DEFINE_FIELD( m_nLastThinkTick, FIELD_TICK ),
+
+	DEFINE_KEYFIELD( m_nNextThinkTick, FIELD_TICK, "nextthink" ),
+	DEFINE_KEYFIELD( m_fEffects, FIELD_INTEGER, "effects" ),
+	DEFINE_KEYFIELD( m_clrRender, FIELD_COLOR32, "rendercolor" ),
+	DEFINE_GLOBAL_KEYFIELD( m_nModelIndex, FIELD_SHORT, "modelindex" ),
+#if !defined( NO_ENTITY_PREDICTION )
+	// DEFINE_FIELD( m_PredictableID, CPredictableId ),
+#endif
+	DEFINE_FIELD( touchStamp, FIELD_INTEGER ),
+	DEFINE_FIELD( m_pfnThink, FIELD_FUNCTION ),
+	DEFINE_FIELD( m_pfnTouch, FIELD_FUNCTION ),
+	DEFINE_FIELD( m_pfnMoveDone, FIELD_FUNCTION ),
+
+	DEFINE_FIELD( m_lifeState, FIELD_CHARACTER ),
+	DEFINE_FIELD( m_takedamage, FIELD_CHARACTER ),
+	DEFINE_KEYFIELD( m_iHealth, FIELD_INTEGER, "health" ),
+	// DEFINE_FIELD( m_pLink, FIELD_CLASSPTR ),
+	DEFINE_KEYFIELD( m_target, FIELD_STRING, "target" ),
+
+	DEFINE_KEYFIELD( m_iszDamageFilterName, FIELD_STRING, "damagefilter" ),
+	DEFINE_FIELD( m_hDamageFilter, FIELD_EHANDLE ),
+	
+	DEFINE_FIELD( m_iParentAttachment, FIELD_CHARACTER ),
+	DEFINE_GLOBAL_FIELD( m_hNetworkMoveParent, FIELD_EHANDLE ),
+	DEFINE_GLOBAL_FIELD( m_pMoveChild, FIELD_EHANDLE ),
+	DEFINE_GLOBAL_FIELD( m_pMovePeer, FIELD_EHANDLE ),
+	
+	DEFINE_FIELD( m_iEFlags, FIELD_INTEGER ),
+
+	DEFINE_FIELD( m_iName, FIELD_STRING ),
+	// DEFINE_EMBEDDED( m_Collision ),
+	// DEFINE_EMBEDDED( m_Network ),
+
+	DEFINE_FIELD( m_MoveType, FIELD_CHARACTER ),
+	DEFINE_FIELD( m_MoveCollide, FIELD_CHARACTER ),
+	DEFINE_FIELD( m_hOwnerEntity, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_CollisionGroup, FIELD_INTEGER ),
+	// DEFINE_PHYSPTR( m_pPhysicsObject),
+	DEFINE_FIELD( m_flElasticity, FIELD_FLOAT ),
+	DEFINE_KEYFIELD( m_flShadowCastDistance, FIELD_FLOAT, "shadowcastdist" ),
+	// DEFINE_FIELD( m_flDesiredShadowCastDistance, FIELD_FLOAT ),
+
+	// DEFINE_INPUT( m_iInitialTeamNum, FIELD_INTEGER, "TeamNum" ),
+	DEFINE_FIELD( m_iTeamNum, FIELD_INTEGER ),
+
+//	DEFINE_FIELD( m_bSentLastFrame, FIELD_INTEGER ),
+
+	DEFINE_FIELD( m_hGroundEntity, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_flGroundChangeTime, FIELD_TIME ),
+	DEFINE_GLOBAL_KEYFIELD( m_ModelName, FIELD_MODELNAME, "model" ),
+	
+	DEFINE_KEYFIELD( m_vecBaseVelocity, FIELD_VECTOR, "basevelocity" ),
+	DEFINE_FIELD( m_vecAbsVelocity, FIELD_VECTOR ),
+	DEFINE_KEYFIELD( m_vecAngVelocity, FIELD_VECTOR, "avelocity" ),
+//	DEFINE_FIELD( m_vecAbsAngVelocity, FIELD_VECTOR ),
 	DEFINE_ARRAY( m_rgflCoordinateFrame, FIELD_FLOAT, 12 ), // NOTE: MUST BE IN LOCAL SPACE, NOT POSITION_VECTOR!!! (see CBaseEntity::Restore)
+
+	DEFINE_KEYFIELD( m_nWaterLevel, FIELD_CHARACTER, "waterlevel" ),
+	DEFINE_FIELD( m_nWaterType, FIELD_CHARACTER ),
+	// DEFINE_FIELD( m_pBlocker, FIELD_EHANDLE ),
+
+	DEFINE_KEYFIELD( m_flGravity, FIELD_FLOAT, "gravity" ),
+	DEFINE_KEYFIELD( m_flFriction, FIELD_FLOAT, "friction" ),
+
+	// Local time is local to each object.  It doesn't need to be re-based if the clock
+	// changes.  Therefore it is saved as a FIELD_FLOAT, not a FIELD_TIME
+	DEFINE_KEYFIELD( m_flLocalTime, FIELD_FLOAT, "ltime" ),
+	// DEFINE_FIELD( m_flVPhysicsUpdateLocalTime, FIELD_FLOAT ),
+	DEFINE_FIELD( m_flMoveDoneTime, FIELD_FLOAT ),
+
+//	DEFINE_FIELD( m_nPushEnumCount, FIELD_INTEGER ),
+
+	DEFINE_FIELD( m_vecAbsOrigin, FIELD_POSITION_VECTOR ),
+	DEFINE_KEYFIELD( m_vecVelocity, FIELD_VECTOR, "velocity" ),
+	DEFINE_KEYFIELD( m_iTextureFrameIndex, FIELD_CHARACTER, "texframeindex" ),
+	DEFINE_FIELD( m_bSimulatedEveryTick, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bAnimatedEveryTick, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_bAlternateSorting, FIELD_BOOLEAN ),
+	DEFINE_KEYFIELD( m_spawnflags, FIELD_INTEGER, "spawnflags" ),
+	// DEFINE_FIELD( m_nTransmitStateOwnedCounter, FIELD_CHARACTER ),
+	DEFINE_FIELD( m_angAbsRotation, FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecOrigin, FIELD_VECTOR ),			// NOTE: MUST BE IN LOCAL SPACE, NOT POSITION_VECTOR!!! (see CBaseEntity::Restore)
+	DEFINE_FIELD( m_angRotation, FIELD_VECTOR ),
+
+	DEFINE_KEYFIELD( m_vecViewOffset, FIELD_VECTOR, "view_ofs" ),
+
 	DEFINE_FIELD( m_fFlags, FIELD_INTEGER ),
+#if !defined( NO_ENTITY_PREDICTION )
+//	DEFINE_FIELD( m_bIsPlayerSimulated, FIELD_INTEGER ),
+//	DEFINE_FIELD( m_hPlayerSimulationOwner, FIELD_EHANDLE ),
+#endif
+	// DEFINE_FIELD( m_pTimedOverlay, TimedOverlay_t* ),
+	DEFINE_FIELD( m_nSimulationTick, FIELD_TICK ),
+	// DEFINE_FIELD( m_nSimulatedTickCount, FIELD_TICK ),
+	// DEFINE_FIELD( m_RefEHandle, CBaseHandle ),
+
+//	DEFINE_FIELD( m_nWaterTouch,		FIELD_INTEGER ),
+//	DEFINE_FIELD( m_nSlimeTouch,		FIELD_INTEGER ),
+	// DEFINE_FIELD( m_flNavIgnoreUntilTime,	FIELD_TIME ),
+
+//	DEFINE_FIELD( m_bToolRecording,		FIELD_BOOLEAN ),
+//	DEFINE_FIELD( m_ToolHandle,		FIELD_INTEGER ),
 
 	// NOTE: This is tricky. TeamNum must be saved, but we can't directly
 	// read it in, because we can only set it after the team entity has been read in,
@@ -5791,6 +5897,15 @@ BEGIN_DATADESC_NO_BASE( C_BaseEntity )
 	DEFINE_OUTPUT( m_OnUser2, "OnUser2" ),
 	DEFINE_OUTPUT( m_OnUser3, "OnUser3" ),
 	DEFINE_OUTPUT( m_OnUser4, "OnUser4" ),
+
+	DEFINE_FIELD( m_hEffectEntity, FIELD_EHANDLE ),
+
+	//DEFINE_FIELD( m_DamageModifiers, FIELD_?? ), // can't save?
+	// DEFINE_FIELD( m_fDataObjectTypes, FIELD_INTEGER ),
+
+#ifdef TF_DLL
+	DEFINE_ARRAY( m_nModelIndexOverrides, FIELD_INTEGER, MAX_VISION_MODES ),
+#endif
 END_DATADESC()
 
 //-----------------------------------------------------------------------------
@@ -5853,7 +5968,7 @@ int C_BaseEntity::SaveDataDescBlock( ISave &save, datamap_t *dmap )
 
 void C_BaseEntity::SetClassname( const char *className )
 {
-	m_iClassname = MAKE_STRING( className );
+	m_iClassname = AllocPooledString( className );
 }
 
 

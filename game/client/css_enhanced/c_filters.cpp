@@ -143,7 +143,7 @@ void C_FilterMultiple::Activate( void )
 		C_BaseFilter *pFilter = (C_BaseFilter *)(pEntity);
 		if ( pFilter == NULL )
 		{
-			Warning("filter_multi: Tried to add entity (%s) which is not a filter entity!\n", STRING( m_iFilterName[i] ) );
+			Warning("c_filter_multi: Tried to add entity (%s) which is not a filter entity!\n", STRING( m_iFilterName[i] ) );
 			continue;
 		}
 
