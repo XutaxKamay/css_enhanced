@@ -67,7 +67,6 @@
 	#undef CCSPlayer
 #endif
 #include "debugoverlay_shared.h"
-#include "css_enhanced/c_hud_bullet_debugger.h"
 #include "materialsystem/imesh.h"		//for materials->FindMaterial
 #include "iviewrender.h"				//for view->
 
@@ -95,19 +94,41 @@ ConVar cl_showhitboxes( "cl_showhitboxes", "0", FCVAR_CHEAT );
 ConVar cl_enable_hitmarks( "cl_enable_hitmarks", "1" );
 ConVar cl_enable_hitmarks_chat( "cl_enable_hitmarks_chat", "0" );
 
-// Convars defined in c_hud_bullet_debugger.cpp
-extern ConVar cl_bullet_debugger_enable;
-extern ConVar cl_bullet_debugger_hud_enable;
-extern ConVar cl_bullet_debugger_show_hitboxes;
-extern ConVar cl_bullet_debugger_show_prediction;
-extern ConVar cl_bullet_debugger_show_server;
-extern ConVar cl_bullet_debugger_show_prediction_computed;
-extern ConVar cl_bullet_debugger_show_traces;
-extern ConVar cl_bullet_debugger_show_only_on_error;
-extern ConVar cl_bullet_debugger_tolerance;
-extern ConVar cl_bullet_debugger_duration;
-extern ConVar cl_bullet_debugger_shoot_position_rendering_trace;
-extern ConCommand toggle_bullet_debugger_panel;
+ConVar cl_bullet_debugger_enable( "cl_bullet_debugger_enable",
+								  "0",
+								  FCVAR_ARCHIVE,
+								  "Master toggle for bullet debugging" );
+ConVar cl_bullet_debugger_show_hitboxes( "cl_bullet_debugger_show_hitboxes",
+										 "1",
+										 FCVAR_ARCHIVE,
+										 "Show hitboxes when firing (triggers bullet_player_hitboxes event)" );
+ConVar cl_bullet_debugger_show_prediction( "cl_bullet_debugger_show_prediction",
+										   "1",
+										   FCVAR_ARCHIVE,
+										   "Show client-predicted hitboxes" );
+ConVar cl_bullet_debugger_show_server( "cl_bullet_debugger_show_server", "1", FCVAR_ARCHIVE, "Show server hitboxes" );
+ConVar cl_bullet_debugger_show_prediction_computed( "cl_bullet_debugger_show_prediction_computed",
+													"1",
+													FCVAR_ARCHIVE,
+													"Show prediction-computed hitboxes (recomputed from predicted "
+													"vars)" );
+ConVar cl_bullet_debugger_show_traces( "cl_bullet_debugger_show_traces",
+									   "1",
+									   FCVAR_ARCHIVE,
+									   "Show bullet trace paths and hit player hitboxes" );
+ConVar cl_bullet_debugger_show_only_on_error( "cl_bullet_debugger_show_only_on_error",
+											  "0",
+											  FCVAR_ARCHIVE,
+											  "Only draw overlays when tolerance-exceeding mismatches detected" );
+ConVar cl_bullet_debugger_tolerance( "cl_bullet_debugger_tolerance",
+									 "2.0",
+									 FCVAR_ARCHIVE,
+									 "Distance tolerance for hit matching (units)" );
+ConVar cl_bullet_debugger_duration( "cl_bullet_debugger_duration",
+									"4.0",
+									FCVAR_ARCHIVE,
+									"Duration in seconds that debug overlays persist" );
+ConVar cl_bullet_debugger_shoot_position_rendering_trace("cl_bullet_debugger_shoot_position_rendering_trace", "0", FCVAR_ARCHIVE);
 
 ConVar cl_bullet_debugger_hitbox_color_server( "cl_bullet_debugger_hitbox_color_server", "0 255 255 127", FCVAR_ARCHIVE, "RGBA color for server hitbox overlays" );
 ConVar cl_bullet_debugger_hitbox_color_server_computed( "cl_bullet_debugger_hitbox_color_server_computed", "255 165 0 127", FCVAR_ARCHIVE, "RGBA color for server computed hitbox overlays" );
@@ -2351,8 +2372,6 @@ void C_CSPlayer::ForceSetupBones( CStudioHdr* pHdr,
 
 void C_CSPlayer::FireGameEvent( IGameEvent* event )
 {
-	static ConVarRef cl_bullet_debugger_shoot_position_rendering_trace( "cl_bullet_debugger_shoot_position_rendering_trace" );
-
 	BaseClass::FireGameEvent( event );
 
 	// Hitmarks always work regardless of debug mode
@@ -2778,116 +2797,6 @@ void C_CSPlayer::ProcessDebugHitboxEvent( IGameEvent* event,
 				msg.c_str() );
 	}
 
-	// Populate HUD entry
-	BulletDebugEntry hudEntry;
-	memset( &hudEntry, 0, sizeof( hudEntry ) );
-	hudEntry.playerIndex = lookupPlayerIndex;
-	V_strncpy( hudEntry.playerName, player->GetPlayerName(), sizeof( hudEntry.playerName ) );
-	hudEntry.server.m_vecOrigin		 = srvRecord.m_vecRenderOrigin;
-	hudEntry.server.m_angAngles		 = srvRecord.m_angRenderAngles;
-	hudEntry.server.m_nSequence		 = srvRecord.m_nSequence;
-	hudEntry.server.m_flCycle		 = srvRecord.m_flCycle;
-	hudEntry.server.m_nNumPoseParams = pStudioHdr->GetNumPoseParameters();
-	hudEntry.server.m_nNumBoneCtrls	 = pStudioHdr->GetNumBoneControllers();
-	hudEntry.server.m_nNumOverlays	 = player->GetNumAnimOverlays();
-	for ( int i = 0; i < hudEntry.server.m_nNumPoseParams; i++ )
-	{
-		hudEntry.server.m_flPoseParams[i] = srvRecord.m_flPoseParameters[i];
-	}
-	for ( int i = 0; i < hudEntry.server.m_nNumBoneCtrls; i++ )
-	{
-		hudEntry.server.m_flBoneCtrls[i] = srvRecord.m_flEncodedControllers[i];
-	}
-	for ( int i = 0; i < hudEntry.server.m_nNumOverlays; i++ )
-	{
-		hudEntry.server.m_animLayers[i].m_nSequence = srvRecord.m_AnimationLayer[i].m_nSequence;
-		hudEntry.server.m_animLayers[i].m_flCycle	= srvRecord.m_AnimationLayer[i].m_flCycle;
-		hudEntry.server.m_animLayers[i].m_flWeight	= srvRecord.m_AnimationLayer[i].m_flWeight;
-		hudEntry.server.m_animLayers[i].m_nOrder	= srvRecord.m_AnimationLayer[i].m_nOrder;
-		hudEntry.server.m_animLayers[i].m_fFlags	= srvRecord.m_AnimationLayer[i].m_fFlags;
-	}
-	hudEntry.server.m_nNumHitboxBones = nSrvBones;
-	for ( int i = 0; i < nSrvBones; i++ )
-	{
-		hudEntry.server.m_bonePositions[i]	   = srvRecord.m_bonePositions[i];
-		hudEntry.server.m_boneAngles[i]		   = srvRecord.m_boneAngles[i];
-		hudEntry.server.m_hitboxBoneIndexes[i] = srvBoneMap[i];
-	}
-
-	// Server computed bones
-	hudEntry.serverComputed.m_nNumHitboxBones = nSrvComputedBones;
-	for ( int i = 0; i < nSrvComputedBones; i++ )
-	{
-		hudEntry.serverComputed.m_bonePositions[i]	   = srvComputedBones[i];
-		hudEntry.serverComputed.m_boneAngles[i]		   = srvComputedBoneAngles[i];
-		hudEntry.serverComputed.m_hitboxBoneIndexes[i] = srvComputedBoneMap[i];
-	}
-
-	hudEntry.bHasPrediction = bHasPred;
-	if ( bHasPred )
-	{
-		hudEntry.prediction.m_vecOrigin		 = pRecord->m_vecRenderOrigin;
-		hudEntry.prediction.m_angAngles		 = pRecord->m_angRenderAngles;
-		hudEntry.prediction.m_nSequence		 = pRecord->m_nSequence;
-		hudEntry.prediction.m_flCycle		 = pRecord->m_flCycle;
-		hudEntry.prediction.m_nNumPoseParams = pStudioHdr->GetNumPoseParameters();
-		hudEntry.prediction.m_nNumBoneCtrls	 = pStudioHdr->GetNumBoneControllers();
-		hudEntry.prediction.m_nNumOverlays	 = player->GetNumAnimOverlays();
-		for ( int i = 0; i < hudEntry.prediction.m_nNumPoseParams; i++ )
-		{
-			hudEntry.prediction.m_flPoseParams[i] = pRecord->m_flPoseParameters[i];
-		}
-		for ( int i = 0; i < hudEntry.prediction.m_nNumBoneCtrls; i++ )
-		{
-			hudEntry.prediction.m_flBoneCtrls[i] = pRecord->m_flEncodedControllers[i];
-		}
-		for ( int i = 0; i < hudEntry.prediction.m_nNumOverlays; i++ )
-		{
-			hudEntry.prediction.m_animLayers[i].m_nSequence = pRecord->m_AnimationLayer[i].m_nSequence;
-			hudEntry.prediction.m_animLayers[i].m_flCycle	= pRecord->m_AnimationLayer[i].m_flCycle;
-			hudEntry.prediction.m_animLayers[i].m_flWeight	= pRecord->m_AnimationLayer[i].m_flWeight;
-			hudEntry.prediction.m_animLayers[i].m_nOrder	= pRecord->m_AnimationLayer[i].m_nOrder;
-			hudEntry.prediction.m_animLayers[i].m_fFlags	= pRecord->m_AnimationLayer[i].m_fFlags;
-		}
-		hudEntry.prediction.m_nNumHitboxBones = nPredBones;
-		for ( int i = 0; i < nPredBones; i++ )
-		{
-			hudEntry.prediction.m_bonePositions[i]	   = predBones[i];
-			hudEntry.prediction.m_boneAngles[i]		   = predBoneAngles[i];
-			hudEntry.prediction.m_hitboxBoneIndexes[i] = predBoneMap[i];
-		}
-		// Prediction computed bones
-		hudEntry.predictionComputed.m_nNumHitboxBones = nPredComputedBones;
-		for ( int i = 0; i < nPredComputedBones; i++ )
-		{
-			hudEntry.predictionComputed.m_bonePositions[i]	   = predComputedBones[i];
-			hudEntry.predictionComputed.m_boneAngles[i]		   = predComputedBoneAngles[i];
-			hudEntry.predictionComputed.m_hitboxBoneIndexes[i] = predComputedBoneMap[i];
-		}
-	}
-
-	hudEntry.bSrvPredVarsMatch					= ( nSrvPredVarsDiffs == 0 );
-	hudEntry.bSrvPredBonesMatch					= ( nSrvPredBonesDiffs == 0 );
-	hudEntry.bSrvSrvComputedBonesMatch			= ( nSrvSrvComputedBonesDiffs == 0 );
-	hudEntry.bSrvPredComputedBonesMatch			= ( nSrvPredComputedBonesDiffs == 0 );
-	hudEntry.bSrvComputedPredComputedBonesMatch = ( nSrvComputedPredComputedBonesDiffs == 0 );
-	hudEntry.bOverallMatch						= !bAnyMismatch;
-	hudEntry.nSrvPredVarsDiffs					= nSrvPredVarsDiffs;
-	hudEntry.nSrvPredBonesDiffs					= nSrvPredBonesDiffs;
-	hudEntry.nSrvSrvComputedBonesDiffs			= nSrvSrvComputedBonesDiffs;
-	hudEntry.nSrvPredComputedBonesDiffs			= nSrvPredComputedBonesDiffs;
-	hudEntry.nSrvComputedPredComputedBonesDiffs = nSrvComputedPredComputedBonesDiffs;
-	for ( int i = 0; i < mismatchDetails.Count(); i++ )
-	{
-		hudEntry.mismatchDetails.AddToTail( mismatchDetails[i] );
-	}
-
-	CHudBulletDebugger* pHud = ( CHudBulletDebugger* )GET_HUDELEMENT( CHudBulletDebugger );
-	if ( pHud )
-	{
-		pHud->SetEntry( hudEntry );
-	}
-
 	// Draw 3D overlays using pre-captured bone matrices (no redundant SetupBones calls)
 	if ( bShowOverlays )
 	{
@@ -3046,16 +2955,6 @@ void C_CSPlayer::ProcessDebugBulletImpact( IGameEvent* event,
 						pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : -1.f,
 						pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : -1.f );
 		NDebugOverlay::EntityTextAtPosition( srvDst, 0, buf, flDuration, 255, 0, 0, 255 );
-	}
-
-	float srcDiff = pPredTrace ? VectorLength( srvSrc - pPredTrace->m_vecSrc ) : 0.f;
-	float dstDiff = pPredTrace ? VectorLength( srvDst - pPredTrace->m_vecDst ) : 0.f;
-
-	// Update HUD with trace result
-	CHudBulletDebugger* pHud = ( CHudBulletDebugger* )GET_HUDELEMENT( CHudBulletDebugger );
-	if ( pHud )
-	{
-		pHud->UpdateTraceResult( bTraceMatch, srcDiff, dstDiff );
 	}
 }
 

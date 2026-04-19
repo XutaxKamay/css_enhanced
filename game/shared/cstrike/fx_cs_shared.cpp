@@ -19,7 +19,7 @@
 ConVar weapon_accuracy_logging( "weapon_accuracy_logging", "0", FCVAR_REPLICATED | FCVAR_DEVELOPMENTONLY | FCVAR_ARCHIVE );
 
 #ifdef CLIENT_DLL
-ConVar cl_bullet_debugger_shoot_position_rendering_trace("cl_bullet_debugger_shoot_position_rendering_trace", "0", FCVAR_ARCHIVE);
+extern ConVar cl_bullet_debugger_shoot_position_rendering_trace;
 extern ConVar cl_bullet_debugger_enable;
 #include "fx_impact.h"
 
