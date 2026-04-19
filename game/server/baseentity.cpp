@@ -4061,14 +4061,14 @@ static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &ent
 			{
 				CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
 
-				if ( !pPlayer->m_bPredictTriggers )
-				{
-					pPlayer->SnapEyeAngles( *newAngles );
-				}
-
 				// TODO_ENHANCED: now the prediction does detects when teleportations failed and snaps the angle if it finds an error.
 				pPlayer->m_angTeleportAngle = *newAngles;
 				NormalizeAngles( pPlayer->m_angTeleportAngle.GetForModify() );
+
+				if ( !pPlayer->m_bPredictTriggers )
+				{
+					pPlayer->SnapEyeAngles( pPlayer->m_angTeleportAngle );
+				}
 			}
 		}
 

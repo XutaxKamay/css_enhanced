@@ -6526,3 +6526,15 @@ void C_BaseAnimating::MoveBoneAttachments( C_BaseAnimating* attachTarget )
 		}
 	}
 }
+
+void C_BaseAnimating::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+{
+	BaseClass::Teleport( newPosition, newAngles, newVelocity );
+	if (m_pIk)
+	{
+		m_pIk->ClearTargets( );
+	}
+
+	// TODO_ENHANCED:
+	// InitStepHeightAdjust();
+}

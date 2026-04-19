@@ -1398,7 +1398,7 @@ public:
 	// letting all entities simulate.
 	static void InterpolateServerEntities();
 
-private:
+public:
 	// Check which entities want to be drawn and add them to the leaf system.
 	static void	AddVisibleEntities();
 
@@ -1733,6 +1733,8 @@ protected:
 	CInterpolatedVar< uint64 > m_iv_nSimulatedTickCount;
 	bool m_bIsProcessingFrameInterpolation;
 	size_t m_stAllocateBlock;
+public:
+	virtual void Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 };
 
 EXTERN_RECV_TABLE(DT_BaseEntity);

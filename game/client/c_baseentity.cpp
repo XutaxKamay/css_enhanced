@@ -6296,6 +6296,180 @@ bool C_BaseEntity::ClassMatches( string_t nameStr )
 	return ClassMatchesComplex( STRING(nameStr) );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Holds an entity's previous abs origin and angles at the time of
+//			teleportation. Used for child & constrained entity fixup to prevent
+//			lazy updates of abs origins and angles from messing things up.
+//-----------------------------------------------------------------------------
+struct TeleportListEntry_t
+{
+	CBaseEntity *pEntity;
+	Vector prevAbsOrigin;
+	QAngle prevAbsAngles;
+};
+
+
+static void TeleportEntity( CBaseEntity *pSourceEntity, TeleportListEntry_t &entry, const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+{
+	CBaseEntity *pTeleport = entry.pEntity;
+	Vector prevOrigin = entry.prevAbsOrigin;
+	QAngle prevAngles = entry.prevAbsAngles;
+
+	int nSolidFlags = pTeleport->GetSolidFlags();
+	pTeleport->AddSolidFlags( FSOLID_NOT_SOLID );
+
+	// I'm teleporting myself
+	if ( pSourceEntity == pTeleport )
+	{
+		if ( pTeleport->IsPlayer() )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
+			pPlayer->m_bTeleportedThisTick = true;
+		}
+
+		if ( newAngles )
+		{
+			auto angles = *newAngles;
+
+			NormalizeAngles( angles );
+
+            pTeleport->SetLocalAngles( angles );
+            pTeleport->SetNetworkAngles( angles );
+
+			if ( pTeleport->IsPlayer() )
+			{
+				CBasePlayer *pPlayer = (CBasePlayer *)pTeleport;
+
+				pPlayer->m_angTeleportAngle = angles;
+
+				if ( prediction->IsFirstTimePredicted() )
+				{
+					engine->SetViewAngles( angles );
+				}
+			}
+		}
+
+		if ( newVelocity )
+		{
+			pTeleport->SetAbsVelocity( *newVelocity );
+			pTeleport->SetBaseVelocity( vec3_origin );
+		}
+
+		if ( newPosition )
+		{
+			auto pos = *newPosition;
+
+			// TODO_ENHANCED: Let the client handle this for predictables
+			if ( !( pTeleport->IsPlayer() || pTeleport->GetPredictionPlayer() ) )
+			{
+				pTeleport->m_ubInterpolationFrame = (pTeleport->m_ubInterpolationFrame + 1) % NOINTERP_PARITY_MAX;
+			}
+
+			UTIL_SetOrigin( pTeleport, pos );
+			pTeleport->SetNetworkOrigin( pos );
+
+			auto pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+
+			if ( ( C_BasePlayer* )pTeleport == pLocalPlayer )
+			{
+				prediction->SetViewOrigin( pos );
+			}
+		}
+	}
+	else
+	{
+		// My parent is teleporting, just update my position & physics
+		pTeleport->CalcAbsolutePosition();
+	}
+	IPhysicsObject *pPhys = pTeleport->VPhysicsGetObject();
+	bool rotatePhysics = false;
+
+	// handle physics objects / shadows
+	if ( pPhys )
+	{
+		if ( newVelocity )
+		{
+			pPhys->SetVelocity( newVelocity, NULL );
+		}
+		const QAngle *rotAngles = &pTeleport->GetAbsAngles();
+		// don't rotate physics on players or bbox entities
+		if (pTeleport->IsPlayer() || pTeleport->GetSolid() == SOLID_BBOX )
+		{
+			rotAngles = &vec3_angle;
+		}
+		else
+		{
+			rotatePhysics = true;
+		}
+
+		pPhys->SetPosition( pTeleport->GetAbsOrigin(), *rotAngles, true );
+	}
+
+	// TODO_ENHANCED: ??
+	// g_pNotify->ReportTeleportEvent( pTeleport, prevOrigin, prevAngles, rotatePhysics );
+
+	pTeleport->SetSolidFlags( nSolidFlags );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Recurses an entity hierarchy and fills out a list of all entities
+//			in the hierarchy with their current origins and angles.
+//
+//			This list is necessary to keep lazy updates of abs origins and angles
+//			from messing up our child/constrained entity fixup.
+//-----------------------------------------------------------------------------
+static void BuildTeleportList_r( CBaseEntity *pTeleport, CUtlVector<TeleportListEntry_t> &teleportList )
+{
+	TeleportListEntry_t entry;
+	
+	entry.pEntity = pTeleport;
+	entry.prevAbsOrigin = pTeleport->GetAbsOrigin();
+	entry.prevAbsAngles = pTeleport->GetAbsAngles();
+
+	teleportList.AddToTail( entry );
+
+	CBaseEntity *pList = pTeleport->FirstMoveChild();
+	while ( pList )
+	{
+		BuildTeleportList_r( pList, teleportList );
+		pList = pList->NextMovePeer();
+	}
+}
+
+
+static CUtlVector<CBaseEntity *> g_TeleportStack;
+
+void CBaseEntity::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
+{
+	if ( g_TeleportStack.Find( this ) >= 0 )
+		return;
+	int index = g_TeleportStack.AddToTail( this );
+
+	CUtlVector<TeleportListEntry_t> teleportList;
+	BuildTeleportList_r( this, teleportList );
+
+	int i;
+	for ( i = 0; i < teleportList.Count(); i++)
+	{
+		TeleportEntity( this, teleportList[i], newPosition, newAngles, newVelocity );
+	}
+
+	for (i = 0; i < teleportList.Count(); i++)
+	{
+		teleportList[i].pEntity->CollisionRulesChanged();
+	}
+
+	Assert( g_TeleportStack[index] == this );
+	g_TeleportStack.FastRemove( index );
+
+	// FIXME: add an initializer function to StepSimulationData
+	StepSimulationData *step = ( StepSimulationData * )GetDataObject( STEPSIMULATION );
+	if (step)
+	{
+		Q_memset( step, 0, sizeof( *step ) );
+	}
+}
+
 //------------------------------------------------------------------------------
 void CC_CL_Find_Ent( const CCommand& args )
 {

@@ -89,44 +89,8 @@ void C_TriggerTeleport::Touch( CBaseEntity *pOther )
 	}
 
     tmp += vecLandmarkOffset;
-
-    UTIL_SetOrigin( pOther, tmp );
-    pOther->SetNetworkOrigin( tmp );
-
-	auto pLocalPlayer = C_BasePlayer::GetLocalPlayer();
-
-	if ( ( C_BasePlayer* )pOther == pLocalPlayer )
-	{
-		// TODO_ENHANCED: do we really want this?
-		prediction->SetViewOrigin( tmp );
-		pLocalPlayer->m_bTeleportedThisTick = true;
-	}
-
-	if (pAngles)
-    {
-        // if (!pOther->IsPlayer())
-        {
-            auto angles = *pAngles;
-            pOther->SetLocalAngles( angles );
-            pOther->SetNetworkAngles( angles );
-        }
-        // else
-        {
-            if ( (C_BasePlayer*)pOther == pLocalPlayer )
-            {
-                auto angles = *pAngles;
-
-                // This needs to be set only once!
-                if (prediction->IsFirstTimePredicted())
-                {
-                    engine->SetViewAngles( angles );
-                }
-
-				pLocalPlayer->m_angTeleportAngle = angles;
-				NormalizeAngles( pLocalPlayer->m_angTeleportAngle );
-            }
-        }
-    }
+	
+	pOther->Teleport(&tmp, pAngles, pVelocity);
 }
 
 // TODO_ENHANCED: point entity can change ? If yes should be predictable... ?

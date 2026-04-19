@@ -650,6 +650,9 @@ public:
 	uint64 m_nAnimatedTickCount;
 	uint64 m_nInterpolatedAnimatedTickCount;
 	CInterpolatedVar< uint64 > m_iv_nAnimatedTickCount;
+
+public:
+	virtual void Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity );
 };
 
 enum 
