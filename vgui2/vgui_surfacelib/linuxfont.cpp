@@ -39,7 +39,7 @@ namespace {
 // Freetype uses a lot of fixed float values that are 26.6 splits of a 32 bit word.
 // to make it an int, shift down the 6 bits and round up if the high bit of the 6
 // bits was set.
-inline int32_t FIXED6_2INT(int32_t x)   { return ( (x>>6) + ( (x&0x20) ? (x<0 ? -1 : 1) : 0) ); }
+inline int32_t FIXED6_2INT(int32_t x)   { return ( x >> 6 ); }
 inline float   FIXED6_2FLOAT(int32_t x) { return (float)x / 64.0f; }
 inline int32_t INT_2FIXED6(int32_t x)   { return x << 6; }
 
@@ -369,7 +369,7 @@ bool CLinuxFont::CreateFromMemory(const char *windowsFontName, void *data, int d
 			}
 		}
 
-		m_iAscent = FIXED6_2INT( ascender );
+		m_iAscent = FIXED6_2INT( ascender - descender );
 
 		m_iMaxCharWidth = FIXED6_2INT( m_face->size->metrics.max_advance );
 
@@ -578,7 +578,7 @@ void CLinuxFont::GetCharRGBA( wchar_t ch, int rgbaWide, int rgbaTall, unsigned c
 
 	int yBitmapStart = 0;
 	FT_GlyphSlot slot = m_face->glyph;
-	int nSkipRows = ( m_iAscent - slot->bitmap_top );
+	int nSkipRows = (FIXED6_2INT(m_face->size->metrics.ascender) - slot->bitmap_top);
 
 	if( nSkipRows < 0 )
 	{

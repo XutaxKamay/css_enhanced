@@ -128,6 +128,32 @@ bool CFontManager::SetFontGlyphSet(HFont font, const char *windowsFontName, int 
 		m_FontAmalgams[font].RemoveAll();
 	}
 
+	struct FontMap_t
+	{
+		const char *src;
+		const char *dst;
+	};
+
+	// TODO_ENHANCED: reverse engineered from original game...
+	static const FontMap_t g_FontSubstitutionTable[] =
+	{
+		{ "Trebuchet MS", "Fira Sans" },
+		{ "Verdana", "Liberation Sans" },
+		{ "Verdana Bold Italic", "Liberation Sans" },
+		{ "Verdana Bold", "Liberation Sans" },
+		{ "Verdana Italic", "Liberation Sans" },
+		{ "Tahoma", "Liberation Sans" },
+		{ "Arial", "Liberation Sans" },
+		{ "Arial Bold", "Liberation Sans" },
+		{ "Courier", "Liberation Mono" },
+		{ "Courier New", "Liberation Mono" },
+		{ "Lucida Console", "Liberation Mono" },
+		{ NULL, NULL }
+	};
+
+	const char *pchFontName = windowsFontName;
+
+	// Handle Xbox substitution
 	bool bForceSingleFontForXbox = false;
 	if ( IsX360() )
 	{
@@ -147,41 +173,59 @@ bool CFontManager::SetFontGlyphSet(HFont font, const char *windowsFontName, int 
 				!V_stricmp( m_szLanguage, "schinese" ) ||
 				!V_stricmp( m_szLanguage, "tchinese" ) )
 			{
-				windowsFontName = GetForeignFallbackFontName();
+				pchFontName = GetForeignFallbackFontName();
 				bForceSingleFontForXbox = true;
 			}
 		}
 	}
-	font_t *winFont = CreateOrFindWin32Font( windowsFontName, tall, weight, blur, scanlines, flags );
 
+	// Handle general substitution
+	for (int i = 0; g_FontSubstitutionTable[i].src != NULL; i++)
+	{
+		if ( !V_stricmp( pchFontName, g_FontSubstitutionTable[i].src ) )
+		{
+			pchFontName = g_FontSubstitutionTable[i].dst;
+			break;
+		}
+	}
+
+	font_t *winFont = CreateOrFindWin32Font( pchFontName, tall, weight, blur, scanlines, flags );
+
+	// If primary fails, try specific hard-coded fallbacks before general fallback loop
+	if ( !winFont )
+	{
+		font_t *fallback = CreateOrFindWin32Font( "Marlett", tall, weight, blur, scanlines, flags );
+		if ( fallback )
+		{
+			m_FontAmalgams[font].AddFont( fallback, 0x0000, 0xFFFF );
+			return true;
+		}
+
+		fallback = CreateOrFindWin32Font( "Noto Sans", tall, weight, blur, scanlines, flags );
+		if ( fallback )
+		{
+			m_FontAmalgams[font].AddFont( fallback, 0x0000, 0xFFFF );
+			return true;
+		}
+	}
 
 	// cycle until valid english/extended font support has been created
 	do
 	{
 		// add to the amalgam
-		if ( bForceSingleFontForXbox || IsFontForeignLanguageCapable( windowsFontName ) )
+		if ( bForceSingleFontForXbox || IsFontForeignLanguageCapable( pchFontName ) )
 		{
 			if ( winFont )
 			{
-				// font supports the full range of characters
 				m_FontAmalgams[font].AddFont( winFont, 0x0000, 0xFFFF );
 				return true;
 			}
 		}
 		else
 		{
-			// font cannot provide glyphs and just supports the normal range
-			// redirect to a font that can supply glyps
-			const char *localizedFontName = GetForeignFallbackFontName();
-			if ( winFont && !stricmp( localizedFontName, windowsFontName ) )
-			{
-				// it's the same font and can support the full range
-				m_FontAmalgams[font].AddFont( winFont, 0x0000, 0xFFFF );
-				return true;
-			}
-
-			// create the extended support font
-			font_t *pExtendedFont = CreateOrFindWin32Font( localizedFontName, tall, weight, blur, scanlines, flags );
+			// Range splitting logic based on assembly sub_1FA660
+			font_t *pExtendedFont = CreateOrFindWin32Font( "Noto Sans", tall, weight, blur, scanlines, flags );
+			
 			if ( winFont && pExtendedFont )
 			{
 				// use the normal font for english characters, and the extended font for the rest
@@ -223,10 +267,15 @@ bool CFontManager::SetFontGlyphSet(HFont font, const char *windowsFontName, int 
 				m_FontAmalgams[font].AddFont( pExtendedFont, 0x0000, 0xFFFF );
 				return true;
 			}
+			else if ( winFont )
+			{
+				// No extended font, just use the base font for full range
+				m_FontAmalgams[font].AddFont( winFont, 0x0000, 0xFFFF );
+				return true;
+			}
 		}
-		// no valid font has been created, so fallback to a different font and try again
 	} 
-	while ( NULL != ( windowsFontName = GetFallbackFontName( windowsFontName ) ) );
+	while ( NULL != ( pchFontName = GetFallbackFontName( pchFontName ) ) );
 
 	// nothing successfully created
 	return false;
