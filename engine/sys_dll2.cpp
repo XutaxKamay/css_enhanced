@@ -63,6 +63,12 @@
 #include "appframework/IAppSystemGroup.h"
 #include "tier0/systeminformation.h"
 #include "host_cmd.h"
+
+#if defined(POSIX) && !defined(ANDROID)
+#include <stdio.h>
+#include <poll.h>
+#endif
+
 #ifdef _WIN32
 #include "VGuiMatSurface/IMatSystemSurface.h"
 #endif
@@ -1314,6 +1320,24 @@ static void MoveConsoleWindowToFront()
 #endif
 }
 
+#if defined(POSIX) && !defined(ANDROID)
+static void ClientProcessConsoleInput()
+{
+	static char szBuf[256];
+	struct pollfd pfd;
+	pfd.fd = STDIN_FILENO;
+	pfd.events = POLLIN;
+
+	if (poll(&pfd, 1, 0) > 0)
+	{
+		if (fgets(szBuf, sizeof(szBuf), stdin))
+		{
+			Cbuf_AddText(szBuf);
+		}
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Message pump when running stand-alone
 //-----------------------------------------------------------------------------
@@ -1350,6 +1374,10 @@ void CEngineAPI::PumpMessages()
 	}
 
 	game->DispatchAllStoredGameMessages();
+
+#if defined(POSIX) && !defined(ANDROID)
+	ClientProcessConsoleInput();
+#endif
 
 	if ( IsPC() )
 	{

@@ -823,10 +823,11 @@ void CVideoMode_Common::SetupStartupGraphic()
     const char* loading = "materials/console/startup_loading.vtf";
     if ( IsSteamDeck() )
         loading = "materials/gamepadui/game_logo.vtf";
-    m_pLoadingTexture = LoadVTF( buf, loading );
+    // TODO_ENHANCED: commented out for new gui
+    // m_pLoadingTexture = LoadVTF( buf, loading );
     if ( !m_pLoadingTexture )
     {
-        Error( "Can't find background image '%s'\n", loading );
+        // Error( "Can't find background image '%s'\n", loading );
         return;
     }
 }

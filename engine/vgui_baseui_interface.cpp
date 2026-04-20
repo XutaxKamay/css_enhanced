@@ -124,6 +124,7 @@ IGameConsole *staticGameConsole = NULL;
 bool s_bWindowsInputEnabled = true;
 
 ConVar r_drawvgui( "r_drawvgui", "1", FCVAR_CHEAT, "Enable the rendering of vgui panels" );
+ConVar vgui_disabled( "vgui_disabled", "1", FCVAR_HIDDEN, "Completely disable VGUI rendering, logic, and input" );
 ConVar gameui_xbox( "gameui_xbox", "0", 0 );
 
 void Con_CreateConsolePanel( vgui::Panel *parent );
@@ -1038,6 +1039,9 @@ void CEngineVGui::ConfirmQuit()
 //-----------------------------------------------------------------------------
 void CEngineVGui::ActivateGameUI()
 {
+	if (vgui_disabled.GetBool())
+		return;
+
 	if ( m_bNotAllowedToShowGameUI )
 		return;
 
@@ -1534,6 +1538,9 @@ void CEngineVGui::UpdateProgressBar( float progress )
 //-----------------------------------------------------------------------------
 void CEngineVGui::UpdateButtonState( const InputEvent_t &event )
 {
+	if ( vgui_disabled.GetBool() )
+		return;
+
 	m_pInputInternal->UpdateButtonState( event );
 }
 
@@ -1543,6 +1550,9 @@ void CEngineVGui::UpdateButtonState( const InputEvent_t &event )
 //-----------------------------------------------------------------------------
 bool CEngineVGui::Key_Event( const InputEvent_t &event )
 {
+	if ( vgui_disabled.GetBool() )
+		return false;
+
 	bool bDown = event.m_nType != IE_ButtonReleased;
 	ButtonCode_t code = (ButtonCode_t)event.m_nData;
 
@@ -1618,6 +1628,15 @@ bool CEngineVGui::Key_Event( const InputEvent_t &event )
 
 void CEngineVGui::Simulate()
 {
+	if ( vgui_disabled.GetBool() )
+	{
+		// TODO_ENHANCED: Somehow the panel is still annoying us
+		staticPanel->SetVisible(false);
+		vgui::surface()->CalculateMouseVisible();
+		VGui_ActivateMouse();
+		return;
+	}
+	
 	toolframework->VGui_PreSimulateAllTools();
 
 	if ( staticPanel )
@@ -1686,6 +1705,9 @@ void CEngineVGui::BackwardCompatibility_Paint()
 void CEngineVGui::Paint( PaintMode_t mode )
 {
 	VPROF_BUDGET( "CEngineVGui::Paint", VPROF_BUDGETGROUP_OTHER_VGUI );
+
+	if ( vgui_disabled.GetBool() )
+		return;
 
 	if ( !staticPanel )
 		return;
@@ -1969,7 +1991,7 @@ static ConVar mat_drawTitleSafe( "mat_drawTitleSafe", "0", 0, "Enable title safe
 
 CUtlVector< vgui::VPANEL > g_FocusPanelList;
 
-ConVar vgui_drawfocus( "vgui_drawfocus", "0", 0, "Report which panel is under the mouse." );
+ConVar vgui_drawfocus( "vgui_drawfocus", "2", 0, "Report which panel is under the mouse." );
 
 CFocusOverlayPanel::CFocusOverlayPanel( vgui::Panel *pParent, const char *pName ) : vgui::Panel( pParent, pName )
 {
