@@ -67,7 +67,8 @@ def build(bld):
 		'vtf',
 		'RT',
 		'ZLIB',
-		'CURL'
+		'CURL',
+		'DASSCRIPT'
 	]
 
 	install_path = bld.env.PREFIX
