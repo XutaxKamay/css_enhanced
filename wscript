@@ -625,7 +625,7 @@ def configure(conf):
 				'/LIBPATH:'+os.path.abspath('.')+'/dx9sdk/lib/'+conf.env.DEST_CPU+'/',
 			]
 
-	# Causes issues with AddSequenceLayers for pLayer->start != end, those are a lot of times, sadly, NaN values which is undefined behavior.
+	# TODO_ENHANCED: Causes issues with AddSequenceLayers for pLayer->start != end, those are a lot of times, sadly, NaN values which is undefined behavior.
 	# We might want precision too.
 	if conf.env.DEST_OS != 'win32':
 		cflags += ['-fno-finite-math-only', '-fno-fast-math', '-ftrapping-math']
@@ -633,7 +633,9 @@ def configure(conf):
 	# And here C++ flags starts to be treated separately
 	cxxflags = list(cflags)
 	if conf.env.DEST_OS != 'win32':
-		cxxflags += ['-std=c++11','-fpermissive']
+		cxxflags += ['-std=c++17','-fpermissive']
+	else:
+		cxxflags += ['/std:c++latest']
 
 	if conf.env.COMPILER_CC == 'gcc':
 		conf.define('COMPILER_GCC', 1)

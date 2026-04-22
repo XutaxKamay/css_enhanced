@@ -39,12 +39,12 @@
 #endif
 
 
-#if !defined(PLATFORM_GLIBC) && defined(LINUX) // fuck musl
-#ifdef nullptr
-#undef nullptr
-#endif
-#define nullptr 0
-#endif
+// #if !defined(PLATFORM_GLIBC) && defined(LINUX) // fuck musl
+// #ifdef nullptr
+// #undef nullptr
+// #endif
+// #define nullptr 0
+// #endif
 
 
 // stdio.h

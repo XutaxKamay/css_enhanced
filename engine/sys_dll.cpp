@@ -26,8 +26,6 @@
 #include "SDL.h"
 #endif
 
-#include "daScript/daScriptC.h"
-
 #include "quakedef.h"
 #include "igame.h"
 #include "errno.h"
@@ -137,8 +135,6 @@ int g_iServerGameClientsVersion = 0;	// This matches the number at the end of th
 IHLTVDirector	*serverGameDirector = NULL;
 
 IServerGameTags *serverGameTags = NULL;
-
-das_context 	*g_pDasContext = NULL;
 
 void Sys_InitArgv( char *lpCmdLine );
 void Sys_ShutdownArgv( void );
@@ -1012,17 +1008,6 @@ int Sys_InitGame( CreateInterfaceFn appSystemFactory, const char* pBaseDir, void
 	}
 #endif
 
-	g_pDasContext = das_context_make( 1 << 20 );
-
-	if ( g_pDasContext )
-	{
-		Msg( "daScript context created!\n" );
-	}
-	else
-	{
-		Error( "Failed to create daScript context!\n" );
-	}
-
 	extern void InitMathlib( void );
 	InitMathlib();
 	
@@ -1123,8 +1108,6 @@ void Sys_ShutdownGame( void )
 	// Remove debug spew output....
 	developer.InstallChangeCallback( 0 );
 	SpewOutputFunc( 0 );
-
-	das_context_release( g_pDasContext );
 }
 
 //

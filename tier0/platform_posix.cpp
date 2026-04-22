@@ -5,13 +5,14 @@
 // $NoKeywords: $
 //=============================================================================//
 
+#include <algorithm>
+#include <vector>
+#include <chrono>
+
 #include "tier0/platform.h"
 #include "tier0/vcrmode.h"
 #include "tier0/memalloc.h"
 #include "tier0/dbg.h"
-#include <algorithm>
-#include <vector>
-#include <chrono>
 
 #include <sys/time.h>
 #include <sys/resource.h>
