@@ -881,7 +881,7 @@ void CConPanel::Con_NPrintf( int idx, const char *msg )
 	da_notify[idx].szNotify[ sizeof( da_notify[idx].szNotify ) / sizeof( wchar_t ) - 1 ] = L'\0';
 
 	// Reset values
-	da_notify[idx].expire = realtime + DBG_NOTIFY_TIMEOUT;
+	da_notify[idx].expire = realtime + (double)DBG_NOTIFY_TIMEOUT;
 	VectorCopy( da_default_color, da_notify[idx].color );
 	da_notify[idx].fixed_width_font = false;
 	m_bDrawDebugAreas = true;

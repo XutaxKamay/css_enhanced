@@ -226,7 +226,7 @@ def define_platform(conf):
 		conf.define('PLATFORM_64BITS', 1)
 
 	if conf.env.DEST_OS == 'linux':
-		conf.define('_GLIBCXX_USE_CXX11_ABI',0)
+		# conf.define('_GLIBCXX_USE_CXX11_ABI',0)
 		conf.env.append_unique('DEFINES', [
 			'LINUX=1', '_LINUX=1',
 			'POSIX=1', '_POSIX=1', 'PLATFORM_POSIX=1',
@@ -633,7 +633,7 @@ def configure(conf):
 	# And here C++ flags starts to be treated separately
 	cxxflags = list(cflags)
 	if conf.env.DEST_OS != 'win32':
-		cxxflags += ['-std=c++17','-fpermissive']
+		cxxflags += ['-std=c++26','-fpermissive']
 	else:
 		cxxflags += ['/std:c++latest']
 

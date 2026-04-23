@@ -6,6 +6,7 @@
 //
 //=============================================================================//
 
+#include "sys_das.h"
 
 #if defined(_WIN32) && !defined(_X360)
 #include "winlite.h"
@@ -1087,6 +1088,9 @@ int Sys_InitGame( CreateInterfaceFn appSystemFactory, const char* pBaseDir, void
 	MapReslistGenerator_BuildMapList();
 
 	BuildMinidumpComment( NULL, false );
+
+	g_pDaScriptSystem->Init();
+
 	return 1;
 }
 
@@ -1095,6 +1099,8 @@ int Sys_InitGame( CreateInterfaceFn appSystemFactory, const char* pBaseDir, void
 //-----------------------------------------------------------------------------
 void Sys_ShutdownGame( void )
 {
+	g_pDaScriptSystem->Shutdown();
+
 	TRACESHUTDOWN( Sys_ShutdownAuthentication() );
 
 	TRACESHUTDOWN( Host_Shutdown() );

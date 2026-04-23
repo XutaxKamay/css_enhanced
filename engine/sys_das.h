@@ -37,7 +37,6 @@ class CDaScriptSystem
 	std::unordered_map< std::string, DaScript > m_Programs;
 	std::unordered_set< std::string > m_AllProgramsLoaded;
 	das::ModuleGroup m_dasLibGroup;
-	das::TextPrinter m_dasTout;
 };
 
 extern CDaScriptSystem* g_pDaScriptSystem;

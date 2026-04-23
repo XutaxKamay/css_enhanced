@@ -1600,7 +1600,7 @@ int CParticleMgr::ComputeParticleDefScreenArea( int nInfoCount, RetireInfo_t *pI
 
 		// Don't count parents
 		Assert( !pCollection->m_pParent );
-		Assert( nCollection < nInfoCount && pDef == pCollection->m_pDef );
+		Assert( nCollection < nInfoCount && pDef == pCollection->m_pDef.m_pObject );
 
 		pInfo[nCollection].m_flScreenArea = 0.0f;
 		pInfo[nCollection].m_pCollection = pCollection;

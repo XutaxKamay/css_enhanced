@@ -492,7 +492,7 @@ void CMDLPicker::OnCommand( const char *pCommand )
 //-----------------------------------------------------------------------------
 void CMDLPicker::OnDirectorySelected( char const *dir )
 {
-	if ( m_hDirectorySelectDialog != 0 )
+	if ( m_hDirectorySelectDialog )
 	{
 		m_hDirectorySelectDialog->MarkForDeletion();
 	}

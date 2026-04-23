@@ -123,8 +123,8 @@ IGameConsole *staticGameConsole = NULL;
 // cache some of the state we pass through to matsystemsurface, for visibility
 bool s_bWindowsInputEnabled = true;
 
-ConVar r_drawvgui( "r_drawvgui", "1", FCVAR_CHEAT, "Enable the rendering of vgui panels" );
-ConVar vgui_disabled( "vgui_disabled", "1", FCVAR_HIDDEN, "Completely disable VGUI rendering, logic, and input" );
+ConVar r_drawvgui( "r_drawvgui", "1", FCVAR_NONE, "Enable the rendering of vgui panels" );
+ConVar vgui_disabled( "vgui_disabled", "1", FCVAR_NONE, "Completely disable VGUI rendering, logic, and input" );
 ConVar gameui_xbox( "gameui_xbox", "0", 0 );
 
 void Con_CreateConsolePanel( vgui::Panel *parent );

@@ -414,7 +414,7 @@ void IdleState::OnUpdate( CCSBot *me )
 				// only decide to camp at the start of the round, or if we haven't seen anything for a long time
 				if (me->IsSafe() || me->HasNotSeenEnemyForLongTime())
 				{
-					float guardBombsiteChance = -34.0f * me->GetMorale();
+					float guardBombsiteChance = -34.0f * (float)me->GetMorale();
 
 					if (RandomFloat( 0.0f, 100.0f ) < guardBombsiteChance)
 					{
@@ -493,7 +493,7 @@ void IdleState::OnUpdate( CCSBot *me )
 					break;
 
 				// the lower our morale gets, the more we want to camp the escape zone(s)
-				float guardEscapeZoneChance = -34.0f * me->GetMorale();
+				float guardEscapeZoneChance = -34.0f * (float)me->GetMorale();
 
 				if (RandomFloat( 0.0f, 100.0f ) < guardEscapeZoneChance)
 				{
@@ -658,7 +658,7 @@ void IdleState::OnUpdate( CCSBot *me )
 
 
 				// decide if we want to hunt, or guard
-				const float huntChance = 70.0f + 25.0f * me->GetMorale();
+				const float huntChance = 70.0f + 25.0f * (float)me->GetMorale();
 
 				// rogues just hunt, unless they want to snipe
 				// if the whole team has decided to rush, hunt

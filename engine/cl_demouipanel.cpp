@@ -289,7 +289,7 @@ void CDemoUIPanel::OnMessage(const KeyValues *params, VPANEL fromPanel)
 
 void CDemoUIPanel::OnEdit()
 {
-	if ( m_hDemoEditor != 0 )
+	if ( m_hDemoEditor )
 	{
 		m_hDemoEditor->SetVisible( true );
 		m_hDemoEditor->MoveToFront();
@@ -302,7 +302,7 @@ void CDemoUIPanel::OnEdit()
 
 void CDemoUIPanel::OnSmooth()
 {
-	if ( m_hDemoSmoother != 0 )
+	if ( m_hDemoSmoother )
 	{
 		m_hDemoSmoother->SetVisible( true );
 		m_hDemoSmoother->MoveToFront();
@@ -318,7 +318,7 @@ void CDemoUIPanel::OnLoad()
 	if ( !m_hFileOpenDialog.Get() )
 	{
 		m_hFileOpenDialog = new FileOpenDialog( this, "Choose .dem file", true );
-		if ( m_hFileOpenDialog != 0 )
+		if ( m_hFileOpenDialog )
 		{
 			m_hFileOpenDialog->AddFilter("*.dem", "Demo Files (*.dem)", true);
 		}
@@ -353,7 +353,7 @@ void CDemoUIPanel::OnFileSelected( char const *fullpath )
 	Cbuf_AddText( va( "playdemo %s\n", relativepath ) );
 	Cbuf_AddText( "demopauseafterinit\n" );
 
-	if ( m_hFileOpenDialog != 0 )
+	if ( m_hFileOpenDialog )
 	{
 		m_hFileOpenDialog->MarkForDeletion();
 	}
@@ -364,11 +364,11 @@ void CDemoUIPanel::OnFileSelected( char const *fullpath )
 //-----------------------------------------------------------------------------
 void CDemoUIPanel::OnVDMChanged( void )
 {
-	if ( m_hDemoEditor != 0 )
+	if ( m_hDemoEditor )
 	{
 		m_hDemoEditor->OnVDMChanged();
 	}
-	if ( m_hDemoSmoother != 0 )
+	if ( m_hDemoSmoother )
 	{
 		m_hDemoSmoother->OnVDMChanged();
 	}
@@ -443,7 +443,7 @@ bool CDemoUIPanel::OverrideView( democmdinfo_t& info, int tick )
 		return true;
 	}
 
-	if ( m_hDemoSmoother != 0 )
+	if ( m_hDemoSmoother )
 	{
 		// demo smoother override
 		if ( m_hDemoSmoother->OverrideView( info, tick ) )
@@ -468,7 +468,7 @@ bool CDemoUIPanel::OverrideView( democmdinfo_t& info, int tick )
 //-----------------------------------------------------------------------------
 void CDemoUIPanel::DrawDebuggingInfo()
 {
-	if ( m_hDemoSmoother != 0 )
+	if ( m_hDemoSmoother )
 	{
 		m_hDemoSmoother->DrawDebuggingInfo( 1, 1 ); // MOTODO
 	}
@@ -851,7 +851,7 @@ void CDemoUIPanel2::OnLoad()
 	if ( !m_hFileOpenDialog.Get() )
 	{
 		m_hFileOpenDialog = new FileOpenDialog( this, "Choose .dem file", true );
-		if ( m_hFileOpenDialog != 0 )
+		if ( m_hFileOpenDialog )
 		{
 			m_hFileOpenDialog->AddFilter("*.dem", "Demo Files (*.dem)", true);
 		}
@@ -886,7 +886,7 @@ void CDemoUIPanel2::OnFileSelected( char const *fullpath )
 	Cbuf_AddText( va( "playdemo %s\n", relativepath ) );
 	Cbuf_AddText( "demopauseafterinit\n" );
 
-	if ( m_hFileOpenDialog != 0 )
+	if ( m_hFileOpenDialog )
 	{
 		m_hFileOpenDialog->MarkForDeletion();
 	}

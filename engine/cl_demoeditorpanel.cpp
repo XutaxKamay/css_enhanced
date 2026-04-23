@@ -181,7 +181,7 @@ bool CDemoEditorPanel::IsNewActionCommand( char const *command )
 //-----------------------------------------------------------------------------
 void CDemoEditorPanel::CreateNewAction( char const *actiontype )
 {
-	if ( m_hCurrentEditor != 0 )
+	if ( m_hCurrentEditor )
 		return;
 
 	DEMOACTION type = CBaseDemoAction::TypeForName( actiontype );
@@ -195,7 +195,7 @@ void CDemoEditorPanel::CreateNewAction( char const *actiontype )
 		demoaction->SetDirty( true );
 
 		m_hCurrentEditor = CBaseDemoAction::CreateActionEditor( action->GetType(), this, action, true );
-		if ( m_hCurrentEditor != 0 )
+		if ( m_hCurrentEditor )
 		{
 			m_hCurrentEditor->SetVisible( true );
 			m_hCurrentEditor->SetSize( 400, 300 );
@@ -300,7 +300,7 @@ void CDemoEditorPanel::PopulateActionList()
 
 void CDemoEditorPanel::OnEdit()
 {
-	if ( m_hCurrentEditor != 0 )
+	if ( m_hCurrentEditor )
 		return;
 
 	int numselected = m_pActions->GetSelectedItemsCount();
@@ -314,7 +314,7 @@ void CDemoEditorPanel::OnEdit()
 	CBaseDemoAction *action = demoaction->GetAction( row );
 
 	m_hCurrentEditor = CBaseDemoAction::CreateActionEditor( action->GetType(), this, action, false );
-	if ( m_hCurrentEditor != 0 )
+	if ( m_hCurrentEditor )
 	{
 		m_hCurrentEditor->SetVisible( true );
 		m_hCurrentEditor->SetSize( 400, 300 );

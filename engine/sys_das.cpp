@@ -42,22 +42,24 @@ void CDaScriptSystem::Init()
 
 bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 {
+	DevMsg( "[daScript] Compiling %s ...\n", dasFile.path.c_str() );
+
 	// See if the script compiles first
 	das::TextPrinter tout;
-	auto program = compileDaScript( dasFile.path, das::make_smart< das::FsFileAccess >(), tout, m_dasLibGroup );
-
-	m_dasTout.write( tout.data() );
+	auto program = das::compileDaScript( dasFile.path, das::make_smart< das::FsFileAccess >(), tout, m_dasLibGroup );
 
 	if ( program->failed() )
 	{
 		for ( auto& err : program->errors )
 		{
-			tout << reportError( err.at, err.what, err.extra, err.fixme, err.cerr );
+			tout << das::reportError( err.at, err.what, err.extra, err.fixme, err.cerr );
 		}
 
 		DevMsg( "[daScript] Failed to load %s !\nErrors:\n%s\nEnd of errors.\n\n", dasFile.path.c_str(), tout.data() );
 		return false;
 	}
+
+	DevMsg( "[daScript] Simulating %s ... \n", dasFile.path.c_str() );
 
 	// Check if we can simulate it:
 	// A Context is the runtime environment: stack, globals, heap.
@@ -70,7 +72,7 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 	{
 		for ( auto& err : program->errors )
 		{
-			tout << reportError( err.at, err.what, err.extra, err.fixme, err.cerr );
+			tout << das::reportError( err.at, err.what, err.extra, err.fixme, err.cerr );
 		}
 
 		DevMsg( "[daScript] Failed to simulate %s !\nErrors:\n%s\nEnd of errors.\n\n",
@@ -79,6 +81,8 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 
 		return false;
 	}
+
+	DevMsg( "[daScript] Finding init/shutdown functions for %s ...\n", dasFile.path.c_str() );
 
 	// Let's try initialize it by finding first if they have init and shutdown function
 	auto fnInit = ctx.findFunction( "init" );
@@ -98,6 +102,9 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 	}
 
 	m_AllProgramsLoaded.insert( dasFile.path );
+	m_Programs.insert_or_assign( dasFile.path, DaScript { program, dasFile.last_write_time } );
+
+	DevMsg( "[daScript] Loaded %s !\n", dasFile.path.c_str() );
 
 	return true;
 }
@@ -105,8 +112,7 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 {
 	auto& dasPrograms = g_pDaScriptSystem->m_Programs;
-
-	auto dasProgram = dasPrograms.find( dasFile.path );
+	auto dasProgram	  = dasPrograms.find( dasFile.path );
 
 	if ( dasProgram != dasPrograms.end() )
 	{
@@ -126,9 +132,6 @@ void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 		{
 			return;
 		}
-
-		DevMsg( "[daScript] Loaded %s !\n", dasFile.path.c_str() );
-		dasPrograms[dasFile.path].last_write_time = dasFile.last_write_time;
 	}
 }
 
@@ -153,7 +156,6 @@ void CDaScriptSystem::Job()
 	}
 
 	// Call shutdown on all scripts & unload all of them
-
 	das::Module::Shutdown();
 }
 

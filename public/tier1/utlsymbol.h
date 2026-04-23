@@ -50,6 +50,7 @@ public:
 	CUtlSymbol& operator=( CUtlSymbol const& src ) { m_Id = src.m_Id; return *this; }
 	
 	// operator==
+	bool operator==( UtlSymId_t const& symbol ) const { return m_Id == symbol; }
 	bool operator==( CUtlSymbol const& src ) const { return m_Id == src.m_Id; }
 	bool operator==( const char* pStr ) const;
 	

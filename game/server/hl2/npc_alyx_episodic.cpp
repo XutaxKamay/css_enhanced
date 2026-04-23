@@ -1426,7 +1426,7 @@ void CNPC_Alyx::DoCustomSpeechAI( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CNPC_Alyx::SpeakIfAllowed( AIConcept_t concept, const char *modifiers /*= NULL*/, bool bRespondingToPlayer /*= false*/, char *pszOutResponseChosen /*= NULL*/, size_t bufsize /* = 0 */ )
+bool CNPC_Alyx::SpeakIfAllowed( AIConcept_t aiconcept, const char *modifiers /*= NULL*/, bool bRespondingToPlayer /*= false*/, char *pszOutResponseChosen /*= NULL*/, size_t bufsize /* = 0 */ )
 {
 	if ( BaseClass::SpeakIfAllowed( concept, modifiers, bRespondingToPlayer, pszOutResponseChosen, bufsize ) )
 	{

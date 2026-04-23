@@ -1350,7 +1350,7 @@ inline int CDmaStringArrayBase<B>::InsertBefore( int elem, const char *pValue )
 template< class E, class B > 
 inline UtlSymId_t CDmaElementArrayConstBase<E,B>::GetElementType() const
 {
-	return this->Storage().Data().m_ElementType;
+	return this->Data().m_ElementType;
 }
 
 template< class E, class B >
