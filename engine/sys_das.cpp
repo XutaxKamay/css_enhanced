@@ -5,6 +5,11 @@
 #include "filesystem.h"
 #include "filesystem_engine.h"
 
+#include <daScript/misc/sysos.h>
+
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 static CDaScriptSystem g_DaScriptSystem;
 CDaScriptSystem* g_pDaScriptSystem = &g_DaScriptSystem;
 
@@ -66,9 +71,9 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 	// simulate() resolves function pointers, initializes globals,
 	// and prepares everything for execution. (according to daslang devs)
 
-	das::Context ctx( program->getContextStackSize() );
+	auto ctx = std::make_shared< das::Context >( program->getContextStackSize() );
 
-	if ( !program->simulate( ctx, tout ) )
+	if ( !program->simulate( *ctx, tout ) )
 	{
 		for ( auto& err : program->errors )
 		{
@@ -85,36 +90,53 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 	DevMsg( "[daScript] Finding init/shutdown functions for %s ...\n", dasFile.path.c_str() );
 
 	// Let's try initialize it by finding first if they have init and shutdown function
-	auto fnInit = ctx.findFunction( "init" );
+	auto fnInit = ctx->findFunction( "init" );
 
-	if ( !fnInit || das::verifyCall< void >( fnInit->debugInfo, m_dasLibGroup ) )
+	if ( !fnInit )
 	{
 		DevMsg( "[daScript] Failed to find init function for script %s !\n", dasFile.path.c_str() );
 		return false;
 	}
 
-	auto fnShutdown = ctx.findFunction( "shutdown" );
+	if ( !das::verifyCall< void >( fnInit->debugInfo, m_dasLibGroup ) )
+	{
+		DevMsg( "[daScript] Init signature failed for script %s !\n", dasFile.path.c_str() );
+		return false;
+	}
 
-	if ( !fnShutdown || das::verifyCall< void >( fnShutdown->debugInfo, m_dasLibGroup ) )
+	auto fnShutdown = ctx->findFunction( "shutdown" );
+
+	if ( !fnShutdown )
 	{
 		DevMsg( "[daScript] Failed to find shutdown function for script %s !\n", dasFile.path.c_str() );
 		return false;
 	}
 
-	m_AllProgramsLoaded.insert( dasFile.path );
-	m_Programs.insert_or_assign( dasFile.path, DaScript { program, dasFile.last_write_time } );
+	if ( !das::verifyCall< void >( fnInit->debugInfo, m_dasLibGroup ) )
+	{
+		DevMsg( "[daScript] Shutdown signature failed for script %s !\n", dasFile.path.c_str() );
+		return false;
+	}
 
-	DevMsg( "[daScript] Loaded %s !\n", dasFile.path.c_str() );
+	ctx->evalWithCatch( fnInit );
+
+	if ( auto ex = ctx->getException() )
+	{
+		DevMsg( "[daScript] script %s returned exception ! (%s)\n", ex );
+		return false;
+	}
+
+	m_AllProgramsLoaded.insert( dasFile.path );
+	m_Programs.insert_or_assign( dasFile.path, DaScript { program, dasFile.last_write_time, fnInit, fnShutdown, ctx } );
 
 	return true;
 }
 
 void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 {
-	auto& dasPrograms = g_pDaScriptSystem->m_Programs;
-	auto dasProgram	  = dasPrograms.find( dasFile.path );
+	auto dasProgram = m_Programs.find( dasFile.path );
 
-	if ( dasProgram != dasPrograms.end() )
+	if ( dasProgram != m_Programs.end() )
 	{
 		if ( dasProgram->second.last_write_time == dasFile.last_write_time )
 		{
@@ -123,6 +145,15 @@ void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 		}
 
 		DevMsg( "[daScript] Reloading %s ...\n", dasFile.path.c_str() );
+
+		m_Programs.erase( dasProgram );
+
+		if ( !LoadFile( dasFile ) )
+		{
+			return;
+		}
+
+		DevMsg( "[daScript] Reloaded %s !\n", dasFile.path.c_str() );
 	}
 	else
 	{
@@ -132,6 +163,8 @@ void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 		{
 			return;
 		}
+
+		DevMsg( "[daScript] Loaded %s !\n", dasFile.path.c_str() );
 	}
 }
 
@@ -140,12 +173,18 @@ void CDaScriptSystem::Job()
 	NEED_ALL_DEFAULT_MODULES;
 	das::Module::Initialize();
 
+	char dascriptsPath[MAX_PATH];
+	if ( g_pFileSystem && g_pFileSystem->GetLocalPath( "dascripts", dascriptsPath, sizeof( dascriptsPath ) ) )
+	{
+		das::setDasRoot( dascriptsPath );
+	}
+
 	Msg( "[daScript] CDaScriptSystem initialized !\n" );
 
 	while ( !g_pDaScriptSystem->m_bShouldExit )
 	{
 		std::vector< DasFile > dasFiles;
-		CollectDasFiles( "dascripts", dasFiles );
+		CollectDasFiles( "dascripts/gamescripts", dasFiles );
 
 		for ( auto&& dasFile : dasFiles )
 		{

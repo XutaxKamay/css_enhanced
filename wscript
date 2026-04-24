@@ -93,7 +93,8 @@ projects={
 		'vtf',
 		'utils/vtex',
 		'unicode',
-		'video'
+		'video',
+		'thirdparty/daScript_builder'
 	],
 	'tests': [
 		'appframework',
@@ -111,7 +112,8 @@ projects={
 		'unittests/tier2test',
 		'unittests/tier3test',
 		'unittests/mathlibtest',
-		'utils/unittest'
+		'utils/unittest',
+		'thirdparty/daScript_builder'
 	],
 	'dedicated': [
 		'appframework',
@@ -145,7 +147,8 @@ projects={
 		'vpklib',
 		'vstdlib',
 		'vtf',
-		'stub_steam'
+		'stub_steam',
+		'thirdparty/daScript_builder'
 	]
 }
 
@@ -423,7 +426,6 @@ def check_deps(conf):
 			if conf.options.DXVK:
 				conf.check_cfg(package='dxvk-d3d9', uselib_store='DXVK', args=['--cflags', '--libs'])
 				conf.env.INCLUDES += conf.env.INCLUDES_DXVK
-			conf.check(lib='libDaScriptDyn', uselib_store='DASSCRIPT')
 	else:
 		conf.check(lib='SDL2', uselib_store='SDL2')
 		conf.check(lib='freetype2', uselib_store='FT2')
@@ -437,7 +439,6 @@ def check_deps(conf):
 			conf.check(lib='ssl', uselib_store='SSL')
 		conf.check(lib='android_support', uselib_store='ANDROID_SUPPORT')
 		conf.check(lib='opus', uselib_store='OPUS')
-		conf.check(lib='libDaScriptDyn', uselib_store='DASSCRIPT')
 
 		if conf.options.DXVK:
 			conf.check(lib='dxvk_d3d9', uselib_store='DXVK')
@@ -449,7 +450,6 @@ def check_deps(conf):
 		# conf.check(lib='nvtc', uselib_store='NVTC')
 		# conf.check(lib='ati_compress_mt_vc10', uselib_store='ATI_COMPRESS_MT_VC10')
 		conf.check(lib='SDL2', uselib_store='SDL2')
-		conf.check(lib='DaScript', uselib_store='DASSCRIPT')
 		conf.check(lib='libjpeg', uselib_store='JPEG', define_name='HAVE_JPEG')
 		conf.check(lib='libpng', uselib_store='PNG', define_name='HAVE_PNG')
 		if conf.options.DXVK:
@@ -575,7 +575,7 @@ def configure(conf):
 		linkflags += ['-lexecinfo']
 
 	if conf.env.DEST_OS != 'win32':
-		flags += ['-I'+os.path.abspath('.')+'/thirdparty/daslang/include']
+		flags += ['-I'+os.path.abspath('.')+'/thirdparty/daScript/include']
 		cflags += flags
 		linkflags += flags
 	else:
@@ -584,7 +584,7 @@ def configure(conf):
 			'/I'+os.path.abspath('.')+'/thirdparty/zstd/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/curl/include',
 			'/I'+os.path.abspath('.')+'/thirdparty/SDL',
-			'/I'+os.path.abspath('.')+'/thirdparty/daslang/include',
+			'/I'+os.path.abspath('.')+'/thirdparty/daScript/include',
 			'/arch:SSE' if conf.env.DEST_CPU == 'x86' else '/arch:AVX',
 			'/GF',
 			'/Gy',
@@ -705,10 +705,6 @@ def build(bld):
 		projects['dedicated'] += ['utils/bzip2']
 		libcurl_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, 'libcurl.dll')
 		bld.install_files(bld.env.LIBDIR, [libcurl_path])
-	else:
-		das_lib_path = os.path.join('lib', bld.env.DEST_OS, bld.env.DEST_CPU, 'liblibDaScriptDyn.so')
-		bld.install_files(bld.env.LIBDIR, [das_lib_path])
-
 
 	if bld.env.OPUS or bld.env.DEST_OS == 'android':
 		projects['game'] += ['engine/voice_codecs/opus']

@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "daScript/daScript.h"
+#include <daScript/daScript.h>
 
 struct DasFile
 {
@@ -32,6 +32,9 @@ class CDaScriptSystem
 	{
 		das::ProgramPtr program;
 		std::filesystem::file_time_type last_write_time;
+		das::SimFunction* fnInit;
+		das::SimFunction* fnShutdown;
+		das::ContextPtr ctx;
 	};
 
 	std::unordered_map< std::string, DaScript > m_Programs;
