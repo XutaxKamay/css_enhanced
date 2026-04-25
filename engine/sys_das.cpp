@@ -41,8 +41,8 @@ static void CollectDasFiles( const char* subDir, std::vector< DasFile >& results
 
 void CDaScriptSystem::Init()
 {
-	m_bShouldExit = false;
-	g_pThreadPool->AddJob( new CFunctorJob( CreateFunctor( Job ) ) );
+	m_bShouldExit	 = false;
+	m_thReloadSystem = CreateSimpleThread( ( ThreadFunc_t )Job, this );
 }
 
 bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
@@ -51,7 +51,9 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 
 	// See if the script compiles first
 	das::TextPrinter tout;
-	auto program = das::compileDaScript( dasFile.path, das::make_smart< das::FsFileAccess >(), tout, m_dasLibGroup );
+	auto fAccess = das::make_smart< das::FsFileAccess >();
+	das::ModuleGroup libGroup;
+	auto program = das::compileDaScript( dasFile.path, fAccess, tout, libGroup );
 
 	if ( program->failed() )
 	{
@@ -98,7 +100,7 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 		return false;
 	}
 
-	if ( !das::verifyCall< void >( fnInit->debugInfo, m_dasLibGroup ) )
+	if ( !das::verifyCall< void >( fnInit->debugInfo, libGroup ) )
 	{
 		DevMsg( "[daScript] Init signature failed for script %s !\n", dasFile.path.c_str() );
 		return false;
@@ -112,7 +114,7 @@ bool CDaScriptSystem::LoadFile( const DasFile& dasFile )
 		return false;
 	}
 
-	if ( !das::verifyCall< void >( fnInit->debugInfo, m_dasLibGroup ) )
+	if ( !das::verifyCall< void >( fnShutdown->debugInfo, libGroup ) )
 	{
 		DevMsg( "[daScript] Shutdown signature failed for script %s !\n", dasFile.path.c_str() );
 		return false;
@@ -146,6 +148,8 @@ void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 
 		DevMsg( "[daScript] Reloading %s ...\n", dasFile.path.c_str() );
 
+		dasProgram->second.ctx->eval( dasProgram->second.fnShutdown );
+
 		m_Programs.erase( dasProgram );
 
 		if ( !LoadFile( dasFile ) )
@@ -168,7 +172,7 @@ void CDaScriptSystem::LoadOrReloadFile( const DasFile& dasFile )
 	}
 }
 
-void CDaScriptSystem::Job()
+void CDaScriptSystem::Job( CDaScriptSystem* pDasScriptSystem )
 {
 	NEED_ALL_DEFAULT_MODULES;
 	das::Module::Initialize();
@@ -181,17 +185,22 @@ void CDaScriptSystem::Job()
 
 	Msg( "[daScript] CDaScriptSystem initialized !\n" );
 
-	while ( !g_pDaScriptSystem->m_bShouldExit )
+	while ( !pDasScriptSystem->m_bShouldExit )
 	{
 		std::vector< DasFile > dasFiles;
 		CollectDasFiles( "dascripts/gamescripts", dasFiles );
 
 		for ( auto&& dasFile : dasFiles )
 		{
-			g_pDaScriptSystem->LoadOrReloadFile( dasFile );
+			pDasScriptSystem->LoadOrReloadFile( dasFile );
 		}
 
 		ThreadSleep( 500 );
+	}
+
+	for ( auto&& dasProgram : pDasScriptSystem->m_Programs )
+	{
+		dasProgram.second.ctx->eval( dasProgram.second.fnShutdown );
 	}
 
 	// Call shutdown on all scripts & unload all of them
@@ -201,4 +210,5 @@ void CDaScriptSystem::Job()
 void CDaScriptSystem::Shutdown()
 {
 	m_bShouldExit = true;
+	ThreadJoin( m_thReloadSystem );
 }

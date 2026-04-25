@@ -11,6 +11,8 @@
 
 #include <daScript/daScript.h>
 
+#include "threadtools.h"
+
 struct DasFile
 {
 	std::string path;
@@ -24,7 +26,7 @@ class CDaScriptSystem
 	void Shutdown();
 	bool LoadFile( const DasFile& dasFile );
 	void LoadOrReloadFile( const DasFile& dasFile );
-	static void Job();
+	static void Job( CDaScriptSystem* pDasScriptSystem );
 
 	bool m_bShouldExit;
 
@@ -39,7 +41,7 @@ class CDaScriptSystem
 
 	std::unordered_map< std::string, DaScript > m_Programs;
 	std::unordered_set< std::string > m_AllProgramsLoaded;
-	das::ModuleGroup m_dasLibGroup;
+	ThreadHandle_t m_thReloadSystem;
 };
 
 extern CDaScriptSystem* g_pDaScriptSystem;
