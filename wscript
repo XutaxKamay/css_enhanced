@@ -94,7 +94,7 @@ projects={
 		'utils/vtex',
 		'unicode',
 		'video',
-		'thirdparty/daScript_builder'
+		'daslang'
 	],
 	'tests': [
 		'appframework',
@@ -113,7 +113,7 @@ projects={
 		'unittests/tier3test',
 		'unittests/mathlibtest',
 		'utils/unittest',
-		'thirdparty/daScript_builder'
+		'daslang'
 	],
 	'dedicated': [
 		'appframework',
@@ -148,7 +148,7 @@ projects={
 		'vstdlib',
 		'vtf',
 		'stub_steam',
-		'thirdparty/daScript_builder'
+		'daslang'
 	]
 }
 
