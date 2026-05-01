@@ -366,7 +366,7 @@ bool CBotManager::IsLineBlockedBySmoke( const Vector &from, const Vector &to, fl
 	}
 
 	// define how much smoke a bot can see thru
-	const float maxSmokedLength = 0.7f * SmokeGrenadeRadius;
+	const float maxSmokedLength = 0.7f * (float)SmokeGrenadeRadius;
 
 	// return true if the total length of smoke-covered line-of-sight is too much
 	return (totalSmokedLength > maxSmokedLength);

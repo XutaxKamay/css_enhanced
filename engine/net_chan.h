@@ -10,6 +10,7 @@
 #pragma once
 #endif
 
+#include <vector>
 #include <queue>
 
 #include "net.h"

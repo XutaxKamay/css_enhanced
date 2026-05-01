@@ -7251,14 +7251,14 @@ bool CCSPlayer::CanChangeName( void )
 		return true;
 
 	// enforce the minimum interval
-	if ( (m_flNameChangeHistory[0] + MIN_NAME_CHANGE_INTERVAL) >= gpGlobals->curtime )
+	if ( (m_flNameChangeHistory[0] + (float)-MIN_NAME_CHANGE_INTERVAL) >= gpGlobals->curtime )
 	{
 		return false;
 	}
 
 	// enforce that we dont do more than NAME_CHANGE_HISTORY_SIZE
 	// changes within NAME_CHANGE_HISTORY_INTERVAL
-	if ( (m_flNameChangeHistory[NAME_CHANGE_HISTORY_SIZE-1] + NAME_CHANGE_HISTORY_INTERVAL) >= gpGlobals->curtime )
+	if ( (m_flNameChangeHistory[NAME_CHANGE_HISTORY_SIZE-1] + (float)NAME_CHANGE_HISTORY_INTERVAL) >= gpGlobals->curtime )
 	{
 		return false;
 	}

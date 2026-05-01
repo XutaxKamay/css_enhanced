@@ -63,7 +63,7 @@ float SND_GetGainFromMult( float gain, float dist_mult, vec_t dist )
 		
 		// decrease compression curve fit for higher sndlvl values
 
-		if ( sndlvl > SND_DB_MED )
+		if ( sndlvl > (soundlevel_t)SND_DB_MED )
 		{
 			// snd_gain_power varies from max to min as sndlvl varies from 90 to 140
 

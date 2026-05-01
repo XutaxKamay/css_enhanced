@@ -1855,7 +1855,7 @@ void CRenderTextureEditor::Paint()
 		if ( chLine1[0] )
 		{
 			g_pMatSystemSurface->DrawSetColor( 200, 0, 0, 255 );
-			g_pMatSystemSurface->DrawFilledRect( x - TILE_BORDER/2, y + TILE_TEXT/2, x + TILE_BORDER/2 + (TILE_SIZE * 0.5), y + TILE_TEXT/2 + TILE_TEXT/4 );
+			g_pMatSystemSurface->DrawFilledRect( x - TILE_BORDER/2, y + TILE_TEXT/2, x + TILE_BORDER/2 + ((float)TILE_SIZE * 0.5), y + TILE_TEXT/2 + TILE_TEXT/4 );
 			g_pMatSystemSurface->DrawColoredTextRect( GetFont(), x, y + TILE_TEXT/2, TILE_SIZE, TILE_TEXT / 4,
 				255, 255, 255, 255,
 				"%s", chLine1 );

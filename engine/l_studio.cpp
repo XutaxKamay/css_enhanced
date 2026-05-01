@@ -1241,7 +1241,7 @@ LightingState_t *CModelRender::TimeAverageLightingState( ModelInstanceHandle_t h
 		return pLightingState;
 
 	ModelInstance_t &inst = m_ModelInstances[handle];
-	if ( inst.m_flLightingTime == CURRENT_LIGHTING_UNINITIALIZED )
+	if ( inst.m_flLightingTime == (float)CURRENT_LIGHTING_UNINITIALIZED )
 	{
 		SnapCurrentLightingState( inst, pLightingState );
 		return pLightingState;

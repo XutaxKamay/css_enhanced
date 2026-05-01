@@ -50,4 +50,5 @@ masterserver/*.db-shm
 masterserver/*.crt
 .qt*
 css_enhanced.*
+generated_das_binding/
 

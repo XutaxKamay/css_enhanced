@@ -2999,14 +2999,14 @@ bool CAI_Navigator::SimplifyPathQuick()
 	static SimplifyForwardScanParams quickScanParams[2] = 
 	{ 
 		{
-			(12.0 * 12.0) - 0.1,	// Distance to move out path
+			(12.0f * 12.0f) - 0.1f,	// Distance to move out path
 			12 * 12, 				// Radius within which a point must be to be valid
 			0.5 * 12, 				// Increment to move out on
 			1, 						// maximum number of point samples
 		},
 		// Strong optimization version
 		{
-			(6.0 * 12.0) - 0.1,	// Distance to move out path
+			(6.0f * 12.0f) - 0.1f,	// Distance to move out path
 			8 * 12, 				// Radius within which a point must be to be valid
 			1.0 * 12, 				// Increment to move out on
 			1, 						// maximum number of point samples

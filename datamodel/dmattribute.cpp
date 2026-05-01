@@ -2068,7 +2068,7 @@ void CDmAttribute::OnChanged( bool bArrayCountChanged, bool bIsTopological )
 //-----------------------------------------------------------------------------
 template< class T > bool CDmAttribute::IsTypeConvertable() const
 {
-	return ( CDmAttributeInfo< T >::ATTRIBUTE_TYPE == GetType() );
+	return ( CDmAttributeInfo< T >::ATTRIBUTE_TYPE == (std::size_t)GetType() );
 }
 
 template<> bool CDmAttribute::IsTypeConvertable<bool>() const
@@ -2300,7 +2300,7 @@ bool CDmAttribute::ShouldModify( const T& value )
 	if ( !IsTypeConvertable<T>() )
 		return false;
 
-	if ( ( GetType() == CDmAttributeInfo<T>::ATTRIBUTE_TYPE ) && IsAttributeEqual( GetValue<T>(), value ) )
+	if ( ( (std::size_t)GetType() == CDmAttributeInfo<T>::ATTRIBUTE_TYPE ) && IsAttributeEqual( GetValue<T>(), value ) )
 		return false;
 
 	return MarkDirty();

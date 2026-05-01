@@ -620,7 +620,7 @@ void Splitter::EvenlyRespaceSplitters( )
 	int nLockedSize = ComputeLockedSize( 0 );
 	float flUnlockedSize = (float)( GetPosRange() - nLockedSize );
 	float flDPos = flUnlockedSize / (float)nSplitterCount;
-	if ( flDPos < SPLITTER_HANDLE_WIDTH )
+	if ( flDPos < (float)SPLITTER_HANDLE_WIDTH )
 	{
 		flDPos = SPLITTER_HANDLE_WIDTH;
 	}
@@ -676,7 +676,7 @@ void Splitter::ApplyUserConfigSettings(KeyValues *userConfig)
 	{
 		char name[128];
 		_snprintf(name, sizeof(name), "%d_splitter_pos", i);
-		pFractions[i] = userConfig->GetFloat( name, flTotalSize + SPLITTER_HANDLE_WIDTH + 1 );
+		pFractions[i] = userConfig->GetFloat( name, flTotalSize + (float)SPLITTER_HANDLE_WIDTH + 1 );
 		flTotalSize = pFractions[i];
 	}
 

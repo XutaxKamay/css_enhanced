@@ -194,7 +194,7 @@ public:
 	void			SetSquad( CAI_Squad *pSquad );
 	void			AddInsignia();
 	void			RemoveInsignia();
-	bool			SpeakCommandResponse( AIConcept_t concept, const char *modifiers = NULL );
+	bool			SpeakCommandResponse( AIConcept_t aiconcept, const char *modifiers = NULL );
 	
 	//---------------------------------
 	// Scanner interaction

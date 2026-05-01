@@ -1618,7 +1618,7 @@ void CCSBot::UpdateReactionQueue( void )
 
 	// clamp reaction time to enemy queue size
 	float reactionTime = GetProfile()->GetReactionTime() - g_BotUpdateInterval;
-	float maxReactionTime = (MAX_ENEMY_QUEUE * g_BotUpdateInterval) - 0.01f;
+	float maxReactionTime = ((float)MAX_ENEMY_QUEUE * g_BotUpdateInterval) - 0.01f;
 	if (reactionTime > maxReactionTime)
 		reactionTime = maxReactionTime;
 
