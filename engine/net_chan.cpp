@@ -667,11 +667,20 @@ bool CNetChan::StartStreaming( unsigned int challengeNr, uint32 ip, uint16 port 
 
 	MEM_ALLOC_CREDIT();
 
+	// TODO_ENHANCED: workaround for loopback tcp streaming
+	if ( port == 0 )
+	{
+		static ConVarRef hostport( "hostport" );
+		port = hostport.GetInt();
+	}
+
 	netadr_t netadr( ip, port );
 
 	ConMsg( "CNetChan::StartStreaming with ip %s\n", netadr.ToString() );
 
 	m_StreamSocket = NET_ConnectSocket( m_Socket, netadr );
+
+	m_TCPQueue = {};
 
 	return ( m_StreamSocket != 0 );
 }
