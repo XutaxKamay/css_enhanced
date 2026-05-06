@@ -2688,6 +2688,11 @@ bool CNetChan::SendReliableIMMM( bf_write& msg, bool bWantsCompression )
 	char* pCurrentBuffer = NULL;
 	int nBufferSize		 = 0;
 
+	if ( msg.GetNumBitsWritten() == 0 )
+	{
+		return true;
+	}
+
 	if ( m_StreamSocket == 0 )
 	{
 		Error( "CNetChan::SendReliableIMMM: invalid stream socket\n" );
