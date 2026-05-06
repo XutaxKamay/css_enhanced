@@ -2872,10 +2872,10 @@ STREAM_CMD_STATE CNetChan::ProcessIMMM( void )
 	}
 
 	char* pCurrentBuffer = NULL;
+	ALIGN4 char dcBuffer[NET_MAX_PAYLOAD] ALIGN4_POST;
 
 	if ( bWantsDecompression )
 	{
-		ALIGN4 char dcBuffer[NET_MAX_PAYLOAD] ALIGN4_POST;
 		uint32 nBufferSize = sizeof( dcBuffer );
 
 		// skip cmd and header

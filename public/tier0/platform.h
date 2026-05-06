@@ -1200,12 +1200,15 @@ FORCEINLINE void StoreLittleDWord( unsigned long *base, unsigned int dwordIndex,
 #else
 FORCEINLINE uint32 LoadLittleDWord( const uint32 *base, unsigned int dwordIndex )
 	{
-		return LittleDWord( base[dwordIndex] );
+		uint32 result;
+		memcpy( &result, (const char*)base + dwordIndex * sizeof(uint32), sizeof(uint32) );
+		return LittleDWord( result );
 	}
 
 FORCEINLINE void StoreLittleDWord( uint32 *base, unsigned int dwordIndex, uint32 dword )
 	{
-		base[dwordIndex] = LittleDWord(dword);
+		dword = LittleDWord(dword);
+		memcpy( (char*)base + dwordIndex * sizeof(uint32), &dword, sizeof(uint32) );
 	}
 #endif
 

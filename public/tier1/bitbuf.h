@@ -419,12 +419,13 @@ BITBUF_INLINE void bf_write::WriteUBitLong( unsigned int curData, int numbits, b
 
     // Rotate data into dword alignment
     uint32 dwordCurData = LoadLittleDWord(&curData, 0);
-    curData             = (dwordCurData << iCurBitMasked) | (dwordCurData >> (32 - iCurBitMasked));
+    int iShiftRight = 32 - iCurBitMasked;
+    curData             = (dwordCurData << iCurBitMasked) | ((iShiftRight == 32) ? 0 : (dwordCurData >> iShiftRight));
     
 	// Calculate bitmasks for first and second word
-    unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1 << numbits) - 1;
+    unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1u << numbits) - 1;
 	unsigned int mask1 = bitmask << iCurBitMasked;
-	unsigned int mask2 = ((1 << (numbits - 1))-1) >> (31 - iCurBitMasked);
+	unsigned int mask2 = (numbits > 0) ? (((1u << (numbits - 1))-1) >> (31 - iCurBitMasked)) : 0;
 	
 	// Only look beyond current word if necessary (avoid access violation)
 	unsigned int i = mask2 & 1;
@@ -729,7 +730,7 @@ inline bool bf_read::CheckForOverflow(int nBits)
 inline int bf_read::ReadOneBitNoCheck()
 {
 #if VALVE_LITTLE_ENDIAN
-	unsigned int value = ((uint32 * RESTRICT)m_pData)[m_iCurBit >> 5] >> (m_iCurBit & 31);
+	unsigned int value = LoadLittleDWord( (uint32 * RESTRICT)m_pData, m_iCurBit >> 5 ) >> (m_iCurBit & 31);
 #else
 	unsigned char value = m_pData[m_iCurBit >> 3] >> (m_iCurBit & 7);
 #endif
@@ -785,10 +786,11 @@ BITBUF_INLINE unsigned int bf_read::ReadUBitLong( int numbits ) RESTRICT
 	unsigned int iWordOffset2 = iLastBit >> 5;
 	m_iCurBit += numbits;
 	
-	unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1 << numbits) - 1;
+	unsigned int bitmask = numbits == 32 ? 0xFFFFFFFF : (1u << numbits) - 1;
 
 	unsigned int dw1 = LoadLittleDWord( (uint32* RESTRICT)m_pData, iWordOffset1 ) >> iStartBit;
-	unsigned int dw2 = LoadLittleDWord( (uint32* RESTRICT)m_pData, iWordOffset2 ) << (32 - iStartBit);
+	int iShiftLeft = 32 - iStartBit;
+	unsigned int dw2 = (iShiftLeft == 32) ? 0 : LoadLittleDWord( (uint32* RESTRICT)m_pData, iWordOffset2 ) << iShiftLeft;
 
 	return (dw1 | dw2) & bitmask;
 }
