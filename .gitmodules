@@ -6,7 +6,7 @@
 	url = https://github.com/xutaxkamay/source-physics
 [submodule "lib"]
 	path = lib
-	url = https://xutaxkamay.com:3000/xutaxkamay/source-engine-lib.git
+	url = https://git.xutaxkamay.com/xutaxkamay/source-engine-lib
 [submodule "gamedata"]
 	path = gamedata
-	url = https://xutaxkamay.com:3000/xutaxkamay/css_enhanced_game_files.git
+	url = https://git.xutaxkamay.com/xutaxkamay/css_enhanced_game_files
